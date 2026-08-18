@@ -1,0 +1,2562 @@
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/algebraic/border_basis.py:163:36
+    |
+161 |         for exponent, coeff in poly.terms():
+162 |             column = basis_one
+163 |             for variable, power in zip(self.variables, exponent):
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+164 |                 if power:
+165 |                     column = (self.multiplication_matrices[variable] ** int(power)) * column
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/algebraic/rational_univariate/quotient.py:26:35
+   |
+25 | def _componentwise_leq(left: Sequence[int], right: Sequence[int]) -> bool:
+26 |     return all(a <= b for a, b in zip(left, right))
+   |                                   ^^^^^^^^^^^^^^^^
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/algebraic/rational_univariate/quotient.py:68:28
+   |
+66 | def _monomial_from_exponent(variables: Sequence[sp.Symbol], exponent: Sequence[int]) -> sp.Expr:
+67 |     monomial = sp.Integer(1)
+68 |     for variable, power in zip(variables, exponent):
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^
+69 |         monomial *= variable ** int(power)
+70 |     return monomial
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/algebraic/rational_univariate/representation.py:112:21
+    |
+110 |     @property
+111 |     def assignment(self) -> Mapping[sp.Symbol, sp.Expr]:
+112 |         return dict(zip(self.variables, self.coordinates))
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/algebraic/rational_univariate/representation.py:161:27
+    |
+159 |     @property
+160 |     def assignments(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
+161 |         return tuple(dict(zip(self.variables, point)) for point in self.points)
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+162 |
+163 |     @property
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/algebraic/rational_univariate/signs.py:145:27
+    |
+143 |     for raw_point in points:
+144 |         point = tuple(sp.simplify(value) for value in raw_point)
+145 |         assignment = dict(zip(variable_tuple, point))
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+146 |         if evaluate_boolean_formula_at_point(formula, assignment):
+147 |             accepted.append(point)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/algebraic/rational_univariate/signs.py:176:27
+    |
+174 |     if as_assignments:
+175 |         variable_tuple = tuple(variables)
+176 |         return tuple(dict(zip(variable_tuple, point)) for point in filtered)
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+177 |     return filtered
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/algebraic/rational_univariate/solve.py:38:56
+   |
+36 |         if key in seen_keys:
+37 |             continue
+38 |         if any(all(sp.simplify(a - b) == 0 for a, b in zip(point, old)) for old in solutions):
+   |                                                        ^^^^^^^^^^^^^^^
+39 |             continue
+40 |         seen_keys.add(key)
+   |
+help: Add explicit value for parameter `strict=`
+
+UP007 Use `X | Y` for type annotations
+  --> src/semialg/algebraic/samples.py:88:10
+   |
+88 | Sample = Union[RationalSample, AlgebraicRoot]
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: Convert to `X | Y`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/benchmarks/seeded_witnesses.py:47:39
+   |
+45 |     vars_ = tuple(sp.Symbol(f"x{i}", integer=True) for i in range(variable_count))
+46 |     assignments = tuple(
+47 |         {var: value for var, value in zip(vars_, pt)}
+   |                                       ^^^^^^^^^^^^^^
+48 |         for pt in sample_modular_points(variable_count, modulus, sample_count, seed=seed)
+49 |     )
+   |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `found` is assigned to but never used
+   --> src/semialg/cad/cells.py:547:13
+    |
+545 |                 lower = upper = sp.sympify(value)
+546 |             used.add(i)
+547 |             found = True
+    |             ^^^^^
+548 |         # Unsupported atoms involving this variable cannot be represented by
+549 |         # this explicit syntactic path; leave them to the complete CAD extractor.
+    |
+help: Remove assignment to unused variable `found`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/cad/lifting/lazard.py:72:23
+   |
+70 |     used_cancellation = False
+71 |
+72 |     for var, value in zip(assigned_vars, sample_prefix):
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+73 |         cancelled_expr, cancelled_power = _cancel_linear_factor(current, var, value)
+74 |         if cancelled_power:
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/cad/reduced.py:107:30
+    |
+105 |     if len(sample) < cell.level:
+106 |         return False
+107 |     for coord, level_cell in zip(sample, _cell_prefixes(cell)):
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+108 |         left, right = level_cell.interval or (None, None)
+109 |         if level_cell.kind == "section":
+    |
+help: Add explicit value for parameter `strict=`
+
+F403 `from .api import *` used; unable to detect undefined names
+ --> src/semialg/decision/__init__.py:5:1
+  |
+3 | from __future__ import annotations
+4 |
+5 | from .api import *
+  | ^^^^^^^^^^^^^^^^^^
+  |
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/decomposition/components.py:217:60
+    |
+215 |     variables: Sequence[sp.Symbol], samples: Sequence[Sample]
+216 | ) -> Mapping[sp.Symbol, sp.Expr]:
+217 |     return {var: sample_to_expr(sample) for var, sample in zip(variables, samples)}
+    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/decomposition/components.py:239:72
+    |
+237 |     if len(left_chain) != len(right_chain):
+238 |         return False
+239 |     return all(_closed_intervals_touch(left, right) for left, right in zip(left_chain, right_chain))
+    |                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/decomposition/cylindrical.py:68:61
+   |
+66 |     def sample_points(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
+67 |         return tuple(
+68 |             {var: sample_to_expr(sample) for var, sample in zip(self.variables, cell.sample)}
+   |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+69 |             for cell in self.cells
+70 |         )
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/decomposition/cylindrical.py:223:25
+    |
+221 |             if len(point) != len(self.variables):
+222 |                 raise ValueError(f"expected {len(self.variables)} coordinate(s), got {len(point)}")
+223 |             subs = dict(zip(self.variables, point))
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+224 |         if len(subs) != len(self.variables):
+225 |             missing = [sp.sstr(var) for var in self.variables if var not in subs]
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/decomposition/generic.py:164:25
+    |
+162 |                     f"expected {len(params)} parameter coordinate(s), got {len(point)}"
+163 |                 )
+164 |             subs = dict(zip(params, point))
+    |                         ^^^^^^^^^^^^^^^^^^
+165 |         if len(subs) != len(params):
+166 |             missing = [sp.sstr(param) for param in params if param not in subs]
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/decomposition/generic.py:176:60
+    |
+174 |     if cell is None:
+175 |         return {}
+176 |     return {sym: sample_to_expr(sample) for sym, sample in zip(symbols, cell.sample)}
+    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+UP007 Use `X | Y` for type annotations
+  --> src/semialg/formula.py:80:11
+   |
+80 | Formula = Union[Atom, BoolConst, And, Or, Not]
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+81 | Quantifier = tuple[str, sp.Symbol]
+   |
+help: Convert to `X | Y`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/implicit_utils.py:539:19
+    |
+537 |             seen.add(key)
+538 |     intervals: list[tuple[sp.Expr, sp.Expr]] = []
+539 |     for lo, hi in zip(ordered, ordered[1:]):
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+540 |         if lo == hi:
+541 |             continue
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/real_fallbacks.py:590:49
+    |
+588 |         raise ValueError("vector inequality sides must have the same length")
+589 |     if relation == "lt":
+590 |         return sp.And(*(sp.Lt(a, b) for a, b in zip(lhs, rhs)))
+    |                                                 ^^^^^^^^^^^^^
+591 |     if relation == "le":
+592 |         return sp.And(*(sp.Le(a, b) for a, b in zip(lhs, rhs)))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/real_fallbacks.py:592:49
+    |
+590 |         return sp.And(*(sp.Lt(a, b) for a, b in zip(lhs, rhs)))
+591 |     if relation == "le":
+592 |         return sp.And(*(sp.Le(a, b) for a, b in zip(lhs, rhs)))
+    |                                                 ^^^^^^^^^^^^^
+593 |     if relation == "gt":
+594 |         return sp.And(*(sp.Gt(a, b) for a, b in zip(lhs, rhs)))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/real_fallbacks.py:594:49
+    |
+592 |         return sp.And(*(sp.Le(a, b) for a, b in zip(lhs, rhs)))
+593 |     if relation == "gt":
+594 |         return sp.And(*(sp.Gt(a, b) for a, b in zip(lhs, rhs)))
+    |                                                 ^^^^^^^^^^^^^
+595 |     if relation == "ge":
+596 |         return sp.And(*(sp.Ge(a, b) for a, b in zip(lhs, rhs)))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/real_fallbacks.py:596:49
+    |
+594 |         return sp.And(*(sp.Gt(a, b) for a, b in zip(lhs, rhs)))
+595 |     if relation == "ge":
+596 |         return sp.And(*(sp.Ge(a, b) for a, b in zip(lhs, rhs)))
+    |                                                 ^^^^^^^^^^^^^
+597 |     raise ValueError("relation must be one of 'lt', 'le', 'gt', or 'ge'")
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/real_fallbacks.py:680:25
+    |
+678 |         grid = range(-radius, radius + 1)
+679 |         for values in product(grid, repeat=len(used)):
+680 |             assn = dict(zip(used, map(sp.Integer, values)))
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+681 |             try:
+682 |                 if not is_reliably_zero(poly.subs(assn)):
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/real_fallbacks.py:863:25
+    |
+861 |             if idx >= max_grid:
+862 |                 break
+863 |             assn = dict(zip(variables, values))
+    |                         ^^^^^^^^^^^^^^^^^^^^^^
+864 |             if satisfies_formula(formula, assn, strict=strict):
+865 |                 candidates.append(assn)
+    |
+help: Add explicit value for parameter `strict=`
+
+E712 Avoid equality comparisons to `True`; use `reduced:` for truth checks
+  --> src/semialg/instances/rule_extension.py:71:43
+   |
+69 |             except Exception:
+70 |                 continue
+71 |             if reduced is sp.true or bool(reduced == True):
+   |                                           ^^^^^^^^^^^^^^^
+72 |                 valid.append(assignment)
+73 |     return PartialAssignExtension(dict(partial_assignment), tuple(valid), constraint)
+   |
+help: Replace with `reduced`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/instances/witness_generation.py:89:47
+   |
+87 |     if modulus is not None:
+88 |         points = sample_modular_points(len(variables), modulus, sample_count, seed=seed)
+89 |         return [{var: value for var, value in zip(variables, pt)} for pt in points]
+   |                                               ^^^^^^^^^^^^^^^^^^
+90 |     rng = random.Random(seed)
+91 |     per_var: list[list[object]] = []
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/witness_generation.py:113:54
+    |
+111 |                 -10, 10, strict=False, sample_count=sample_count, rng=rng, integral=False
+112 |             )
+113 |             per_var.append([r + sp.I * i for r, i in zip(reals, imags)])
+    |                                                      ^^^^^^^^^^^^^^^^^
+114 |     assignments = []
+115 |     for idx in range(sample_count):
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/instances/witness_generation.py:117:26
+    |
+115 |     for idx in range(sample_count):
+116 |         assn = {}
+117 |         for var, pool in zip(variables, per_var):
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^
+118 |             assn[var] = pool[idx % len(pool)]
+119 |         assignments.append(assn)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/measure.py:235:24
+    |
+233 |     cuts = [lo, *ordered, hi]
+234 |     intervals: list[tuple[sp.Expr, sp.Expr]] = []
+235 |     for left, right in zip(cuts, cuts[1:]):
+    |                        ^^^^^^^^^^^^^^^^^^^
+236 |         if left == right:
+237 |             continue
+    |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `allowed` is assigned to but never used
+   --> src/semialg/measure.py:272:9
+    |
+270 |         if coeff_x2 == 0 or sp.simplify(coeff_x2 - coeff_y2) != 0:
+271 |             return None
+272 |         allowed = {x**2, y**2, sp.Integer(1)}
+    |         ^^^^^^^
+273 |         if any(monom not in {(2, 0), (0, 2), (0, 0)} for monom in poly.monoms()):
+274 |             return None
+    |
+help: Remove assignment to unused variable `allowed`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/moments.py:81:23
+   |
+79 |         raise ValueError("moment powers must be nonnegative integers")
+80 |     monomial = sp.Integer(1)
+81 |     for var, power in zip(variables, powers):
+   |                       ^^^^^^^^^^^^^^^^^^^^^^
+82 |         monomial *= var ** int(power)
+83 |     return sp.expand(monomial)
+   |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `n` is assigned to but never used
+   --> src/semialg/moments.py:262:5
+    |
+260 |     _validate_finite_nonzero_measure(measure)
+261 |
+262 |     n = len(vars_)
+    |     ^
+263 |     entries: list[list[sp.Expr]] = []
+264 |     exact = centroid_result.exact
+    |
+help: Remove assignment to unused variable `n`
+
+B007 Loop control variable `i` not used within loop body
+   --> src/semialg/moments.py:265:9
+    |
+263 |     entries: list[list[sp.Expr]] = []
+264 |     exact = centroid_result.exact
+265 |     for i, vi in enumerate(vars_):
+    |         ^
+266 |         row: list[sp.Expr] = []
+267 |         for j, vj in enumerate(vars_):
+    |
+help: Rename unused `i` to `_i`
+
+B007 Loop control variable `j` not used within loop body
+   --> src/semialg/moments.py:267:13
+    |
+265 |     for i, vi in enumerate(vars_):
+266 |         row: list[sp.Expr] = []
+267 |         for j, vj in enumerate(vars_):
+    |             ^
+268 |             raw = integrate_over_region(
+269 |                 vi * vj,
+    |
+help: Rename unused `j` to `_j`
+
+E402 Module level import not at top of file
+  --> src/semialg/optimization.py:32:1
+   |
+30 | )
+31 |
+32 | from .formula import parse_formula, to_sympy
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+33 |
+34 | FormulaLike = sp.Expr | sp.logic.boolalg.Boolean | bool
+   |
+
+B007 Loop control variable `index` not used within loop body
+   --> src/semialg/optimization.py:653:13
+    |
+651 |             aux_symbols.extend((arg_value, *arg_aux))
+652 |         branch_formulas: list[sp.Expr] = []
+653 |         for index, arg_value in enumerate(arg_values):
+    |             ^^^^^
+654 |             if expr.func is sp.Max:
+655 |                 order = sp.And(*(arg_value >= other for other in arg_values))
+    |
+help: Rename unused `index` to `_index`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/parametric_integration.py:56:24
+   |
+54 |     jac_factor = metric_jacobian_factor(region.mapping, region.parameters)
+55 |     transformed = sp.simplify(
+56 |         expr.subs(dict(zip(vars_, region.mapping))) * jac_factor / region.multiplicity
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+57 |     )
+58 |     return transformed, region.limits, jac_factor
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/partial/qe.py:126:60
+    |
+125 | def _sample_mapping(variables: Sequence[sp.Symbol], cell: CADCell) -> dict[sp.Symbol, sp.Expr]:
+126 |     return {sym: sample_to_expr(sample) for sym, sample in zip(variables, cell.sample)}
+    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `features` is assigned to but never used
+  --> src/semialg/planner/analyze.py:62:5
+   |
+61 | def analyze_parsed_formula(parsed: ParsedPrenexFormula) -> ProblemAnalysis:
+62 |     features = extract_features_parsed(parsed)
+   |     ^^^^^^^^
+63 |     return analyze_formula(parsed.matrix, variables=parsed.vars, quantifiers=parsed.quantifiers)
+   |
+help: Remove assignment to unused variable `features`
+
+E402 Module level import not at top of file
+  --> src/semialg/planner/select.py:15:1
+   |
+14 | PROJECTION_EC = PROJECTION_MCCALLUM
+15 | from ..formula import Formula, ParsedPrenexFormula, formula_polynomials
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+16 | from ..model import ProjectionConfig, QEConfig
+17 | from .analyze import ProblemAnalysis, analyze_formula, analyze_parsed_formula
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/planner/select.py:16:1
+   |
+14 | PROJECTION_EC = PROJECTION_MCCALLUM
+15 | from ..formula import Formula, ParsedPrenexFormula, formula_polynomials
+16 | from ..model import ProjectionConfig, QEConfig
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 | from .analyze import ProblemAnalysis, analyze_formula, analyze_parsed_formula
+18 | from .heuristics import choose_best_var_order
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/planner/select.py:17:1
+   |
+15 | from ..formula import Formula, ParsedPrenexFormula, formula_polynomials
+16 | from ..model import ProjectionConfig, QEConfig
+17 | from .analyze import ProblemAnalysis, analyze_formula, analyze_parsed_formula
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+18 | from .heuristics import choose_best_var_order
+19 | from .strategy_memory import StrategyMemory, feature_signature
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/planner/select.py:18:1
+   |
+16 | from ..model import ProjectionConfig, QEConfig
+17 | from .analyze import ProblemAnalysis, analyze_formula, analyze_parsed_formula
+18 | from .heuristics import choose_best_var_order
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+19 | from .strategy_memory import StrategyMemory, feature_signature
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/planner/select.py:19:1
+   |
+17 | from .analyze import ProblemAnalysis, analyze_formula, analyze_parsed_formula
+18 | from .heuristics import choose_best_var_order
+19 | from .strategy_memory import StrategyMemory, feature_signature
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/qe/complete.py:170:67
+    |
+168 |     sign = signs.get(key)
+169 |     if sign is None:
+170 |         substitutions = {sym: sample_to_expr(val) for sym, val in zip(variables, sample)}
+    |                                                                   ^^^^^^^^^^^^^^^^^^^^^^
+171 |         value = sp.expand(atom.expr).subs(substitutions)
+172 |         sign = int(sp.sign(value))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/qe/complete.py:283:40
+    |
+281 |                 {
+282 |                     sp.sstr(sym): sample_to_expr(sample)
+283 |                     for sym, sample in zip(variables, cell.sample)
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+284 |                 }
+285 |             )
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/qe/virtual_substitution/witness.py:130:24
+    |
+129 |     candidates.append(sp.simplify(roots[0] - 1))
+130 |     for left, right in zip(roots, roots[1:]):
+    |                        ^^^^^^^^^^^^^^^^^^^^^
+131 |         if sp.simplify(left - right) != 0:
+132 |             candidates.append(sp.simplify((left + right) / 2))
+    |
+help: Add explicit value for parameter `strict=`
+
+B007 Loop control variable `sample` not used within loop body
+  --> src/semialg/qe/witnesses.py:32:18
+   |
+30 |     for cell in qe_result.cell_union.cells:
+31 |         ok = True
+32 |         for var, sample in zip(qe_result.free_variables[: cell.level], cell.sample):
+   |                  ^^^^^^
+33 |             if var not in free_point:
+34 |                 continue
+   |
+help: Rename unused `sample` to `_sample`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/qe/witnesses.py:32:28
+   |
+30 |     for cell in qe_result.cell_union.cells:
+31 |         ok = True
+32 |         for var, sample in zip(qe_result.free_variables[: cell.level], cell.sample):
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+33 |             if var not in free_point:
+34 |                 continue
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/qe/witnesses.py:42:32
+   |
+40 |         if ok:
+41 |             assignment = dict(free_point)
+42 |             for var, sample in zip(qe_result.free_variables[: cell.level], cell.sample):
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+43 |                 assignment.setdefault(var, sample_to_expr(sample))
+44 |             return Witness(assignment=assignment, source_cell=cell)
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/qe/witnesses.py:57:61
+   |
+55 |         point = dict(free_assignment)
+56 |         point.update(
+57 |             {var: sample_to_expr(sample) for var, sample in zip(vars_[: cell.level], cell.sample)}
+   |                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+58 |         )
+59 |         if evaluate_formula_on_cell(formula, cell, vars_):
+   |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `norm` is assigned to but never used
+   --> src/semialg/reasoning.py:648:5
+    |
+646 |     if not isinstance(atom, (sp.StrictLessThan, sp.LessThan, sp.StrictGreaterThan, sp.GreaterThan)):
+647 |         return None
+648 |     norm = sp.Add(*[var**2 for var in variables])
+    |     ^^^^
+649 |     expr = sp.expand(atom.lhs - atom.rhs)
+650 |     try:
+    |
+help: Remove assignment to unused variable `norm`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/region_integrate.py:295:24
+    |
+293 |     cuts = [lo, *ordered, hi]
+294 |     intervals: list[tuple[sp.Expr, sp.Expr]] = []
+295 |     for left, right in zip(cuts, cuts[1:]):
+    |                        ^^^^^^^^^^^^^^^^^^^
+296 |         if left == right:
+297 |             continue
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/regions/instances.py:15:66
+   |
+13 |     for cell, truth in cells_with_truth:
+14 |         if truth:
+15 |             out.append({variable: sample for variable, sample in zip(variables, cell.sample)})
+   |                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+16 |     return out
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/sampling.py:73:22
+   |
+71 |     t = representation.parameter
+72 |     coord_polys = representation.normalized_coordinate_polynomials()
+73 |     coord_map = dict(zip(representation.variables, (poly.as_expr() for poly in coord_polys)))
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+74 |     numerator, denominator = sp.fraction(sp.cancel(sp.sympify(expr).subs(coord_map)))
+75 |     q = representation.defining_polynomial
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/sampling.py:140:44
+    |
+138 |             pass
+139 |
+140 |     substituted = sp.cancel(expr.subs(dict(zip(vars_, values))))
+    |                                            ^^^^^^^^^^^^^^^^^^
+141 |     try:
+142 |         return sign_of_algebraic_expression(substituted)
+    |
+help: Add explicit value for parameter `strict=`
+
+B904 Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+   --> src/semialg/sampling.py:145:13
+    |
+143 |     except Exception:
+144 |         if exact:
+145 |             raise ValueError(f"could not determine exact sign of {sp.sstr(expr)} at {point!r}")
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+146 |
+147 |     numeric = sp.N(substituted, 120)
+    |
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/sampling.py:178:21
+    |
+176 |     signs = tuple(sign_at(expr, point, variables=vars_, exact=exact) for expr in exprs)
+177 |     if as_dict:
+178 |         return dict(zip(exprs, signs))
+    |                     ^^^^^^^^^^^^^^^^^
+179 |     return signs
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/sampling.py:189:20
+    |
+187 |         )
+188 |     for coords in product(values, repeat=len(variables)):
+189 |         yield dict(zip(variables, coords))
+    |                    ^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/sampling.py:241:20
+    |
+239 |     ]
+240 |     for coords in product(*value_lists):
+241 |         yield dict(zip(variables, coords))
+    |                    ^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/sampling.py:256:30
+    |
+254 |     for _ in range(max(0, attempts)):
+255 |         point: dict[sp.Symbol, sp.Expr] = {}
+256 |         for var, (lo, hi) in zip(variables, intervals):
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^
+257 |             lo_f = float(sp.N(lo))
+258 |             hi_f = float(sp.N(hi))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/simplify/implication.py:177:54
+    |
+175 |                 keep[i] = False
+176 |                 break
+177 |     kept = [_branch_expr(branch) for branch, flag in zip(branches, keep) if flag]
+    |                                                      ^^^^^^^^^^^^^^^^^^^
+178 |     if not kept:
+179 |         return sp.false
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/find_instance.py:124:62
+    |
+122 |         for item in solset:
+123 |             values = item if isinstance(item, tuple) else (item,)
+124 |             out.append({var: sp.sympify(val) for var, val in zip(vars_, values)})
+    |                                                              ^^^^^^^^^^^^^^^^^^
+125 |             if len(out) >= count:
+126 |                 break
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/find_instance.py:284:30
+    |
+282 |             candidate_lists.append(deduped)
+283 |         for values in product(*candidate_lists):
+284 |             candidate = dict(zip(reduced_variables, values))
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+285 |             evaluated = reduced_formula.subs(candidate)
+286 |             try:
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/find_instance.py:382:51
+    |
+380 |     if specialized is not None and specialized.solutions:
+381 |         instances = [
+382 |             {var: sp.sympify(val) for var, val in zip(vars_, pt)}
+    |                                                   ^^^^^^^^^^^^^^
+383 |             for pt in specialized.solutions[:count]
+384 |         ]
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/find_instance.py:396:21
+    |
+394 |     instances: list[dict[sp.Symbol, sp.Expr]] = []
+395 |     for values in product([False, True], repeat=len(vars_)):
+396 |         subs = dict(zip(vars_, values))
+    |                     ^^^^^^^^^^^^^^^^^^
+397 |         try:
+398 |             ok = bool(expr.subs(subs))
+    |
+help: Add explicit value for parameter `strict=`
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/integer/__init__.py:10:1
+   |
+10 | / from .congruence import (
+11 | |     ModularSolveResult,
+12 | |     combine_mod_crt,
+13 | |     eliminate_one_var,
+14 | |     find_modular_instance,
+15 | |     find_quant_free_mod_inst,
+16 | |     norm_mod_form,
+17 | |     rec_solve_basis,
+18 | |     simp_mod_ineqs,
+19 | |     solve_mod_lin_sys,
+20 | |     solve_mod_poly_sys,
+21 | |     solve_modular_system,
+22 | |     solve_quant_free_mod_sys,
+23 | |     solve_quant_mod_sys,
+24 | | )
+   | |_^
+25 |   from .diophantine import (
+26 |       IntEqnSolveResult,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/integer/__init__.py:25:1
+   |
+23 |       solve_quant_mod_sys,
+24 |   )
+25 | / from .diophantine import (
+26 | |     IntEqnSolveResult,
+27 | |     detect_binary_homog_eqn,
+28 | |     detect_int_lin_elim,
+29 | |     detect_sum_eqn,
+30 | |     reduce_int_divis,
+31 | |     solve_binary_eqn,
+32 | |     solve_int_branches,
+33 | |     solve_int_divis,
+34 | |     solve_int_fams2,
+35 | |     solve_int_methods,
+36 | |     solve_int_pruning,
+37 | |     solve_int_recursion2,
+38 | |     solve_int_sys_via_factor,
+39 | |     solve_sum_of_two_squares,
+40 | | )
+   | |_^
+41 |   from .linear_divisibility import (
+42 |       LinDivisReduction,
+   |
+
+F401 `.diophantine.solve_int_fams2` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+  --> src/semialg/solve/integer/__init__.py:34:5
+   |
+32 |     solve_int_branches,
+33 |     solve_int_divis,
+34 |     solve_int_fams2,
+   |     ^^^^^^^^^^^^^^^
+35 |     solve_int_methods,
+36 |     solve_int_pruning,
+   |
+help: Add unused import `solve_int_fams2` to __all__
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/integer/__init__.py:41:1
+   |
+39 |       solve_sum_of_two_squares,
+40 |   )
+41 | / from .linear_divisibility import (
+42 | |     LinDivisReduction,
+43 | |     apply_lin_reduction,
+44 | |     detect_lin_reduction,
+45 | | )
+   | |_^
+46 |
+47 |   __all__ = [
+   |
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:127:1
+    |
+127 | / from .engine import (
+128 | |     IntegerSolveRequest,
+129 | |     IntSolverRegistration,
+130 | |     default_int_registry,
+131 | |     run_int_solver_pipeline,
+132 | | )
+    | |_^
+133 |   from .factorization import (
+134 |       FactorizationAnalysis,
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:133:1
+    |
+131 |       run_int_solver_pipeline,
+132 |   )
+133 | / from .factorization import (
+134 | |     FactorizationAnalysis,
+135 | |     IntegerFactorBranch,
+136 | |     enum_factor_branches,
+137 | |     factor_thread_eqn,
+138 | |     norm_factor_int_eqn,
+139 | |     solve_int_recursion,
+140 | | )
+    | |_^
+141 |   from .families import (
+142 |       IntegerFamilyTag,
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:141:1
+    |
+139 |       solve_int_recursion,
+140 |   )
+141 | / from .families import (
+142 | |     IntegerFamilyTag,
+143 | |     detect_binary_homog_fam,
+144 | |     detect_int_problem_fam,
+145 | |     detect_sum_fam,
+146 | | )
+    | |_^
+147 |   from .groebner_recursion import (
+148 |       GroebnerRecursiveStep,
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:147:1
+    |
+145 |       detect_sum_fam,
+146 |   )
+147 | / from .groebner_recursion import (
+148 | |     GroebnerRecursiveStep,
+149 | |     GroebnerTriangAnalysis,
+150 | |     analyze_groebner_struct,
+151 | |     compute_groebner_basis,
+152 | |     extract_lin_basis,
+153 | |     find_int_recursion,
+154 | |     rec_reduce_sys,
+155 | |     recon_int_sol_fams,
+156 | | )
+    | |_^
+157 |   from .linear_recursion import (
+158 |       IntLinElimCand,
+    |
+
+F401 `.groebner_recursion.extract_lin_basis` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:152:5
+    |
+150 |     analyze_groebner_struct,
+151 |     compute_groebner_basis,
+152 |     extract_lin_basis,
+    |     ^^^^^^^^^^^^^^^^^
+153 |     find_int_recursion,
+154 |     rec_reduce_sys,
+    |
+help: Add unused import `extract_lin_basis` to __all__
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:157:1
+    |
+155 |       recon_int_sol_fams,
+156 |   )
+157 | / from .linear_recursion import (
+158 | |     IntLinElimCand,
+159 | |     apply_int_lin_elim,
+160 | |     choose_best_int_lin_elim,
+161 | |     enum_int_lin_elim_cands,
+162 | |     find_int_recursion2,
+163 | |     rec_reduce_int_lin_sys,
+164 | | )
+    | |_^
+165 |   from .modular_quantifier_elimination import (
+166 |       ModularQePlan,
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:165:1
+    |
+163 |       rec_reduce_int_lin_sys,
+164 |   )
+165 | / from .modular_quantifier_elimination import (
+166 | |     ModularQePlan,
+167 | |     ModularQeResult,
+168 | |     ModularQuantifierBlock,
+169 | |     build_modular_qe_plan,
+170 | |     eliminate_mod_form,
+171 | |     eliminate_quant_m,
+172 | |     norm_mod_quant_blocks,
+173 | |     simp_proj_mod_form,
+174 | |     solve_mod_qe_with_blocks,
+175 | |     solve_quant_decomp,
+176 | | )
+    | |_^
+177 |   from .output_normalization import (
+178 |       CanonIntSolveResult,
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:177:1
+    |
+175 |       solve_quant_decomp,
+176 |   )
+177 | / from .output_normalization import (
+178 | |     CanonIntSolveResult,
+179 | |     canon_int_result,
+180 | |     dedup_int_points,
+181 | |     finite_points_to_formula,
+182 | | )
+    | |_^
+183 |   from .special_families import (
+184 |       SpecialFamDesc,
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:183:1
+    |
+181 |       finite_points_to_formula,
+182 |   )
+183 | / from .special_families import (
+184 | |     SpecialFamDesc,
+185 | |     detect_diag_fam,
+186 | |     detect_pell_family,
+187 | |     detect_pythag_fam,
+188 | |     detect_sum_fam2,
+189 | |     detect_two_cubes_family,
+190 | |     pythag_triple_form,
+191 | |     solve_binary_scan,
+192 | |     solve_diag_fam,
+193 | |     solve_int_fams,
+194 | |     solve_pell_family,
+195 | |     solve_pythag_triples_fam,
+196 | |     solve_sum_of_squares_fam,
+197 | |     solve_two_cubes_family,
+198 | | )
+    | |_^
+199 |   from .thue import (
+200 |       ThueFamilyDescriptor,
+    |
+
+F401 `.special_families.SpecialFamDesc` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:184:5
+    |
+182 | )
+183 | from .special_families import (
+184 |     SpecialFamDesc,
+    |     ^^^^^^^^^^^^^^
+185 |     detect_diag_fam,
+186 |     detect_pell_family,
+    |
+help: Add unused import `SpecialFamDesc` to __all__
+
+F401 `.special_families.detect_diag_fam` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:185:5
+    |
+183 | from .special_families import (
+184 |     SpecialFamDesc,
+185 |     detect_diag_fam,
+    |     ^^^^^^^^^^^^^^^
+186 |     detect_pell_family,
+187 |     detect_pythag_fam,
+    |
+help: Add unused import `detect_diag_fam` to __all__
+
+F401 `.special_families.detect_pythag_fam` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:187:5
+    |
+185 |     detect_diag_fam,
+186 |     detect_pell_family,
+187 |     detect_pythag_fam,
+    |     ^^^^^^^^^^^^^^^^^
+188 |     detect_sum_fam2,
+189 |     detect_two_cubes_family,
+    |
+help: Add unused import `detect_pythag_fam` to __all__
+
+F401 `.special_families.detect_sum_fam2` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:188:5
+    |
+186 |     detect_pell_family,
+187 |     detect_pythag_fam,
+188 |     detect_sum_fam2,
+    |     ^^^^^^^^^^^^^^^
+189 |     detect_two_cubes_family,
+190 |     pythag_triple_form,
+    |
+help: Add unused import `detect_sum_fam2` to __all__
+
+F401 `.special_families.detect_two_cubes_family` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:189:5
+    |
+187 |     detect_pythag_fam,
+188 |     detect_sum_fam2,
+189 |     detect_two_cubes_family,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^
+190 |     pythag_triple_form,
+191 |     solve_binary_scan,
+    |
+help: Add unused import `detect_two_cubes_family` to __all__
+
+F401 `.special_families.pythag_triple_form` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:190:5
+    |
+188 |     detect_sum_fam2,
+189 |     detect_two_cubes_family,
+190 |     pythag_triple_form,
+    |     ^^^^^^^^^^^^^^^^^^
+191 |     solve_binary_scan,
+192 |     solve_diag_fam,
+    |
+help: Add unused import `pythag_triple_form` to __all__
+
+F401 `.special_families.solve_binary_scan` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:191:5
+    |
+189 |     detect_two_cubes_family,
+190 |     pythag_triple_form,
+191 |     solve_binary_scan,
+    |     ^^^^^^^^^^^^^^^^^
+192 |     solve_diag_fam,
+193 |     solve_int_fams,
+    |
+help: Add unused import `solve_binary_scan` to __all__
+
+F401 `.special_families.solve_diag_fam` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:192:5
+    |
+190 |     pythag_triple_form,
+191 |     solve_binary_scan,
+192 |     solve_diag_fam,
+    |     ^^^^^^^^^^^^^^
+193 |     solve_int_fams,
+194 |     solve_pell_family,
+    |
+help: Add unused import `solve_diag_fam` to __all__
+
+F401 `.special_families.solve_int_fams` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:193:5
+    |
+191 |     solve_binary_scan,
+192 |     solve_diag_fam,
+193 |     solve_int_fams,
+    |     ^^^^^^^^^^^^^^
+194 |     solve_pell_family,
+195 |     solve_pythag_triples_fam,
+    |
+help: Add unused import `solve_int_fams` to __all__
+
+F401 `.special_families.solve_pythag_triples_fam` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:195:5
+    |
+193 |     solve_int_fams,
+194 |     solve_pell_family,
+195 |     solve_pythag_triples_fam,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+196 |     solve_sum_of_squares_fam,
+197 |     solve_two_cubes_family,
+    |
+help: Add unused import `solve_pythag_triples_fam` to __all__
+
+F401 `.special_families.solve_sum_of_squares_fam` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:196:5
+    |
+194 |     solve_pell_family,
+195 |     solve_pythag_triples_fam,
+196 |     solve_sum_of_squares_fam,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+197 |     solve_two_cubes_family,
+198 | )
+    |
+help: Add unused import `solve_sum_of_squares_fam` to __all__
+
+F401 `.special_families.solve_two_cubes_family` imported but unused; consider removing, adding to `__all__`, or using a redundant alias
+   --> src/semialg/solve/integer/__init__.py:197:5
+    |
+195 |     solve_pythag_triples_fam,
+196 |     solve_sum_of_squares_fam,
+197 |     solve_two_cubes_family,
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+198 | )
+199 | from .thue import (
+    |
+help: Add unused import `solve_two_cubes_family` to __all__
+
+E402 Module level import not at top of file
+   --> src/semialg/solve/integer/__init__.py:199:1
+    |
+197 |       solve_two_cubes_family,
+198 |   )
+199 | / from .thue import (
+200 | |     ThueFamilyDescriptor,
+201 | |     detect_binary_fam,
+202 | |     solve_binary_bounded,
+203 | |     solve_binary_lll,
+204 | | )
+    | |_^
+    |
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/integer/congruence.py:70:28
+   |
+68 |     combined = [tuple([0] * len(variables))]
+69 |     combined_modulus = 1
+70 |     for points, modulus in zip(point_sets, moduli):
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^
+71 |         new_combined: list[tuple[int, ...]] = []
+72 |         for prefix in combined:
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/integer/congruence.py:76:29
+   |
+74 |                 merged = []
+75 |                 ok = True
+76 |                 for a, b in zip(prefix, pt):
+   |                             ^^^^^^^^^^^^^^^
+77 |                     try:
+78 |                         merged.append(_crt_pair(int(a), combined_modulus, int(b), modulus))
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:130:61
+    |
+128 |     pieces = []
+129 |     for pt in points:
+130 |         pieces.append(sp.And(*[sp.Eq(v, int(a)) for v, a in zip(variables, pt)]))
+    |                                                             ^^^^^^^^^^^^^^^^^^
+131 |     return sp.Or(*pieces) if len(pieces) > 1 else pieces[0]
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:241:45
+    |
+239 |     n_rows = len(matrix)
+240 |     n_cols = len(matrix[0]) if matrix else 0
+241 |     A = [row[:] + [rhs_i] for row, rhs_i in zip(matrix, rhs)]
+    |                                             ^^^^^^^^^^^^^^^^
+242 |     pivots = []
+243 |     r = 0
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:260:64
+    |
+258 |             factor = A[i][c] % modulus
+259 |             if factor:
+260 |                 A[i] = [(a - factor * b) % modulus for a, b in zip(A[i], A[r])]
+    |                                                                ^^^^^^^^^^^^^^^
+261 |         pivots.append((r, c))
+262 |         r += 1
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:286:23
+    |
+284 |     for free_vals in product(range(modulus), repeat=len(free_cols)):
+285 |         sol = [0] * len(variables)
+286 |         for c, val in zip(free_cols, free_vals):
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+287 |             sol[c] = val
+288 |         for row_idx, col_idx in pivots:
+    |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `diag` is assigned to but never used
+   --> src/semialg/solve/integer/congruence.py:310:5
+    |
+308 |     b2 = U * b
+309 |     n = A.shape[1]
+310 |     diag = [int(D[i, i]) if i < min(D.shape) else 0 for i in range(min(D.rows, D.cols))]
+    |     ^^^^
+311 |     z_solutions = []
+312 |     row_constraints = 0
+    |
+help: Remove assignment to unused variable `diag`
+
+F841 Local variable `z_solutions` is assigned to but never used
+   --> src/semialg/solve/integer/congruence.py:311:5
+    |
+309 |     n = A.shape[1]
+310 |     diag = [int(D[i, i]) if i < min(D.shape) else 0 for i in range(min(D.rows, D.cols))]
+311 |     z_solutions = []
+    |     ^^^^^^^^^^^
+312 |     row_constraints = 0
+313 |     free_moduli = [modulus] * n
+    |
+help: Remove assignment to unused variable `z_solutions`
+
+F841 Local variable `row_constraints` is assigned to but never used
+   --> src/semialg/solve/integer/congruence.py:312:5
+    |
+310 |     diag = [int(D[i, i]) if i < min(D.shape) else 0 for i in range(min(D.rows, D.cols))]
+311 |     z_solutions = []
+312 |     row_constraints = 0
+    |     ^^^^^^^^^^^^^^^
+313 |     free_moduli = [modulus] * n
+    |
+help: Remove assignment to unused variable `row_constraints`
+
+F841 Local variable `free_moduli` is assigned to but never used
+   --> src/semialg/solve/integer/congruence.py:313:5
+    |
+311 |     z_solutions = []
+312 |     row_constraints = 0
+313 |     free_moduli = [modulus] * n
+    |     ^^^^^^^^^^^
+314 |
+315 |     # Consistency and solution of diagonal congruences d_i z_i ≡ c_i mod m
+    |
+help: Remove assignment to unused variable `free_moduli`
+
+B007 Loop control variable `i` not used within loop body
+   --> src/semialg/solve/integer/congruence.py:339:9
+    |
+337 |         if int(b2[i, 0]) % modulus != 0:
+338 |             return []
+339 |     for i in range(rank, n):
+    |         ^
+340 |         value_sets.append(list(range(modulus)))
+341 |     total = 1
+    |
+help: Rename unused `i` to `_i`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:393:26
+    |
+391 |         points = []
+392 |         for pt in _enumerate_points(variables, modulus, max_points):
+393 |             subst = dict(zip(variables, pt))
+    |                          ^^^^^^^^^^^^^^^^^^
+394 |             if all(_eval_modular_truth(eq, subst, modulus) for eq in equalities):
+395 |                 points.append(pt)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:478:26
+    |
+476 |         pts = []
+477 |         for pt in _enumerate_points(active_vars, modulus, max_points):
+478 |             subst = dict(zip(active_vars, pt))
+    |                          ^^^^^^^^^^^^^^^^^^^^
+479 |             if all(int(sp.Mod(q.subs(subst), modulus)) != 0 for q in neqs):
+480 |                 full = dict(assignment)
+    |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `remaining_vars` is assigned to but never used
+   --> src/semialg/solve/integer/congruence.py:502:5
+    |
+500 |     pts: list[tuple[int, ...]] = []
+501 |     budget_per_branch = max(1, max_points // max(1, len(allowed)))
+502 |     remaining_vars = tuple(v for v in active_vars if v != target)
+    |     ^^^^^^^^^^^^^^
+503 |     for val in allowed:
+504 |         new_assignment = dict(assignment)
+    |
+help: Remove assignment to unused variable `remaining_vars`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:555:26
+    |
+553 |         points = []
+554 |         for pt in _enumerate_points(variables, modulus, max_points):
+555 |             subst = dict(zip(variables, pt))
+    |                          ^^^^^^^^^^^^^^^^^^
+556 |             if all(_eval_modular_truth(eq, subst, modulus) for eq in eq_exprs):
+557 |                 points.append(pt)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:637:22
+    |
+635 |     rebuilt = sp.And(*(list(eqs) + list(neqs))) if eqs or neqs else sp.true
+636 |     for pt in _enumerate_points(variables, modulus, max_points):
+637 |         subst = dict(zip(variables, pt))
+    |                      ^^^^^^^^^^^^^^^^^^
+638 |         if _eval_modular_truth(rebuilt, subst, modulus):
+639 |             points.append(pt)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:658:17
+    |
+656 |     if not result.points:
+657 |         return None
+658 |     return dict(zip(result.variables, result.points[0]))
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/congruence.py:691:26
+    |
+689 |         surviving = []
+690 |         for pt in _enumerate_points(remaining, modulus, max_points):
+691 |             subst = dict(zip(remaining, pt))
+    |                          ^^^^^^^^^^^^^^^^^^
+692 |             if not all(_eval_modular_truth(eq, subst, modulus) for eq in eqs):
+693 |                 continue
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/integer/diophantine.py:40:60
+   |
+38 |     pieces = []
+39 |     for pt in pts:
+40 |         pieces.append(sp.And(*[sp.Eq(v, val) for v, val in zip(variables, pt)]))
+   |                                                            ^^^^^^^^^^^^^^^^^^
+41 |     return sp.Or(*pieces) if len(pieces) > 1 else pieces[0]
+   |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `others` is assigned to but never used
+   --> src/semialg/solve/integer/diophantine.py:231:5
+    |
+229 |     atoms = _conjuncts(expr)
+230 |     eqs = [a for a in atoms if isinstance(a, Eq)]
+231 |     others = [a for a in atoms if not isinstance(a, Eq)]
+    |     ^^^^^^
+232 |     if not eqs:
+233 |         return None
+    |
+help: Remove assignment to unused variable `others`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/diophantine.py:282:70
+    |
+280 |         if sub is not None and sub.complete and sub.solutions:
+281 |             for tail in sub.solutions:
+282 |                 mapping = {chosen_var: root, **{v: val for v, val in zip(remaining, tail)}}
+    |                                                                      ^^^^^^^^^^^^^^^^^^^^
+283 |                 points.append(tuple(mapping[v] for v in variables))
+284 |         else:
+    |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `combined_mod` is assigned to but never used
+   --> src/semialg/solve/integer/diophantine.py:319:5
+    |
+317 |     # Incrementally CRT-combine residue classes.
+318 |     combined = [tuple([0] * len(tuple(variables)))]
+319 |     combined_mod = 1
+    |     ^^^^^^^^^^^^
+320 |     from .congruence import combine_mod_crt
+    |
+help: Remove assignment to unused variable `combined_mod`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/diophantine.py:363:66
+    |
+361 |     for res in residues:
+362 |         for offsets in product(range(-search_radius, search_radius + 1), repeat=len(variables)):
+363 |             pt = tuple(int(r + combined_modulus * k) for r, k in zip(res, offsets))
+    |                                                                  ^^^^^^^^^^^^^^^^^
+364 |             subst = dict(zip(variables, pt))
+365 |             truth = sp.simplify(expr.subs(subst))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/diophantine.py:364:26
+    |
+362 |         for offsets in product(range(-search_radius, search_radius + 1), repeat=len(variables)):
+363 |             pt = tuple(int(r + combined_modulus * k) for r, k in zip(res, offsets))
+364 |             subst = dict(zip(variables, pt))
+    |                          ^^^^^^^^^^^^^^^^^^
+365 |             truth = sp.simplify(expr.subs(subst))
+366 |             if truth is sp.true or truth == True:
+    |
+help: Add explicit value for parameter `strict=`
+
+E712 Avoid equality comparisons to `True`; use `truth:` for truth checks
+   --> src/semialg/solve/integer/diophantine.py:366:36
+    |
+364 |             subst = dict(zip(variables, pt))
+365 |             truth = sp.simplify(expr.subs(subst))
+366 |             if truth is sp.true or truth == True:
+    |                                    ^^^^^^^^^^^^^
+367 |                 points.append(pt)
+368 |     points = _dedupe_points(points)
+    |
+help: Replace with `truth`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/factorization.py:201:26
+    |
+199 | ) -> str | None:
+200 |     # simple pruning for factors known to equal odd/even affine linear terms
+201 |     for factor, value in zip(symbolic_factors, assigned_values):
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+202 |         free = tuple(v for v in factor.free_symbols)
+203 |         if len(free) != 1:
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/factorization.py:292:47
+    |
+290 |             pruned_assignments += 1
+291 |             continue
+292 |         branch_eqs = [sp.Eq(f, v) for f, v in zip(symbolic_factors, values)]
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+293 |         branch_expr = sp.And(*(list(others) + branch_eqs))
+294 |         sub = run_int_solver_pipeline(branch_expr, variables, search_bound=50)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/groebner_recursion.py:244:61
+    |
+242 |     pts = dedup_int_points(partial_points)
+243 |     if pts:
+244 |         return sp.Or(*[sp.And(*[sp.Eq(v, val) for v, val in zip(variables, pt)]) for pt in pts])
+    |                                                             ^^^^^^^^^^^^^^^^^^
+245 |     parts = list(linear_relations)
+246 |     if expr not in (sp.true, sp.false):
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/groebner_recursion.py:267:41
+    |
+265 |     out = []
+266 |     for tail in reduced_points:
+267 |         mapping = {v: val for v, val in zip(reduced_vars, tail)}
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^
+268 |         progress = True
+269 |         while progress:
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/groebner_recursion.py:447:49
+    |
+445 |             rebuilt = []
+446 |             for pt in pair_points:
+447 |                 mapping = {v: val for v, val in zip(pair_vars, pt)}
+    |                                                 ^^^^^^^^^^^^^^^^^^
+448 |                 # fill in eliminated vars from affine relations
+449 |                 progress = True
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/groebner_recursion.py:515:53
+    |
+513 |                         mapping = {
+514 |                             step.chosen_variable: root,
+515 |                             **{v: val for v, val in zip(remaining, tail)},
+    |                                                     ^^^^^^^^^^^^^^^^^^^^
+516 |                         }
+517 |                         points.append(tuple(mapping[v] for v in variables))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/groebner_recursion.py:531:57
+    |
+529 | …                     mapping = {
+530 | …                         step.chosen_variable: root,
+531 | …                         **{v: val for v, val in zip(remaining, tail)},
+    |                                                   ^^^^^^^^^^^^^^^^^^^^
+532 | …                     }
+533 | …                     points.append(tuple(mapping[v] for v in variables))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/groebner_recursion.py:575:34
+    |
+573 |         return None
+574 |     pt = result.solutions[0]
+575 |     return {v: val for v, val in zip(result.variables, pt)}
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/linear_recursion.py:206:45
+    |
+204 |         rebuilt_points = []
+205 |         for tail in sub.solutions:
+206 |             mapping = {v: val for v, val in zip(reduced_vars, tail)}
+    |                                             ^^^^^^^^^^^^^^^^^^^^^^^
+207 |             solved_val = sp.simplify(cand.replacement.subs(mapping))
+208 |             mapping[cand.solved_variable] = solved_val
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/linear_recursion.py:231:38
+    |
+229 |     if result.solutions:
+230 |         pt = result.solutions[0]
+231 |         return {v: val for v, val in zip(result.variables, pt)}
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+232 |     return None
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/integer/modular_quantifier_elimination.py:91:63
+   |
+89 |     if set(product(*coordinate_sets)) != set(pts):
+90 |         return None
+91 |     parts = [_residue_formula_1d(v, rs, modulus) for v, rs in zip(variables, coordinate_sets)]
+   |                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+92 |     return sp.And(*parts) if parts else sp.true
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/modular_quantifier_elimination.py:131:54
+    |
+129 |             subf = sp.Or(
+130 |                 *[
+131 |                     sp.And(*[sp.Eq(v, a) for v, a in zip(rest_vars, pt)])
+    |                                                      ^^^^^^^^^^^^^^^^^^
+132 |                     for pt in sorted(set(tuple(map(int, spt)) for spt in subpts))
+133 |                 ]
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/modular_quantifier_elimination.py:149:49
+    |
+147 |     if symbolic is not None:
+148 |         return sp.simplify(symbolic)
+149 |     clauses = [sp.And(*[sp.Eq(v, a) for v, a in zip(variables, pt)]) for pt in points]
+    |                                                 ^^^^^^^^^^^^^^^^^^
+150 |     return sp.simplify(sp.Or(*clauses) if len(clauses) > 1 else clauses[0])
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/modular_quantifier_elimination.py:255:34
+    |
+253 |                 good = []
+254 |                 for pt in lin.points:
+255 |                     subst = dict(zip(current_variables, pt))
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+256 |                     if all(bool(sp.simplify(n.subs(subst))) for n in neqs):
+257 |                         good.append(pt)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/modular_quantifier_elimination.py:271:34
+    |
+269 |                 good = []
+270 |                 for pt in poly.points:
+271 |                     subst = dict(zip(current_variables, pt))
+    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+272 |                     if all(bool(sp.simplify(n.subs(subst))) for n in neqs):
+273 |                         good.append(pt)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/integer/output_normalization.py:38:53
+   |
+36 |     if not pts:
+37 |         return sp.false
+38 |     clauses = [sp.And(*[sp.Eq(v, val) for v, val in zip(variables, pt)]) for pt in pts]
+   |                                                     ^^^^^^^^^^^^^^^^^^
+39 |     return sp.Or(*clauses) if len(clauses) > 1 else clauses[0]
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/special_families.py:104:40
+    |
+102 |     pts = []
+103 |     for vals in product(range(-bound, bound + 1), repeat=len(vars_t)):
+104 |         if sum(c * (v * v) for c, v in zip(coeffs, vals)) == n:
+    |                                        ^^^^^^^^^^^^^^^^^
+105 |             pts.append(vals)
+106 |     return canon_int_result(
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/integer/special_families.py:222:39
+    |
+220 |     pts = []
+221 |     for vals in product(range(-search_bound, search_bound + 1), repeat=len(vars_t)):
+222 |         if sum(c * (v**k) for c, v in zip(coeffs, vals)) == target:
+    |                                       ^^^^^^^^^^^^^^^^^
+223 |             pts.append(vals)
+224 |     if not pts:
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/reduce.py:280:64
+    |
+278 |             elif not isinstance(item, tuple):
+279 |                 continue
+280 |             pieces.append(sp.And(*[sp.Eq(v, val) for v, val in zip(vars_, item)]))
+    |                                                                ^^^^^^^^^^^^^^^^
+281 |         if not pieces:
+282 |             return sp.false
+    |
+help: Add explicit value for parameter `strict=`
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:10:1
+   |
+10 | / from .cleanup import (
+11 | |     CleanupResult,
+12 | |     finite_points_form,
+13 | |     recon_solved_points,
+14 | |     recon_univar_intv_form,
+15 | |     remove_redundant_disjunc,
+16 | | )
+   | |_^
+17 |   from .engine import (
+18 |       TranscendentalSolveTrace,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:17:1
+   |
+15 |       remove_redundant_disjunc,
+16 |   )
+17 | / from .engine import (
+18 | |     TranscendentalSolveTrace,
+19 | |     TransReductionResult,
+20 | |     reduce_trans_problem,
+21 | | )
+   | |_^
+22 |   from .families import (
+23 |       TransFamDetection,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:22:1
+   |
+20 |       reduce_trans_problem,
+21 |   )
+22 | / from .families import (
+23 | |     TransFamDetection,
+24 | |     TransFamHandler,
+25 | |     classify_trans_fams,
+26 | |     default_trans_handlers,
+27 | | )
+   | |_^
+28 |   from .periodic import (
+29 |       PeriodicBoundingResult,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:28:1
+   |
+26 |       default_trans_handlers,
+27 |   )
+28 | / from .periodic import (
+29 | |     PeriodicBoundingResult,
+30 | |     compute_periodic_window,
+31 | |     detect_real_period,
+32 | |     find_periodic_variables,
+33 | |     periodic_intv_form,
+34 | |     recon_periodic_domain,
+35 | |     recon_periodic_represent,
+36 | | )
+   | |_^
+37 |   from .preprocess import (
+38 |       FamilyReplacementStep,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:37:1
+   |
+35 |       recon_periodic_represent,
+36 |   )
+37 | / from .preprocess import (
+38 | |     FamilyReplacementStep,
+39 | |     QuantifierDispatchPlan,
+40 | |     TransPrepResult,
+41 | |     build_quantifier_plan,
+42 | |     prep_trans_problem,
+43 | |     replace_function_auxilia,
+44 | |     simp_piecewise_subexprs,
+45 | | )
+   | |_^
+46 |   from .quantifier_elimination import (
+47 |       QuantElimResult,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:46:1
+   |
+44 |       simp_piecewise_subexprs,
+45 |   )
+46 | / from .quantifier_elimination import (
+47 | |     QuantElimResult,
+48 | |     eliminate_lead_block,
+49 | | )
+   | |_^
+50 |   from .roots import (
+51 |       CertifiedIntervalRoot,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:50:1
+   |
+48 |       eliminate_lead_block,
+49 |   )
+50 | / from .roots import (
+51 | |     CertifiedIntervalRoot,
+52 | |     RootIsolationResult,
+53 | |     SampledTruthDecomp,
+54 | |     decomp_univar_inequality,
+55 | |     evaluate_form_points,
+56 | |     isolate_univar_roots,
+57 | | )
+   | |_^
+58 |   from .state import (
+59 |       QuantifierBlock,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:58:1
+   |
+56 |       isolate_univar_roots,
+57 |   )
+58 | / from .state import (
+59 | |     QuantifierBlock,
+60 | |     TransProblemState,
+61 | |     build_trans_state,
+62 | |     norm_quant_blocks,
+63 | | )
+   | |_^
+64 |   from .system_roots import (
+65 |       CertifiedPoint,
+   |
+
+E402 Module level import not at top of file
+  --> src/semialg/solve/transcendental/__init__.py:64:1
+   |
+62 |       norm_quant_blocks,
+63 |   )
+64 | / from .system_roots import (
+65 | |     CertifiedPoint,
+66 | |     CompletenessCertificate,
+67 | |     SearchBox,
+68 | |     SystemRootFallbackResult,
+69 | |     orchestrate_trans_search,
+70 | |     solve_bounded_trans_sys,
+71 | | )
+   | |_^
+72 |
+73 |   __all__ = [
+   |
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/transcendental/cleanup.py:30:49
+   |
+28 |         clauses = [sp.Eq(v, a) for a in values]
+29 |         return sp.Or(*clauses) if len(clauses) > 1 else clauses[0]
+30 |     clauses = [sp.And(*[sp.Eq(v, a) for v, a in zip(variables, pt)]) for pt in pts]
+   |                                                 ^^^^^^^^^^^^^^^^^^
+31 |     return sp.Or(*clauses) if len(clauses) > 1 else clauses[0]
+   |
+help: Add explicit value for parameter `strict=`
+
+F841 Local variable `vhi` is assigned to but never used
+   --> src/semialg/solve/transcendental/roots.py:101:21
+    |
+ 99 |                 )
+100 |             if vlo * vmid <= 0:
+101 |                 hi, vhi = mid, vmid
+    |                     ^^^
+102 |             else:
+103 |                 lo, vlo = mid, vmid
+    |
+help: Remove assignment to unused variable `vhi`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/transcendental/roots.py:166:17
+    |
+164 |     boundaries = [lo] + mids + [hi]
+165 |     support = []
+166 |     for a, b in zip(boundaries[:-1], boundaries[1:]):
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+167 |         if b - a > 1e-8:
+168 |             support.append(sp.nsimplify((a + b) / 2.0))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/transcendental/roots.py:334:17
+    |
+332 |     mids = [float(sp.N(ci.midpoint)) for ci in certified_roots]
+333 |     boundaries = [search_window[0]] + mids + [search_window[1]]
+334 |     for a, b in zip(boundaries[:-1], boundaries[1:]):
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+335 |         if b - a <= 1e-8:
+336 |             continue
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/transcendental/system_roots.py:59:18
+   |
+57 |     tol: float = 1e-8,
+58 | ) -> CertifiedPoint:
+59 |     subst = dict(zip(variables, point))
+   |                  ^^^^^^^^^^^^^^^^^^^^^
+60 |     residuals = []
+61 |     for eq in equations:
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/solve/transcendental/system_roots.py:129:19
+    |
+128 |     seeds_by_axis = []
+129 |     for lo, hi in zip(search_box.lower_bounds, search_box.upper_bounds):
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+130 |         if grid_points_per_axis == 1:
+131 |             seeds_by_axis.append([(lo + hi) / 2.0])
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/solve/zero_dimensional.py:36:27
+   |
+34 |     @property
+35 |     def assignments(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
+36 |         return tuple(dict(zip(self.variables, point)) for point in self.points)
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+37 |
+38 |     @property
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/standard_region_integrate.py:42:26
+   |
+40 | ) -> sp.Expr:
+41 |     value = sp.Integer(1)
+42 |     for exp, (lo, hi) in zip(exponents, bounds):
+   |                          ^^^^^^^^^^^^^^^^^^^^^^
+43 |         value *= sp.simplify((hi ** (exp + 1) - lo ** (exp + 1)) / (exp + 1))
+44 |     return sp.simplify(value)
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/standard_region_integrate.py:85:19
+   |
+83 |     origin = sp.Matrix(region.origin)  # type: ignore[attr-defined]
+84 |     mapping = origin
+85 |     for u, vec in zip(params, vectors):
+   |                   ^^^^^^^^^^^^^^^^^^^^
+86 |         mapping += u * sp.Matrix(vec)
+87 |     limits = tuple((u, sp.Integer(0), sp.Integer(1)) for u in reversed(params))
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/standard_region_integrate.py:118:60
+    |
+116 | ) -> sp.Expr | None:
+117 |     shifted_vars = tuple(sp.Symbol(f"_{v.name}_centered", real=True) for v in variables)
+118 |     shifted = sp.expand(expr.subs({v: c + u for v, c, u in zip(variables, center, shifted_vars)}))
+    |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+119 |     try:
+120 |         poly = sp.Poly(shifted, *shifted_vars)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/standard_region_integrate.py:133:49
+    |
+132 | def _segment_length(start: tuple[sp.Expr, ...], end: tuple[sp.Expr, ...]) -> sp.Expr:
+133 |     return sp.sqrt(sum((b - a) ** 2 for a, b in zip(start, end)))
+    |                                                 ^^^^^^^^^^^^^^^
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/standard_region_integrate.py:273:47
+    |
+272 |     if isinstance(region, PointRegion):
+273 |         return sp.simplify(sum(expr.subs(dict(zip(vars_, p))) for p in region.points))
+    |                                               ^^^^^^^^^^^^^
+274 |     if isinstance(region, IntervalRegion):
+275 |         value = sp.integrate(expr, (vars_[0], region.lower, region.upper))
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/standard_region_integrate.py:286:72
+    |
+284 |             return fast
+285 |         value = sp.integrate(
+286 |             expr, *tuple((v, lo, hi) for v, (lo, hi) in reversed(tuple(zip(vars_, region.bounds))))
+    |                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+287 |         )
+288 |         return sp.N(value, precision) if method == "numeric" else sp.simplify(value)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/standard_region_integrate.py:328:54
+    |
+326 |             w = sp.Symbol("_w", real=True)
+327 |             mapping = tuple(
+328 |                 sp.simplify(c + w * dv) for c, dv in zip(simplex_param.mapping, region.vector)
+    |                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+329 |             )
+330 |             pregion = ParametricRegion(
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/standard_region_integrate.py:415:63
+    |
+413 |             params = base_vars
+414 |             limits = tuple(
+415 |                 (v, lo, hi) for v, (lo, hi) in reversed(tuple(zip(params, region.base.bounds)))
+    |                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+416 |             )
+417 |             pregion = ParametricRegion(params, limits, region.mapping)
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> src/semialg/standard_region_integrate.py:424:41
+    |
+422 |             base_param = _simplex_parametric_region(region.base)
+423 |             composed = tuple(
+424 |                 sp.simplify(e.subs(dict(zip(base_vars, base_param.mapping))))
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+425 |                 for e in region.mapping
+426 |             )
+    |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/topology/incidence.py:45:60
+   |
+44 | def cell_sample_subs(cell: CADCell, variables: Sequence[sp.Symbol]) -> dict[sp.Symbol, sp.Expr]:
+45 |     return {var: sample_to_expr(sample) for var, sample in zip(variables, cell.sample)}
+   |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/tticad/families.py:27:42
+   |
+25 |     fam_maps = propagate_ecs_by_family(formula, vars_)
+26 |     out = []
+27 |     for idx, (fam, fam_map) in enumerate(zip(families, fam_maps)):
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^
+28 |         out.append(
+29 |             TTIFamilySummary(
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/tticad/invariance.py:25:55
+   |
+23 |     for cell in cad.cells_by_level.get(len(cad.vars), []):
+24 |         checked += 1
+25 |         expected = eval_quantifier_free(formula, dict(zip(cad.vars, cell.sample)))
+   |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 |         known = cad.truth_by_cell.get(cell.index, expected)
+27 |         if bool(expected) != bool(known):
+   |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/validation/random_formulas.py:30:23
+   |
+28 |         powers[rng.randrange(len(symbols))] += 1
+29 |     out = sp.Integer(1)
+30 |     for sym, power in zip(symbols, powers):
+   |                       ^^^^^^^^^^^^^^^^^^^^
+31 |         if power:
+32 |             out *= sym**power
+   |
+help: Add explicit value for parameter `strict=`
+
+E712 Avoid equality comparisons to `True`; use `substituted:` for truth checks
+  --> src/semialg/validation/solution_checking.py:45:43
+   |
+43 |     if check_numeric_equalities:
+44 |         substituted = sp.simplify(substituted)
+45 |     return substituted is sp.true or bool(substituted == True)
+   |                                           ^^^^^^^^^^^^^^^^^^^
+   |
+help: Replace with `substituted`
+
+B905 `zip()` without an explicit `strict=` parameter
+  --> src/semialg/validation/symmetric_difference.py:48:27
+   |
+46 |     checked = 0
+47 |     for values in itertools.product(coords, repeat=len(variables)):
+48 |         assignment = dict(zip(variables, values))
+   |                           ^^^^^^^^^^^^^^^^^^^^^^
+49 |         checked += 1
+50 |         left_value = form_sat_by_assign(left, assignment, check_numeric_equalities=True)
+   |
+help: Add explicit value for parameter `strict=`
+
+E402 Module level import not at top of file
+ --> tests/test_active_reduced_cad.py:7:1
+  |
+5 | pytestmark = pytest.mark.slow
+6 |
+7 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+8 |
+9 | from semialg.cad.reduced import ReducedCertificate, decomp_form_reduced_safe, decompose_reduced_safe
+  |
+
+E402 Module level import not at top of file
+  --> tests/test_active_reduced_cad.py:9:1
+   |
+ 7 | import sympy as sp
+ 8 |
+ 9 | from semialg.cad.reduced import ReducedCertificate, decomp_form_reduced_safe, decompose_reduced_safe
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10 | from semialg.formula import parse_formula
+11 | from semialg.tticad.safe import decompose_tticad_safe
+   |
+
+E402 Module level import not at top of file
+  --> tests/test_active_reduced_cad.py:10:1
+   |
+ 9 | from semialg.cad.reduced import ReducedCertificate, decomp_form_reduced_safe, decompose_reduced_safe
+10 | from semialg.formula import parse_formula
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11 | from semialg.tticad.safe import decompose_tticad_safe
+   |
+
+E402 Module level import not at top of file
+  --> tests/test_active_reduced_cad.py:11:1
+   |
+ 9 | from semialg.cad.reduced import ReducedCertificate, decomp_form_reduced_safe, decompose_reduced_safe
+10 | from semialg.formula import parse_formula
+11 | from semialg.tticad.safe import decompose_tticad_safe
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+
+E402 Module level import not at top of file
+ --> tests/test_cad_api.py:7:1
+  |
+5 | pytestmark = pytest.mark.slow
+6 |
+7 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+8 |
+9 | from semialg.decomposition import CADFunction, CellSet, cad, cad_text
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_cad_api.py:9:1
+  |
+7 | import sympy as sp
+8 |
+9 | from semialg.decomposition import CADFunction, CellSet, cad, cad_text
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg.formula import parse_quant_form_text
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe.py:7:1
+  |
+5 | import sympy as sp
+6 |
+7 | from semialg.formula import parse_quant_form_text
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+8 | from semialg.qe.complete import qe_by_complete_cad
+9 | from semialg.solve.complete import reduce_complete_text
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe.py:8:1
+  |
+7 | from semialg.formula import parse_quant_form_text
+8 | from semialg.qe.complete import qe_by_complete_cad
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+9 | from semialg.solve.complete import reduce_complete_text
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe.py:9:1
+  |
+7 | from semialg.formula import parse_quant_form_text
+8 | from semialg.qe.complete import qe_by_complete_cad
+9 | from semialg.solve.complete import reduce_complete_text
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe_interface.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg.formula import parse_quant_form_text
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe_interface.py:7:1
+  |
+5 | import sympy as sp
+6 |
+7 | from semialg.formula import parse_quant_form_text
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+8 | from semialg.qe.complete import CellUnion, QEDiagnostics, qe_by_complete_cad
+9 | from semialg.solve.complete import reduce_complete_text
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe_interface.py:8:1
+  |
+7 | from semialg.formula import parse_quant_form_text
+8 | from semialg.qe.complete import CellUnion, QEDiagnostics, qe_by_complete_cad
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+9 | from semialg.solve.complete import reduce_complete_text
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_complete_qe_interface.py:9:1
+  |
+7 | from semialg.formula import parse_quant_form_text
+8 | from semialg.qe.complete import CellUnion, QEDiagnostics, qe_by_complete_cad
+9 | from semialg.solve.complete import reduce_complete_text
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_higher_dimensional_cylindrical_exploitation.py:7:1
+  |
+5 | pytestmark = pytest.mark.slow
+6 |
+7 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+8 |
+9 | from semialg import (
+  |
+
+E402 Module level import not at top of file
+  --> tests/test_higher_dimensional_cylindrical_exploitation.py:9:1
+   |
+ 7 |   import sympy as sp
+ 8 |
+ 9 | / from semialg import (
+10 | |     integrate_over_region,
+11 | |     reduce_region_integral,
+12 | |     region_boundary,
+13 | |     simplify_system,
+14 | |     solve_semialgebraic,
+15 | | )
+   | |_^
+   |
+
+E402 Module level import not at top of file
+ --> tests/test_intrinsic_region_measure.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg import integrate_over_region, semialgebraic_measure
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_intrinsic_region_measure.py:7:1
+  |
+5 | import sympy as sp
+6 |
+7 | from semialg import integrate_over_region, semialgebraic_measure
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_optimization.py:7:1
+  |
+5 | pytestmark = pytest.mark.slow
+6 |
+7 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+8 |
+9 | from semialg import (
+  |
+
+E402 Module level import not at top of file
+  --> tests/test_optimization.py:9:1
+   |
+ 7 |   import sympy as sp
+ 8 |
+ 9 | / from semialg import (
+10 | |     FunctionRangeResult,
+11 | |     OptimizationResult,
+12 | |     function_range,
+13 | |     semialgebraic_maximize,
+14 | |     semialgebraic_minimize,
+15 | | )
+   | |_^
+   |
+
+E402 Module level import not at top of file
+ --> tests/test_parameterized_cylindrical_decomposition.py:7:1
+  |
+5 | pytestmark = pytest.mark.slow
+6 |
+7 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+8 |
+9 | from semialg import parameterized_cylindrical_decomposition, solve_semialgebraic
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_parameterized_cylindrical_decomposition.py:9:1
+  |
+7 | import sympy as sp
+8 |
+9 | from semialg import parameterized_cylindrical_decomposition, solve_semialgebraic
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_region_integration.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg import RegionIntegralResult, integrate_over_region
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_region_integration.py:7:1
+  |
+5 | import sympy as sp
+6 |
+7 | from semialg import RegionIntegralResult, integrate_over_region
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_region_integration_methods.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import pytest
+  | ^^^^^^^^^^^^^
+6 | import sympy as sp
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_region_integration_methods.py:6:1
+  |
+5 | import pytest
+6 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+7 |
+8 | from semialg import integrate_over_region
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_region_integration_methods.py:8:1
+  |
+6 | import sympy as sp
+7 |
+8 | from semialg import integrate_over_region
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_region_moments.py:7:1
+  |
+5 | pytestmark = pytest.mark.slow
+6 |
+7 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+8 |
+9 | from semialg import region_centroid, region_covariance, region_moment
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_region_moments.py:9:1
+  |
+7 | import sympy as sp
+8 |
+9 | from semialg import region_centroid, region_covariance, region_moment
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_solve_semialgebraic_advanced_operations.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg import (
+  |
+
+E402 Module level import not at top of file
+  --> tests/test_solve_semialgebraic_advanced_operations.py:7:1
+   |
+ 5 |   import sympy as sp
+ 6 |
+ 7 | / from semialg import (
+ 8 | |     canonicalize_one_dimensional_formula,
+ 9 | |     function_domain,
+10 | |     is_real_valued,
+11 | |     normalize_domain_sensitive_constraints,
+12 | |     solve_semialgebraic,
+13 | | )
+   | |_^
+   |
+
+E402 Module level import not at top of file
+ --> tests/test_solve_semialgebraic_cells.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg import VerticalBoundCell2D, solve_semialgebraic
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_solve_semialgebraic_cells.py:7:1
+  |
+5 | import sympy as sp
+6 |
+7 | from semialg import VerticalBoundCell2D, solve_semialgebraic
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_solve_semialgebraic_sampling.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg import solve_semialgebraic
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_solve_semialgebraic_sampling.py:7:1
+  |
+5 | import sympy as sp
+6 |
+7 | from semialg import solve_semialgebraic
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_standard_region_integration.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg import (
+  |
+
+E402 Module level import not at top of file
+  --> tests/test_standard_region_integration.py:7:1
+   |
+ 5 |   import sympy as sp
+ 6 |
+ 7 | / from semialg import (
+ 8 | |     BallRegion,
+ 9 | |     CapsuleRegion,
+10 | |     ConeRegion,
+11 | |     CylinderRegion,
+12 | |     IntervalRegion,
+13 | |     ParallelogramRegion,
+14 | |     ParametricRegion,
+15 | |     PolygonRegion,
+16 | |     RegionSymmetricDifference,
+17 | |     RegionUnion,
+18 | |     SphereRegion,
+19 | |     StadiumRegion,
+20 | |     TetrahedronRegion,
+21 | |     integrate_over_parametric_region,
+22 | |     integrate_over_region,
+23 | |     metric_jacobian_factor,
+24 | | )
+   | |_^
+   |
+
+E402 Module level import not at top of file
+ --> tests/test_standard_shape_region_integration.py:7:1
+  |
+5 | pytestmark = pytest.mark.slow
+6 |
+7 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+8 |
+9 | from semialg import integrate_over_region, reduce_region_integral, semialgebraic_measure
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_standard_shape_region_integration.py:9:1
+  |
+7 | import sympy as sp
+8 |
+9 | from semialg import integrate_over_region, reduce_region_integral, semialgebraic_measure
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+
+E402 Module level import not at top of file
+ --> tests/test_structured_cad_cell_extraction.py:5:1
+  |
+3 | pytestmark = pytest.mark.slow
+4 |
+5 | import sympy as sp
+  | ^^^^^^^^^^^^^^^^^^
+6 |
+7 | from semialg import (
+  |
+
+E402 Module level import not at top of file
+  --> tests/test_structured_cad_cell_extraction.py:7:1
+   |
+ 5 |   import sympy as sp
+ 6 |
+ 7 | / from semialg import (
+ 8 | |     extract_structured_cad_cells,
+ 9 | |     extract_vertical_bounds_from_cad_2d,
+10 | |     integrate_over_region,
+11 | |     reduce_region_integral,
+12 | |     region_boundary,
+13 | |     solve_semialgebraic,
+14 | | )
+   | |_^
+   |
+
+Found 212 errors.
+No fixes available (124 hidden fixes can be enabled with the `--unsafe-fixes` option).

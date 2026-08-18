@@ -1,0 +1,3 @@
+{"expected_text":"True","formula_text":"x**2 - 1 = 0","metadata":{},"name":"exists_square_root_of_one","quantifiers":[["exists","x"]],"tags":["sentence","univariate","exists"],"variables":["x"]}
+{"expected_text":"True","formula_text":"x**2 + 1 > 0","metadata":{},"name":"positive_square_plus_one","quantifiers":[["forall","x"]],"tags":["sentence","univariate","forall"],"variables":["x"]}
+{"expected_text":"x >= 0","formula_text":"y**2 - x = 0","metadata":{},"name":"square_root_projection","quantifiers":[["exists","y"]],"tags":["projection","bivariate","exists"],"variables":["x","y"]}
