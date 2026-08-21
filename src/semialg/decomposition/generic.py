@@ -8,6 +8,7 @@ import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
 from ..cad.lifting.stack import CADCell
+from ..context import with_computation_context
 from ..domains import apply_assumptions, normalize_assumptions, normalize_domain
 from ..formula import Formula, parse_formula, parse_formula_text, to_sympy
 from ..generic import (
@@ -201,11 +202,18 @@ def _case_solution_formula(
     all_symbols: Sequence[sp.Symbol],
     cells_by_level: Mapping[int, Sequence[CADCell]],
 ) -> sp.Expr:
+    """Reconstruct a parameterized fiber formula without rewriting root binders.
+
+    Generic CAD sections may contain ``root_of(p(a, x), x, k)`` expressions.
+    Algebraic simplifiers that solve another conjunct for ``a`` and substitute
+    it into the root-defining polynomial can collapse ``p`` to zero and destroy
+    the ordered-root identity.  The CAD reconstruction is already an exact
+    formula, so keep it structurally intact here; callers may simplify scalar
+    conjuncts after parameter specialization.
+    """
     if not cells:
         return sp.false
-    return simplify_qe_formula(
-        cells_to_formula(cells, tuple(all_symbols), cells_by_level), implication_minimize=False
-    )
+    return cells_to_formula(cells, tuple(all_symbols), cells_by_level)
 
 
 def _make_param_cases(
@@ -240,14 +248,12 @@ def _make_param_cases(
         cell_formula = _case_solution_formula(
             cells, (*parameters, *variables), cad_obj.cells_by_level
         )
-        solution = (
-            sp.false
-            if not cells
-            else simplify_qe_formula(
-                sp.And(param_condition, base_formula, cell_formula, evaluate=False),
-                implication_minimize=False,
-            )
-        )
+        # ``cell_formula`` already reconstructs exactly the selected CAD fiber
+        # over this parameter cell, including the parameter-cell condition.
+        # Re-simplifying it together with the original equation can substitute
+        # solved parameter expressions into a bound ``root_of`` selector and
+        # collapse its defining polynomial to zero.
+        solution = sp.false if not cells else cell_formula
         full_dim = _is_full_dim(param_cell, cad_obj.cells_by_level)
         cases.append(
             GenericCase(
@@ -275,6 +281,7 @@ def _exceptional_formula(cases: Sequence[GenericCase]) -> sp.Expr:
     return _formula_from_conditions(case.param_condition for case in cases if case.exceptional)
 
 
+@with_computation_context
 def generic_cad(
     formula: sp.Expr | Formula,
     variables: Sequence[sp.Symbol | str],
@@ -417,6 +424,7 @@ def generic_cad(
     raise ValueError(f"unsupported generic CAD output: {output!r}")
 
 
+@with_computation_context
 def generic_cad_text(
     text: str,
     *,

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .features import ProblemFeatures
-
 
 @dataclass(frozen=True)
 class StrategyMemoryEntry:
@@ -35,16 +33,3 @@ class StrategyMemory:
         for entry in self.entries:
             out[entry.backend] = out.get(entry.backend, 0) + 1
         return out
-
-
-def feature_signature(features: ProblemFeatures) -> str:
-    return "|".join(
-        [
-            f"vars={features.variable_count}",
-            f"deg={features.max_total_degree}",
-            f"atoms={features.num_atoms}",
-            f"alts={features.quantifier_alternations}",
-            f"or={int(features.has_disjunction)}",
-            f"ec={int(features.has_ecs)}",
-        ]
-    )

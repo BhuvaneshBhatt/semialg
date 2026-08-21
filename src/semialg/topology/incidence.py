@@ -4,10 +4,13 @@ from collections.abc import Mapping, Sequence
 
 import sympy as sp
 
+from ..algebraic.roots import isolate_real_roots
 from ..algebraic.samples import sample_to_expr
 from ..cad.decomposition import CompleteCAD
 from ..cad.lifting.stack import CADCell
+from ..exact_arithmetic import exact_truth
 from ..reconstruct.cylindrical import path_condition
+from ..reconstruct.root_functions import root_of
 
 
 def cell_dimension(cell: CADCell, cells_by_level: Mapping[int, Sequence[CADCell]]) -> int:
@@ -72,21 +75,57 @@ def is_cell_in_closure(
     return _truth_at_cell_sample(condition, target, variables)
 
 
+def _specialize_root_functions(expr: sp.Expr, assignments: Mapping[sp.Symbol, sp.Expr]) -> sp.Expr:
+    """Specialize opaque ``root_of`` nodes without substituting their fiber variable.
+
+    A plain SymPy ``subs`` would replace the fiber symbol *inside* ``root_of``
+    itself, turning ``root_of(p(x, y), y, k)`` into an uninterpretable object
+    such as ``root_of(c, y0, k)``.  Specialize base variables first, isolate the
+    requested root exactly, then substitute the ordinary coordinates.
+    """
+
+    replacements: dict[sp.Expr, sp.Expr] = {}
+    for node in sp.preorder_traversal(expr):
+        if getattr(node, "func", None) != root_of or len(node.args) != 3:
+            continue
+        polynomial, fiber, index = node.args
+        if not isinstance(fiber, sp.Symbol) or not index.is_Integer:
+            raise ValueError("malformed root_of expression in CAD topology formula")
+        base_subs = {var: value for var, value in assignments.items() if var != fiber}
+        specialized = sp.expand(polynomial.subs(base_subs))
+        roots = isolate_real_roots(sp.Poly(specialized, fiber, domain="EX"))
+        root_index = int(index)
+        if root_index < 0 or root_index >= len(roots):
+            raise ValueError("root_of index is invalid after exact specialization")
+        replacements[node] = roots[root_index].as_expr()
+    return expr.xreplace(replacements) if replacements else expr
+
+
+def _truth_condition_at_assignments(
+    condition: sp.Expr, assignments: Mapping[sp.Symbol, sp.Expr]
+) -> bool:
+    """Evaluate a CAD path condition exactly with Boolean short-circuiting."""
+
+    if isinstance(condition, sp.And):
+        return all(_truth_condition_at_assignments(arg, assignments) for arg in condition.args)
+    if isinstance(condition, sp.Or):
+        return any(_truth_condition_at_assignments(arg, assignments) for arg in condition.args)
+    if isinstance(condition, sp.Not):
+        return not _truth_condition_at_assignments(condition.args[0], assignments)
+    specialized = _specialize_root_functions(condition, assignments)
+    value = sp.simplify(specialized.subs(assignments))
+    return exact_truth(value)
+
+
 def _truth_at_cell_sample(
     condition: sp.Expr, cell: CADCell, variables: Sequence[sp.Symbol]
 ) -> bool:
-    value = sp.simplify(condition.subs(cell_sample_subs(cell, variables)))
-    if value is sp.true or value == sp.true:
-        return True
-    if value is sp.false or value == sp.false:
-        return False
+    assignments = cell_sample_subs(cell, variables)
     try:
-        return bool(value)
-    except TypeError:
-        pass
-    try:
-        return bool(sp.N(value))
-    except Exception:
+        return _truth_condition_at_assignments(condition, assignments)
+    except (ValueError, NotImplementedError, sp.PolynomialError):
+        # Incidence is certification-sensitive.  Failure to establish exact
+        # truth is not evidence of incidence.
         return False
 
 

@@ -1,4 +1,5 @@
 import sympy as sp
+
 from semialg import equivalent, implies, is_satisfiable
 
 x, y = sp.symbols("x y", real=True)

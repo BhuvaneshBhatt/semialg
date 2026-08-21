@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
+from ..cad.bounds import AlgebraicRootFunction, CADBound, DelineabilityCertificate, as_cad_bound
 from ..cad.lifting.stack import CADCell
 from .radicals import fiber_root_expr
 
@@ -32,14 +33,54 @@ def _section_at_position(
     return None
 
 
+def section_value_bound(
+    cell: CADCell,
+    variable: sp.Symbol,
+    *,
+    base_variables: Sequence[sp.Symbol] = (),
+    certificate: DelineabilityCertificate | None = None,
+    closed: bool = True,
+) -> CADBound:
+    """Return a typed value for a section cell.
+
+    Variable-dependent algebraic sections are represented by
+    :class:`AlgebraicRootFunction`; ordinary fixed algebraic/rational sections
+    retain their exact sample representation.
+    """
+
+    poly = cell.section_polynomial
+    if (
+        poly is not None
+        and cell.root_index is not None
+        and variable in sp.sympify(poly).free_symbols
+    ):
+        coefficient_symbols = sp.sympify(poly).free_symbols - {variable}
+        if coefficient_symbols:
+            return AlgebraicRootFunction(
+                polynomial=sp.expand(poly),
+                fiber_variable=variable,
+                root_index=int(
+                    certificate.root_index if certificate is not None else cell.root_index
+                ),
+                base_variables=tuple(base_variables),
+                base_index=cell.parent_index,
+                certificate=certificate,
+                stack_root_index=cell.root_index,
+                closed=closed,
+            )
+        expr = fiber_root_expr(poly, variable, cell.root_index)
+        if expr is not None:
+            return as_cad_bound(expr, closed=closed)
+    point = cell.lower_bound or cell.upper_bound
+    if point is None:
+        raise ValueError("section cell has no reconstructible value")
+    return as_cad_bound(point, closed=closed)
+
+
 def section_value_expr(cell: CADCell, variable: sp.Symbol) -> sp.Expr:
     """Return the symbolic value of a section cell as a radical/root function."""
 
-    expr = fiber_root_expr(cell.section_polynomial, variable, cell.root_index)
-    if expr is not None:
-        return expr
-    point = cell.lower_bound or cell.upper_bound
-    return sample_to_expr(point)
+    return section_value_bound(cell, variable).as_expr()
 
 
 def _sector_bound_expr(
@@ -100,4 +141,4 @@ def path_condition(
     return sp.And(*kept) if kept else sp.true
 
 
-__all__ = ["level_cell_condition", "path_condition", "section_value_expr"]
+__all__ = ["level_cell_condition", "path_condition", "section_value_bound", "section_value_expr"]

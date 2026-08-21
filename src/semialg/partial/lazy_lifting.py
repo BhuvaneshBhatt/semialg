@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from functools import cmp_to_key
 
 import sympy as sp
 
 from ..cad import _real_root_list, _roots_over_cell, _stack_from_roots
+from ..exact_arithmetic import compare_exact_reals
 from ..model import CADResult, Cell, ProjectionConfig
 
 
@@ -32,7 +34,7 @@ def ensure_children(
         for root in roots:
             if not any(sp.simplify(root - other) == 0 for other in unique):
                 unique.append(root)
-        unique.sort(key=lambda z: float(sp.N(z, 50)))
+        unique.sort(key=cmp_to_key(compare_exact_reals))
         stack = _stack_from_roots(parent, unique)
     else:
         target_var = vars_[child_level - 1]

@@ -6,8 +6,10 @@ from dataclasses import dataclass, field
 import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
+from ..algebraic.signs import sign_at_sample
 from ..cad.decomposition import CompleteCAD, decomp_collins_complete
 from ..cad.lifting.stack import CADCell
+from ..context import with_computation_context
 from ..formula import And, Atom, BoolConst, Formula, Not, Or, formula_polynomials, to_sympy
 from ..reconstruct.merge import compressed_formula_from_cells, dnf_formula_from_cells
 from ..simplify.result import simplify_qe_formula
@@ -167,11 +169,20 @@ def _atom_truth(
     key = _sign_key(atom.expr)
     sign = signs.get(key)
     if sign is None:
-        substitutions = {
-            sym: sample_to_expr(val) for sym, val in zip(variables, sample, strict=True)
-        }
-        value = sp.expand(atom.expr).subs(substitutions)
-        sign = int(sp.sign(value))
+        try:
+            poly = sp.Poly(sp.expand(atom.expr), *variables, domain="EX")
+            sign = sign_at_sample(poly, sample)
+        except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+            substitutions = {
+                sym: sample_to_expr(val) for sym, val in zip(variables, sample, strict=True)
+            }
+            value = sp.expand(atom.expr).subs(substitutions)
+            exact = sp.sign(value)
+            if exact not in (-1, 0, 1):
+                raise ValueError(
+                    f"could not determine exact atom sign for {sp.sstr(atom.expr)}"
+                ) from None
+            sign = int(exact)
     if atom.op == "=":
         return sign == 0
     if atom.op == "!=":
@@ -290,6 +301,7 @@ def _leaf_witnesses(
     return tuple(witnesses)
 
 
+@with_computation_context
 def qe_by_complete_cad(
     vars_: Sequence[sp.Symbol],
     quantifiers: Sequence[tuple[str, sp.Symbol]],

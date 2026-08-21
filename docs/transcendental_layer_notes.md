@@ -66,3 +66,20 @@ Added:
   - `CompletenessCertificate`
   - `orchestrate_transcendental_system_search(...)`
   - engine-level completeness certificates propagated in `TranscendentalReductionResult`
+
+
+## Quantified-expression representation
+
+Transcendental reconstruction uses semialg's own `Exists`/`ForAll` Boolean
+nodes.  Periodic families are therefore represented explicitly, for example
+`Exists(k, Contains(k, Integers) & interval_condition)`, rather than encoding
+quantification indirectly through `Mod` or `ImageSet`.  `build_trans_state` also
+accepts a leading `Exists`/`ForAll` prefix and lowers it to the internal
+quantifier-block representation used by the dispatch engine.
+
+Incomplete transcendental results carry a `ResultSemantics` value describing
+how the returned formula relates to the true solution set: exact, subset,
+superset, window-scoped subset/superset, bounded-window approximation, periodic
+window approximation, or no-witness-in-window.  A window-scoped or approximate
+result must not be treated as a global equivalence merely because it is
+symbolic.

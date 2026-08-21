@@ -4,6 +4,7 @@ from collections.abc import Iterable, Sequence
 
 import sympy as sp
 
+from ..cache import CACHE, expr_key
 from .quotient import (
     _as_rational_polynomial,
     _coefficient_vector,
@@ -33,6 +34,7 @@ def compute_rational_univariate_representation(
     """
 
     variable_tuple = tuple(variables)
+    raw_polynomials = tuple(sp.sympify(poly) for poly in polynomials)
     if not variable_tuple:
         raise RationalUnivariateError("at least one variable is required")
     if parameter is None:
@@ -44,9 +46,18 @@ def compute_rational_univariate_representation(
     if parameter in variable_tuple:
         raise RationalUnivariateError("parameter must be distinct from system variables")
 
-    polys = [
-        _as_rational_polynomial(sp.sympify(poly), variable_tuple).as_expr() for poly in polynomials
-    ]
+    polys = [_as_rational_polynomial(poly, variable_tuple).as_expr() for poly in raw_polynomials]
+    cache_key = (
+        tuple(expr_key(poly) for poly in polys),
+        tuple(sp.srepr(v) for v in variable_tuple),
+        sp.srepr(parameter),
+        int(max_separating_attempts),
+    )
+    cached = CACHE.rur.get(cache_key)
+    if cached is not None:
+        CACHE.stats.rur_hits += 1
+        return cached  # type: ignore[return-value]
+    CACHE.stats.rur_misses += 1
     if len(polys) < len(variable_tuple):
         raise RationalUnivariateError(
             "at least as many equations as variables are required for rational univariate solving"
@@ -54,7 +65,7 @@ def compute_rational_univariate_representation(
 
     groebner_basis = sp.groebner(polys, *variable_tuple, order="grevlex", domain=sp.QQ)
     if groebner_basis.polys == [sp.Poly(1, *variable_tuple, domain=sp.QQ)]:
-        return RationalUnivariateRepresentation(
+        result = RationalUnivariateRepresentation(
             variables=variable_tuple,
             parameter=parameter,
             defining_polynomial=sp.Poly(1, parameter, domain=sp.QQ),
@@ -67,6 +78,8 @@ def compute_rational_univariate_representation(
             quotient_dimension=0,
             geometric_solution_count=0,
         )
+        CACHE.rur.put(cache_key, result)
+        return result
 
     leading_exponents = [_leading_exponent_grevlex(poly) for poly in groebner_basis.polys]
     basis_exponents = _standard_exponents(leading_exponents, len(variable_tuple))
@@ -105,7 +118,7 @@ def compute_rational_univariate_representation(
             )
         coordinate_numerators.append(sp.Poly(sp.expand(numerator), parameter, domain=sp.QQ))
 
-    return RationalUnivariateRepresentation(
+    result = RationalUnivariateRepresentation(
         variables=variable_tuple,
         parameter=parameter,
         defining_polynomial=defining_poly,
@@ -116,3 +129,5 @@ def compute_rational_univariate_representation(
         quotient_dimension=len(basis_exponents),
         geometric_solution_count=geometric_count,
     )
+    CACHE.rur.put(cache_key, result)
+    return result

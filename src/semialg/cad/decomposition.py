@@ -10,8 +10,10 @@ from ..algebraic.comparison import sort_samples
 from ..algebraic.roots import isolate_real_roots
 from ..algebraic.sample_points import choose_sector_sample
 from ..algebraic.samples import AlgebraicRoot, Sample, sample_to_expr
+from ..algebraic.signs import sign_at_sample
 from .lifting.sign_invariance import SignInvarianceCheck, verify_cad_sign_inv
 from .lifting.stack import CADCell, sign_table
+from .polynomial_utils import polynomial_key as _poly_key
 from .projection.collins import ProjectionTower, build_collins_proj_set
 
 
@@ -62,10 +64,6 @@ class CompleteCAD:
         return self.verify_sign_invariance().failures
 
 
-def _poly_key(poly: sp.Poly) -> str:
-    return sp.sstr(sp.expand(poly.as_expr()))
-
-
 def _stack_roots_over_point(
     polys: Sequence[sp.Poly],
     variables: Sequence[sp.Symbol],
@@ -90,7 +88,7 @@ def _stack_roots_over_point(
             continue
         try:
             univar = sp.Poly(expr, var, domain="EX")
-        except Exception:
+        except (sp.PolynomialError, TypeError, ValueError):
             continue
         if univar.degree() > 0:
             roots.extend(isolate_real_roots(univar))
@@ -103,9 +101,20 @@ def _section_poly_for_root(
     sample: Sequence[Sample],
     level: int,
 ) -> tuple[sp.Expr | None, str | None]:
-    substitutions = {variables[i]: sample_to_expr(sample[i]) for i in range(level)}
+    """Return the original tower polynomial defining a section sample.
+
+    Testing the unspecialized polynomial with ``sign_at_sample`` preserves its
+    provenance even when the base coordinates are algebraic.  Direct SymPy
+    substitution can otherwise leave an opaque ordered-root expression that
+    fails to simplify to zero, causing the section to be labelled only by its
+    specialized fiber polynomial.
+    """
+
+    fiber_var = variables[level - 1]
     for poly in level_polys:
-        if sp.simplify(poly.as_expr().subs(substitutions)) == 0:
+        if fiber_var not in poly.as_expr().free_symbols:
+            continue
+        if sign_at_sample(poly, sample) == 0:
             return poly.as_expr(), _poly_key(poly)
     return None, None
 

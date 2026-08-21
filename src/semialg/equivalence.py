@@ -1,4 +1,4 @@
-"""Compatibility-free public equivalence helpers.
+"""Public equivalence helpers for semialgebraic formulas.
 
 The validation package is the canonical home for equivalence and
 symmetric-difference checks; this top-level module is a small public facade.

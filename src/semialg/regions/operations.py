@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from functools import cmp_to_key
 
 import sympy as sp
 from sympy.core.sympify import SympifyError
 from sympy.logic.boolalg import Boolean
 from sympy.polys.polyerrors import PolynomialError
 
-from ..implicit_utils import decompose_cylindrical_formula_to_vertical_bounds_2d
+from ..exact_arithmetic import compare_exact_reals
+from ..implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+from ..normalization import normalize_formula as _normalize_formula
+from ..normalization import normalize_variables as _normalize_variables
 
 FormulaLike = sp.Expr | Boolean | bool
 _EXPECTED_ERRORS = (
@@ -18,40 +22,6 @@ _EXPECTED_ERRORS = (
     SympifyError,
     PolynomialError,
 )
-
-
-def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
-    return sp.Symbol(var, real=True) if isinstance(var, str) else var
-
-
-def _normalize_formula(formula: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    if isinstance(formula, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(piece) for piece in formula]
-        return sp.And(*pieces) if pieces else sp.true
-    if formula is True:
-        return sp.true
-    if formula is False:
-        return sp.false
-    return formula if isinstance(formula, (sp.Basic, Boolean)) else sp.sympify(formula)
-
-
-def _normalize_variables(
-    variables: Sequence[sp.Symbol | str] | None,
-    formula: sp.Expr,
-) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    if variables is not None:
-        for var in variables:
-            sym = _as_real_symbol(var)
-            if sym not in seen:
-                out.append(sym)
-                seen.add(sym)
-    for sym in sorted(formula.free_symbols, key=lambda item: item.name):
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
 
 
 def _simplify_region(expr: sp.Expr) -> sp.Expr:
@@ -433,11 +403,21 @@ def _as_disjuncts(expr: sp.Expr) -> list[sp.Expr]:
     return list(simplified.args) if isinstance(simplified, sp.Or) else [simplified]
 
 
+def _compare_endpoints(left: sp.Expr, right: sp.Expr) -> int:
+    """Compare finite or infinite real interval endpoints exactly."""
+
+    if left == right:
+        return 0
+    if left is -sp.oo or right is sp.oo:
+        return -1
+    if left is sp.oo or right is -sp.oo:
+        return 1
+    return compare_exact_reals(left, right)
+
+
 def _interval_from_piece(piece: sp.Expr, variable: sp.Symbol):
-    if isinstance(piece, sp.And):
-        atoms = list(piece.args)
-    else:
-        atoms = [piece]
+    """Recover a one-dimensional interval description from a conjunction of bounds."""
+    atoms = list(piece.args) if isinstance(piece, sp.And) else [piece]
     low = -sp.oo
     high = sp.oo
     low_closed = False
@@ -455,10 +435,16 @@ def _interval_from_piece(piece: sp.Expr, variable: sp.Symbol):
                 if nested is None:
                     return None
                 n_low, n_high, n_low_closed, n_high_closed = nested
-                if n_low > low or n_low == low:
+                low_cmp = _compare_endpoints(n_low, low)
+                if low_cmp > 0:
                     low, low_closed = n_low, n_low_closed
-                if n_high < high or n_high == high:
+                elif low_cmp == 0:
+                    low_closed = low_closed and n_low_closed
+                high_cmp = _compare_endpoints(n_high, high)
+                if high_cmp < 0:
                     high, high_closed = n_high, n_high_closed
+                elif high_cmp == 0:
+                    high_closed = high_closed and n_high_closed
                 continue
             return None
         atom = original
@@ -477,38 +463,49 @@ def _interval_from_piece(piece: sp.Expr, variable: sp.Symbol):
                 atom = sp.Eq(lhs, rhs)
         if lhs != variable:
             return None
-        if isinstance(atom, sp.StrictGreaterThan):
-            if rhs > low or rhs == low:
-                low, low_closed = rhs, False
-        elif isinstance(atom, sp.GreaterThan):
-            if rhs > low or rhs == low:
-                low, low_closed = rhs, True
-        elif isinstance(atom, sp.StrictLessThan):
-            if rhs < high or rhs == high:
-                high, high_closed = rhs, False
-        elif isinstance(atom, sp.LessThan):
-            if rhs < high or rhs == high:
-                high, high_closed = rhs, True
+        if isinstance(atom, (sp.StrictGreaterThan, sp.GreaterThan)):
+            cmp = _compare_endpoints(rhs, low)
+            closed = isinstance(atom, sp.GreaterThan)
+            if cmp > 0:
+                low, low_closed = rhs, closed
+            elif cmp == 0:
+                low_closed = low_closed and closed
+        elif isinstance(atom, (sp.StrictLessThan, sp.LessThan)):
+            cmp = _compare_endpoints(rhs, high)
+            closed = isinstance(atom, sp.LessThan)
+            if cmp < 0:
+                high, high_closed = rhs, closed
+            elif cmp == 0:
+                high_closed = high_closed and closed
         elif isinstance(atom, sp.Equality):
             low = high = rhs
             low_closed = high_closed = True
         else:
             return None
-    if low > high:
+    cmp = _compare_endpoints(low, high)
+    if cmp > 0 or (cmp == 0 and not (low_closed and high_closed)):
         return None
     return (low, high, low_closed, high_closed)
 
 
 def _intervals_touch(left, right) -> bool:
-    a_low, a_high, _, a_high_closed = left
-    b_low, b_high, b_low_closed, _ = right
-    if a_high is sp.oo or b_low is -sp.oo:
-        return True
-    if a_high > b_low:
-        return True
-    if a_high == b_low and (a_high_closed or b_low_closed):
-        return True
-    return False
+    _, a_high, _, a_high_closed = left
+    b_low, _, b_low_closed, _ = right
+    cmp = _compare_endpoints(a_high, b_low)
+    return cmp > 0 or (cmp == 0 and (a_high_closed or b_low_closed))
+
+
+def _merge_intervals(left, right):
+    """Merge overlapping/touching intervals without shrinking containment."""
+
+    low, a_high, low_closed, a_high_closed = left
+    _, b_high, _, b_high_closed = right
+    cmp = _compare_endpoints(a_high, b_high)
+    if cmp > 0:
+        return left
+    if cmp < 0:
+        return (low, b_high, low_closed, b_high_closed)
+    return (low, a_high, low_closed, a_high_closed or b_high_closed)
 
 
 def _piece_from_interval(interval, variable: sp.Symbol) -> sp.Expr:
@@ -528,7 +525,7 @@ def _components_1d(expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr, ...] | 
         if interval is None:
             return None
         intervals.append(interval)
-    intervals.sort(key=lambda item: sp.N(item[0]) if item[0] not in (-sp.oo, sp.oo) else -sp.oo)
+    intervals.sort(key=cmp_to_key(lambda a, b: _compare_endpoints(a[0], b[0])))
     merged = []
     for interval in intervals:
         if not merged:
@@ -536,9 +533,7 @@ def _components_1d(expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr, ...] | 
             continue
         prev = merged[-1]
         if _intervals_touch(prev, interval):
-            low, _, low_closed, _ = prev
-            _, high, _, high_closed = interval
-            merged[-1] = (low, high, low_closed, high_closed)
+            merged[-1] = _merge_intervals(prev, interval)
         else:
             merged.append(interval)
     return tuple(_piece_from_interval(interval, variable) for interval in merged)

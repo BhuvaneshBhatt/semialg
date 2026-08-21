@@ -75,6 +75,7 @@ def _bound_atom(sym: sp.Symbol, side: str, bound: _Bound) -> sp.Expr:
 
 
 def _simplify_and_bounds(expr: SymAnd) -> sp.Expr:
+    """Simplify a conjunction by combining compatible scalar bounds conservatively."""
     lower: dict[sp.Symbol, _Bound] = {}
     upper: dict[sp.Symbol, _Bound] = {}
     equalities: dict[sp.Symbol, sp.Expr] = {}

@@ -11,11 +11,7 @@ from .cleanup import (
     recon_univar_intv_form,
     remove_redundant_disjunc,
 )
-from .engine import (
-    TranscendentalSolveTrace,
-    TransReductionResult,
-    reduce_trans_problem,
-)
+from .engine import TranscendentalSolveTrace, TransReductionResult, reduce_trans_problem
 from .families import (
     TransFamDetection,
     TransFamHandler,
@@ -40,10 +36,7 @@ from .preprocess import (
     replace_function_auxilia,
     simp_piecewise_subexprs,
 )
-from .quantifier_elimination import (
-    QuantElimResult,
-    eliminate_lead_block,
-)
+from .quantifier_elimination import QuantElimResult, eliminate_lead_block
 from .roots import (
     CertifiedIntervalRoot,
     RootIsolationResult,
@@ -52,12 +45,8 @@ from .roots import (
     evaluate_form_points,
     isolate_univar_roots,
 )
-from .state import (
-    QuantifierBlock,
-    TransProblemState,
-    build_trans_state,
-    norm_quant_blocks,
-)
+from .semantics import ResultSemantics
+from .state import QuantifierBlock, TransProblemState, build_trans_state, norm_quant_blocks
 from .system_roots import (
     CertifiedPoint,
     CompletenessCertificate,
@@ -114,4 +103,5 @@ __all__ = [
     "TransReductionResult",
     "TranscendentalSolveTrace",
     "reduce_trans_problem",
+    "ResultSemantics",
 ]

@@ -10,8 +10,18 @@ import sympy as sp
 from sympy.core.relational import Relational
 from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 
+from ..dimension_validation import require_same_length
 from .random_sections import find_random_section_wit
 from .witness_generation import sample_free_assignments
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    RuntimeError,
+    sp.PolynomialError,
+)
 
 
 @dataclass(frozen=True)
@@ -83,7 +93,7 @@ def is_valid_numeric_value(value: object) -> bool:
 
     try:
         value = sp.sympify(value)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
     if value in {sp.oo, -sp.oo, sp.zoo, sp.nan}:
         return False
@@ -93,7 +103,7 @@ def is_valid_numeric_value(value: object) -> bool:
         try:
             complex(value.evalf(30))
             return True
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return False
     return False
 
@@ -103,7 +113,7 @@ def is_reliably_zero(expr: object) -> bool:
 
     try:
         value = sp.sympify(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
     if value == 0:
         return True
@@ -111,11 +121,11 @@ def is_reliably_zero(expr: object) -> bool:
         simplified = sp.simplify(value)
         if simplified == 0:
             return True
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         pass
     try:
         return bool(value.equals(0))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
 
 
@@ -124,7 +134,7 @@ def could_be_zero(expr: object) -> bool:
 
     try:
         value = sp.sympify(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return True
     if is_reliably_zero(value):
         return True
@@ -132,7 +142,7 @@ def could_be_zero(expr: object) -> bool:
         return True
     try:
         approx = complex(value.evalf(30))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return True
     return abs(approx) < 1.0e-12
 
@@ -147,7 +157,7 @@ def _truth_value(value: object) -> bool | None:
             return True
         if value == False:  # noqa: E712 - intentional SymPy coercion point
             return False
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         pass
     return None
 
@@ -155,7 +165,7 @@ def _truth_value(value: object) -> bool | None:
 def _safe_simplify(expr: sp.Expr) -> sp.Expr:
     try:
         return sp.simplify(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return expr
 
 
@@ -186,7 +196,7 @@ def _eval_atom(
 ) -> bool | None:
     try:
         value = atom.subs(assignment)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     value = _safe_simplify(value)
     truth = _truth_value(value)
@@ -198,7 +208,7 @@ def _eval_atom(
             truth = _truth_value(numeric)
             if truth is not None:
                 return truth
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     return None
 
@@ -225,7 +235,7 @@ def satisfies_formula(
     return True
 
 
-def normalize_relation(atom: Relational) -> Relational:
+def relation_to_zero_rhs(atom: Relational) -> Relational:
     """Normalize a binary relation to a zero right-hand side."""
 
     delta = _relation_delta(atom)
@@ -244,15 +254,15 @@ def normalize_relation(atom: Relational) -> Relational:
     return atom
 
 
-def normalize_relations(formula: sp.Expr) -> sp.Expr:
+def relations_to_zero_rhs(formula: sp.Expr) -> sp.Expr:
     """Normalize relation atoms in a Boolean formula."""
 
     if isinstance(formula, sp.And):
-        return sp.And(*(normalize_relations(arg) for arg in formula.args))
+        return sp.And(*(relations_to_zero_rhs(arg) for arg in formula.args))
     if isinstance(formula, sp.Or):
-        return sp.Or(*(normalize_relations(arg) for arg in formula.args))
+        return sp.Or(*(relations_to_zero_rhs(arg) for arg in formula.args))
     if isinstance(formula, Relational):
-        return normalize_relation(formula)
+        return relation_to_zero_rhs(formula)
     return formula
 
 
@@ -261,7 +271,7 @@ def to_dnf_formula(formula: sp.Expr) -> sp.Expr:
 
     try:
         return sp.to_dnf(formula, simplify=False)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return formula
 
 
@@ -277,10 +287,10 @@ def _apply_equalities_to_later_atoms(args: Sequence[sp.Expr]) -> tuple[sp.Expr, 
         if repl and not isinstance(atom, sp.Equality):
             try:
                 current = current.xreplace(repl)
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 try:
                     current = current.subs(repl)
-                except Exception:
+                except _RECOVERABLE_ERRORS:
                     pass
         out.append(current)
     return tuple(out)
@@ -330,7 +340,7 @@ def formula_to_rule_sets(
 def is_rational_number(value: object) -> bool:
     try:
         value = sp.sympify(value)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
     return value.is_Integer is True or value.is_Rational is True
 
@@ -340,7 +350,7 @@ def as_rational_if_exact(value: object, *, max_denominator: int = 10_000) -> sp.
 
     try:
         value = sp.sympify(value)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if value.is_Rational:
         return sp.Rational(value)
@@ -348,7 +358,7 @@ def as_rational_if_exact(value: object, *, max_denominator: int = 10_000) -> sp.
         rational = sp.Rational(str(value.evalf(30))).limit_denominator(max_denominator)
         if is_reliably_zero(value - rational):
             return rational
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     return None
 
@@ -365,7 +375,7 @@ def rational_bound(value: object, direction: int) -> sp.Expr:
         raise ValueError("direction must be -1 or 1")
     try:
         value = sp.sympify(value)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return -sp.oo if direction < 0 else sp.oo
     if value in {sp.oo, -sp.oo} or value.is_Rational:
         return value
@@ -373,7 +383,7 @@ def rational_bound(value: object, direction: int) -> sp.Expr:
         return -sp.oo if direction < 0 else sp.oo
     try:
         approx = float(value.evalf(30))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return -sp.oo if direction < 0 else sp.oo
     if not math.isfinite(approx):
         return -sp.oo if direction < 0 else sp.oo
@@ -449,7 +459,7 @@ def fast_factor_list(
             out = [] if coeff == 1 else [(sp.sympify(coeff), 1)]
             out.extend((sp.sympify(factor), int(exp)) for factor, exp in factors)
             return tuple(out)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     if isinstance(expr, sp.Mul):
         out: list[tuple[sp.Expr, int]] = []
@@ -508,7 +518,7 @@ def _linear_coeffs(
 def _relation_to_linear_bound(
     rel: Relational, variables: Sequence[sp.Symbol]
 ) -> tuple[sp.Symbol, sp.Expr, str] | None:
-    norm = normalize_relation(rel)
+    norm = relation_to_zero_rhs(rel)
     if not isinstance(norm, (sp.StrictLessThan, sp.LessThan, sp.StrictGreaterThan, sp.GreaterThan)):
         return None
     delta = _relation_delta(norm)
@@ -536,34 +546,37 @@ def coordinate_bounds(
     variables = tuple(variables)
     lower: dict[sp.Symbol, sp.Expr] = {var: -sp.oo for var in variables}
     upper: dict[sp.Symbol, sp.Expr] = {var: sp.oo for var in variables}
-    for atom in _relations(normalize_relations(formula)):
+    relations = tuple(_relations(relations_to_zero_rhs(formula)))
+    complete = True
+    for atom in relations:
         bound = _relation_to_linear_bound(atom, variables)
         if bound is None:
+            complete = False
             continue
         var, value, side = bound
         if side == "upper":
             try:
                 if upper[var] is sp.oo or bool(value < upper[var]):
                     upper[var] = value
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 upper[var] = value
         else:
             try:
                 if lower[var] is -sp.oo or bool(value > lower[var]):
                     lower[var] = value
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 lower[var] = value
     inconsistent = False
     for var in variables:
         try:
             if bool(lower[var] > upper[var]):
                 inconsistent = True
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     return CoordinateBounds(
         tuple((var, lower[var], upper[var]) for var in variables),
         inconsistent=inconsistent,
-        complete=True,
+        complete=complete,
     )
 
 
@@ -584,8 +597,7 @@ def is_bounded_solution_set(formula: sp.Expr, variables: Sequence[sp.Symbol]) ->
 def vector_relations(lhs: Sequence[sp.Expr], rhs: Sequence[sp.Expr], relation: str) -> sp.Expr:
     """Convert componentwise vector inequalities to scalar inequalities."""
 
-    if len(lhs) != len(rhs):
-        raise ValueError("vector inequality sides must have the same length")
+    require_same_length(lhs, rhs, context="vector relation", names=("lhs", "rhs"))
     if relation == "lt":
         return sp.And(*(sp.Lt(a, b) for a, b in zip(lhs, rhs, strict=True)))
     if relation == "le":
@@ -622,7 +634,7 @@ def eliminate_linear_equations(
             for idx, eq in enumerate(list(remaining)):
                 try:
                     poly = sp.Poly(eq, var)
-                except Exception:
+                except _RECOVERABLE_ERRORS:
                     continue
                 if poly.degree() != 1:
                     continue
@@ -681,7 +693,7 @@ def find_nonzero_polynomial_witness(
             try:
                 if not is_reliably_zero(poly.subs(assn)):
                     return {var: sp.sympify(assn.get(var, 0)) for var in variables}
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 continue
     return None
 
@@ -689,12 +701,12 @@ def find_nonzero_polynomial_witness(
 def _solve_univariate_rel(rel: Relational, var: sp.Symbol) -> list[sp.Expr]:
     """Return candidate sample values for a univariate real relation."""
 
-    rel = normalize_relation(rel)
+    rel = relation_to_zero_rhs(rel)
     poly = _relation_delta(rel)
     candidates: list[sp.Expr] = []
     try:
         solveset = sp.solveset(rel, var, domain=sp.S.Reals)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         solveset = None
     if isinstance(solveset, sp.FiniteSet):
         candidates.extend(list(solveset))
@@ -702,7 +714,7 @@ def _solve_univariate_rel(rel: Relational, var: sp.Symbol) -> list[sp.Expr]:
         candidates.extend([sp.Integer(0), sp.Integer(1), -sp.Integer(1)])
     try:
         roots = sp.solve(sp.Eq(poly, 0), var)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         roots = []
     for root in roots:
         if root.is_real is not False:
@@ -715,7 +727,7 @@ def _solve_univariate_rel(rel: Relational, var: sp.Symbol) -> list[sp.Expr]:
     for candidate in candidates:
         try:
             candidate = sp.nsimplify(candidate)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             candidate = sp.sympify(candidate)
         key = sp.sstr(candidate)
         if key not in seen:
@@ -736,7 +748,7 @@ def _single_atom_instance(
         return None, "contradiction"
     if not isinstance(atom, Relational) or len(variables) == 0:
         return None, "unsupported_atom"
-    rel = normalize_relation(atom)
+    rel = relation_to_zero_rhs(atom)
     poly = _relation_delta(rel)
     if isinstance(rel, sp.Unequality):
         witness = find_nonzero_polynomial_witness(poly, variables)
@@ -785,7 +797,7 @@ def try_fast_witness(
 
     variables = tuple(variables)
     attempts: list[FallbackAttempt] = []
-    normalized = normalize_relations(formula)
+    normalized = relations_to_zero_rhs(formula)
     atoms = _atoms(normalized)
     if len(atoms) == 1:
         inst, reason = _single_atom_instance(atoms[0], variables, strict=strict)
@@ -803,7 +815,7 @@ def try_fast_witness(
     if equations:
         try:
             sol = sp.solve(equations, variables, dict=True)
-        except Exception as exc:
+        except _RECOVERABLE_ERRORS as exc:
             sol = []
             attempts.append(FallbackAttempt("solve_equations", "unknown", {"error": str(exc)}))
         for raw in sol[: max(count * 4, 8)]:
@@ -968,7 +980,7 @@ def solve_univar_witness(
             (), "unknown", "univariate_decomposition", (FallbackAttempt("arity_check", "skipped"),)
         )
     var = variables[0]
-    atoms = _atoms(normalize_relations(formula))
+    atoms = _atoms(relations_to_zero_rhs(formula))
     candidates: list[sp.Expr] = []
     for atom in atoms:
         if isinstance(atom, Relational):
@@ -979,9 +991,9 @@ def solve_univar_witness(
                     if component != delta:
                         try:
                             candidates.extend(sp.solve(sp.Eq(component, 0), var))
-                        except Exception:
+                        except _RECOVERABLE_ERRORS:
                             pass
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 pass
     for value in candidates:
         candidate = {var: sp.nsimplify(value)}
@@ -1013,7 +1025,7 @@ def find_real_witnesses(
     variables = tuple(variables)
     collected: list[dict[sp.Symbol, sp.Expr]] = []
     attempts: list[FallbackAttempt] = []
-    normalized = normalize_relations(formula)
+    normalized = relations_to_zero_rhs(formula)
     methods = (
         lambda: try_fast_witness(normalized, variables, count=count, strict=strict),
         lambda: sample_bounded_witnesses(
@@ -1090,7 +1102,7 @@ def try_methods(
             except _Timeout:
                 timed_out.append(method)
                 continue
-            except Exception as exc:
+            except _RECOVERABLE_ERRORS as exc:
                 result = failure_value
                 partial.append(exc)
             finally:
@@ -1110,6 +1122,11 @@ def try_methods(
         return MethodSearchResult(tuple(partial), "partial", tuple(partial))
     return MethodSearchResult(failure_value, "unknown")
 
+
+# Backward-compatible aliases. The new names make clear that this is the cheap
+# zero-RHS transform, not the heavier canonical polynomial normalization.
+normalize_relation = relation_to_zero_rhs
+normalize_relations = relations_to_zero_rhs
 
 __all__ = [
     "CoordinateBounds",
@@ -1136,6 +1153,8 @@ __all__ = [
     "is_valid_numeric_value",
     "normalize_relation",
     "normalize_relations",
+    "relation_to_zero_rhs",
+    "relations_to_zero_rhs",
     "is_bounded_solution_set",
     "try_fast_witness",
     "try_methods",

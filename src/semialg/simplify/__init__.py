@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .atoms import normalize_atoms, normalize_relation
+from .atoms import canonicalize_relation, normalize_atoms, normalize_relation
 from .boolean import simplify_boolean
 from .cell_union import cell_to_interval_1d, cell_union_to_formula, cell_union_to_intervals
 from .equality import simplify_equalities
@@ -18,6 +18,7 @@ __all__ = [
     "interval_condition",
     "intervals_to_formula",
     "merge_intervals",
+    "canonicalize_relation",
     "normalize_atoms",
     "normalize_relation",
     "simplify_boolean",

@@ -5,11 +5,18 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 from sympy import S
+from sympy.core.relational import Relational
 
-from .periodic import (
-    compute_periodic_window,
-    detect_real_period,
-    recon_periodic_represent,
+from .periodic import compute_periodic_window, detect_real_period, recon_periodic_represent
+from .semantics import ResultSemantics
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    RuntimeError,
+    sp.PolynomialError,
 )
 
 
@@ -34,6 +41,8 @@ class RootIsolationResult:
     intervals_of_zero: tuple[tuple[sp.Expr, sp.Expr], ...] = ()
     complete: bool = False
     method: str = "univariate_transcendental_isolation"
+    result_semantics: ResultSemantics = ResultSemantics.UNKNOWN
+    validity_window: tuple[sp.Expr, sp.Expr] | None = None
     metadata: dict = field(default_factory=dict)
 
 
@@ -44,26 +53,32 @@ class SampledTruthDecomp:
     true_points: tuple[sp.Expr, ...]
     true_intervals: tuple[tuple[sp.Expr, sp.Expr], ...] = ()
     method: str = "sampled_truth_decomposition"
+    result_semantics: ResultSemantics = ResultSemantics.WINDOW_APPROXIMATION
+    validity_window: tuple[sp.Expr, sp.Expr] | None = None
     metadata: dict = field(default_factory=dict)
 
 
 def _extract_equation(expr: sp.Expr) -> sp.Expr:
     if isinstance(expr, sp.Equality):
         return sp.simplify(expr.lhs - expr.rhs)
+    if isinstance(expr, Relational) or isinstance(expr, sp.logic.boolalg.Boolean):
+        raise TypeError(
+            "Root isolation requires an equality or scalar residual, not a Boolean relation"
+        )
     return sp.simplify(expr)
 
 
 def _numeric_function(expr: sp.Expr, variable: sp.Symbol):
     try:
         return sp.lambdify(variable, expr, "mpmath")
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
 
 
 def _real_eval(func, x: float):
     try:
         value = complex(func(x))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if abs(value.imag) > 1e-8:
         return None
@@ -95,7 +110,7 @@ def _bisect_sign_change(func, left: float, right: float, *, tol: float = 1e-10, 
                     right=sp.nsimplify(hi),
                     midpoint=sp.nsimplify(mid),
                     residual_midpoint=sp.nsimplify(abs(vmid)),
-                    sign_change_certified=True,
+                    sign_change_certified=False,
                 )
             if vlo * vmid <= 0:
                 hi = mid
@@ -110,7 +125,7 @@ def _bisect_sign_change(func, left: float, right: float, *, tol: float = 1e-10, 
         right=sp.nsimplify(right),
         midpoint=sp.nsimplify(mid),
         residual_midpoint=sp.nsimplify(abs(vmid)),
-        sign_change_certified=True,
+        sign_change_certified=False,
     )
 
 
@@ -131,7 +146,7 @@ def _certified_brackets(
                 sp.nsimplify(prev_x),
                 sp.nsimplify(prev_x),
                 sp.Integer(0),
-                True,
+                False,
             )
         )
     for x in xs[1:]:
@@ -140,7 +155,7 @@ def _certified_brackets(
             if cur_v == 0.0:
                 intervals.append(
                     CertifiedIntervalRoot(
-                        sp.nsimplify(x), sp.nsimplify(x), sp.nsimplify(x), sp.Integer(0), True
+                        sp.nsimplify(x), sp.nsimplify(x), sp.nsimplify(x), sp.Integer(0), False
                     )
                 )
             elif prev_v * cur_v < 0:
@@ -175,10 +190,11 @@ def isolate_univar_roots(
     *,
     domain: object = S.Reals,
 ) -> RootIsolationResult:
+    """Isolate real roots of a supported univariate transcendental expression."""
     equation = _extract_equation(expr)
     try:
         solset = sp.solveset(equation, variable, domain=domain)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         solset = None
 
     if isinstance(solset, sp.FiniteSet):
@@ -191,12 +207,14 @@ def isolate_univar_roots(
             representative_roots=roots,
             complete=True,
             method="solveset_finite",
+            result_semantics=ResultSemantics.EXACT,
         )
 
     period = detect_real_period(equation, variable) if domain == S.Reals else None
     if isinstance(solset, sp.ImageSet) and period is not None:
         window = compute_periodic_window(equation, variable)
         reps = []
+        representatives_complete = False
         if window is not None:
             try:
                 rep_set = sp.solveset(
@@ -204,7 +222,8 @@ def isolate_univar_roots(
                 )
                 if isinstance(rep_set, sp.FiniteSet):
                     reps = tuple(sorted(rep_set, key=sp.default_sort_key))
-            except Exception:
+                    representatives_complete = True
+            except _RECOVERABLE_ERRORS:
                 reps = []
         formula = (
             recon_periodic_represent(variable, reps, period)
@@ -217,26 +236,34 @@ def isolate_univar_roots(
             domain=domain,
             representative_roots=tuple(reps),
             periodic_formula=formula,
-            complete=bool(reps),
+            complete=representatives_complete,
             method="periodic_solveset",
+            result_semantics=ResultSemantics.EXACT if representatives_complete else "subset",
             metadata={"period": period},
         )
 
-    try:
-        poly = sp.Poly(equation, variable)
-        if poly.is_univariate:
-            roots = tuple(sorted(poly.all_roots(), key=sp.default_sort_key))
-            return RootIsolationResult(
-                variable=variable,
-                equation=equation,
-                domain=domain,
-                roots=roots,
-                representative_roots=roots,
-                complete=True,
-                method="poly_all_roots",
-            )
-    except Exception:
-        pass
+    if domain in (S.Reals, S.Complexes):
+        try:
+            poly = sp.Poly(equation, variable)
+            if poly.is_univariate:
+                all_roots = tuple(sorted(poly.all_roots(), key=sp.default_sort_key))
+                roots = (
+                    tuple(root for root in all_roots if root.is_real is True)
+                    if domain == S.Reals
+                    else all_roots
+                )
+                return RootIsolationResult(
+                    variable=variable,
+                    equation=equation,
+                    domain=domain,
+                    roots=roots,
+                    representative_roots=roots,
+                    complete=True,
+                    method="poly_all_roots",
+                    result_semantics=ResultSemantics.EXACT,
+                )
+        except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            pass
 
     if domain == S.Reals:
         certified = _certified_brackets(equation, variable, -10.0, 10.0)
@@ -250,7 +277,9 @@ def isolate_univar_roots(
                 representative_roots=roots,
                 certified_intervals=certified,
                 complete=False,
-                method="certified_sign_change_isolation",
+                method="numerical_sign_change_isolation",
+                result_semantics=ResultSemantics.WINDOW_SUBSET,
+                validity_window=(sp.Integer(-10), sp.Integer(10)),
                 metadata={"window": (-10.0, 10.0), "interval_count": len(certified)},
             )
 
@@ -260,6 +289,7 @@ def isolate_univar_roots(
         domain=domain,
         complete=False,
         method="unsolved_univariate",
+        result_semantics=ResultSemantics.UNKNOWN,
         metadata={"solveset": solset},
     )
 
@@ -273,7 +303,7 @@ def evaluate_form_points(
         try:
             if bool(sp.simplify(formula.subs(variable, pt))):
                 truths.append(pt)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             continue
     return SampledTruthDecomp(
         variable=variable, support_points=support_points, true_points=tuple(truths)
@@ -287,6 +317,7 @@ def decomp_univar_inequality(
     domain: object = S.Reals,
     search_window: tuple[float, float] = (-10.0, 10.0),
 ) -> SampledTruthDecomp:
+    """Decompose a supported univariate transcendental inequality into sign intervals."""
     if domain != S.Reals:
         return SampledTruthDecomp(
             variable=variable,
@@ -325,7 +356,7 @@ def decomp_univar_inequality(
     for pt in support:
         try:
             truth = bool(sp.simplify(formula.subs(variable, pt)))
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             truth = False
         if truth:
             true_points.append(pt)
@@ -337,7 +368,7 @@ def decomp_univar_inequality(
         mid = sp.nsimplify((a + b) / 2.0)
         try:
             truth = bool(sp.simplify(formula.subs(variable, mid)))
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             truth = False
         if truth:
             true_intervals.append((sp.nsimplify(a), sp.nsimplify(b)))
@@ -347,9 +378,11 @@ def decomp_univar_inequality(
         support_points=tuple(support),
         true_points=tuple(true_points),
         true_intervals=tuple(true_intervals),
-        method="certified_interval_decomposition"
+        method="numerical_interval_decomposition"
         if certified_roots
-        else "empty_certified_interval_decomposition",
+        else "empty_numerical_interval_decomposition",
+        result_semantics=ResultSemantics.WINDOW_APPROXIMATION,
+        validity_window=(sp.nsimplify(search_window[0]), sp.nsimplify(search_window[1])),
         metadata={"certified_roots": certified_roots, "search_window": search_window},
     )
 

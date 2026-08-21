@@ -184,9 +184,9 @@ def semialgebraicize(
 
     assumptions = tuple(cond for aux in aux_defs for cond in aux.constraints)
     matrix = sp.And(current, *assumptions) if assumptions else current
-    # Avoid global simplify on Boolean formulas: SymPy may spend a long time
-    # trying to prove equivalences between relational expressions. The
-    # preprocessing pass only needs to build an equivalent polynomial matrix.
+    # Global Boolean simplification can spend substantial time proving
+    # relational equivalences; constructing an equivalent polynomial matrix is
+    # sufficient here.
     return PreprocessResult(
         formula=parse_formula(matrix),
         sympy_expr=matrix,

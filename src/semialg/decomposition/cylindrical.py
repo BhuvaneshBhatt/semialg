@@ -10,8 +10,11 @@ from ..algebraic.comparison import compare_samples
 from ..algebraic.samples import sample_to_expr
 from ..cad.decomposition import CompleteCAD, decomp_collins_complete
 from ..cad.lifting.stack import CADCell
+from ..context import with_computation_context
 from ..domains import apply_assumptions, normalize_assumptions, normalize_domain
+from ..exact_arithmetic import compare_exact_reals
 from ..formula import Formula, formula_polynomials, parse_formula, parse_formula_text, to_sympy
+from ..normalization import normalize_symbol_sequence
 from ..preprocess.semialgebraicize import semialgebraicize
 from ..qe.complete import CellUnion, cells_to_formula, evaluate_formula_on_cell, qe_by_complete_cad
 from ..reconstruct.cylindrical import path_condition
@@ -277,14 +280,7 @@ class CADResult:
 
 
 def _normalize_variables(variables: Sequence[sp.Symbol | str]) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for var in variables:
-        sym = sp.Symbol(var, real=True) if isinstance(var, str) else var
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
+    return normalize_symbol_sequence(variables)
 
 
 def _normalize_formula(expr_or_formula: sp.Expr | Formula) -> tuple[sp.Expr, Formula]:
@@ -390,21 +386,15 @@ def _cell_containing_value(cells: Sequence[CADCell], value: sp.Expr) -> CADCell 
 
 
 def _value_gt_sample(value: sp.Expr, sample) -> bool:
-    try:
-        if hasattr(sample, "to_expr") or hasattr(sample, "value") or hasattr(sample, "expr"):
-            return compare_samples(_expr_sample(value), sample) > 0
-    except Exception:
-        pass
-    return bool(sp.N(value - sample_to_expr(sample)) > 0)
+    if value.is_Rational or value.is_Integer:
+        return compare_samples(_expr_sample(value), sample) > 0
+    return compare_exact_reals(value, sample_to_expr(sample)) > 0
 
 
 def _value_lt_sample(value: sp.Expr, sample) -> bool:
-    try:
-        if hasattr(sample, "to_expr") or hasattr(sample, "value") or hasattr(sample, "expr"):
-            return compare_samples(_expr_sample(value), sample) < 0
-    except Exception:
-        pass
-    return bool(sp.N(value - sample_to_expr(sample)) < 0)
+    if value.is_Rational or value.is_Integer:
+        return compare_samples(_expr_sample(value), sample) < 0
+    return compare_exact_reals(value, sample_to_expr(sample)) < 0
 
 
 def _expr_sample(value: sp.Expr):
@@ -484,7 +474,7 @@ def _make_result(
         "strategy": options.strategy,
         "domain": options.domain,
         "cell_count_by_level": cad_obj.cell_count_by_level(),
-        "projection_polynomial_count_by_level": cad_obj.proj_poly_count_by_level(),
+        "projection_poly_count_by_level": cad_obj.proj_poly_count_by_level(),
         "operation": options.operation,
         "assumptions": tuple(map(sp.sstr, options.assumptions)),
         "input_formula": expr,
@@ -504,6 +494,7 @@ def _make_result(
     )
 
 
+@with_computation_context
 def cad(
     formula: sp.Expr | Formula,
     variables: Sequence[sp.Symbol | str],
@@ -614,6 +605,7 @@ def cad(
     raise ValueError(f"unsupported CAD output: {output!r}")
 
 
+@with_computation_context
 def cad_text(
     text: str,
     *,

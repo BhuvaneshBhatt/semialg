@@ -8,6 +8,8 @@ from math import isqrt
 import sympy as sp
 from sympy import Eq
 
+from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
+from .formula_utils import split_equalities as _split_equalities
 from .output_normalization import CanonIntSolveResult, canon_int_result, dedup_int_points
 
 
@@ -26,27 +28,16 @@ class FactorizationAnalysis:
     multiplicities: tuple[int, ...]
 
 
-def _conjuncts(expr: sp.Expr) -> list[sp.Expr]:
-    return list(expr.args) if isinstance(expr, sp.And) else [expr]
-
-
-def _split_atoms(expr: sp.Expr):
-    atoms = _conjuncts(expr)
-    eqs = [a for a in atoms if isinstance(a, Eq)]
-    others = [a for a in atoms if not isinstance(a, Eq)]
-    return eqs, others
-
-
 def norm_factor_int_eqn(
     expr: sp.Expr, variables: Sequence[sp.Symbol]
 ) -> FactorizationAnalysis | None:
-    eqs, _others = _split_atoms(expr)
+    eqs, _others = _split_equalities(expr)
     if len(eqs) != 1:
         return None
     diff = sp.expand(eqs[0].lhs - eqs[0].rhs)
     try:
         coeff, facs = sp.factor_list(diff)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     symbolic_factors = tuple(sp.expand(f) for f, _m in facs if not sp.sympify(f).is_number)
     multiplicities = tuple(int(m) for f, m in facs if not sp.sympify(f).is_number)
@@ -71,7 +62,7 @@ def _extract_simple_bounds(other_atoms: Sequence[sp.Expr], var: sp.Symbol):
     for atom in other_atoms:
         try:
             simp = sp.simplify(atom)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             simp = atom
         if isinstance(simp, Eq):
             if simp.lhs == var and simp.rhs.is_integer:
@@ -87,7 +78,7 @@ def _extract_simple_bounds(other_atoms: Sequence[sp.Expr], var: sp.Symbol):
                         b = poly.coeff_monomial(1)
                         if all(getattr(v, "is_integer", False) for v in (a, b)) and int(a) % 2 == 1:
                             parity_residue = (-int(b)) % 2
-                except Exception:
+                except _RECOVERABLE_ERRORS:
                     pass
         elif isinstance(simp, sp.GreaterThan):
             if simp.lhs == var and simp.rhs.is_integer:
@@ -128,7 +119,7 @@ def _prune_branch_cons(
     var = free[0]
     try:
         poly = sp.Poly(sp.expand(factor), var)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if poly.degree() != 1:
         return None
@@ -139,7 +130,7 @@ def _prune_branch_cons(
     lower, upper, equals, parity_residue = _extract_simple_bounds(other_atoms, var)
     try:
         root = sp.Rational(-b, a)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if equals:
         if any(sp.simplify(factor.subs(var, e)) == 0 for e in equals):
@@ -163,7 +154,7 @@ def enum_factor_branches(
     analysis = norm_factor_int_eqn(expr, variables)
     if analysis is None:
         return []
-    _eqs, others = _split_atoms(expr)
+    _eqs, others = _split_equalities(expr)
     branches = []
     seen = set()
     for factor in analysis.factors:
@@ -205,7 +196,7 @@ def prune_divisor_assign(
         var = free[0]
         try:
             poly = sp.Poly(sp.expand(factor), var)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             continue
         if poly.degree() != 1:
             continue
@@ -231,7 +222,7 @@ def factor_thread_eqn(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> CanonInt
     resulting branch system is solved recursively by the integer pipeline.
     """
     variables = tuple(variables)
-    eqs, others = _split_atoms(expr)
+    eqs, others = _split_equalities(expr)
     if len(eqs) != 1:
         return None
     lhs = sp.expand(eqs[0].lhs)
@@ -248,7 +239,7 @@ def factor_thread_eqn(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> CanonInt
         return None
     try:
         coeff, facs = sp.factor_list(sp.expand(product_side))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     symbolic_factors = [
         sp.expand(f) for f, m in facs for _ in range(int(m)) if not sp.sympify(f).is_number

@@ -11,6 +11,7 @@ from ..formula import Formula, equational_constraints, formula_polynomials
 from ..qe.complete import evaluate_formula_on_cell
 from .decomposition import CompleteCAD, decomp_collins_complete, decomp_from_proj_tower
 from .lifting.stack import CADCell
+from .polynomial_utils import polynomial_key as _poly_key
 from .projection.lazard import build_lazard_proj_set
 from .projection.mccallum import build_mccallum_proj_set
 from .projection.reduced import ProjectionValidity, ReducedProjectionTower
@@ -91,10 +92,6 @@ class SafeReducedCAD:
     @property
     def cells(self):
         return self.cad.cells
-
-
-def _poly_key(poly: sp.Poly) -> str:
-    return sp.sstr(sp.expand(poly.as_expr()))
 
 
 def _same_sample(left, right) -> bool:

@@ -1,26 +1,55 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
-from itertools import combinations
+from dataclasses import dataclass
+from typing import Literal
 
 import sympy as sp
-from sympy.core.relational import (
-    Equality,
-    GreaterThan,
-    LessThan,
-    StrictGreaterThan,
-    StrictLessThan,
-    Unequality,
-)
 from sympy.core.sympify import SympifyError
 from sympy.logic.boolalg import And as SymAnd
 from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 from sympy.logic.boolalg import Not as SymNot
 from sympy.logic.boolalg import Or as SymOr
-from sympy.polys.polyerrors import PolynomialError
+from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
 
-from .formula import parse_formula, to_sympy
+from .context import with_computation_context
+from .exact_arithmetic import compare_exact_reals
+from .formula import parse_formula
+from .formulas.boolean import bounded_dnf_branches
+from .interval_decomposition import (
+    finite_real_roots as _finite_real_roots,
+)
+from .interval_decomposition import (
+    one_dimensional_intervals as _one_dimensional_intervals,
+)
+from .interval_decomposition import (
+    relational_polynomials as _relational_polynomials,
+)
+from .normalization import (
+    normalize_formula as _shared_normalize_formula,
+)
+from .normalization import (
+    normalize_problem_variables as _shared_normalize_variables,
+)
+from .optimization_active_sets import (
+    jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+)
+from .optimization_active_sets import (
+    kkt_system as _kkt_system,
+)
+from .optimization_active_sets import (
+    pruned_active_subsets as _pruned_active_subsets,
+)
+from .optimization_geometry import polynomial_locus_dimension
+from .optimization_results import (
+    FunctionRangeResult,
+    OptimizationCertificationPolicy,
+    OptimizationResult,
+    ParametricFunctionRangeResult,
+    ParametricOptimizationResult,
+)
+from .relations import split_relation as _relation_parts
+from .symbol_resolution import resolve_symbol
 
 _EXPECTED_ERRORS = (
     TypeError,
@@ -29,8 +58,8 @@ _EXPECTED_ERRORS = (
     NotImplementedError,
     SympifyError,
     PolynomialError,
+    GeneratorsNeeded,
 )
-
 
 FormulaLike = sp.Expr | sp.logic.boolalg.Boolean | bool
 
@@ -51,96 +80,28 @@ def satisfies_formula(*args, **kwargs):
     return impl(*args, **kwargs)
 
 
-def _finite_real_roots(*args, **kwargs):
-    from .measure import _finite_real_roots as impl
+def _normalize_variables(
+    variables: Sequence[sp.Symbol | str] | None,
+    expr: sp.Expr,
+) -> tuple[sp.Symbol, ...]:
+    """Normalize optimization variables and append remaining problem symbols."""
 
-    return impl(*args, **kwargs)
-
-
-def _one_dimensional_intervals(*args, **kwargs):
-    from .measure import _one_dimensional_intervals as impl
-
-    return impl(*args, **kwargs)
+    return _shared_normalize_variables(variables, expr)
 
 
-def _relational_polynomials(*args, **kwargs):
-    from .measure import _relational_polynomials as impl
+def _normalize_formula(
+    formula: FormulaLike | Iterable[FormulaLike] | None,
+) -> sp.Expr:
+    """Normalize optional optimization constraints to one SymPy formula."""
 
-    return impl(*args, **kwargs)
-
-
-@dataclass(frozen=True)
-class FunctionRangeResult:
-    """Exact range summary for a supported semialgebraic image problem.
-
-    ``formula`` is the primary answer: a quantifier-free condition on
-    ``value_symbol`` describing the range. The bound fields are populated
-    when the range has an interval summary and may be ``None`` for disconnected
-    ranges or formula-only image results.
-    """
-
-    expression: sp.Expr
-    formula: sp.Expr
-    value_symbol: sp.Symbol
-    variables: tuple[sp.Symbol, ...]
-    infimum: sp.Expr | None
-    supremum: sp.Expr | None
-    minimum_attained: bool | None
-    maximum_attained: bool | None
-    minimizers: tuple[Mapping[sp.Symbol, sp.Expr], ...] = ()
-    maximizers: tuple[Mapping[sp.Symbol, sp.Expr], ...] = ()
-    method: str = "qe_image"
-    diagnostics: Mapping[str, object] = field(default_factory=dict)
-    is_interval: bool | None = None
-    interval_count: int | None = None
-
-    @property
-    def range_condition(self) -> sp.Expr:
-        """Alias for ``formula`` emphasizing image semantics."""
-
-        return self.formula
-
-    @property
-    def lower_bound(self) -> sp.Expr | None:
-        """Alias for the infimum of the range, when known."""
-
-        return self.infimum
-
-    @property
-    def upper_bound(self) -> sp.Expr | None:
-        """Alias for the supremum of the range, when known."""
-
-        return self.supremum
-
-    @property
-    def lower_bound_attained(self) -> bool | None:
-        """Whether the lower bound is attained as an actual value."""
-
-        return self.minimum_attained
-
-    @property
-    def upper_bound_attained(self) -> bool | None:
-        """Whether the upper bound is attained as an actual value."""
-
-        return self.maximum_attained
-
-
-@dataclass(frozen=True)
-class OptimizationResult:
-    """Exact optimum summary for supported semialgebraic problems."""
-
-    objective: sp.Expr
-    variables: tuple[sp.Symbol, ...]
-    value: sp.Expr
-    points: tuple[Mapping[sp.Symbol, sp.Expr], ...]
-    attained: bool
-    kind: str
-    method: str = "critical_point_enumeration"
-    diagnostics: Mapping[str, object] = field(default_factory=dict)
-
-    @property
-    def point(self) -> Mapping[sp.Symbol, sp.Expr] | None:
-        return self.points[0] if self.points else None
+    if formula is None:
+        return sp.true
+    if isinstance(formula, Iterable) and not isinstance(
+        formula,
+        (sp.Basic, sp.logic.boolalg.Boolean, str),
+    ):
+        return sp.And(*(_shared_normalize_formula(item) for item in formula))
+    return _shared_normalize_formula(formula)
 
 
 @dataclass(frozen=True)
@@ -148,59 +109,6 @@ class _Candidate:
     value: sp.Expr
     point: Mapping[sp.Symbol, sp.Expr] | None
     attained: bool
-
-
-def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
-    return sp.Symbol(var, real=True) if isinstance(var, str) else var
-
-
-def _normalize_variables(
-    variables: Sequence[sp.Symbol | str] | None, expr: sp.Expr
-) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    if variables is not None:
-        for var in variables:
-            sym = _as_real_symbol(var)
-            if sym not in seen:
-                out.append(sym)
-                seen.add(sym)
-    for sym in sorted(expr.free_symbols, key=lambda item: item.name):
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
-
-
-def _normalize_formula(formula: FormulaLike | Iterable[FormulaLike] | None) -> sp.Expr:
-    if formula is None:
-        return sp.true
-    if isinstance(formula, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(piece) for piece in formula]
-        return sp.And(*pieces) if pieces else sp.true
-    if formula is True:
-        return sp.true
-    if formula is False:
-        return sp.false
-    if isinstance(formula, (sp.Basic, sp.logic.boolalg.Boolean)):
-        return formula  # type: ignore[return-value]
-    return to_sympy(formula)  # type: ignore[arg-type]
-
-
-def _relation_parts(atom: sp.Expr) -> tuple[sp.Expr, str]:
-    if isinstance(atom, Equality):
-        return sp.expand(atom.lhs - atom.rhs), "=="
-    if isinstance(atom, Unequality):
-        return sp.expand(atom.lhs - atom.rhs), "!="
-    if isinstance(atom, StrictLessThan):
-        return sp.expand(atom.lhs - atom.rhs), "<"
-    if isinstance(atom, LessThan):
-        return sp.expand(atom.lhs - atom.rhs), "<="
-    if isinstance(atom, StrictGreaterThan):
-        return sp.expand(atom.lhs - atom.rhs), ">"
-    if isinstance(atom, GreaterThan):
-        return sp.expand(atom.lhs - atom.rhs), ">="
-    raise TypeError(f"expected a relational atom, got {atom!r}")
 
 
 def _atoms(condition: sp.Expr) -> tuple[sp.Expr, ...]:
@@ -235,23 +143,7 @@ def _is_feasible(condition: sp.Expr, point: Mapping[sp.Symbol, sp.Expr]) -> bool
 
 
 def _finite_compare(a: sp.Expr, b: sp.Expr) -> int:
-    a = sp.sympify(a)
-    b = sp.sympify(b)
-    if a == b or sp.simplify(a - b) == 0:
-        return 0
-    if a in (sp.oo, -sp.oo) or b in (sp.oo, -sp.oo):
-        return -1 if a < b else 1
-    diff = sp.simplify(a - b)
-    if diff.is_negative:
-        return -1
-    if diff.is_positive:
-        return 1
-    numeric = sp.N(diff, 80)
-    if numeric < 0:
-        return -1
-    if numeric > 0:
-        return 1
-    return 0
+    return compare_exact_reals(a, b)
 
 
 def _best_candidates(
@@ -314,6 +206,8 @@ def _limits_for_interval(
 def _univariate_candidates(
     objective: sp.Expr, condition: sp.Expr, variable: sp.Symbol
 ) -> tuple[_Candidate, ...]:
+    """Enumerate exact stationary, endpoint, and limiting candidates in 1D."""
+
     candidates: list[_Candidate] = []
     intervals = _one_dimensional_intervals(condition, variable, None)
     cuts: set[str] = set()
@@ -371,25 +265,6 @@ def _univariate_candidates(
     return tuple(candidates)
 
 
-def _active_boundary_polys(
-    condition: sp.Expr, variables: Sequence[sp.Symbol]
-) -> tuple[sp.Expr, ...]:
-    polys: list[sp.Expr] = []
-    seen: set[str] = set()
-    for atom in _atoms(condition):
-        if atom is sp.false:
-            return ()
-        expr, op = _relation_parts(atom)
-        if op == "!=":
-            continue
-        if expr.free_symbols <= set(variables):
-            key = sp.sstr(sp.factor(expr))
-            if key not in seen:
-                polys.append(expr)
-                seen.add(key)
-    return tuple(polys)
-
-
 def _solutions_to_points(
     solutions: object, variables: Sequence[sp.Symbol]
 ) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
@@ -409,73 +284,859 @@ def _solutions_to_points(
 def _real_point(point: Mapping[sp.Symbol, sp.Expr]) -> bool:
     for value in point.values():
         value = sp.simplify(value)
-        # The first public optimizer only accepts isolated candidate points.
-        # Parametric solution families require recursive boundary optimization.
         if value.free_symbols:
             return False
-        if value.has(sp.I):
-            if sp.simplify(sp.im(value)) != 0:
-                return False
+        if value.has(sp.I) and sp.simplify(sp.im(value)) != 0:
+            return False
         if value.is_real is False:
             return False
     return True
 
 
-def _multivariate_candidates(
-    objective: sp.Expr, condition: sp.Expr, variables: tuple[sp.Symbol, ...]
-) -> tuple[_Candidate, ...]:
-    if len(variables) != 2:
-        raise NotImplementedError("multivariate optimization currently supports two variables")
-    x, y = variables
-    candidates: list[_Candidate] = []
-    grad = [sp.diff(objective, var) for var in variables]
+def _constraint_data(
+    condition: sp.Expr, variables: Sequence[sp.Symbol]
+) -> tuple[tuple[sp.Expr, ...], tuple[sp.Expr, ...], tuple[sp.Expr, ...]]:
+    """Return equality, inequality-boundary, and disequality residuals.
+
+    Non-strict inequalities contribute their zero sets as possible attained
+    active boundaries. Strict inequalities are deliberately not enumerated as
+    KKT active sets because their boundary points are infeasible; unattained
+    extrema on such boundaries are handled by exact range certification.
+    """
+
+    equalities: list[sp.Expr] = []
+    inequalities: list[sp.Expr] = []
+    disequalities: list[sp.Expr] = []
+    variable_set = set(variables)
+    seen: set[tuple[str, str]] = set()
+    for atom in _atoms(condition):
+        if atom is sp.false:
+            return (), (), ()
+        residual, op = _relation_parts(atom)
+        if not residual.free_symbols <= variable_set:
+            continue
+        if op == "!=":
+            target = disequalities
+        elif op == "==":
+            target = equalities
+        elif op in {"<", ">"}:
+            # An attained feasible point can never lie on a strict boundary.
+            continue
+        else:
+            target = inequalities
+        key = (op if op in {"==", "!="} else "ineq", sp.sstr(sp.factor(residual)))
+        if key not in seen:
+            target.append(sp.expand(residual))
+            seen.add(key)
+    return tuple(equalities), tuple(inequalities), tuple(disequalities)
+
+
+def _polynomial_problem(
+    objective: sp.Expr, condition: sp.Expr, variables: Sequence[sp.Symbol]
+) -> bool:
+    if not variables:
+        return not (sp.sympify(objective).free_symbols or sp.sympify(condition).free_symbols)
     try:
-        candidates.extend(
-            _Candidate(sp.simplify(objective.subs(point)), point, True)
-            for point in _solutions_to_points(sp.solve(grad, variables, dict=True), variables)
-            if _real_point(point) and _is_feasible(condition, point)
-        )
+        sp.Poly(sp.expand(objective), *variables, domain=sp.QQ)
+        for atom in _atoms(condition):
+            if atom is sp.false:
+                continue
+            residual, _ = _relation_parts(atom)
+            sp.Poly(residual, *variables, domain=sp.QQ)
+    except (PolynomialError, ValueError, TypeError):
+        return False
+    return True
+
+
+def _solve_exact_equations(
+    equations: Sequence[sp.Expr],
+    solve_variables: Sequence[sp.Symbol],
+    original_variables: Sequence[sp.Symbol],
+    condition: sp.Expr,
+) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
+    """Solve a zero-dimensional polynomial system exactly, preferring RUR."""
+
+    equations = tuple(sp.expand(eq) for eq in equations if sp.expand(eq) != 0)
+    if not equations or not solve_variables:
+        return ()
+    points: list[dict[sp.Symbol, sp.Expr]] = []
+    try:
+        from .solve.zero_dimensional import is_zero_dimensional, solve_zero_dimensional_system
+
+        if is_zero_dimensional(equations, solve_variables):
+            result = solve_zero_dimensional_system(
+                equations, vars=tuple(solve_variables), backend="rur", real=True
+            )
+            for assignment in result.assignments:
+                point = {
+                    var: sp.simplify(assignment[var])
+                    for var in original_variables
+                    if var in assignment
+                }
+                if (
+                    len(point) == len(original_variables)
+                    and _real_point(point)
+                    and _is_feasible(condition, point)
+                ):
+                    points.append(point)
+            return tuple(points)
     except _EXPECTED_ERRORS:
         pass
-    boundaries = _active_boundary_polys(condition, variables)
-    # Critical points on one active boundary via Lagrange multipliers.
-    for boundary in boundaries:
-        lam = sp.Symbol("lambda_semialg", real=True)
-        equations = [
-            boundary,
-            *(sp.diff(objective, var) - lam * sp.diff(boundary, var) for var in variables),
-        ]
+    try:
+        raw = sp.solve(equations, tuple(solve_variables), dict=True)
+    except _EXPECTED_ERRORS:
+        return ()
+    for point in _solutions_to_points(raw, original_variables):
+        if _real_point(point) and _is_feasible(condition, point):
+            points.append(point)
+    return tuple(points)
+
+
+def _project_kkt_locus(
+    equations: Sequence[sp.Expr],
+    multipliers: Sequence[sp.Symbol],
+    variables: Sequence[sp.Symbol],
+) -> tuple[sp.Expr, ...]:
+    """Eliminate KKT multipliers, returning equations on original variables."""
+
+    if not multipliers:
+        return tuple(sp.expand(eq) for eq in equations if sp.expand(eq) != 0)
+    all_vars = (*multipliers, *variables)
+    try:
+        basis = sp.groebner(tuple(equations), *all_vars, order="lex", domain=sp.QQ)
+    except (PolynomialError, ValueError, TypeError):
+        return ()
+    multiplier_set = set(multipliers)
+    projected = [
+        sp.expand(poly.as_expr())
+        for poly in basis.polys
+        if not (poly.as_expr().free_symbols & multiplier_set)
+    ]
+    return tuple(dict.fromkeys(expr for expr in projected if expr != 0))
+
+
+def _reduce_linear_equalities(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+) -> tuple[sp.Expr, sp.Expr, tuple[sp.Symbol, ...], dict[sp.Symbol, sp.Expr]]:
+    """Eliminate variables from equations that are globally linear with constant coefficient."""
+
+    obj = sp.expand(objective)
+    cond = condition
+    remaining = list(variables)
+    substitutions: dict[sp.Symbol, sp.Expr] = {}
+    changed = True
+    while changed:
+        changed = False
         try:
-            for point in _solutions_to_points(
-                sp.solve(equations, (*variables, lam), dict=True), variables
-            ):
-                if _real_point(point) and _is_feasible(condition, point):
-                    candidates.append(_Candidate(sp.simplify(objective.subs(point)), point, True))
-        except _EXPECTED_ERRORS:
-            pass
-    # Boundary intersections/vertices.
-    for b1, b2 in combinations(boundaries, 2):
+            equalities, _, _ = _constraint_data(cond, tuple(remaining))
+        except (TypeError, NotImplementedError):
+            break
+        for eq in equalities:
+            for var in tuple(remaining):
+                try:
+                    poly = sp.Poly(sp.expand(eq), var)
+                except (PolynomialError, ValueError, TypeError):
+                    continue
+                if poly.degree() != 1:
+                    continue
+                coefficient = sp.expand(poly.coeff_monomial(var))
+                rest = sp.expand(poly.coeff_monomial(1))
+                # Only divide by a coefficient independent of every remaining
+                # optimization variable; otherwise a hidden coefficient-zero
+                # parameter stratum would be lost.
+                if coefficient == 0 or (coefficient.free_symbols & set(remaining)):
+                    continue
+                replacement = sp.cancel(-rest / coefficient)
+                if var in replacement.free_symbols:
+                    continue
+                substitutions[var] = sp.simplify(replacement.subs(substitutions))
+                obj = sp.expand(obj.subs(var, replacement))
+                cond = sp.simplify(cond.subs(var, replacement))
+                remaining.remove(var)
+                changed = True
+                break
+            if changed:
+                break
+    # Compose substitutions so lifted points depend only on retained variables.
+    for key in reversed(tuple(substitutions)):
+        substitutions[key] = sp.simplify(substitutions[key].subs(substitutions))
+    return obj, cond, tuple(remaining), substitutions
+
+
+def _lift_reduced_points(
+    points: Sequence[Mapping[sp.Symbol, sp.Expr]],
+    substitutions: Mapping[sp.Symbol, sp.Expr],
+    original_variables: Sequence[sp.Symbol],
+) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
+    lifted: list[Mapping[sp.Symbol, sp.Expr]] = []
+    for point in points:
+        assignment = dict(point)
+        pending = dict(substitutions)
+        for _ in range(len(pending) + 1):
+            progress = False
+            for var, expr in list(pending.items()):
+                value = sp.simplify(expr.subs(assignment))
+                if not (value.free_symbols & set(original_variables)):
+                    assignment[var] = value
+                    del pending[var]
+                    progress = True
+            if not pending or not progress:
+                break
+        if all(var in assignment for var in original_variables):
+            lifted.append({var: sp.simplify(assignment[var]) for var in original_variables})
+    return tuple(lifted)
+
+
+def _kkt_candidate_points(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    equalities: tuple[sp.Expr, ...],
+    inequalities: tuple[sp.Expr, ...],
+) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
+    """Enumerate exact zero-dimensional KKT/singular active-set candidates."""
+
+    points: list[dict[sp.Symbol, sp.Expr]] = []
+    seen: set[tuple[tuple[str, str], ...]] = set()
+    subsets = _pruned_active_subsets(equalities, inequalities, variables, condition)
+    for subset in subsets:
+        active = tuple(equalities) + tuple(subset)
+        equations, multipliers = _kkt_system(objective, variables, active)
+        solve_vars = (*variables, *multipliers)
+        dimension = polynomial_locus_dimension(equations, solve_vars)
+        if dimension == 0:
+            for point in _solve_exact_equations(equations, solve_vars, variables, condition):
+                key = tuple(sorted((sp.sstr(k), sp.sstr(sp.simplify(v))) for k, v in point.items()))
+                if key not in seen:
+                    points.append(point)
+                    seen.add(key)
+
+        if active:
+            minors = _jacobian_rank_deficiency_equations(active, variables)
+            singular_eqs = (*active, *minors)
+            singular_dimension = (
+                polynomial_locus_dimension(singular_eqs, variables) if minors else None
+            )
+            if minors and singular_dimension == 0:
+                for point in _solve_exact_equations(singular_eqs, variables, variables, condition):
+                    key = tuple(
+                        sorted((sp.sstr(k), sp.sstr(sp.simplify(v))) for k, v in point.items())
+                    )
+                    if key not in seen:
+                        points.append(point)
+                        seen.add(key)
+
+        if len(active) >= len(variables) and polynomial_locus_dimension(active, variables) == 0:
+            for point in _solve_exact_equations(active, variables, variables, condition):
+                key = tuple(sorted((sp.sstr(k), sp.sstr(sp.simplify(v))) for k, v in point.items()))
+                if key not in seen:
+                    points.append(point)
+                    seen.add(key)
+    return tuple(points)
+
+
+def _positive_dimensional_kkt_candidates(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    equalities: tuple[sp.Expr, ...],
+    inequalities: tuple[sp.Expr, ...],
+    *,
+    kind: str,
+    policy: OptimizationCertificationPolicy,
+    recursion_depth: int,
+    visited_loci: frozenset[str],
+) -> tuple[_Candidate, ...]:
+    """Optimize recursively over positive-dimensional projected KKT loci."""
+
+    if recursion_depth >= policy.recursion_limit:
+        return ()
+    out: list[_Candidate] = []
+    seen_loci: set[str] = set()
+    for subset in _pruned_active_subsets(equalities, inequalities, variables, condition):
+        active = tuple(equalities) + tuple(subset)
+        equations, multipliers = _kkt_system(objective, variables, active)
+        dimension = polynomial_locus_dimension(equations, (*variables, *multipliers))
+        if dimension is None or dimension <= 0:
+            continue
+        projected = _project_kkt_locus(equations, multipliers, variables)
+        if not projected:
+            continue
+        projected_dimension = polynomial_locus_dimension(projected, variables)
+        if (
+            projected_dimension is None
+            or projected_dimension <= 0
+            or projected_dimension >= len(variables)
+        ):
+            continue
+        key = "|".join(sorted(sp.srepr(sp.factor(eq)) for eq in projected))
+        if key in visited_loci or key in seen_loci:
+            continue
+        seen_loci.add(key)
+        locus_condition = sp.And(condition, *(sp.Eq(eq, 0) for eq in projected), evaluate=False)
+        reduced_obj, reduced_cond, reduced_vars, substitutions = _reduce_linear_equalities(
+            objective, locus_condition, variables
+        )
         try:
-            for point in _solutions_to_points(sp.solve([b1, b2], variables, dict=True), variables):
-                if _real_point(point) and _is_feasible(condition, point):
-                    candidates.append(_Candidate(sp.simplify(objective.subs(point)), point, True))
-        except _EXPECTED_ERRORS:
-            pass
+            if len(reduced_vars) < len(variables):
+                result = _optimize_conjunction(
+                    reduced_obj,
+                    reduced_cond,
+                    reduced_vars,
+                    kind=kind,
+                    policy=policy,
+                    recursion_depth=recursion_depth + 1,
+                    visited_loci=visited_loci | frozenset({key}),
+                    allow_equality_reduction=True,
+                )
+                lifted = _lift_reduced_points(result.points, substitutions, variables)
+                out.append(_Candidate(result.value, lifted[0] if lifted else None, result.attained))
+            else:
+                # No safe coordinate elimination is available.  A complete
+                # range computation on the lower-dimensional locus is the
+                # conservative terminal step for this recursive branch.
+                cert = _certify_optimum_by_range(
+                    objective, locus_condition, variables, kind=kind, policy=policy
+                )
+                if cert is not None:
+                    value, attained = cert
+                    out.append(_Candidate(value, None, attained))
+        except (NotImplementedError, ValueError, TypeError, ArithmeticError, PolynomialError):
+            continue
+    return tuple(out)
+
+
+def _multivariate_exact_candidates(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    kind: str,
+    policy: OptimizationCertificationPolicy,
+    recursion_depth: int = 0,
+    visited_loci: frozenset[str] = frozenset(),
+) -> tuple[_Candidate, ...]:
+    equalities, inequalities, _ = _constraint_data(condition, variables)
+    points = _kkt_candidate_points(objective, condition, variables, equalities, inequalities)
+    candidates = [_Candidate(sp.simplify(objective.subs(point)), point, True) for point in points]
+    candidates.extend(
+        _positive_dimensional_kkt_candidates(
+            objective,
+            condition,
+            variables,
+            equalities,
+            inequalities,
+            kind=kind,
+            policy=policy,
+            recursion_depth=recursion_depth,
+            visited_loci=visited_loci,
+        )
+    )
     return tuple(candidates)
 
 
 def _optimization_candidates(
-    objective: sp.Expr, constraints: sp.Expr, variables: tuple[sp.Symbol, ...]
+    objective: sp.Expr,
+    constraints: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    kind: str,
+    policy: OptimizationCertificationPolicy,
+    recursion_depth: int = 0,
+    visited_loci: frozenset[str] = frozenset(),
 ) -> tuple[_Candidate, ...]:
     if constraints is sp.false or isinstance(constraints, BooleanFalse):
         return ()
     if len(variables) == 1:
         return _univariate_candidates(objective, constraints, variables[0])
-    if len(variables) == 2:
-        return _multivariate_candidates(objective, constraints, variables)
-    raise NotImplementedError("optimization currently supports one or two variables")
+    return _multivariate_exact_candidates(
+        objective,
+        constraints,
+        variables,
+        kind=kind,
+        policy=policy,
+        recursion_depth=recursion_depth,
+        visited_loci=visited_loci,
+    )
 
 
+def _certify_candidate_by_qe(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    value: sp.Expr,
+    *,
+    kind: str,
+) -> bool:
+    """Prove that no feasible point has objective strictly better than ``value``."""
+
+    better = objective < value if kind == "min" else objective > value
+    sentence = sp.And(condition, better, evaluate=False)
+    try:
+        result = qe_by_complete_cad(
+            variables,
+            tuple(("exists", var) for var in variables),
+            parse_formula(sentence),
+        )
+    except (NotImplementedError, ValueError, TypeError, ArithmeticError, PolynomialError):
+        return False
+    return result.truth_value is False
+
+
+def _range_certification_cost(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+) -> int:
+    """Conservative symbolic estimate for complete image-CAD cost."""
+
+    if not variables:
+        return 0
+    degrees: list[int] = []
+    polynomial_count = 1
+    try:
+        degrees.append(max(1, sp.Poly(objective, *variables).total_degree()))
+        for atom in _atoms(condition):
+            if atom is sp.false:
+                continue
+            residual, _ = _relation_parts(atom)
+            degrees.append(max(1, sp.Poly(residual, *variables).total_degree()))
+            polynomial_count += 1
+    except _EXPECTED_ERRORS:
+        return 10**9
+    max_degree = max(degrees, default=1)
+    # Image CAD introduces one additional value variable.  This estimate is
+    # intentionally monotone and coarse; it is a guardrail, not a complexity proof.
+    return int(polynomial_count * (max_degree + 1) ** (len(variables) + 1))
+
+
+def _certify_optimum_by_range(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    kind: str,
+    policy: OptimizationCertificationPolicy,
+) -> tuple[sp.Expr, bool] | None:
+    """Use complete CAD image computation when allowed by the cost policy."""
+
+    cost = _range_certification_cost(objective, condition, variables)
+    if policy.mode == "candidate":
+        return None
+    if policy.mode == "auto" and cost > policy.range_cost_limit:
+        return None
+    try:
+        result = function_range(
+            objective,
+            condition,
+            variables,
+            value_symbol=sp.Symbol("_semialg_opt_value", real=True),
+            method="cad",
+            return_result=True,
+        )
+    except (NotImplementedError, ValueError, TypeError, ArithmeticError, PolynomialError):
+        return None
+    if not isinstance(result, FunctionRangeResult):
+        return None
+    if kind == "min" and result.infimum is not None:
+        return sp.simplify(result.infimum), bool(result.minimum_attained)
+    if kind == "max" and result.supremum is not None:
+        return sp.simplify(result.supremum), bool(result.maximum_attained)
+    return None
+
+
+def _optimize_conjunction(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    kind: str,
+    policy: OptimizationCertificationPolicy,
+    recursion_depth: int = 0,
+    visited_loci: frozenset[str] = frozenset(),
+    allow_equality_reduction: bool = True,
+) -> OptimizationResult:
+    """Optimize one conjunction with exact KKT and certification machinery.
+
+    Equalities are simplified before active-set enumeration. The routine then
+    combines finite exact candidates, positive-dimensional critical loci, and
+    CAD-based global certification while preserving attainment information.
+    """
+
+    if condition is sp.false or isinstance(condition, BooleanFalse):
+        raise ValueError("optimization domain is empty")
+    if not _polynomial_problem(objective, condition, variables):
+        candidates = _optimization_candidates(
+            objective,
+            condition,
+            variables,
+            kind=kind,
+            policy=policy,
+            recursion_depth=recursion_depth,
+            visited_loci=visited_loci,
+        )
+        value, points, attained = _best_candidates(candidates, kind=kind)
+        return OptimizationResult(
+            objective,
+            variables,
+            value,
+            points,
+            attained,
+            kind,
+            "critical_point_enumeration",
+            {"candidate_count": len(candidates)},
+            False,
+        )
+
+    if allow_equality_reduction and variables:
+        reduced_obj, reduced_cond, reduced_vars, substitutions = _reduce_linear_equalities(
+            objective, condition, variables
+        )
+        if len(reduced_vars) < len(variables):
+            reduced_result = _optimize_conjunction(
+                reduced_obj,
+                reduced_cond,
+                reduced_vars,
+                kind=kind,
+                policy=policy,
+                recursion_depth=recursion_depth + 1,
+                visited_loci=visited_loci,
+                allow_equality_reduction=True,
+            )
+            seed_points = reduced_result.points
+            if not seed_points and reduced_result.attained and not reduced_vars:
+                seed_points = ({},)
+            lifted_points = _lift_reduced_points(seed_points, substitutions, variables)
+            return OptimizationResult(
+                objective,
+                variables,
+                reduced_result.value,
+                lifted_points,
+                reduced_result.attained,
+                kind,
+                "equality_reduction+" + reduced_result.method,
+                {
+                    **dict(reduced_result.diagnostics),
+                    "eliminated_variables": tuple(sp.sstr(v) for v in substitutions),
+                },
+                reduced_result.certified,
+            )
+
+    candidates = _optimization_candidates(
+        objective,
+        condition,
+        variables,
+        kind=kind,
+        policy=policy,
+        recursion_depth=recursion_depth,
+        visited_loci=visited_loci,
+    )
+    candidate_value = None
+    candidate_points: tuple[Mapping[sp.Symbol, sp.Expr], ...] = ()
+    candidate_attained = False
+    if candidates:
+        candidate_value, candidate_points, candidate_attained = _best_candidates(
+            candidates, kind=kind
+        )
+
+    if candidate_value is not None and _certify_candidate_by_qe(
+        objective, condition, variables, candidate_value, kind=kind
+    ):
+        return OptimizationResult(
+            objective,
+            variables,
+            candidate_value,
+            candidate_points,
+            candidate_attained,
+            kind,
+            "exact_kkt_active_set+cad_decision_certificate",
+            {
+                "candidate_count": len(candidates),
+                "constraints": sp.sstr(condition),
+                "global_certificate": "complete_cad_no_better_point",
+            },
+            True,
+        )
+
+    certificate = _certify_optimum_by_range(
+        objective, condition, variables, kind=kind, policy=policy
+    )
+    if certificate is not None:
+        value, attained = certificate
+        points = (
+            candidate_points
+            if candidate_value is not None
+            and _finite_compare(candidate_value, value) == 0
+            and attained
+            else ()
+        )
+        return OptimizationResult(
+            objective,
+            variables,
+            value,
+            points,
+            attained,
+            kind,
+            "exact_kkt_active_set+cad_range_certificate",
+            {
+                "candidate_count": len(candidates),
+                "constraints": sp.sstr(condition),
+                "global_certificate": "complete_cad_function_range",
+            },
+            True,
+        )
+    if candidate_value is None:
+        raise NotImplementedError(
+            "exact candidate enumeration produced no finite candidate and CAD certification was unavailable"
+        )
+    return OptimizationResult(
+        objective,
+        variables,
+        candidate_value,
+        candidate_points,
+        candidate_attained,
+        kind,
+        "exact_kkt_active_set",
+        {
+            "candidate_count": len(candidates),
+            "constraints": sp.sstr(condition),
+            "global_certificate": "candidate_exhaustion_without_cad_range",
+        },
+        False,
+    )
+
+
+def _normalize_parameters_for_problem(
+    parameters: Sequence[sp.Symbol | str],
+    *expressions: sp.Expr,
+) -> tuple[sp.Symbol, ...]:
+    from .symbol_resolution import normalize_variables
+
+    return normalize_variables(
+        parameters,
+        context=expressions,
+        append_context_symbols=False,
+    )
+
+
+def _parameter_guards(
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    parameters: tuple[sp.Symbol, ...],
+) -> tuple[sp.Expr, tuple[tuple[sp.Expr, Mapping[sp.Symbol, sp.Expr]], ...]]:
+    from .cad.cells import extract_cylindrical_solution
+    from .parameters import solvability_conditions
+
+    parameter_domain = sp.simplify(solvability_conditions(condition, variables, parameters))
+    if parameter_domain is sp.false or parameter_domain == sp.false:
+        return sp.false, ()
+    try:
+        solution = extract_cylindrical_solution(parameter_domain, parameters, selected_only=True)
+    except (NotImplementedError, ValueError, TypeError, ArithmeticError, PolynomialError):
+        solution = None
+    if solution is None or not solution.cells:
+        sample = {param: sp.Integer(0) for param in parameters}
+        return parameter_domain, ((parameter_domain, sample),)
+    return parameter_domain, tuple(
+        (cell.as_formula(closed=False), cell.sample_point()) for cell in solution.cells
+    )
+
+
+def _parametric_range_relation(
+    expression: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    parameters: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+) -> sp.Expr:
+    relation, domain_constraint = _relation_for_function_graph(expression, value_symbol)
+    image_formula = sp.And(condition, domain_constraint, relation, evaluate=False)
+    all_vars = tuple(dict.fromkeys((*parameters, value_symbol, *variables)))
+    result = qe_by_complete_cad(
+        all_vars,
+        tuple(("exists", variable) for variable in variables),
+        parse_formula(image_formula),
+        free_variables=(*parameters, value_symbol),
+    )
+    return sp.simplify(result.formula)
+
+
+def _parametric_optimum_relation_from_problem(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    parameters: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+    *,
+    kind: str,
+) -> tuple[sp.Expr, tuple[tuple[str, sp.Symbol], ...]]:
+    """Return an exact first-order definition of a parametric infimum/supremum."""
+    bound_vars = tuple(sp.Dummy(f"_semialg_bound_{i}", real=True) for i in range(len(variables)))
+    tight_vars = tuple(sp.Dummy(f"_semialg_tight_{i}", real=True) for i in range(len(variables)))
+    threshold = sp.Dummy("_semialg_threshold", real=True)
+    bound_subs = dict(zip(variables, bound_vars, strict=True))
+    tight_subs = dict(zip(variables, tight_vars, strict=True))
+    bound_condition = condition.xreplace(bound_subs)
+    tight_condition = condition.xreplace(tight_subs)
+    bound_objective = objective.xreplace(bound_subs)
+    tight_objective = objective.xreplace(tight_subs)
+    if kind == "min":
+        bound_clause = sp.Or(
+            sp.Not(bound_condition), bound_objective >= value_symbol, evaluate=False
+        )
+        tight_clause = sp.Or(
+            threshold <= value_symbol,
+            sp.And(tight_condition, tight_objective < threshold, evaluate=False),
+            evaluate=False,
+        )
+    else:
+        bound_clause = sp.Or(
+            sp.Not(bound_condition), bound_objective <= value_symbol, evaluate=False
+        )
+        tight_clause = sp.Or(
+            threshold >= value_symbol,
+            sp.And(tight_condition, tight_objective > threshold, evaluate=False),
+            evaluate=False,
+        )
+    quantifiers = (
+        *(("forall", var) for var in bound_vars),
+        ("forall", threshold),
+        *(("exists", var) for var in tight_vars),
+    )
+    return sp.And(bound_clause, tight_clause, evaluate=False), tuple(quantifiers)
+
+
+def _parametric_range_definition(
+    expression: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+) -> tuple[sp.Expr, tuple[tuple[str, sp.Symbol], ...]]:
+    quantified_vars = tuple(
+        sp.Dummy(f"_semialg_range_{i}", real=True) for i in range(len(variables))
+    )
+    substitutions = dict(zip(variables, quantified_vars, strict=True))
+    specialized_expression = expression.xreplace(substitutions)
+    specialized_condition = condition.xreplace(substitutions)
+    graph_formula, aux_symbols = _graph_formula_for_expression(
+        specialized_expression, value_symbol, [0]
+    )
+    formula = sp.And(specialized_condition, graph_formula, evaluate=False)
+    quantified = (*quantified_vars, *aux_symbols)
+    return formula, tuple(("exists", var) for var in quantified)
+
+
+def _stratified_optimization(
+    objective: sp.Expr,
+    constraints: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    parameters: tuple[sp.Symbol, ...],
+    *,
+    kind: str,
+    domain: str,
+    certification: Literal["auto", "complete", "candidate"],
+    range_cost_limit: int,
+    recursion_limit: int,
+):
+    """Build guarded exact optimization relations over parameter strata."""
+
+    from .conditional import ConditionalBranch, conditional_result
+
+    if not _polynomial_problem(objective, constraints, (*parameters, *variables)):
+        raise NotImplementedError(
+            "parameter-stratified optimization currently requires polynomial data"
+        )
+    value_symbol = sp.Symbol("_semialg_optimum_value", real=True)
+    optimum_relation, optimum_quantifiers = _parametric_optimum_relation_from_problem(
+        objective, constraints, variables, parameters, value_symbol, kind=kind
+    )
+    parameter_domain, guards = _parameter_guards(constraints, variables, parameters)
+    branches = []
+    for guard, sample in guards:
+        specialized_constraints = sp.simplify(constraints.subs(sample))
+        specialized_objective = sp.simplify(objective.subs(sample))
+        sample_result = None
+        try:
+            sample_result = _optimize(
+                specialized_objective,
+                specialized_constraints,
+                variables,
+                kind=kind,
+                domain=domain,
+                return_result=True,
+                certification=certification,
+                range_cost_limit=range_cost_limit,
+                recursion_limit=recursion_limit,
+            )
+        except _EXPECTED_ERRORS:
+            pass
+        value = ParametricOptimizationResult(
+            objective,
+            constraints,
+            variables,
+            parameters,
+            value_symbol,
+            kind,
+            sp.And(guard, optimum_relation, evaluate=False),
+            optimum_quantifiers,
+            sample_result if isinstance(sample_result, OptimizationResult) else None,
+        )
+        branches.append(ConditionalBranch(guard, value, certified=True, sample=sample))
+    return conditional_result(
+        parameters,
+        branches,
+        coverage_condition=parameter_domain,
+        complete=True,
+        disjoint=True,
+        certified=True,
+        method="parametric_qe_optimization",
+        diagnostics={"kind": kind, "branch_count": len(branches)},
+        normalize=False,
+    )
+
+
+def _stratified_function_range(
+    expression: sp.Expr,
+    constraints: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    parameters: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+):
+    from .conditional import ConditionalBranch, conditional_result
+
+    relation, quantifiers = _parametric_range_definition(
+        expression, constraints, variables, value_symbol
+    )
+    parameter_domain, guards = _parameter_guards(constraints, variables, parameters)
+    branches = []
+    for guard, sample in guards:
+        guarded_formula = sp.And(guard, relation, evaluate=False)
+        value = ParametricFunctionRangeResult(
+            expression,
+            constraints,
+            variables,
+            parameters,
+            value_symbol,
+            guarded_formula,
+            quantifiers,
+        )
+        branches.append(ConditionalBranch(guard, value, certified=True, sample=sample))
+    return conditional_result(
+        parameters,
+        branches,
+        coverage_condition=parameter_domain,
+        complete=True,
+        disjoint=True,
+        certified=True,
+        method="parametric_qe_range",
+        diagnostics={"branch_count": len(branches)},
+        normalize=False,
+    )
+
+
+@with_computation_context
 def _optimize(
     objective: sp.Expr,
     constraints: FormulaLike | Iterable[FormulaLike] | None,
@@ -484,34 +1145,82 @@ def _optimize(
     kind: str,
     domain: str = "reals",
     return_result: bool = True,
-) -> OptimizationResult | sp.Expr:
+    certification: Literal["auto", "complete", "candidate"] = "auto",
+    range_cost_limit: int = 2500,
+    recursion_limit: int = 4,
+    parameters: Sequence[sp.Symbol | str] | None = None,
+    return_stratified: bool = False,
+) -> OptimizationResult | sp.Expr | object:
+    """Shared exact implementation for minimization and maximization APIs.
+
+    Boolean domains are decomposed into boundedly many conjunctions. Each
+    branch is optimized independently and exact branch bounds are compared
+    before the combined result and certificate status are assembled.
+    """
+
     if domain.lower() not in {"real", "reals", "r", "rr"}:
         raise NotImplementedError(
             "semialgebraic optimization currently supports only the real domain"
         )
+    policy = OptimizationCertificationPolicy(certification, range_cost_limit, recursion_limit)
     obj = sp.sympify(objective)
     condition = _normalize_formula(constraints)
-    vars_ = _normalize_variables(variables, sp.And(condition, sp.Eq(sp.Symbol("_dummy"), obj)))
-    vars_ = tuple(var for var in vars_ if var.name != "_dummy")
+    vars_ = _normalize_variables(variables, sp.Tuple(condition, obj))
     if not vars_:
         value = sp.simplify(obj)
-        result = OptimizationResult(obj, vars_, value, (), True, kind, "constant")
+        result = OptimizationResult(obj, vars_, value, (), True, kind, "constant", {}, True)
         return result if return_result else result.value
-    candidates = _optimization_candidates(obj, condition, vars_)
-    value, points, attained = _best_candidates(candidates, kind=kind)
+
+    expansion = bounded_dnf_branches(condition, max_branches=32)
+    if not expansion.complete:
+        raise NotImplementedError(
+            "optimization Boolean expansion exceeded the bounded branch limit"
+        )
+    branch_results: list[OptimizationResult] = []
+    for branch in expansion.branches:
+        branch_condition = sp.And(
+            *[piece for piece in branch if piece not in (True, sp.true)], evaluate=False
+        )
+        if any(piece in (False, sp.false) for piece in branch):
+            continue
+        try:
+            branch_results.append(
+                _optimize_conjunction(obj, branch_condition, vars_, kind=kind, policy=policy)
+            )
+        except ValueError:
+            continue
+    if not branch_results:
+        raise ValueError("optimization domain is empty or unsupported")
+
+    best = branch_results[0]
+    for result in branch_results[1:]:
+        cmp = _finite_compare(result.value, best.value)
+        if (kind == "min" and cmp < 0) or (kind == "max" and cmp > 0):
+            best = result
+    tied = [result for result in branch_results if _finite_compare(result.value, best.value) == 0]
+    points: list[Mapping[sp.Symbol, sp.Expr]] = []
+    for result in tied:
+        points.extend(result.points)
+    attained = any(result.attained for result in tied)
     result = OptimizationResult(
         obj,
         vars_,
-        value,
-        points,
+        best.value,
+        tuple(points),
         attained,
         kind,
-        "critical_point_enumeration",
-        {"candidate_count": len(candidates), "constraints": sp.sstr(condition)},
+        best.method if len(branch_results) == 1 else "exact_branchwise_optimization",
+        {
+            **dict(best.diagnostics),
+            "branch_count": len(branch_results),
+            "all_branches_certified": all(item.certified for item in branch_results),
+        },
+        all(item.certified for item in branch_results),
     )
     return result if return_result else result.value
 
 
+@with_computation_context
 def semialgebraic_minimize(
     objective: sp.Expr,
     constraints: FormulaLike | Iterable[FormulaLike] | None = None,
@@ -519,14 +1228,52 @@ def semialgebraic_minimize(
     *,
     domain: str = "reals",
     return_result: bool = True,
-) -> OptimizationResult | sp.Expr:
-    """Return the exact minimum/infimum for supported semialgebraic problems."""
+    certification: Literal["auto", "complete", "candidate"] = "auto",
+    range_cost_limit: int = 2500,
+    recursion_limit: int = 4,
+    parameters: Sequence[sp.Symbol | str] | None = None,
+    return_stratified: bool = False,
+) -> OptimizationResult | sp.Expr | object:
+    """Return an exact minimum/infimum for a polynomial semialgebraic problem.
 
+    Multivariate polynomial problems use exact active-set/KKT enumeration,
+    singular active-locus solving, RUR-backed zero-dimensional solving, and a
+    complete-CAD image certificate when available.
+    """
+
+    if return_stratified:
+        obj = sp.sympify(objective)
+        condition = _normalize_formula(constraints)
+        params = _normalize_parameters_for_problem(parameters or (), obj, condition)
+        if not params:
+            raise ValueError("return_stratified=True requires at least one parameter")
+        vars_ = _normalize_variables(variables, sp.Tuple(condition, obj))
+        vars_ = tuple(var for var in vars_ if var not in set(params))
+        return _stratified_optimization(
+            obj,
+            condition,
+            vars_,
+            params,
+            kind="min",
+            domain=domain,
+            certification=certification,
+            range_cost_limit=range_cost_limit,
+            recursion_limit=recursion_limit,
+        )
     return _optimize(
-        objective, constraints, variables, kind="min", domain=domain, return_result=return_result
+        objective,
+        constraints,
+        variables,
+        kind="min",
+        domain=domain,
+        return_result=return_result,
+        certification=certification,
+        range_cost_limit=range_cost_limit,
+        recursion_limit=recursion_limit,
     )
 
 
+@with_computation_context
 def semialgebraic_maximize(
     objective: sp.Expr,
     constraints: FormulaLike | Iterable[FormulaLike] | None = None,
@@ -534,11 +1281,43 @@ def semialgebraic_maximize(
     *,
     domain: str = "reals",
     return_result: bool = True,
-) -> OptimizationResult | sp.Expr:
-    """Return the exact maximum/supremum for supported semialgebraic problems."""
+    certification: Literal["auto", "complete", "candidate"] = "auto",
+    range_cost_limit: int = 2500,
+    recursion_limit: int = 4,
+    parameters: Sequence[sp.Symbol | str] | None = None,
+    return_stratified: bool = False,
+) -> OptimizationResult | sp.Expr | object:
+    """Return an exact maximum/supremum for a polynomial semialgebraic problem."""
 
+    if return_stratified:
+        obj = sp.sympify(objective)
+        condition = _normalize_formula(constraints)
+        params = _normalize_parameters_for_problem(parameters or (), obj, condition)
+        if not params:
+            raise ValueError("return_stratified=True requires at least one parameter")
+        vars_ = _normalize_variables(variables, sp.Tuple(condition, obj))
+        vars_ = tuple(var for var in vars_ if var not in set(params))
+        return _stratified_optimization(
+            obj,
+            condition,
+            vars_,
+            params,
+            kind="max",
+            domain=domain,
+            certification=certification,
+            range_cost_limit=range_cost_limit,
+            recursion_limit=recursion_limit,
+        )
     return _optimize(
-        objective, constraints, variables, kind="max", domain=domain, return_result=return_result
+        objective,
+        constraints,
+        variables,
+        kind="max",
+        domain=domain,
+        return_result=return_result,
+        certification=certification,
+        range_cost_limit=range_cost_limit,
+        recursion_limit=recursion_limit,
     )
 
 
@@ -651,7 +1430,7 @@ def _graph_formula_for_expression(
             arg_formulas.append(arg_formula)
             aux_symbols.extend((arg_value, *arg_aux))
         branch_formulas: list[sp.Expr] = []
-        for _index, arg_value in enumerate(arg_values):
+        for arg_value in arg_values:
             if expr.func is sp.Max:
                 order = sp.And(*(arg_value >= other for other in arg_values))
             else:
@@ -1349,6 +2128,7 @@ def _range_via_optimization_bounds(
     )
 
 
+@with_computation_context
 def function_range(
     expression: sp.Expr,
     constraints: FormulaLike | Iterable[FormulaLike] | None = None,
@@ -1358,14 +2138,16 @@ def function_range(
     domain: str = "reals",
     method: str = "qe",
     return_result: bool = False,
-) -> sp.Expr | FunctionRangeResult:
+    parameters: Sequence[sp.Symbol | str] | None = None,
+    return_stratified: bool = False,
+) -> sp.Expr | FunctionRangeResult | object:
     """Return a quantifier-free formula describing a real function range.
 
     The preferred direct backend uses the semialgebraic image formulation
     ``exists variables. constraints and value_symbol == expression``. It first
     applies guarded exact graph-elimination shortcuts for common univariate
-    images, then tries complete CAD/QE, and finally falls back to the earlier
-    optimization-bound summary for ``method='auto'`` or ``method='bounds'``.
+    images, then tries complete CAD/QE, and may use optimization bounds for
+    ``method='auto'`` or ``method='bounds'``.
     """
 
     if domain.lower() not in {"real", "reals", "r", "rr"}:
@@ -1375,9 +2157,14 @@ def function_range(
         raise ValueError("method must be 'qe', 'cad', 'auto', 'bounds', or 'optimization'")
     expr = sp.sympify(expression)
     condition = _normalize_formula(constraints)
-    vars_ = _normalize_variables(variables, sp.And(condition, sp.Eq(sp.Symbol("_dummy"), expr)))
-    vars_ = tuple(var for var in vars_ if var.name != "_dummy")
-    val_sym = _as_real_symbol(value_symbol or "t")
+    vars_ = _normalize_variables(variables, sp.Tuple(condition, expr))
+    val_sym = resolve_symbol(value_symbol or "t")
+    if return_stratified:
+        params = _normalize_parameters_for_problem(parameters or (), expr, condition)
+        if not params:
+            raise ValueError("return_stratified=True requires at least one parameter")
+        vars_ = tuple(var for var in vars_ if var not in set(params))
+        return _stratified_function_range(expr, condition, vars_, params, val_sym)
 
     if not vars_:
         formula = sp.Eq(val_sym, expr)
@@ -1489,6 +2276,10 @@ def function_range(
 __all__ = [
     "FunctionRangeResult",
     "OptimizationResult",
+    "ParametricOptimizationResult",
+    "ParametricFunctionRangeResult",
+    "OptimizationCertificationPolicy",
+    "polynomial_locus_dimension",
     "function_range",
     "semialgebraic_maximize",
     "semialgebraic_minimize",

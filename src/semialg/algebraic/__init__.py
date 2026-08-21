@@ -12,6 +12,8 @@ from .cache import (
     CACHE_VERSION,
     RootIsolationCache,
     RootIsolationStats,
+    algebraic_cache_stats,
+    clear_algebraic_caches,
     root_isolation_costs,
 )
 from .comparison import compare_samples, sort_samples
@@ -64,6 +66,9 @@ def get_isolating_interval(root: AlgebraicRoot):
 
 
 __all__ = [
+    "algebraic_cache_stats",
+    "clear_algebraic_caches",
+    "root_isolation_costs",
     "CACHE",
     "CACHE_VERSION",
     "RootIsolationCache",

@@ -1,33 +1,69 @@
 # semialg documentation
 
-`semialg` provides exact symbolic algorithms for real semialgebraic geometry and CAD-backed symbolic reasoning.
+`semialg` provides exact symbolic algorithms for real polynomial and semialgebraic problems. The documentation is organized by how you use the package rather than by implementation history.
 
-Core themes:
+## Learn semialg
 
-1. Decision procedures over the real numbers
-2. Semialgebraic solving and sampling
-3. Region operations and integration
-4. Symbolic optimization and range computation
-5. Assumption-aware simplification.
+1. **[Getting started](getting_started.md)** — installation, formulas, variables, decisions, solving, optimization, regions, and integration.
+2. **[Exactness and certification](concepts/exactness_and_certification.md)** — what semialg means by exact, certified, candidate, and numerical.
+3. **[Progressive demo notebook](../notebooks/semialg_demo.ipynb)** — executable examples that build from decision problems to optimization and integration.
 
-## Start here
+## Task guides
 
-If you want to:
+- [Performance](guides/performance.md) — variable order, equational constraints, caching, and certification cost.
+- [Errors and failure modes](guides/errors_and_failure_modes.md) — distinguish invalid input, infeasibility, unsupported cases, cost limits, and failed certification.
+- [Symbol handling](guides/symbol_handling.md) — SymPy symbol identity, string resolution, parameters, and assumptions.
+- [Region invariants](guides/region_invariants.md) — constructor requirements and geometric validation.
 
-- check whether constraints are feasible, see [`decision_procedures.md`](decision_procedures.md) and [`user_guide/decision_sampling_signs.md`](user_guide/decision_sampling_signs.md);
-- solve systems of equations and inequalities, see [`solving.md`](solving.md);
-- classify parameterized roots, see [`root_classification.md`](root_classification.md);
-- compute ranges or extrema, see [`function_range.md`](function_range.md) and [`optimization.md`](optimization.md);
-- manipulate regions, see [`region_operations.md`](region_operations.md);
-- integrate over regions, see [`region_integration.md`](region_integration.md);
-- compute moments, centroids, or covariance matrices, see [`moments.md`](moments.md);
-- simplify formulas or expressions under assumptions, see [`symbolic_simplification.md`](symbolic_simplification.md);
-- understand public decision-layer quality contracts, see [`quality/decision_contracts.md`](quality/decision_contracts.md);
-- understand internal design choices, see [`implementation_notes.md`](implementation_notes.md);
-- see planned work, see [`future_directions.md`](future_directions.md).
+## API reference
 
-## Philosophy
+Start with the **[API overview](api_overview.md)**, then use the family references:
 
-`semialg` follows an exact-first policy. When it can prove a result exactly, it returns an exact symbolic answer. When a case is outside the current supported algorithms, it should fail conservatively rather than produce an unreliable expression.
+- [Decision and QE](reference/decision_and_qe.md)
+- [Solving and sampling](reference/solving_and_sampling.md)
+- [CAD and structured geometry](reference/cad.md)
+- [Optimization and ranges](reference/optimization_and_range.md)
+- [Regions](reference/regions.md)
+- [Integration and moments](reference/integration_and_moments.md)
+- [Algebraic roots and exact solving](reference/algebraic.md)
+- [Parameters and conditional results](reference/parameters.md)
 
-The package uses CAD/QE as a semantic oracle for many operations, but it also includes specialized faster paths for common low-dimensional and standard-region problems.
+## Explanations and detailed topics
+
+- [CAD and QE](cad_qe.md)
+- [Decision procedures](decision_procedures.md)
+- [Solving](solving.md)
+- [Optimization](optimization.md)
+- [Function ranges](function_range.md)
+- [Region operations](region_operations.md)
+- [Region integration](region_integration.md)
+- [Moments](moments.md)
+- [Root classification](root_classification.md)
+- [Parameter stratification](parameter_stratification.md)
+- [Symbolic simplification](symbolic_simplification.md)
+- [Quantified expressions](quantified_expressions.md)
+- [Implicit geometry](implicit_utilities.md)
+
+## Scope, quality, and internals
+
+- [Feature matrix](feature_matrix.md)
+- [Limitations](limitations.md)
+- [Architecture](architecture/design.md)
+- [Code quality](architecture/code_quality.md)
+- [Robustness](quality/robustness.md)
+- [Decision contracts](quality/decision_contracts.md)
+- [Reference regression suite](quality/reference_regression_suite.md)
+- [Future directions](future_directions.md)
+- [Changelog](../CHANGELOG.md)
+
+## Applications
+
+The application layer groups thin certified workflows into three practical families:
+
+- **Control and verification applications:** Hurwitz stability, discrete invariants, Lyapunov functions, and barrier certificates.
+- **Design and model analysis:** robust parameter analysis, response surfaces, polynomial model comparison, parameter regimes, sensitivity, constraint redundancy, and feasibility diagnostics.
+- **Validation, testing, and probability:** symbolic-math validation, exact numerical-optimizer benchmarks, and exact polynomial/geometric probability.
+
+
+- [Applied workflows](applications.md)
+- [Applications reference](reference/applications.md)

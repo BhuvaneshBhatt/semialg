@@ -513,6 +513,7 @@ def find_instance_formula(
     exact: bool = True,
     strict: bool = False,
 ):
+    """Find a witness for a structured formula using exact domain-aware search strategies."""
     inst_count = count if count is not None else (max_instances if max_instances is not None else 1)
     dom = normalize_domain(domain)
     expr = apply_assumptions(to_sympy(parsed.matrix), assumptions)
@@ -624,6 +625,7 @@ def find_instance_text(
     exact: bool = True,
     strict: bool = False,
 ):
+    """Find a witness for a textual formula after parsing and domain normalization."""
     variable_order = _coerce_vars(variable_order or variables)
     parse_symbols = dict(symbols or {})
     if variable_order is not None:

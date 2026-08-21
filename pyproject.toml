@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semialg"
-version = "0.1.0"
+version = "0.2.0b1"
 description = "CAD and real semialgebraic reasoning for Python"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -33,6 +33,7 @@ dev = [
   "ruff>=0.4",
   "nbformat>=5",
 ]
+docs = ["sphinx>=7"]
 notebooks = [
   "matplotlib>=3.8",
   "jupyter>=1",
@@ -74,5 +75,9 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
-markers = ["slow: computationally expensive tests"]
+pythonpath = ["src"]
+addopts = '-ra -m "not slow"'
+markers = [
+  "slow: computationally expensive tests excluded from the default suite",
+  "performance: opt-in wall-clock regression tests (also marked slow)",
+]

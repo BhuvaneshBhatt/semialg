@@ -8,6 +8,7 @@ import sympy as sp
 
 from ...algebraic.samples import Sample, sample_to_expr
 from ...algebraic.signs import sign_at_sample
+from ..polynomial_utils import polynomial_key as _poly_key
 
 CellKind = Literal["sector", "section"]
 
@@ -51,10 +52,6 @@ class CADCell:
     @property
     def upper_bound(self) -> Sample | None:
         return None if self.interval is None else self.interval[1]
-
-
-def _poly_key(poly: sp.Poly) -> str:
-    return sp.sstr(sp.expand(poly.as_expr()))
 
 
 def sign_table(polys: Sequence[sp.Poly], sample: Sequence[Sample]) -> dict[str, int]:

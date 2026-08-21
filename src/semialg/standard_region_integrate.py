@@ -4,6 +4,8 @@ from collections.abc import Sequence
 
 import sympy as sp
 
+from .exact_arithmetic import compare_exact_reals
+from .normalization import normalize_variables
 from .parametric_integration import integrate_over_parametric_region
 from .standard_regions import (
     BallRegion,
@@ -31,8 +33,13 @@ from .standard_regions import (
 )
 
 
-def _symbols(names: Sequence[sp.Symbol | str]) -> tuple[sp.Symbol, ...]:
-    return tuple(sp.Symbol(v, real=True) if isinstance(v, str) else v for v in names)
+def _symbols(
+    names: Sequence[sp.Symbol | str],
+    *context: object,
+) -> tuple[sp.Symbol, ...]:
+    """Resolve integration variables against symbols in the integrand."""
+
+    return normalize_variables(names, *context, append_context_symbols=False)
 
 
 def _monomial_integral_box(
@@ -155,6 +162,18 @@ def _aligned_z_parametric_cylinder(
     return ParametricRegion((r, th, h), ((r, 0, 1), (th, 0, 2 * sp.pi), (h, 0, 1)), mapping)
 
 
+class _ExactOrder:
+    """Comparable wrapper using semialg's exact real comparator."""
+
+    __slots__ = ("value",)
+
+    def __init__(self, value: sp.Expr) -> None:
+        self.value = sp.sympify(value)
+
+    def __lt__(self, other: _ExactOrder) -> bool:
+        return compare_exact_reals(self.value, other.value) < 0
+
+
 def _integrate_boolean_region(
     integrand: sp.Expr,
     variables: tuple[sp.Symbol, ...],
@@ -232,9 +251,11 @@ def _integrate_boolean_region(
     if region.op == "intersection":
         # First useful exact intersection: intervals and boxes.
         if all(isinstance(r, IntervalRegion) for r in region.regions) and len(variables) == 1:
-            lo = max((r.lower for r in region.regions), key=lambda z: float(sp.N(z)))
-            hi = min((r.upper for r in region.regions), key=lambda z: float(sp.N(z)))
-            if bool(sp.simplify(hi - lo) < 0):
+            lowers = tuple(r.lower for r in region.regions)
+            uppers = tuple(r.upper for r in region.regions)
+            lo = max(lowers, key=lambda z: _ExactOrder(z))
+            hi = min(uppers, key=lambda z: _ExactOrder(z))
+            if compare_exact_reals(hi, lo) < 0:
                 return sp.Integer(0)
             return integrate_over_standard_region(
                 integrand, IntervalRegion(lo, hi), variables, method=method, precision=precision
@@ -242,9 +263,11 @@ def _integrate_boolean_region(
         if all(isinstance(r, BoxRegion) for r in region.regions):
             bounds = []
             for i in range(len(variables)):
-                lo = max((r.bounds[i][0] for r in region.regions), key=lambda z: float(sp.N(z)))
-                hi = min((r.bounds[i][1] for r in region.regions), key=lambda z: float(sp.N(z)))
-                if bool(sp.simplify(hi - lo) < 0):
+                lowers = tuple(r.bounds[i][0] for r in region.regions)
+                uppers = tuple(r.bounds[i][1] for r in region.regions)
+                lo = max(lowers, key=lambda z: _ExactOrder(z))
+                hi = min(uppers, key=lambda z: _ExactOrder(z))
+                if compare_exact_reals(hi, lo) < 0:
                     return sp.Integer(0)
                 bounds.append((lo, hi))
             return integrate_over_standard_region(
@@ -268,8 +291,8 @@ def integrate_over_standard_region(
     and parametrizations for common geometric regions.
     """
 
-    vars_ = _symbols(variables)
     expr = sp.sympify(integrand)
+    vars_ = _symbols(variables, expr)
 
     if isinstance(region, PointRegion):
         return sp.simplify(sum(expr.subs(dict(zip(vars_, p, strict=True))) for p in region.points))

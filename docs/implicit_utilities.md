@@ -65,4 +65,4 @@ The output records `x` intervals or points and associated lower/upper bounds for
 
 ## Limitation
 
-This is not yet a complete arbitrary CAD output parser. It supports common cylindrical and vertical-slice structures and should fail conservatively outside that scope.
+The 2D syntactic parser is intentionally limited. For complete CAD output, use `extract_cylindrical_solution`, which provides typed arbitrary-dimensional bounds and certified algebraic root functions.

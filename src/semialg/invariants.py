@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sympy as sp
 
+from .exact_arithmetic import compare_exact_reals
 from .model import CADResult
 
 
@@ -25,11 +26,12 @@ def validate_cad_result(cad: CADResult) -> list[str]:
                 if left is not None and right is not None:
                     if sp.simplify(left - right) != 0:
                         try:
-                            if bool(sp.N(left) >= sp.N(right)):
+                            if compare_exact_reals(left, right) >= 0:
                                 issues.append(
-                                    f"Cell {cell.index} has non-increasing interval ({left}, {right})"
+                                    f"Cell {cell.index} has non-increasing interval "
+                                    f"({left}, {right})"
                                 )
-                        except Exception:
+                        except (TypeError, ValueError, NotImplementedError):
                             pass
     for parent_index, children in cad.children_by_parent.items():
         for child in children:

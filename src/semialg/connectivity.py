@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import sympy as sp
 
 from .cad.cells import CylindricalSolution, CylindricalSolutionCell, extract_cylindrical_solution
-from .implicit_utils import _normalize_formula, _normalize_variables
+from .implicit_geometry import _normalize_formula, _normalize_variables
 
 
 @dataclass(frozen=True)

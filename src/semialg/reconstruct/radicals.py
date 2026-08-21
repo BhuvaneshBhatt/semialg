@@ -5,7 +5,9 @@ import sympy as sp
 from .root_functions import root_function_expr
 
 
-def fiber_root_candidates(poly_expr: sp.Expr, fiber_var: sp.Symbol) -> tuple[sp.Expr, ...]:
+def fiber_root_candidates(
+    poly_expr: sp.Expr, fiber_var: sp.Symbol, *, ordered: bool = True
+) -> tuple[sp.Expr, ...]:
     """Return readable linear/quadratic root expressions for a fiber polynomial.
 
     The order is the ordinary real-root order for the common positive-leading
@@ -15,7 +17,7 @@ def fiber_root_candidates(poly_expr: sp.Expr, fiber_var: sp.Symbol) -> tuple[sp.
 
     try:
         poly = sp.Poly(sp.expand(poly_expr), fiber_var, domain="EX")
-    except Exception:
+    except (sp.PolynomialError, ValueError, TypeError):
         return tuple()
     degree = poly.degree()
     if degree <= 0:
@@ -33,9 +35,16 @@ def fiber_root_candidates(poly_expr: sp.Expr, fiber_var: sp.Symbol) -> tuple[sp.
         sqrt_disc = sp.sqrt(disc)
         low = sp.cancel((-b - sqrt_disc) / (2 * a))
         high = sp.cancel((-b + sqrt_disc) / (2 * a))
+        if not ordered:
+            return (low, high)
         if a.is_negative:
             return (high, low)
-        return (low, high)
+        if a.is_positive:
+            return (low, high)
+        # The symbolic branches cannot be globally ordered without a sign
+        # assumption on the leading coefficient.  Callers with CAD context
+        # should request unordered branches and use a certified branch identity.
+        return tuple()
     return tuple()
 
 

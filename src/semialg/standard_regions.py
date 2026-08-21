@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from .exact_arithmetic import compare_exact_reals
+
 Point = tuple[sp.Expr, ...]
 
 
@@ -14,6 +16,39 @@ def _sympify_point(point: Sequence[object]) -> Point:
 
 def _as_symbols(names: Sequence[sp.Symbol | str]) -> tuple[sp.Symbol, ...]:
     return tuple(sp.Symbol(v, real=True) if isinstance(v, str) else v for v in names)
+
+
+def _validate_same_dimension(points: Sequence[Point], *, label: str) -> int:
+    """Validate that all points/vectors use one ambient dimension."""
+
+    if not points:
+        return 0
+    dim = len(points[0])
+    if any(len(point) != dim for point in points[1:]):
+        raise ValueError(f"{label} must all have the same dimension")
+    return dim
+
+
+def _validate_nonnegative(value: sp.Expr, *, label: str) -> None:
+    """Reject values that are provably negative, allowing symbolic unknowns."""
+
+    try:
+        if compare_exact_reals(value, sp.Integer(0)) < 0:
+            raise ValueError(f"{label} must be nonnegative") from None
+    except (TypeError, ValueError, NotImplementedError):
+        if sp.simplify(value).is_negative is True:
+            raise ValueError(f"{label} must be nonnegative") from None
+
+
+def _validate_interval(lower: sp.Expr, upper: sp.Expr, *, label: str = "bounds") -> None:
+    """Reject an interval whose endpoint order is provably reversed."""
+
+    try:
+        reversed_order = compare_exact_reals(lower, upper) > 0
+    except (TypeError, ValueError, NotImplementedError):
+        reversed_order = sp.simplify(lower - upper).is_positive is True
+    if reversed_order:
+        raise ValueError(f"{label} have lower endpoint greater than upper endpoint")
 
 
 class StandardRegion:
@@ -35,6 +70,7 @@ class PointRegion(StandardRegion):
             pts = (_sympify_point(points),)  # type: ignore[arg-type]
         else:
             pts = tuple(_sympify_point(p) for p in points)  # type: ignore[arg-type]
+        _validate_same_dimension(pts, label="points")
         object.__setattr__(self, "points", pts)
 
     def dimension(self) -> int:
@@ -54,8 +90,11 @@ class IntervalRegion(StandardRegion):
     def __init__(
         self, lower: object, upper: object, *, lower_closed: bool = True, upper_closed: bool = True
     ):
-        object.__setattr__(self, "lower", sp.sympify(lower))
-        object.__setattr__(self, "upper", sp.sympify(upper))
+        lower_expr = sp.sympify(lower)
+        upper_expr = sp.sympify(upper)
+        _validate_interval(lower_expr, upper_expr, label="interval bounds")
+        object.__setattr__(self, "lower", lower_expr)
+        object.__setattr__(self, "upper", upper_expr)
         object.__setattr__(self, "lower_closed", lower_closed)
         object.__setattr__(self, "upper_closed", upper_closed)
 
@@ -71,7 +110,10 @@ class BoxRegion(StandardRegion):
     bounds: tuple[tuple[sp.Expr, sp.Expr], ...]
 
     def __init__(self, bounds: Sequence[tuple[object, object]]):
-        object.__setattr__(self, "bounds", tuple((sp.sympify(a), sp.sympify(b)) for a, b in bounds))
+        normalized = tuple((sp.sympify(a), sp.sympify(b)) for a, b in bounds)
+        for lower, upper in normalized:
+            _validate_interval(lower, upper, label="box bounds")
+        object.__setattr__(self, "bounds", normalized)
 
     def dimension(self) -> int:
         return len(self.bounds)
@@ -85,7 +127,9 @@ class SimplexRegion(StandardRegion):
     vertices: tuple[Point, ...]
 
     def __init__(self, vertices: Sequence[Sequence[object]]):
-        object.__setattr__(self, "vertices", tuple(_sympify_point(v) for v in vertices))
+        verts = tuple(_sympify_point(v) for v in vertices)
+        _validate_same_dimension(verts, label="simplex vertices")
+        object.__setattr__(self, "vertices", verts)
 
     def dimension(self) -> int:
         return max(0, len(self.vertices) - 1)
@@ -136,6 +180,8 @@ class PolyhedronRegion(StandardRegion):
         tets = tuple(
             t if isinstance(t, TetrahedronRegion) else TetrahedronRegion(t) for t in tetrahedra
         )
+        if any(tet.ambient_dimension() != 3 for tet in tets):
+            raise ValueError("PolyhedronRegion tetrahedra must be three-dimensional")
         object.__setattr__(self, "tetrahedra", tets)
 
     def dimension(self) -> int:
@@ -153,8 +199,12 @@ class ParallelogramRegion(StandardRegion):
     def __init__(self, origin: Sequence[object], vectors: Sequence[Sequence[object]]):
         if len(vectors) != 2:
             raise ValueError("a parallelogram requires two spanning vectors")
-        object.__setattr__(self, "origin", _sympify_point(origin))
-        object.__setattr__(self, "vectors", tuple(_sympify_point(v) for v in vectors))
+        origin_pt = _sympify_point(origin)
+        vecs = tuple(_sympify_point(v) for v in vectors)
+        if any(len(vec) != len(origin_pt) for vec in vecs):
+            raise ValueError("parallelogram vectors must match the origin dimension")
+        object.__setattr__(self, "origin", origin_pt)
+        object.__setattr__(self, "vectors", vecs)
 
     def dimension(self) -> int:
         return 2
@@ -169,8 +219,12 @@ class ParallelepipedRegion(StandardRegion):
     vectors: tuple[Point, ...]
 
     def __init__(self, origin: Sequence[object], vectors: Sequence[Sequence[object]]):
-        object.__setattr__(self, "origin", _sympify_point(origin))
-        object.__setattr__(self, "vectors", tuple(_sympify_point(v) for v in vectors))
+        origin_pt = _sympify_point(origin)
+        vecs = tuple(_sympify_point(v) for v in vectors)
+        if any(len(vec) != len(origin_pt) for vec in vecs):
+            raise ValueError("parallelepiped vectors must match the origin dimension")
+        object.__setattr__(self, "origin", origin_pt)
+        object.__setattr__(self, "vectors", vecs)
 
     def dimension(self) -> int:
         return len(self.vectors)
@@ -190,8 +244,11 @@ class PrismRegion(StandardRegion):
         vector: Sequence[object],
     ):
         base_obj = base if isinstance(base, (PolygonRegion, SimplexRegion)) else PolygonRegion(base)
+        vec = _sympify_point(vector)
+        if len(vec) != base_obj.ambient_dimension():
+            raise ValueError("prism vector must match the base ambient dimension")
         object.__setattr__(self, "base", base_obj)
-        object.__setattr__(self, "vector", _sympify_point(vector))
+        object.__setattr__(self, "vector", vec)
 
     def dimension(self) -> int:
         return self.base.dimension() + 1
@@ -211,8 +268,11 @@ class PyramidRegion(StandardRegion):
         apex: Sequence[object],
     ):
         base_obj = base if isinstance(base, (PolygonRegion, SimplexRegion)) else PolygonRegion(base)
+        apex_pt = _sympify_point(apex)
+        if len(apex_pt) != base_obj.ambient_dimension():
+            raise ValueError("pyramid apex must match the base ambient dimension")
         object.__setattr__(self, "base", base_obj)
-        object.__setattr__(self, "apex", _sympify_point(apex))
+        object.__setattr__(self, "apex", apex_pt)
 
     def dimension(self) -> int:
         return self.base.dimension() + 1
@@ -227,8 +287,10 @@ class BallRegion(StandardRegion):
     radius: sp.Expr
 
     def __init__(self, center: Sequence[object], radius: object = 1):
+        radius_expr = sp.sympify(radius)
+        _validate_nonnegative(radius_expr, label="radius")
         object.__setattr__(self, "center", _sympify_point(center))
-        object.__setattr__(self, "radius", sp.sympify(radius))
+        object.__setattr__(self, "radius", radius_expr)
 
     def dimension(self) -> int:
         return len(self.center)
@@ -239,6 +301,9 @@ class BallRegion(StandardRegion):
 
 @dataclass(frozen=True)
 class SphereRegion(BallRegion):
+    def __init__(self, center: Sequence[object], radius: object = 1):
+        super().__init__(center, radius)
+
     def dimension(self) -> int:
         return max(0, len(self.center) - 1)
 
@@ -250,9 +315,14 @@ class SphericalShellRegion(StandardRegion):
     outer_radius: sp.Expr
 
     def __init__(self, center: Sequence[object], radii: tuple[object, object]):
+        inner = sp.sympify(radii[0])
+        outer = sp.sympify(radii[1])
+        _validate_nonnegative(inner, label="inner radius")
+        _validate_nonnegative(outer, label="outer radius")
+        _validate_interval(inner, outer, label="shell radii")
         object.__setattr__(self, "center", _sympify_point(center))
-        object.__setattr__(self, "inner_radius", sp.sympify(radii[0]))
-        object.__setattr__(self, "outer_radius", sp.sympify(radii[1]))
+        object.__setattr__(self, "inner_radius", inner)
+        object.__setattr__(self, "outer_radius", outer)
 
     def dimension(self) -> int:
         return len(self.center)
@@ -268,9 +338,15 @@ class CylinderRegion(StandardRegion):
     radius: sp.Expr = sp.Integer(1)
 
     def __init__(self, start: Sequence[object], end: Sequence[object], radius: object = 1):
-        object.__setattr__(self, "start", _sympify_point(start))
-        object.__setattr__(self, "end", _sympify_point(end))
-        object.__setattr__(self, "radius", sp.sympify(radius))
+        start_pt = _sympify_point(start)
+        end_pt = _sympify_point(end)
+        if len(start_pt) != len(end_pt):
+            raise ValueError("cylinder endpoints must have the same dimension")
+        radius_expr = sp.sympify(radius)
+        _validate_nonnegative(radius_expr, label="radius")
+        object.__setattr__(self, "start", start_pt)
+        object.__setattr__(self, "end", end_pt)
+        object.__setattr__(self, "radius", radius_expr)
 
     def dimension(self) -> int:
         return len(self.start)
@@ -281,7 +357,8 @@ class CylinderRegion(StandardRegion):
 
 @dataclass(frozen=True)
 class ConeRegion(CylinderRegion):
-    pass
+    def __init__(self, start: Sequence[object], end: Sequence[object], radius: object = 1):
+        super().__init__(start, end, radius)
 
 
 @dataclass(frozen=True)
@@ -291,9 +368,15 @@ class StadiumRegion(StandardRegion):
     radius: sp.Expr = sp.Integer(1)
 
     def __init__(self, start: Sequence[object], end: Sequence[object], radius: object = 1):
-        object.__setattr__(self, "start", _sympify_point(start))
-        object.__setattr__(self, "end", _sympify_point(end))
-        object.__setattr__(self, "radius", sp.sympify(radius))
+        start_pt = _sympify_point(start)
+        end_pt = _sympify_point(end)
+        if len(start_pt) != len(end_pt):
+            raise ValueError("region endpoints must have the same dimension")
+        radius_expr = sp.sympify(radius)
+        _validate_nonnegative(radius_expr, label="radius")
+        object.__setattr__(self, "start", start_pt)
+        object.__setattr__(self, "end", end_pt)
+        object.__setattr__(self, "radius", radius_expr)
 
     def dimension(self) -> int:
         return 2
@@ -304,6 +387,9 @@ class StadiumRegion(StandardRegion):
 
 @dataclass(frozen=True)
 class CapsuleRegion(StadiumRegion):
+    def __init__(self, start: Sequence[object], end: Sequence[object], radius: object = 1):
+        super().__init__(start, end, radius)
+
     def dimension(self) -> int:
         return len(self.start)
 
@@ -329,15 +415,48 @@ class ParametricRegion(StandardRegion):
         assumptions: object = True,
     ):
         params = _as_symbols(parameters)
-        sym_limits = []
-        by_name = {p.name: p for p in params}
+        if len(set(params)) != len(params):
+            raise ValueError("parametric region parameters must be unique")
+        by_name = {param.name: param for param in params}
+        if len(by_name) != len(params):
+            raise ValueError("parametric region parameter names must be unique")
+        sym_limits: list[tuple[sp.Symbol, sp.Expr, sp.Expr]] = []
+        seen: set[sp.Symbol] = set()
         for raw, lo, hi in limits:
-            p = by_name.get(raw, sp.Symbol(raw, real=True)) if isinstance(raw, str) else raw
-            sym_limits.append((p, sp.sympify(lo), sp.sympify(hi)))
+            if isinstance(raw, str):
+                param = by_name.get(raw)
+                if param is None:
+                    raise ValueError(f"limit variable {raw!r} is not a declared parameter")
+            else:
+                param = raw
+                if param not in params:
+                    raise ValueError(f"limit variable {param!r} is not a declared parameter")
+            if param in seen:
+                raise ValueError(f"duplicate integration limit for parameter {param!r}")
+            seen.add(param)
+            lower = sp.sympify(lo)
+            upper = sp.sympify(hi)
+            _validate_interval(lower, upper, label=f"limits for {param}")
+            sym_limits.append((param, lower, upper))
+        if seen != set(params):
+            missing = tuple(param for param in params if param not in seen)
+            raise ValueError(f"missing integration limits for parameters {missing!r}")
+        mult = sp.sympify(multiplicity)
+        try:
+            mult_cmp = compare_exact_reals(mult, sp.Integer(0))
+        except (TypeError, ValueError, NotImplementedError):
+            if mult.is_positive is True:
+                mult_cmp = 1
+            elif mult.is_nonpositive is True:
+                mult_cmp = 0
+            else:
+                raise ValueError("parametrization multiplicity must be provably positive") from None
+        if mult_cmp <= 0:
+            raise ValueError("parametrization multiplicity must be positive")
         object.__setattr__(self, "parameters", params)
         object.__setattr__(self, "limits", tuple(sym_limits))
-        object.__setattr__(self, "mapping", tuple(sp.sympify(e) for e in mapping))
-        object.__setattr__(self, "multiplicity", sp.sympify(multiplicity))
+        object.__setattr__(self, "mapping", tuple(sp.sympify(expr) for expr in mapping))
+        object.__setattr__(self, "multiplicity", mult)
         object.__setattr__(self, "assumptions", sp.sympify(assumptions))
 
     def dimension(self) -> int:

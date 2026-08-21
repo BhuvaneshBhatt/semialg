@@ -57,7 +57,7 @@ def _relation_from_normal(expr: sp.Expr, op: str) -> sp.Expr:
     raise ValueError(op)
 
 
-def normalize_relation(rel: Relational) -> sp.Expr:
+def canonicalize_relation(rel: Relational) -> sp.Expr:
     """Normalize one relational atom to a deterministic polynomial sign test."""
 
     op = _relation_op(rel)
@@ -82,7 +82,7 @@ def normalize_atoms(expr: sp.Expr) -> sp.Expr:
     if expr is False or isinstance(expr, BooleanFalse):
         return sp.false
     if isinstance(expr, Relational):
-        return normalize_relation(expr)
+        return canonicalize_relation(expr)
     if isinstance(expr, SymAnd):
         return sp.And(*(normalize_atoms(arg) for arg in expr.args))
     if isinstance(expr, SymOr):
@@ -92,4 +92,6 @@ def normalize_atoms(expr: sp.Expr) -> sp.Expr:
     return expr
 
 
-__all__ = ["normalize_atoms", "normalize_relation"]
+normalize_relation = canonicalize_relation
+
+__all__ = ["canonicalize_relation", "normalize_atoms", "normalize_relation"]

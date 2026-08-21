@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from ...dimension_validation import zip_equal
 from ...exceptions import AlgebraicSolvingError
 from ...status import SolverStatus
 
@@ -109,7 +110,7 @@ class RationalUnivariatePoint:
 
     @property
     def assignment(self) -> Mapping[sp.Symbol, sp.Expr]:
-        return dict(zip(self.variables, self.coordinates, strict=True))
+        return dict(zip_equal(self.variables, self.coordinates, context="RUR point coordinates"))
 
 
 @dataclass(frozen=True)
@@ -158,7 +159,10 @@ class FilteredRationalUnivariateSolutions:
 
     @property
     def assignments(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
-        return tuple(dict(zip(self.variables, point, strict=True)) for point in self.points)
+        return tuple(
+            dict(zip_equal(self.variables, point, context="RUR solution point"))
+            for point in self.points
+        )
 
     @property
     def satisfiable(self) -> bool:

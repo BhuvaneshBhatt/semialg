@@ -7,8 +7,19 @@ import sympy as sp
 from sympy.logic.boolalg import Boolean
 
 from .decision import implies, is_satisfiable, is_tautology
+from .normalization import normalize_formula as _normalize_formula
+from .normalization import normalize_variables as _normalize_variables
 
 FormulaLike = sp.Expr | Boolean | bool
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    RuntimeError,
+    sp.PolynomialError,
+)
 
 
 @dataclass(frozen=True)
@@ -44,40 +55,6 @@ class PiecewiseSimplificationResult:
         return self.expression is not sp.nan
 
 
-def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
-    return sp.Symbol(var, real=True) if isinstance(var, str) else var
-
-
-def _normalize_formula(formula: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    if isinstance(formula, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(piece) for piece in formula]
-        return sp.And(*pieces) if pieces else sp.true
-    if formula is True:
-        return sp.true
-    if formula is False:
-        return sp.false
-    return formula if isinstance(formula, (sp.Basic, Boolean)) else sp.sympify(formula)
-
-
-def _normalize_variables(
-    variables: Sequence[sp.Symbol | str] | None,
-    expr: sp.Expr,
-) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    if variables is not None:
-        for var in variables:
-            sym = _as_real_symbol(var)
-            if sym not in seen:
-                out.append(sym)
-                seen.add(sym)
-    for sym in sorted(expr.free_symbols, key=lambda item: item.name):
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
-
-
 def _safe_simplify_logic(expr: sp.Expr) -> sp.Expr:
     """Simplify logic without routing Boolean formulas through scalar simplifiers."""
 
@@ -85,11 +62,11 @@ def _safe_simplify_logic(expr: sp.Expr) -> sp.Expr:
         try:
             simplified = sp.simplify_logic(expr, form="dnf")
             return simplified if simplified is not None else expr
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return expr
     try:
         return sp.simplify(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return expr
 
 
@@ -100,7 +77,7 @@ def _semantic_unsat(expr: sp.Expr, variables: Sequence[sp.Symbol], strategy: str
         return False
     try:
         return not is_satisfiable(expr, variables, strategy=strategy)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
 
 
@@ -113,7 +90,7 @@ def _semantic_tautology(
         return False
     try:
         return is_tautology(expr, variables, strategy=strategy)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
 
 
@@ -127,7 +104,7 @@ def _semantic_implies(
         return True
     try:
         return implies(lhs, rhs, variables, strategy=strategy)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
 
 
@@ -165,10 +142,10 @@ def _normalize_polynomial_side(
 
     try:
         poly = sp.Poly(sp.expand(expr), *variables, domain=sp.QQ)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         try:
             return sp.factor(sp.cancel(expr))
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return expr
     if poly.is_zero:
         return sp.Integer(0)
@@ -261,11 +238,11 @@ def _try_univariate_interval_simplify(
         reduced = sp.reduce_inequalities(
             list(expr.args) if isinstance(expr, sp.And) else [expr], var
         )
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         reduced = expr
     try:
         set_expr = reduced.as_set()
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     formula = _set_to_formula(set_expr, var)
     if formula is None:
@@ -451,12 +428,12 @@ def simplify_boole(
     if form == "cnf":
         try:
             simplified = sp.simplify_logic(simplified, form="cnf")
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     elif form == "dnf":
         try:
             simplified = sp.simplify_logic(simplified, form="dnf")
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
 
     return finish(simplified)
@@ -475,11 +452,11 @@ def _simplify_value(
 
         if assumptions is not None:
             return simplify_under_assumptions(value, assumptions, variables, strategy=strategy)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         pass
     try:
         return sp.simplify(value)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return value
 
 
@@ -531,7 +508,7 @@ def simplify_piecewise(
         return result if return_result else simplified
     expr = original_expr
     removed_unreachable: list[tuple[sp.Expr, sp.Expr]] = []
-    branch_value_simplifications = 0
+    value_simplifications = 0
 
     all_conditions = [cond for _, cond in expr.args]
     variable_expr = (
@@ -585,7 +562,7 @@ def simplify_piecewise(
         )
         simplified_value = _simplify_value(value, vars_, strategy, branch_assumptions)
         if simplified_value != value:
-            branch_value_simplifications += 1
+            value_simplifications += 1
         branches.append((simplified_value, output_condition))
         covered = new_covered
 
@@ -620,7 +597,7 @@ def simplify_piecewise(
                     assumption_expr,
                     tuple(removed_unreachable),
                     merged_count,
-                    branch_value_simplifications,
+                    value_simplifications,
                 )
                 return result if return_result else candidate
     if len(branches) == 1 and (branches[0][1] is sp.true or branches[0][1] == sp.true):
@@ -634,7 +611,7 @@ def simplify_piecewise(
         assumption_expr,
         tuple(removed_unreachable),
         merged_count,
-        branch_value_simplifications,
+        value_simplifications,
         {"input_branch_count": len(original_expr.args), "output_branch_count": len(branches)},
     )
     return result if return_result else final

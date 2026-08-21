@@ -44,3 +44,11 @@ def test_sample_points_finds_requested_distinct_witnesses_when_available() -> No
     assert len(witnesses) == 2
     assert all(bool((x**2 > 1).subs(witness)) for witness in witnesses)
     assert len({sp.simplify(witness[x]) for witness in witnesses}) == 2
+
+
+def test_sample_point_string_variable_reuses_formula_symbol() -> None:
+    x = sp.Symbol("x")
+    point = sample_point(x > 0, ["x"])
+    assert point is not None
+    assert tuple(point) == (x,)
+    assert point[x] > 0

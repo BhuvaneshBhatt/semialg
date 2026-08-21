@@ -87,6 +87,14 @@ class ParsedPrenexFormula:
     matrix: Formula
     matrix_expr: sp.Expr
 
+    @property
+    def quantified_expr(self) -> sp.Expr:
+        """Return this parsed prefix as semialg ``Exists``/``ForAll`` nodes."""
+
+        from .quantifiers import apply_quantifiers
+
+        return apply_quantifiers(self.matrix_expr, self.quantifiers)
+
 
 _TRANSFORMS = standard_transformations + (implicit_mul, convert_equals_signs)
 
@@ -188,6 +196,35 @@ def parse_formula_text(
 ) -> tuple[sp.Expr, Formula]:
     expr = _parse_matrix_text(text, symbols=symbols)
     return expr, parse_formula(expr)
+
+
+def parse_quantified_expr(
+    expr: sp.Expr,
+    variable_order: Sequence[sp.Symbol] | None = None,
+) -> ParsedPrenexFormula:
+    """Parse a semialg ``Exists``/``ForAll`` prenex expression.
+
+    This is the expression-level counterpart of :func:`parse_quant_form_text`.
+    The quantifier nodes are lowered to semialg's internal prefix representation
+    while preserving ``quantified_expr`` for round-tripping.
+    """
+
+    from .quantifiers import split_quantifiers
+
+    quantifiers, matrix_expr = split_quantifiers(expr)
+    matrix = parse_formula(matrix_expr)
+    matrix_symbols = tuple(sorted(matrix_expr.free_symbols, key=lambda s: s.name))
+    quantified_vars = tuple(var for _, var in quantifiers)
+    free_vars = tuple(sym for sym in matrix_symbols if sym not in quantified_vars)
+
+    if variable_order is not None:
+        vars_ = tuple(variable_order)
+    else:
+        vars_ = tuple(dict.fromkeys(free_vars + quantified_vars))
+
+    return ParsedPrenexFormula(
+        vars=vars_, quantifiers=quantifiers, matrix=matrix, matrix_expr=matrix_expr
+    )
 
 
 def parse_quant_form_text(

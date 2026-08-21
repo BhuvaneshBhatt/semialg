@@ -8,9 +8,28 @@ from sympy.logic.boolalg import Boolean
 
 from .decision import equivalent, implies, is_satisfiable
 from .formula import parse_formula
+from .normalization import (
+    conjuncts as _conjuncts,
+)
+from .normalization import (
+    normalize_formula as _normalize_formula,
+)
+from .normalization import (
+    normalize_variables as _normalize_variables,
+)
 from .qe import qe_by_complete_cad
+from .quantifiers import Exists, ForAll, split_quantifiers
 from .regions.operations import region_closure
 from .symbolic_simplify import simplify_boole, simplify_piecewise
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    RuntimeError,
+    sp.PolynomialError,
+)
 
 FormulaLike = sp.Expr | Boolean | bool
 
@@ -67,51 +86,6 @@ class SignProofResult:
         return self.proven
 
 
-def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
-    return sp.Symbol(var, real=True) if isinstance(var, str) else var
-
-
-def _normalize_formula(formula: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    if isinstance(formula, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(piece) for piece in formula]
-        return sp.And(*pieces) if pieces else sp.true
-    if formula is True:
-        return sp.true
-    if formula is False:
-        return sp.false
-    return formula if isinstance(formula, (sp.Basic, Boolean)) else sp.sympify(formula)
-
-
-def _normalize_variables(
-    variables: Sequence[sp.Symbol | str] | None,
-    expr: sp.Expr,
-) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    if variables is not None:
-        for var in variables:
-            sym = _as_real_symbol(var)
-            if sym not in seen:
-                out.append(sym)
-                seen.add(sym)
-    for sym in sorted(expr.free_symbols, key=lambda item: item.name):
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
-
-
-def _conjuncts(expr: sp.Expr) -> tuple[sp.Expr, ...]:
-    if expr is sp.true or expr == sp.true:
-        return ()
-    if isinstance(expr, sp.And):
-        out: list[sp.Expr] = []
-        for arg in expr.args:
-            out.extend(_conjuncts(arg))
-        return tuple(out)
-    return (expr,)
-
-
 def _ordered_unique_exprs(exprs: Iterable[sp.Expr]) -> tuple[sp.Expr, ...]:
     out: list[sp.Expr] = []
     seen: set[str] = set()
@@ -130,7 +104,7 @@ def _try_reduce_inequalities_1d(expr: sp.Expr, variables: Sequence[sp.Symbol]) -
     var = variables[0]
     try:
         reduced = sp.reduce_inequalities(list(_conjuncts(expr)), var)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if reduced is None:
         return None
@@ -188,7 +162,7 @@ def _apply_substitutions_to_constraints(
                 out.append(sp.false)
             else:
                 out.append(new_atom)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             out.append(atom)
     return tuple(out)
 
@@ -231,7 +205,7 @@ def simplify_system(
         from .cad.cells import extract_explicit_cylindrical_solution
 
         explicit_cyl = extract_explicit_cylindrical_solution(combined, vars_)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         explicit_cyl = None
 
     if combined is sp.false or combined == sp.false:
@@ -290,10 +264,10 @@ def simplify_system(
 
     try:
         expr = simplify_boole(expr, vars_, assumptions=asm, strategy=strategy)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         try:
             expr = sp.simplify_logic(expr, form="dnf")
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
 
     atoms = _ordered_unique_exprs(_conjuncts(expr))
@@ -321,16 +295,16 @@ def simplify_system(
                     removed.append(atom)
                     changed = True
                     break
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 continue
 
     formula = sp.And(*kept) if kept else sp.true
     try:
         formula = simplify_boole(formula, vars_, assumptions=asm, strategy=strategy)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         try:
             formula = sp.simplify_logic(formula, form="dnf")
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     cylindrical_formula_used = False
     if len(vars_) > 1:
@@ -352,7 +326,7 @@ def simplify_system(
                     formula = cyl_formula
                     kept = list(_conjuncts(formula))
                     cylindrical_formula_used = True
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
 
     result = SimplifiedSystem(
@@ -391,7 +365,7 @@ def _relation_formula(expr: sp.Expr, relation: str) -> sp.Expr:
 def _constant_sign_certificate(expr: sp.Expr, relation: str) -> bool | None:
     try:
         value = sp.simplify(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         value = expr
     if getattr(value, "free_symbols", set()):
         return None
@@ -404,7 +378,7 @@ def _constant_sign_certificate(expr: sp.Expr, relation: str) -> bool | None:
             return bool(value < 0)
         if relation == "nonpositive":
             return bool(value <= 0)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     return None
 
@@ -419,7 +393,7 @@ def _is_even_power_nonnegative(expr: sp.Expr) -> bool:
 def _is_obvious_square_product_nonnegative(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> bool:
     try:
         factored = sp.factor(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         factored = expr
     if factored == 0:
         return True
@@ -429,7 +403,7 @@ def _is_obvious_square_product_nonnegative(expr: sp.Expr, variables: Sequence[sp
     try:
         if not bool(coeff >= 0):
             return False
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
     for factor in factors:
         if _is_even_power_nonnegative(factor):
@@ -439,7 +413,7 @@ def _is_obvious_square_product_nonnegative(expr: sp.Expr, variables: Sequence[sp
         try:
             if not bool(factor >= 0):
                 return False
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return False
     return True
 
@@ -447,7 +421,7 @@ def _is_obvious_square_product_nonnegative(expr: sp.Expr, variables: Sequence[sp
 def _is_sum_of_squares_nonnegative(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> bool:
     try:
         expanded = sp.expand(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         expanded = expr
     terms = sp.Add.make_args(expanded) if isinstance(expanded, sp.Add) else (expanded,)
     return bool(terms) and all(
@@ -463,7 +437,7 @@ def _zero_vector_counterexample(
     point = {var: sp.Integer(0) for var in variables}
     try:
         value = sp.simplify(sp.sympify(expr).subs(point))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if value == 0:
         return point
@@ -501,7 +475,7 @@ def _cheap_sign_proof(
                     "positive_constant_plus_squares",
                     {"constant": const_term, "remainder": remainder},
                 )
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     return None
 
@@ -648,7 +622,7 @@ def _radial_ball_radius(condition: sp.Expr, variables: Sequence[sp.Symbol]) -> s
     expr = sp.expand(atom.lhs - atom.rhs)
     try:
         poly = sp.Poly(expr, *variables)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if not variables:
         return None
@@ -735,7 +709,7 @@ def _linear_box_bounds(
         var = involved[0]
         try:
             poly = sp.Poly(expr, var)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return None
         if poly.degree() > 1 or expr.free_symbols - {var}:
             return None
@@ -804,10 +778,11 @@ def _unbounded_by_qe(condition: sp.Expr, variables: Sequence[sp.Symbol]) -> bool
     # Unbounded iff for every positive radius threshold there is a point in the
     # region outside that squared-radius threshold.
     matrix = sp.Or(radius <= 0, sp.And(condition, norm_sq > radius))
-    quantifiers = (("forall", radius),) + tuple(("exists", var) for var in variables)
+    quantified = ForAll(radius, Exists(tuple(variables), matrix))
+    quantifiers, matrix = split_quantifiers(quantified)
     try:
         result = qe_by_complete_cad((radius, *variables), quantifiers, parse_formula(matrix))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if result.is_sentence:
         return bool(result.truth_value)
@@ -841,7 +816,7 @@ def region_bounded(
         try:
             reduced = sp.reduce_inequalities(list(_conjuncts(expr)), vars_[0])
             bounds = _linear_box_bounds(reduced, vars_) or _linear_box_bounds(expr, vars_)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             bounds = _linear_box_bounds(expr, vars_)
         if bounds is not None:
             lo, hi = bounds[vars_[0]]
@@ -910,10 +885,10 @@ def _provable(
         return False
     try:
         return bool(implies(assumptions, condition, variables, strategy=strategy))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         try:
             return bool(sp.simplify(condition) is sp.true or sp.simplify(condition) == sp.true)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return False
 
 
@@ -1007,7 +982,7 @@ def _proved_nonzero_denominator(
     if denom.is_number:
         try:
             return bool(denom != 0)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return False
     return _provable(sp.Ne(denom, 0), assumptions, variables, strategy)
 
@@ -1026,7 +1001,7 @@ def _safe_cancel_under_assumptions(
         num, den = sp.fraction(sp.together(expr))
         cancelled = sp.cancel(expr)
         cnum, cden = sp.fraction(sp.together(cancelled))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return expr
     if cancelled == expr or den == cden:
         return expr
@@ -1054,7 +1029,7 @@ def _safe_scalar_simplify(expr: sp.Expr) -> sp.Expr:
         return expr
     try:
         return sp.factor_terms(expr)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return expr
 
 
@@ -1146,7 +1121,7 @@ def simplify_under_assumptions(
             new_args = tuple(rec(arg) if isinstance(arg, sp.Expr) else arg for arg in node.args)
             rebuilt = node.func(*new_args)
             return _safe_scalar_simplify(rebuilt)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return node
 
     simplified = rec(expression)

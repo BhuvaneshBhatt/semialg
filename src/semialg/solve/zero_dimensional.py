@@ -10,6 +10,7 @@ from ..algebraic.rational_univariate import (
     RationalUnivariateError,
     solve_and_filter_zero_dimensional_system_with_rur,
 )
+from ..dimension_validation import zip_equal
 
 
 @dataclass(frozen=True)
@@ -33,7 +34,10 @@ class ZeroDimensionalSolveResult:
 
     @property
     def assignments(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
-        return tuple(dict(zip(self.variables, point, strict=True)) for point in self.points)
+        return tuple(
+            dict(zip_equal(self.variables, point, context="RUR solution point"))
+            for point in self.points
+        )
 
     @property
     def satisfiable(self) -> bool:

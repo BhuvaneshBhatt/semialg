@@ -7,16 +7,42 @@ from sympy.logic.boolalg import Boolean
 from sympy.polys.polyerrors import PolynomialError
 
 from ..algebraic.rational_univariate import solve_formula_with_rur
+from ..context import with_computation_context
 from ..decision_diagnostics import solution_capability_diagnostics
 from ..formula import ParsedPrenexFormula, parse_formula
-from ..instances.real_fallbacks import satisfies_formula
+from ..normalization import conjuncts as _conjuncts
+from ..normalization import normalize_formula as _normalize_formula
 from ..qe import qe_by_complete_cad
-from ..sampling import sample_points
 from ..solve import reduce_formula
-from .sampling_helpers import (
-    _collect_structural_samples,
-    _normalize_sample_request,
+from ._inputs import (
+    as_real_symbol as _as_real_symbol,
 )
+from ._inputs import (
+    normalize_decision_variables as _normalize_variables,
+)
+from ._inputs import (
+    prepare_solve_inputs as _prepare_solve_inputs,
+)
+from ._metadata import (
+    collect_solution_metadata as _collect_solution_metadata,
+)
+from ._metadata import (
+    components_formula as _components_formula,
+)
+from ._metadata import (
+    metadata_request_for_output as _metadata_request_for_output,
+)
+from ._metadata import (
+    one_dim_components as _one_dim_components,
+)
+from ._outputs import (
+    add_standard_solver_diagnostics as _add_standard_solver_diagnostics,
+)
+from ._outputs import (
+    select_solution_output as _select_solution_output,
+)
+from ._witnesses import find_validated_witness as _find_validated_witness
+from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
 from .solution import (
     EquivalenceResult,
     ImplicationResult,
@@ -28,6 +54,15 @@ from .solution import (
 
 FormulaLike = sp.Expr | Boolean | bool
 
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    RuntimeError,
+    sp.PolynomialError,
+)
+
 
 def _safe_simplify_expr(expr: sp.Expr) -> sp.Expr:
     """Simplify algebraic expressions without sending Boolean formulas to radsimp."""
@@ -35,7 +70,7 @@ def _safe_simplify_expr(expr: sp.Expr) -> sp.Expr:
     if isinstance(expr, Boolean):
         try:
             return sp.simplify_logic(expr, form="dnf")
-        except Exception:
+        except (TypeError, ValueError, NotImplementedError):
             return expr
     return sp.simplify(expr)
 
@@ -62,176 +97,6 @@ def _merge_variables(
     return tuple(out)
 
 
-def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
-    return sp.Symbol(var, real=True) if isinstance(var, str) else var
-
-
-def _normalize_formula(formula: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    if isinstance(formula, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(piece) for piece in formula]
-        return sp.And(*pieces) if pieces else sp.true
-    if formula is True:
-        return sp.true
-    if formula is False:
-        return sp.false
-    if not isinstance(formula, (sp.Basic, Boolean)):
-        return sp.sympify(formula)
-    return formula
-
-
-def _normalize_variables(
-    variables: Sequence[sp.Symbol | str] | None,
-    formula: sp.Expr,
-) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    if variables is not None:
-        for var in variables:
-            sym = _as_real_symbol(var)
-            if sym not in seen:
-                out.append(sym)
-                seen.add(sym)
-    for sym in sorted(formula.free_symbols, key=lambda item: item.name):
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
-
-
-def _normalize_symbols(symbols: Sequence[sp.Symbol | str] | None) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for item in symbols or ():
-        sym = _as_real_symbol(item)
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
-
-
-def _normalize_solve_variables(
-    variables: Sequence[sp.Symbol | str] | None,
-    formula: sp.Expr,
-    parameters: Sequence[sp.Symbol] = (),
-) -> tuple[sp.Symbol, ...]:
-    params = set(parameters)
-    if variables is not None:
-        return tuple(sym for sym in _normalize_symbols(variables) if sym not in params)
-    return tuple(sorted(formula.free_symbols - params, key=lambda item: item.name))
-
-
-def _conjuncts(expr: sp.Expr) -> tuple[sp.Expr, ...]:
-    if expr is sp.true or expr == sp.true:
-        return ()
-    if isinstance(expr, sp.And):
-        out: list[sp.Expr] = []
-        for arg in expr.args:
-            out.extend(_conjuncts(arg))
-        return tuple(out)
-    return (expr,)
-
-
-def _interval_components_from_set(
-    set_expr: sp.Set, var: sp.Symbol
-) -> tuple[IntervalComponent, ...]:
-    """Convert a one-dimensional SymPy set to exact interval components."""
-
-    if set_expr is sp.S.EmptySet or set_expr == sp.S.EmptySet:
-        return ()
-    pieces = set_expr.args if isinstance(set_expr, sp.Union) else (set_expr,)
-    components: list[IntervalComponent] = []
-    for piece in pieces:
-        if isinstance(piece, sp.Interval):
-            components.append(
-                IntervalComponent(
-                    var,
-                    piece.start,
-                    piece.end,
-                    not bool(piece.left_open),
-                    not bool(piece.right_open),
-                )
-            )
-        elif isinstance(piece, sp.FiniteSet):
-            for point in sorted(piece, key=sp.default_sort_key):
-                components.append(IntervalComponent(var, point, point, True, True))
-        else:
-            raise NotImplementedError(f"unsupported one-dimensional solution set piece: {piece!r}")
-    components.sort(
-        key=lambda comp: (sp.default_sort_key(comp.lower), sp.default_sort_key(comp.upper))
-    )
-    return tuple(components)
-
-
-def _one_dim_components(expr: sp.Expr, var: sp.Symbol) -> tuple[IntervalComponent, ...] | None:
-    """Return exact connected components for supported one-dimensional formulas."""
-
-    if expr is sp.false or expr == sp.false:
-        return ()
-    if expr is sp.true or expr == sp.true:
-        return (IntervalComponent(var, -sp.oo, sp.oo, False, False),)
-    try:
-        set_expr = expr.as_set()
-        if isinstance(set_expr, sp.ConditionSet):
-            return None
-        return _interval_components_from_set(set_expr, var)
-    except Exception:
-        return None
-
-
-def _components_formula(components: Sequence[IntervalComponent]) -> sp.Expr:
-    if not components:
-        return sp.false
-    formulas = [component.as_formula() for component in components]
-    return sp.Or(*formulas) if len(formulas) > 1 else formulas[0]
-
-
-def _safe_call(default, func, *args, **kwargs):
-    try:
-        return func(*args, **kwargs)
-    except Exception:
-        return default
-
-
-def _has_strict_atom(expr: sp.Expr) -> bool:
-    if isinstance(expr, (sp.StrictLessThan, sp.StrictGreaterThan)):
-        return True
-    if isinstance(expr, (sp.And, sp.Or)):
-        return any(_has_strict_atom(arg) for arg in expr.args)
-    return False
-
-
-def _one_dim_bounds(expr: sp.Expr, var: sp.Symbol) -> tuple[sp.Expr, sp.Expr] | None:
-    """Extract conservative 1D interval bounds from a conjunction."""
-
-    lo: sp.Expr = -sp.oo
-    hi: sp.Expr = sp.oo
-    try:
-        reduced = sp.reduce_inequalities(list(_conjuncts(expr)), var)
-    except Exception:
-        reduced = expr
-    atoms = _conjuncts(reduced)
-    for atom in atoms:
-        if not isinstance(atom, sp.core.relational.Relational):
-            continue
-        lhs, rhs = atom.lhs, atom.rhs
-        if isinstance(atom, (sp.LessThan, sp.StrictLessThan)):
-            if lhs == var and not rhs.has(var):
-                hi = sp.Min(hi, rhs) if hi != sp.oo else rhs
-            elif rhs == var and not lhs.has(var):
-                lo = sp.Max(lo, lhs) if lo != -sp.oo else lhs
-        elif isinstance(atom, (sp.GreaterThan, sp.StrictGreaterThan)):
-            if lhs == var and not rhs.has(var):
-                lo = sp.Max(lo, rhs) if lo != -sp.oo else rhs
-            elif rhs == var and not lhs.has(var):
-                hi = sp.Min(hi, lhs) if hi != sp.oo else lhs
-        elif isinstance(atom, sp.Equality):
-            if lhs == var and not rhs.has(var):
-                lo = hi = rhs
-            elif rhs == var and not lhs.has(var):
-                lo = hi = lhs
-    return (lo, hi)
-
-
 def _fast_parameter_conditions(
     expr: sp.Expr,
     variables: tuple[sp.Symbol, ...],
@@ -244,7 +109,7 @@ def _fast_parameter_conditions(
     var = variables[0]
     try:
         poly = sp.Poly(sp.expand(expr.lhs - expr.rhs), var)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     degree = poly.degree()
     if isinstance(expr, sp.Equality):
@@ -281,16 +146,16 @@ def _fast_solution_formula(
                     "sympy_reduce_inequalities",
                     reduced is not sp.false and reduced != sp.false,
                 )
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     if len(variables) == 2:
         try:
-            from ..implicit_utils import decompose_cylindrical_formula_to_vertical_bounds_2d
+            from ..implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
 
             cells = tuple(decompose_cylindrical_formula_to_vertical_bounds_2d(expr, variables))
             if cells:
                 return expr, "vertical_bounds_2d", True
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     return expr, "cad", None
 
@@ -332,7 +197,7 @@ def _try_rur_formula(
         result = solve_formula_with_rur(
             formula, tuple(variables), real=True, max_solutions=max_solutions
         )
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if result is None:
         return None
@@ -341,207 +206,6 @@ def _try_rur_formula(
     if result.partial and not result.assignments:
         return None
     return result
-
-
-def _collect_solution_metadata(
-    formula: sp.Expr,
-    variables: tuple[sp.Symbol, ...],
-    *,
-    strategy: str | None = None,
-) -> dict[str, object]:
-    """Best-effort lightweight region metadata for ``solve_semialgebraic``."""
-
-    metadata: dict[str, object] = {
-        "dimension": None,
-        "bounded": None,
-        "closed": None,
-        "compact": None,
-        "components": (),
-        "cells": (),
-        "cylindrical_solution": None,
-        "connectivity": None,
-    }
-    if formula is sp.false or formula == sp.false:
-        metadata.update({"dimension": None, "bounded": True, "closed": True, "compact": True})
-        return metadata
-    if formula is sp.true or formula == sp.true:
-        metadata.update(
-            {
-                "dimension": len(variables),
-                "bounded": len(variables) == 0,
-                "closed": True,
-                "compact": len(variables) == 0,
-            }
-        )
-        return metadata
-
-    # Exact interval/component metadata for one-dimensional systems.
-    if len(variables) == 1:
-        components = _one_dim_components(formula, variables[0])
-        if components is not None:
-            if not components:
-                metadata.update(
-                    {
-                        "dimension": None,
-                        "bounded": True,
-                        "closed": True,
-                        "compact": True,
-                        "components": (),
-                    }
-                )
-            else:
-                dimension = max(component.dimension for component in components)
-                bounded = all(component.bounded for component in components)
-                closed = all(component.closed for component in components)
-                metadata.update(
-                    {
-                        "dimension": dimension,
-                        "bounded": bounded,
-                        "closed": closed,
-                        "compact": bounded and closed,
-                        "components": components,
-                    }
-                )
-            return metadata
-        bds = _one_dim_bounds(formula, variables[0])
-        if bds is not None:
-            lo, hi = bds
-            finite = lo != -sp.oo and hi != sp.oo
-            closed = not _has_strict_atom(formula)
-            metadata.update(
-                {"dimension": 1, "bounded": finite, "closed": closed, "compact": finite and closed}
-            )
-
-    # Fast box/interval metadata, including ordinary 1D inequalities. Keep
-    # box extraction and 2D cell extraction independent: disjoint unions are not
-    # boxes, but they may still decompose into supported vertical cells.
-    try:
-        from ..implicit_utils import extract_symbolic_box_bounds
-
-        box = extract_symbolic_box_bounds(formula, variables)
-        if box is not None:
-            finite = all(lo != -sp.oo and hi != sp.oo for _, lo, hi in box.limits)
-            closed = not _has_strict_atom(formula)
-            metadata.update(
-                {
-                    "dimension": len(variables),
-                    "bounded": finite,
-                    "closed": closed,
-                    "compact": finite and closed,
-                }
-            )
-    except Exception:
-        pass
-
-    if len(variables) == 2:
-        try:
-            from ..implicit_utils import decompose_cylindrical_formula_to_vertical_bounds_2d
-
-            cells_all = tuple(
-                decompose_cylindrical_formula_to_vertical_bounds_2d(formula, variables)
-            )
-            cells = (
-                tuple(cell for cell in cells_all if getattr(cell, "dimension", 2) == 2) or cells_all
-            )
-            if cells:
-                metadata["cells"] = cells
-                metadata["dimension"] = 2
-                finite_cells = all(
-                    cell.x_interval[0] != -sp.oo
-                    and cell.x_interval[1] != sp.oo
-                    and all(lower != -sp.oo and upper != sp.oo for lower, upper in cell.y_bounds)
-                    for cell in cells
-                )
-                metadata["bounded"] = finite_cells
-                metadata["closed"] = not _has_strict_atom(formula)
-                metadata["compact"] = finite_cells and bool(metadata["closed"])
-        except Exception:
-            try:
-                from ..cad.cells import extract_vertical_bounds_from_cad_2d
-
-                cells_all = tuple(
-                    extract_vertical_bounds_from_cad_2d(
-                        formula, variables, full_dimensional_only=False
-                    )
-                )
-                cells = (
-                    tuple(cell for cell in cells_all if getattr(cell, "dimension", 2) == 2)
-                    or cells_all
-                )
-                if cells:
-                    metadata["cells"] = cells
-                    metadata["dimension"] = max(getattr(cell, "dimension", 2) for cell in cells)
-                    finite_cells = all(
-                        cell.x_interval[0] != -sp.oo
-                        and cell.x_interval[1] != sp.oo
-                        and all(
-                            lower != -sp.oo and upper != sp.oo for lower, upper in cell.y_bounds
-                        )
-                        for cell in cells
-                    )
-                    metadata["bounded"] = finite_cells
-                    metadata["closed"] = not _has_strict_atom(formula)
-                    metadata["compact"] = finite_cells and bool(metadata["closed"])
-            except Exception:
-                pass
-
-    # Full cylindrical CAD solution representation. This is deliberately a
-    # metadata layer rather than a replacement for the simplified formula: it
-    # preserves nested algebraic bounds in variable order for arbitrary CAD cells
-    # when the complete CAD engine can extract them.
-
-    has_nonlinear_vertical_cell = False
-    if len(variables) >= 2 and metadata.get("cells"):
-        y_var = variables[1]
-        for atom in getattr(formula, "args", (formula,)):
-            if getattr(atom, "is_Relational", False) and y_var in getattr(
-                atom, "free_symbols", set()
-            ):
-                try:
-                    if sp.Poly(atom.lhs - atom.rhs, y_var).degree() > 1:
-                        has_nonlinear_vertical_cell = True
-                        break
-                except Exception:
-                    pass
-    if (
-        len(variables) >= 2
-        and metadata.get("cylindrical_solution") is None
-        and not has_nonlinear_vertical_cell
-    ):
-        try:
-            from ..cad.cells import (
-                extract_cylindrical_solution,
-                extract_explicit_cylindrical_solution,
-            )
-
-            cyl = extract_explicit_cylindrical_solution(formula, variables)
-            if cyl is None:
-                cyl = extract_cylindrical_solution(formula, variables, selected_only=True)
-            metadata["cylindrical_solution"] = cyl
-            if cyl.cells:
-                metadata["dimension"] = cyl.dimension
-                metadata["bounded"] = cyl.bounded
-                if not metadata.get("cells"):
-                    metadata["cells"] = cyl.cells
-                try:
-                    from ..connectivity import build_cad_adjacency_graph
-
-                    connectivity = build_cad_adjacency_graph(cyl, formula=formula)
-                    metadata["connectivity"] = connectivity
-                    if connectivity.components:
-                        metadata["components"] = connectivity.components
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-    if metadata["dimension"] is None:
-        equalities = [atom for atom in _conjuncts(formula) if isinstance(atom, sp.Equality)]
-        if equalities:
-            metadata["dimension"] = max(0, len(variables) - len(equalities))
-        else:
-            metadata["dimension"] = len(variables)
-    return metadata
 
 
 def _make_quantified_sentence(
@@ -570,40 +234,7 @@ def _truth_from_qe_result(result) -> bool:
     )
 
 
-def _validate_witness(
-    formula: sp.Expr, point: Mapping[sp.Symbol, sp.Expr] | None, variables: Sequence[sp.Symbol]
-) -> Mapping[sp.Symbol, sp.Expr] | None:
-    """Return a normalized satisfying witness, or ``None`` if validation fails."""
-
-    if point is None:
-        return None
-    normalized = {var: sp.sympify(point[var]) for var in variables if var in point}
-    if len(normalized) != len(tuple(variables)):
-        return None
-    try:
-        if satisfies_formula(formula, normalized):
-            return normalized
-    except Exception:
-        pass
-    return None
-
-
-def _find_validated_witness(
-    formula: sp.Expr, variables: Sequence[sp.Symbol], *, strategy: str | None = None
-) -> Mapping[sp.Symbol, sp.Expr] | None:
-    """Find one certified witness using the public sampling path."""
-
-    try:
-        points = sample_points(formula, variables, count=1, strategy=strategy or "auto")
-    except Exception:
-        points = ()
-    for point in points:
-        validated = _validate_witness(formula, point, variables)
-        if validated is not None:
-            return validated
-    return None
-
-
+@with_computation_context
 def is_satisfiable(
     formula: FormulaLike | Iterable[FormulaLike],
     variables: Sequence[sp.Symbol | str] | None = None,
@@ -659,7 +290,7 @@ def is_satisfiable(
                             witness = {vars_[0]: comps[0].sample_point()} if comps else None
                         else:
                             raise ValueError("univariate reduction did not yield components")
-                    except Exception:
+                    except _RECOVERABLE_ERRORS:
                         result = qe_by_complete_cad(
                             vars_, _make_quantified_sentence(expr, vars_), parse_formula(expr)
                         )
@@ -775,7 +406,7 @@ def equivalent(
     left = _normalize_formula(lhs)
     right = _normalize_formula(rhs)
     universe = _normalize_variables(variables, sp.And(left, right))
-    if sp.sstr(left) == sp.sstr(right):
+    if left == right:
         if return_result:
             return EquivalenceResult(True, left, right, universe, method="syntactic")
         return True
@@ -829,125 +460,89 @@ def equivalent(
     return equiv
 
 
-class CellOutput(tuple):
-    """Tuple-compatible cells view with a ``.cells`` alias."""
-
-    @property
-    def cells(self):
-        return tuple(self)
-
-
-def _select_solution_output(result: SemialgebraicSolution, output: str | None) -> object:
-    """Return a selected public view of a solution result."""
-
-    if output is None:
-        return result
-    key = output.lower().replace("-", "_")
-    if key in {"result", "solution", "object"}:
-        return result
-    if key in {"formula", "constraints"}:
-        return result.formula
-    if key in {"reduced_formula", "reduced", "best_formula", "reduce"}:
-        # Public selector should preserve the solved semialgebraic set, including
-        # closed boundaries. Cell formulas may intentionally describe only
-        # open full-dimensional interiors, so use the stored formula here.
-        return result.formula
-    if key in {"piecewise", "indicator", "indicator_piecewise"}:
-        return result.as_piecewise()
-    if key in {"sample", "one_sample"}:
-        return result.sample
-    if key in {"samples", "points"}:
-        return result.samples
-    if key in {"components", "component"}:
-        return result.components
-    if key in {"cells", "cell"}:
-        return CellOutput(result.cells)
-    if key in {"cylindrical", "cylindrical_solution", "cylindrical_cells", "cad_cells"}:
-        return result.cylindrical_solution
-    if key in {"connectivity", "adjacency", "roadmap", "roadmap_graph", "components_graph"}:
-        return result.connectivity
-    if key in {"plot_data", "discretization", "discretized", "mesh_data"}:
-        return result.discretize()
-    if key in {"diagnostics", "explain", "explanation"}:
-        return result.explain()
-    if key in {
-        "parameter_strata",
-        "parameter_decomposition",
-        "strata",
-        "piecewise_solution",
-        "parameterized_solution",
-    }:
-        return result.parameter_decomposition
-    if key in {"conditions", "parameter_conditions", "solvability_conditions"}:
-        if result.parameter_conditions is not None:
-            return result.parameter_conditions
-        if not result.parameters:
-            return sp.true if result.satisfiable else sp.false
-        return sp.false
-    if key in {"satisfiable", "nonempty"}:
-        return result.satisfiable
-    if key in {"empty", "unsatisfiable"}:
-        return result.empty
-    raise ValueError(f"unsupported solve_semialgebraic output selector: {output!r}")
-
-
-def _add_standard_solver_diagnostics(
-    diagnostics: dict[str, object],
+def _parameter_solution_data(
+    formula: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    parameters: tuple[sp.Symbol, ...],
     *,
-    method: str,
-    variables: Sequence[sp.Symbol],
-    projection_order: Sequence[sp.Symbol | str] | None,
-    domain_normalization: object | None,
-    metadata: Mapping[str, object] | None = None,
-    parameter_decomposition: object | None = None,
-    solved: object | None = None,
-) -> dict[str, object]:
-    """Populate common explainability keys used by solve results."""
+    domain: str,
+) -> tuple[sp.Expr | None, object | None]:
+    """Compute exact parameter solvability data when parameters are present."""
 
-    metadata = metadata or {}
-    diagnostics.setdefault("backend", method)
-    diagnostics.setdefault("normalization_steps", ())
-    diagnostics.setdefault("removed_redundant_constraints", ())
-    diagnostics.setdefault("unsupported_features", ())
-    diagnostics["requested_method"] = method
-    diagnostics["variable_order"] = tuple(sp.sstr(v) for v in variables)
-    diagnostics["projection_order"] = tuple(
-        sp.sstr(v) for v in _normalize_symbols(projection_order)
-    )
-    diagnostics["used_interval_decomposition"] = (
-        bool(metadata.get("components")) and len(tuple(variables)) == 1
-    )
-    diagnostics["used_cad"] = bool(
-        metadata.get("cells")
-        or metadata.get("cylindrical_solution")
-        or metadata.get("connectivity")
-    ) or method in {"cad", "qe", "cylindrical"}
-    diagnostics["used_qe"] = method in {"cad", "qe"} or solved is not None
-    diagnostics["used_cylindrical_solution"] = metadata.get("cylindrical_solution") is not None
-    diagnostics["used_connectivity"] = metadata.get("connectivity") is not None
-    diagnostics["used_parameter_decomposition"] = parameter_decomposition is not None
-    rewrites = (
-        tuple(getattr(domain_normalization, "rewrites", ()))
-        if domain_normalization is not None
+    if not parameters:
+        return None, None
+    pieces = _conjuncts(formula)
+    param_formula = pieces[0] if len(pieces) == 1 else formula
+    conditions = _fast_parameter_conditions(param_formula, variables, parameters)
+    if conditions is None:
+        from ..parameters import solvability_conditions
+
+        conditions = solvability_conditions(param_formula, variables, parameters, domain=domain)
+    decomposition = None
+    try:
+        from ..parameter_stratification import parameterized_cylindrical_decomposition
+
+        decomposition = parameterized_cylindrical_decomposition(
+            formula,
+            variables,
+            parameters,
+            domain=domain,
+            specialize_fibers=True,
+        )
+        if conditions is None:
+            conditions = decomposition.parameter_condition
+    except (TypeError, ValueError, ArithmeticError, NotImplementedError, PolynomialError):
+        decomposition = None
+    return conditions, decomposition
+
+
+def _trivial_solution(
+    formula: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    parameters: tuple[sp.Symbol, ...],
+    *,
+    satisfiable: bool,
+    sample_count: int,
+    parameter_conditions: sp.Expr | None,
+    parameter_decomposition: object | None,
+    strategy: str | None,
+) -> SemialgebraicSolution:
+    """Build the structured result for a constant true or false formula."""
+
+    result_formula = sp.true if satisfiable else sp.false
+    samples = (
+        tuple({var: sp.Integer(0) for var in variables} for _ in range(1 if sample_count else 0))
+        if satisfiable
         else ()
     )
-    constraints = (
-        tuple(sp.sstr(c) for c in getattr(domain_normalization, "domain_constraints", ()))
-        if domain_normalization is not None
-        else ()
+    meta = _collect_solution_metadata(result_formula, variables)
+    return SemialgebraicSolution(
+        result_formula,
+        variables,
+        samples,
+        satisfiable,
+        "trivial",
+        solution_capability_diagnostics(formula),
+        parameters=parameters,
+        simplified_constraints=(),
+        parameter_conditions=(
+            parameter_conditions
+            if parameter_conditions is not None
+            else (sp.true if satisfiable else sp.false)
+        ),
+        parameter_decomposition=parameter_decomposition if satisfiable else None,
+        dimension=meta["dimension"],
+        bounded=meta["bounded"],
+        closed=meta["closed"],
+        compact=meta["compact"],
+        components=meta["components"],
+        cells=meta["cells"],
+        cylindrical_solution=meta.get("cylindrical_solution"),
+        connectivity=meta.get("connectivity"),
     )
-    active_domain_norm = bool(rewrites or constraints)
-    diagnostics["domain_normalized"] = active_domain_norm
-    if domain_normalization is not None:
-        diagnostics["domain_rewrites"] = rewrites
-        diagnostics["domain_constraints"] = constraints
-        if active_domain_norm:
-            diagnostics["normalization_steps"] = tuple(
-                diagnostics.get("normalization_steps", ())
-            ) + ("domain-sensitive-constraint-normalization",)
-    return diagnostics
 
 
+@with_computation_context
 def solve_semialgebraic(
     constraints: FormulaLike | Iterable[FormulaLike],
     variables: Sequence[sp.Symbol | str] | None = None,
@@ -983,123 +578,49 @@ def solve_semialgebraic(
     rather than being guessed.
     """
 
-    if domain.lower() not in {"real", "reals", "r", "rr"}:
-        raise NotImplementedError("solve_semialgebraic currently supports only the real domain")
-    expr_original = _normalize_formula(constraints)
-    params = _normalize_symbols(parameters)
-    vars_initial = _normalize_solve_variables(variables, expr_original, params)
-    if variable_order is not None:
-        ordered = tuple(sym for sym in _normalize_symbols(variable_order) if sym not in set(params))
-        remaining = tuple(sym for sym in vars_initial if sym not in set(ordered))
-        vars_initial = ordered + remaining
-    method_key = method.lower().replace("-", "_")
-    if method_key not in {
-        "auto",
-        "interval",
-        "linear",
-        "rur",
-        "cad",
-        "qe",
-        "cylindrical",
-        "sampling",
-    }:
-        raise ValueError(f"unsupported solve_semialgebraic method: {method!r}")
-    if projection_order is not None and variable_order is None:
-        ordered = tuple(
-            sym for sym in _normalize_symbols(projection_order) if sym not in set(params)
-        )
-        remaining = tuple(sym for sym in vars_initial if sym not in set(ordered))
-        vars_initial = ordered + remaining
-
-    domain_normalization = None
-    expr = expr_original
-    if normalize_domains:
-        try:
-            from .domain_solve import normalize_domain_sensitive_constraints
-
-            domain_normalization = normalize_domain_sensitive_constraints(
-                expr_original, vars_initial
-            )
-            expr = domain_normalization.formula
-        except Exception:
-            expr = expr_original
-    vars_ = _normalize_solve_variables(tuple(vars_initial), expr, params)
+    expr_original, expr, params, vars_, method_key, domain_normalization = _prepare_solve_inputs(
+        constraints,
+        variables,
+        parameters,
+        domain=domain,
+        method=method,
+        variable_order=variable_order,
+        projection_order=projection_order,
+        normalize_domains=normalize_domains,
+    )
     sample_count, resolved_sample_mode = _normalize_sample_request(count, samples, sample_mode)
     if method_key == "interval" and len(vars_) != 1:
         raise NotImplementedError("method='interval' supports exactly one solve variable")
 
-    parameter_conditions: sp.Expr | None = None
-    parameter_decomposition: object | None = None
-    if params:
-        condition_input = _conjuncts(expr)
-        parameter_formula = condition_input[0] if len(condition_input) == 1 else expr
-        parameter_conditions = _fast_parameter_conditions(parameter_formula, vars_, params)
-        if parameter_conditions is None:
-            from ..parameters import solvability_conditions
-
-            parameter_conditions = solvability_conditions(
-                parameter_formula, vars_, params, domain=domain
-            )
-        try:
-            from ..parameter_stratification import parameterized_cylindrical_decomposition
-
-            parameter_decomposition = parameterized_cylindrical_decomposition(
-                expr, vars_, params, domain=domain, specialize_fibers=True
-            )
-            if parameter_conditions is None:
-                parameter_conditions = parameter_decomposition.parameter_condition
-        except Exception:
-            parameter_decomposition = None
+    parameter_conditions, parameter_decomposition = _parameter_solution_data(
+        expr,
+        vars_,
+        params,
+        domain=domain,
+    )
 
     if expr is sp.true or expr == sp.true:
-        reduced = sp.true
-        samples_out = tuple(
-            {var: sp.Integer(0) for var in vars_} for _ in range(1 if sample_count else 0)
-        )
-        meta = _collect_solution_metadata(reduced, vars_, strategy=strategy)
-        result = SemialgebraicSolution(
-            reduced,
+        result = _trivial_solution(
+            expr,
             vars_,
-            samples_out,
-            True,
-            "trivial",
-            solution_capability_diagnostics(expr),
-            parameters=params,
-            simplified_constraints=(),
+            params,
+            satisfiable=True,
+            sample_count=sample_count,
             parameter_conditions=parameter_conditions,
             parameter_decomposition=parameter_decomposition,
-            dimension=meta["dimension"],
-            bounded=meta["bounded"],
-            closed=meta["closed"],
-            compact=meta["compact"],
-            components=meta["components"],
-            cells=meta["cells"],
-            cylindrical_solution=meta.get("cylindrical_solution"),
-            connectivity=meta.get("connectivity"),
+            strategy=strategy,
         )
         return result.formula if return_formula else _select_solution_output(result, output)
     if expr is sp.false or expr == sp.false:
-        meta = _collect_solution_metadata(sp.false, vars_, strategy=strategy)
-        result = SemialgebraicSolution(
-            sp.false,
+        result = _trivial_solution(
+            expr,
             vars_,
-            (),
-            False,
-            "trivial",
-            solution_capability_diagnostics(expr),
-            parameters=params,
-            simplified_constraints=(),
-            parameter_conditions=parameter_conditions
-            if parameter_conditions is not None
-            else sp.false,
-            dimension=meta["dimension"],
-            bounded=meta["bounded"],
-            closed=meta["closed"],
-            compact=meta["compact"],
-            components=meta["components"],
-            cells=meta["cells"],
-            cylindrical_solution=meta.get("cylindrical_solution"),
-            connectivity=meta.get("connectivity"),
+            params,
+            satisfiable=False,
+            sample_count=sample_count,
+            parameter_conditions=parameter_conditions,
+            parameter_decomposition=parameter_decomposition,
+            strategy=strategy,
         )
         return result.formula if return_formula else _select_solution_output(result, output)
 
@@ -1182,7 +703,7 @@ def solve_semialgebraic(
             from ..cad.cells import extract_explicit_cylindrical_solution
 
             explicit_cyl = extract_explicit_cylindrical_solution(expr, vars_)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             explicit_cyl = None
     if selected_method is None and fast_satisfiable is None and explicit_cyl is not None:
         reduced = expr
@@ -1211,7 +732,11 @@ def solve_semialgebraic(
     # remains available for heavier semantic cleanup.
 
     final_formula = sp.false if not satisfiable else reduced
-    meta = _collect_solution_metadata(final_formula, vars_, strategy=strategy)
+    meta = _collect_solution_metadata(
+        final_formula,
+        vars_,
+        request=_metadata_request_for_output(output, resolved_sample_mode),
+    )
     if satisfiable:
         samples_out = _collect_structural_samples(
             final_formula,
@@ -1283,7 +808,7 @@ def canonicalize_one_dimensional_formula(
         try:
             reduced = sp.reduce_inequalities(list(_conjuncts(expr)), var)
             components = _one_dim_components(reduced, var)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             components = None
     if components is None:
         return _safe_simplify_expr(expr)

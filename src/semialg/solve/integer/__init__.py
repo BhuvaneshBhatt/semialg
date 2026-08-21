@@ -65,11 +65,7 @@ from .groebner_recursion import (
     rec_reduce_sys,
     recon_int_sol_fams,
 )
-from .linear_divisibility import (
-    LinDivisReduction,
-    apply_lin_reduction,
-    detect_lin_reduction,
-)
+from .linear_divisibility import LinDivisReduction, apply_lin_reduction, detect_lin_reduction
 from .linear_recursion import (
     IntLinElimCand,
     apply_int_lin_elim,
@@ -112,12 +108,7 @@ from .special_families import (
     solve_sum_of_squares_fam,
     solve_two_cubes_family,
 )
-from .thue import (
-    ThueFamilyDescriptor,
-    detect_binary_fam,
-    solve_binary_bounded,
-    solve_binary_lll,
-)
+from .thue import ThueFamilyDescriptor, detect_binary_fam, solve_binary_bounded, solve_binary_lll
 
 EXPERIMENTAL = True
 

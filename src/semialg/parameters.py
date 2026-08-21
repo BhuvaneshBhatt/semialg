@@ -6,7 +6,9 @@ from dataclasses import dataclass, field
 import sympy as sp
 from sympy.logic.boolalg import Boolean
 
+from .conditional import ConditionalBranch, ParameterStratifiedResult, conditional_result
 from .formula import parse_formula
+from .normalization import normalize_formula as _normalize_formula
 from .qe import qe_by_complete_cad
 from .root_classification import RootClassificationResult, classify_real_roots
 
@@ -24,6 +26,25 @@ class SolvabilityConditionsResult:
     method: str = "complete_cad_qe"
     diagnostics: Mapping[str, object] = field(default_factory=dict)
 
+    def as_stratified_result(self) -> ParameterStratifiedResult:
+        """Return exact Boolean solvability as true/false parameter strata."""
+
+        true_condition = _simplify_condition(self.formula)
+        false_condition = _simplify_condition(sp.Not(true_condition))
+        branches = [ConditionalBranch(true_condition, True)]
+        if false_condition is not sp.false and false_condition != sp.false:
+            branches.append(ConditionalBranch(false_condition, False))
+        return conditional_result(
+            self.parameters,
+            branches,
+            coverage_condition=sp.true,
+            complete=True,
+            disjoint=True,
+            certified=True,
+            method=f"{self.method}+parameter_strata",
+            diagnostics=self.diagnostics,
+        )
+
     def __bool__(self) -> bool:
         return self.formula is not sp.false and self.formula != sp.false
 
@@ -40,6 +61,25 @@ class RootCountConditionsResult:
     method: str
     diagnostics: Mapping[str, object] = field(default_factory=dict)
 
+    def as_stratified_result(self) -> ParameterStratifiedResult:
+        """Return the exact real-root count as a parameter-stratified value."""
+
+        branches = [
+            ConditionalBranch(condition, count)
+            for count, condition in self.conditions_by_count.items()
+            if condition is not sp.false and condition != sp.false
+        ]
+        return conditional_result(
+            self.parameters,
+            branches,
+            coverage_condition=sp.true,
+            complete=True,
+            disjoint=True,
+            certified=True,
+            method=f"{self.method}+root_count_strata",
+            diagnostics=self.diagnostics,
+        )
+
     def condition_for_count(self, count: int | sp.Expr) -> sp.Expr:
         return self.conditions_by_count.get(sp.sympify(count), sp.false)
 
@@ -48,24 +88,27 @@ def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
     return sp.Symbol(var, real=True) if isinstance(var, str) else var
 
 
-def _normalize_formula(formula: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    if isinstance(formula, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(piece) for piece in formula]
-        return sp.And(*pieces) if pieces else sp.true
-    if formula is True:
-        return sp.true
-    if formula is False:
-        return sp.false
-    if isinstance(formula, (sp.Basic, Boolean)):
-        return formula  # type: ignore[return-value]
-    return sp.sympify(formula)
-
-
-def _normalize_symbols(symbols: Sequence[sp.Symbol | str] | None) -> tuple[sp.Symbol, ...]:
+def _normalize_symbols(
+    symbols: Sequence[sp.Symbol | str] | None,
+    *,
+    expr: sp.Expr | None = None,
+) -> tuple[sp.Symbol, ...]:
+    known = tuple(expr.free_symbols) if expr is not None else ()
+    by_name: dict[str, list[sp.Symbol]] = {}
+    for symbol in known:
+        by_name.setdefault(symbol.name, []).append(symbol)
     out: list[sp.Symbol] = []
     seen: set[sp.Symbol] = set()
     for item in symbols or ():
-        sym = _as_real_symbol(item)
+        if isinstance(item, str):
+            matches = tuple(dict.fromkeys(by_name.get(item, ())))
+            if len(matches) > 1:
+                raise ValueError(
+                    f"symbol name {item!r} is ambiguous across symbols with different assumptions"
+                )
+            sym = matches[0] if matches else sp.Symbol(item, real=True)
+        else:
+            sym = item
         if sym not in seen:
             out.append(sym)
             seen.add(sym)
@@ -76,7 +119,7 @@ def _ordered_free_parameters(
     expr: sp.Expr, variables: Sequence[sp.Symbol], parameters: Sequence[sp.Symbol] | None
 ) -> tuple[sp.Symbol, ...]:
     if parameters is not None:
-        return _normalize_symbols(parameters)
+        return _normalize_symbols(parameters, expr=expr)
     vset = set(variables)
     return tuple(sorted(expr.free_symbols - vset, key=lambda sym: sym.name))
 
@@ -211,24 +254,27 @@ def solvability_conditions(
     *,
     domain: str = "reals",
     return_result: bool = False,
-) -> sp.Expr | SolvabilityConditionsResult:
+    return_stratified: bool = False,
+) -> sp.Expr | SolvabilityConditionsResult | ParameterStratifiedResult:
     """Return parameter conditions for real solvability of a constraint system."""
 
     if domain.lower() not in {"real", "reals", "r", "rr"}:
         raise NotImplementedError("solvability_conditions currently supports only the real domain")
     expr = _normalize_formula(constraints)
-    vars_ = _normalize_symbols(variables)
-    params = _ordered_free_parameters(
-        expr, vars_, _normalize_symbols(parameters) if parameters is not None else None
-    )
+    vars_ = _normalize_symbols(variables, expr=expr)
+    params = _ordered_free_parameters(expr, vars_, parameters)
 
     if expr is sp.true or expr == sp.true:
         condition = sp.true
         result = SolvabilityConditionsResult(condition, expr, vars_, params, "trivial")
+        if return_stratified:
+            return result.as_stratified_result()
         return result if return_result else condition
     if expr is sp.false or expr == sp.false:
         condition = sp.false
         result = SolvabilityConditionsResult(condition, expr, vars_, params, "trivial")
+        if return_stratified:
+            return result.as_stratified_result()
         return result if return_result else condition
 
     fast_condition = _single_relational_existential_condition(expr, vars_, params)
@@ -236,6 +282,8 @@ def solvability_conditions(
         result = SolvabilityConditionsResult(
             fast_condition, expr, vars_, params, "univariate_polynomial_atom", {"fast_path": True}
         )
+        if return_stratified:
+            return result.as_stratified_result()
         return result if return_result else fast_condition
 
     quantifiers = tuple(("exists", var) for var in vars_)
@@ -262,6 +310,8 @@ def solvability_conditions(
             "is_sentence": bool(getattr(qe_result, "is_sentence", False)),
         },
     )
+    if return_stratified:
+        return result.as_stratified_result()
     return result if return_result else condition
 
 
@@ -271,13 +321,22 @@ def root_count_conditions(
     parameters: Sequence[sp.Symbol | str] | None = None,
     *,
     return_result: bool = False,
-) -> Mapping[sp.Expr, sp.Expr] | RootCountConditionsResult:
+    return_stratified: bool = False,
+) -> Mapping[sp.Expr, sp.Expr] | RootCountConditionsResult | ParameterStratifiedResult:
     """Return parameter conditions grouped by distinct real-root count."""
 
-    var = _as_real_symbol(variable)
     expr = polynomial.as_expr() if isinstance(polynomial, sp.Poly) else sp.sympify(polynomial)
+    if isinstance(variable, str):
+        matches = tuple(symbol for symbol in expr.free_symbols if symbol.name == variable)
+        if len(matches) > 1:
+            raise ValueError(
+                f"variable name {variable!r} is ambiguous across symbols with different assumptions"
+            )
+        var = matches[0] if matches else sp.Symbol(variable, real=True)
+    else:
+        var = variable
     params = (
-        _normalize_symbols(parameters)
+        _normalize_symbols(parameters, expr=expr)
         if parameters is not None
         else tuple(sorted(expr.free_symbols - {var}, key=lambda sym: sym.name))
     )
@@ -303,6 +362,8 @@ def root_count_conditions(
         classification.method,
         {"cell_count": len(classification.cells)},
     )
+    if return_stratified:
+        return result.as_stratified_result()
     return result if return_result else conditions_by_count
 
 

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import sympy as sp
 
 from ...algebraic.signs import sign_at_sample
+from ..polynomial_utils import polynomial_key as _poly_key
 from .stack import CADCell
 
 
@@ -15,10 +16,6 @@ class SignInvarianceCheck:
     failures: tuple[str, ...] = ()
     checked_cells: int = 0
     checked_polynomials: int = 0
-
-
-def _poly_key(poly: sp.Poly) -> str:
-    return sp.sstr(sp.expand(poly.as_expr()))
 
 
 def verify_recorded_signs(

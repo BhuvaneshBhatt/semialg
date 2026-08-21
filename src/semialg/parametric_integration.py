@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from .normalization import normalize_variables
 from .standard_regions import ParametricRegion
 
 
@@ -47,10 +48,15 @@ def reduce_parametric_integral(
     Returns ``(transformed_integrand, limits, jacobian_factor)``.
     """
 
-    vars_ = tuple(sp.Symbol(v, real=True) if isinstance(v, str) else v for v in ambient_variables)
+    expr = sp.sympify(integrand)
+    vars_ = normalize_variables(
+        ambient_variables,
+        expr,
+        *region.mapping,
+        append_context_symbols=False,
+    )
     if len(vars_) != len(region.mapping):
         raise ValueError("ambient variable count must match the parametrization mapping dimension")
-    expr = sp.sympify(integrand)
     jac_factor = metric_jacobian_factor(region.mapping, region.parameters)
     transformed = sp.simplify(
         expr.subs(dict(zip(vars_, region.mapping, strict=True))) * jac_factor / region.multiplicity
@@ -93,8 +99,11 @@ def integrate_over_parametric_region(
     result = ParametricIntegralResult(
         value=sp.simplify(value) if exact else value,
         integrand=sp.sympify(integrand),
-        ambient_variables=tuple(
-            sp.Symbol(v, real=True) if isinstance(v, str) else v for v in ambient_variables
+        ambient_variables=normalize_variables(
+            ambient_variables,
+            sp.sympify(integrand),
+            *region.mapping,
+            append_context_symbols=False,
         ),
         region=region,
         jacobian_factor=jac_factor,

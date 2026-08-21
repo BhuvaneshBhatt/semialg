@@ -17,8 +17,11 @@ from .algebraic import (
     sign_of_algebraic_expression,
 )
 from .algebraic.rational_univariate import solve_formula_with_rur
+from .dimension_validation import require_point_dimension, require_same_length, zip_equal
+from .errors import DimensionMismatchError
 from .formula import to_sympy
 from .instances.real_fallbacks import satisfies_formula
+from .normalization import normalize_sampling_variables as _shared_variables
 from .solve import find_instance
 
 
@@ -26,19 +29,10 @@ def _normalize_variables(
     variables: Sequence[sp.Symbol | str] | None,
     exprs: Iterable[sp.Expr],
 ) -> tuple[sp.Symbol, ...]:
-    if variables is not None:
-        out: list[sp.Symbol] = []
-        seen: set[sp.Symbol] = set()
-        for var in variables:
-            sym = sp.Symbol(var, real=True) if isinstance(var, str) else var
-            if sym not in seen:
-                out.append(sym)
-                seen.add(sym)
-        return tuple(out)
-    symbols: set[sp.Symbol] = set()
-    for expr in exprs:
-        symbols.update(sp.sympify(expr).free_symbols)
-    return tuple(sorted(symbols, key=lambda sym: sym.name))
+    """Resolve sampling variables against symbols in the sampled formulas."""
+
+    expr_tuple = tuple(sp.sympify(expr) for expr in exprs)
+    return _shared_variables(variables, *expr_tuple)
 
 
 def _as_expr_value(value: object) -> sp.Expr:
@@ -67,11 +61,15 @@ def _sign_at_rur_point(
     if tuple(variables) != tuple(representation.variables):
         missing = [var for var in variables if var not in representation.variables]
         if missing:
-            raise ValueError(f"RUR point does not contain assignments for {missing!r}")
+            raise DimensionMismatchError(f"RUR point does not contain assignments for {missing!r}")
     t = representation.parameter
     coord_polys = representation.normalized_coordinate_polynomials()
     coord_map = dict(
-        zip(representation.variables, (poly.as_expr() for poly in coord_polys), strict=True)
+        zip_equal(
+            representation.variables,
+            (poly.as_expr() for poly in coord_polys),
+            context="RUR coordinate polynomials",
+        )
     )
     numerator, denominator = sp.fraction(sp.cancel(sp.sympify(expr).subs(coord_map)))
     q = representation.defining_polynomial
@@ -93,11 +91,10 @@ def _ordered_values(
     if isinstance(point, Mapping):
         missing = [var for var in variables if var not in point]
         if missing:
-            raise ValueError(f"point is missing assignments for {missing!r}")
+            raise DimensionMismatchError(f"point is missing assignments for {missing!r}")
         return tuple(_as_expr_value(point[var]) for var in variables)
     values = tuple(_as_expr_value(value) for value in point)
-    if len(values) != len(variables):
-        raise ValueError("point length must match the supplied variables")
+    require_point_dimension(values, variables, context="sampling point")
     return values
 
 
@@ -139,14 +136,16 @@ def sign_at(
         except Exception:
             pass
 
-    substituted = sp.cancel(expr.subs(dict(zip(vars_, values, strict=True))))
+    substituted = sp.cancel(
+        expr.subs(dict(zip_equal(vars_, values, context="sampling substitution")))
+    )
     try:
         return sign_of_algebraic_expression(substituted)
-    except Exception as exc:
+    except Exception:
         if exact:
             raise ValueError(
                 f"could not determine exact sign of {sp.sstr(expr)} at {point!r}"
-            ) from exc
+            ) from None
 
     numeric = sp.N(substituted, 120)
     if numeric == 0:
@@ -179,7 +178,7 @@ def sign_vector(
     vars_ = _normalize_variables(variables, exprs)
     signs = tuple(sign_at(expr, point, variables=vars_, exact=exact) for expr in exprs)
     if as_dict:
-        return dict(zip(exprs, signs, strict=True))
+        return dict(zip_equal(exprs, signs, context="sign vector"))
     return signs
 
 
@@ -190,7 +189,7 @@ def _small_rational_grid(variables: Sequence[sp.Symbol], radius: int = 3):
             [sp.Integer(k), sp.Integer(-k), sp.Rational(1, k + 1), -sp.Rational(1, k + 1)]
         )
     for coords in product(values, repeat=len(variables)):
-        yield dict(zip(variables, coords, strict=True))
+        yield dict(zip_equal(variables, coords, context="sampling grid point"))
 
 
 def _bounds_for_variables(
@@ -211,8 +210,7 @@ def _bounds_for_variables(
                 out.append((sp.sympify(lo), sp.sympify(hi)))
         return tuple(out)
     raw = tuple(bounds)
-    if len(raw) != len(variables):
-        raise ValueError("bounds length must match the supplied variables")
+    require_same_length(raw, variables, context="sampling bounds", names=("bounds", "variables"))
     return tuple((sp.sympify(lo), sp.sympify(hi)) for lo, hi in raw)
 
 
@@ -242,7 +240,7 @@ def _bounded_rational_grid(
         for lo, hi in intervals
     ]
     for coords in product(*value_lists):
-        yield dict(zip(variables, coords, strict=True))
+        yield dict(zip_equal(variables, coords, context="sampling grid point"))
 
 
 def _random_points(
@@ -257,7 +255,7 @@ def _random_points(
     intervals = _bounds_for_variables(variables, bounds)
     for _ in range(max(0, attempts)):
         point: dict[sp.Symbol, sp.Expr] = {}
-        for var, (lo, hi) in zip(variables, intervals, strict=True):
+        for var, (lo, hi) in zip_equal(variables, intervals, context="sampling intervals"):
             lo_f = float(sp.N(lo))
             hi_f = float(sp.N(hi))
             u = rng.random()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .complete import (
     CompleteSolveResult,
+    reduce_complete_expr,
     reduce_complete_formula,
     reduce_complete_text,
     resolve_complete_text,
@@ -48,6 +49,7 @@ __all__ = [
     "reduce_formula",
     "reduce_text",
     "reduce_complete_formula",
+    "reduce_complete_expr",
     "reduce_complete_text",
     "resolve_formula",
     "resolve_text",

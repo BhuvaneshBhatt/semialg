@@ -7,6 +7,7 @@ import sympy as sp
 
 from ..algebraic.samples import Sample, sample_to_expr
 from ..cad.lifting.stack import CADCell
+from ..context import with_computation_context
 from ..domains import normalize_assumptions
 from ..qe.complete import cells_to_formula
 from ..simplify.result import simplify_qe_formula
@@ -68,6 +69,7 @@ class CellGraph:
         return self.edges.get(node, frozenset())
 
 
+@with_computation_context
 def component_instances(
     formula: sp.Expr,
     variables: Sequence[sp.Symbol | str],
@@ -256,14 +258,12 @@ def _closed_intervals_touch(
 
 
 def _sample_less(left: Sample, right: Sample) -> bool:
-    try:
-        from ..algebraic.comparison import compare_samples
+    from ..algebraic.comparison import compare_samples
 
-        return compare_samples(left, right) < 0
-    except Exception:
-        return bool(sp.N(sample_to_expr(left) - sample_to_expr(right)) < 0)
+    return compare_samples(left, right) < 0
 
 
+@with_computation_context
 def component_instances_text(
     text: str,
     *,

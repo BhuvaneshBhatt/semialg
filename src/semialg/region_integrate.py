@@ -4,37 +4,57 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 import sympy as sp
-from sympy.core.relational import (
-    Equality,
-    GreaterThan,
-    LessThan,
-    StrictGreaterThan,
-    StrictLessThan,
-    Unequality,
-)
+from sympy.core.relational import Equality, Unequality
 from sympy.logic.boolalg import And as SymAnd
 from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 from sympy.logic.boolalg import Not as SymNot
 from sympy.logic.boolalg import Or as SymOr
 
-from .formula import to_sympy
-from .implicit_utils import decompose_cylindrical_formula_to_vertical_bounds_2d
+from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+from .interval_decomposition import (
+    finite_real_roots as _finite_real_roots,
+)
+from .interval_decomposition import (
+    one_dimensional_intervals as _shared_intervals,
+)
+from .interval_decomposition import (
+    truth_at as _truth_at,
+)
+from .normalization import (
+    normalize_bounds as _normalize_bounds,
+)
+from .normalization import (
+    normalize_formula as _normalize_formula,
+)
+from .normalization import (
+    normalize_variables as _normalize_variables,
+)
+from .relations import make_zero_relation
+from .relations import split_relation as _relation_parts
 from .standard_region_integrate import integrate_over_standard_region
 from .standard_regions import StandardRegion
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    RuntimeError,
+    sp.PolynomialError,
+)
 
 
 @dataclass(frozen=True)
 class RegionIntegralResult:
     """Integral over a supported semialgebraic region.
 
-    Integrals are currently with respect to ambient Lebesgue measure in the
-    variables passed to ``integrate_over_region``. Lower-dimensional
-    equality-only subsets therefore contribute zero unless a future call
-    explicitly asks for intrinsic Hausdorff/Lebesgue dimension.
+    Integrals use ambient Lebesgue measure by default. Lower-dimensional
+    equality-only subsets therefore contribute zero unless the caller requests
+    ``measure_dimension="intrinsic"`` or an explicit Hausdorff dimension.
 
     ``exact`` is true for symbolic evaluation and false for numerical
-    evaluation. ``evaluated`` is false only when a future unevaluated mode
-    returns explicit Integral objects.
+    evaluation. ``evaluated`` records whether the returned value has been
+    evaluated rather than left as an explicit ``Integral`` expression.
     """
 
     value: sp.Expr
@@ -93,78 +113,6 @@ class ReducedRegionIntegral:
         return sp.Add(*self.as_integrals())
 
 
-def _normalize_variables(variables: Sequence[sp.Symbol | str]) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for var in variables:
-        sym = sp.Symbol(var, real=True) if isinstance(var, str) else var
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
-
-
-def _normalize_formula(condition: object) -> sp.Expr:
-    if isinstance(condition, (sp.Basic, sp.logic.boolalg.Boolean)):
-        return condition  # type: ignore[return-value]
-    return to_sympy(condition)  # type: ignore[arg-type]
-
-
-def _normalize_bounds(
-    bounds: Sequence[tuple[sp.Symbol | str, object, object]]
-    | Mapping[sp.Symbol | str, tuple[object, object]]
-    | None,
-    variables: Sequence[sp.Symbol],
-) -> dict[sp.Symbol, tuple[sp.Expr, sp.Expr]]:
-    if bounds is None:
-        return {}
-    out: dict[sp.Symbol, tuple[sp.Expr, sp.Expr]] = {}
-    if isinstance(bounds, Mapping):
-        items = [(key, value[0], value[1]) for key, value in bounds.items()]
-    else:
-        items = list(bounds)
-    by_name = {var.name: var for var in variables}
-    for raw_var, lo, hi in items:
-        if isinstance(raw_var, str):
-            var = by_name.get(raw_var, sp.Symbol(raw_var, real=True))
-        else:
-            var = raw_var
-        out[var] = (sp.sympify(lo), sp.sympify(hi))
-    return out
-
-
-def _relation_parts(atom: sp.Expr) -> tuple[sp.Expr, str]:
-    if isinstance(atom, Equality):
-        return sp.expand(atom.lhs - atom.rhs), "=="
-    if isinstance(atom, Unequality):
-        return sp.expand(atom.lhs - atom.rhs), "!="
-    if isinstance(atom, StrictLessThan):
-        return sp.expand(atom.lhs - atom.rhs), "<"
-    if isinstance(atom, LessThan):
-        return sp.expand(atom.lhs - atom.rhs), "<="
-    if isinstance(atom, StrictGreaterThan):
-        return sp.expand(atom.lhs - atom.rhs), ">"
-    if isinstance(atom, GreaterThan):
-        return sp.expand(atom.lhs - atom.rhs), ">="
-    raise TypeError(f"expected a relational atom, got {atom!r}")
-
-
-def _as_relation(expr: sp.Expr, op: str) -> sp.Expr:
-    if op == "<":
-        return expr < 0
-    if op == "<=":
-        return expr <= 0
-    if op == ">":
-        return expr > 0
-    if op == ">=":
-        return expr >= 0
-    if op == "==":
-        return sp.Eq(expr, 0)
-    if op == "!=":
-        return sp.Ne(expr, 0)
-    raise ValueError(op)
-
-
 def _atoms(condition: sp.Expr) -> tuple[sp.Expr, ...]:
     if condition is sp.true or isinstance(condition, BooleanTrue):
         return ()
@@ -182,123 +130,21 @@ def _atoms(condition: sp.Expr) -> tuple[sp.Expr, ...]:
     raise TypeError(f"unsupported formula expression: {condition!r}")
 
 
-def _truth_at(condition: sp.Expr, subs: Mapping[sp.Symbol, sp.Expr]) -> bool:
-    value = sp.simplify(condition.subs(subs))
-    if value is sp.true or isinstance(value, BooleanTrue):
-        return True
-    if value is sp.false or isinstance(value, BooleanFalse):
-        return False
-    numeric = value.evalf(80)
-    if numeric is sp.true:
-        return True
-    if numeric is sp.false:
-        return False
-    return bool(numeric)
-
-
-def _finite_real_roots(poly_expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr, ...]:
-    poly = sp.Poly(poly_expr, variable)
-    if poly.is_zero:
-        return ()
-    try:
-        roots = sp.real_roots(poly.as_expr())
-    except Exception:
-        roots = [
-            root
-            for root in sp.nroots(poly.as_expr(), n=80, maxsteps=200)
-            if abs(sp.im(root)) < sp.Rational(1, 10) ** 40
-        ]
-    distinct: list[sp.Expr] = []
-    seen: set[str] = set()
-    for root in roots:
-        root_expr = sp.re(root) if not isinstance(root, sp.Expr) else root
-        key = sp.sstr(root_expr)
-        if key not in seen:
-            distinct.append(root_expr)
-            seen.add(key)
-    return tuple(sorted(distinct, key=lambda z: float(sp.N(z, 50))))
-
-
-def _relational_polynomials(condition: sp.Expr) -> tuple[sp.Expr, ...]:
-    if (
-        condition is sp.true
-        or condition is sp.false
-        or isinstance(condition, (BooleanTrue, BooleanFalse))
-    ):
-        return ()
-    if getattr(condition, "is_Relational", False):
-        expr, _ = _relation_parts(condition)
-        return (expr,)
-    if isinstance(condition, (SymAnd, SymOr)):
-        out: list[sp.Expr] = []
-        for arg in condition.args:
-            out.extend(_relational_polynomials(arg))
-        return tuple(out)
-    if isinstance(condition, SymNot):
-        return _relational_polynomials(condition.args[0])
-    raise TypeError(f"unsupported formula expression: {condition!r}")
-
-
-def _sample_between(left: sp.Expr, right: sp.Expr) -> sp.Expr:
-    if left == -sp.oo and right == sp.oo:
-        return sp.Integer(0)
-    if left == -sp.oo:
-        return sp.simplify(right - 1)
-    if right == sp.oo:
-        return sp.simplify(left + 1)
-    return sp.simplify((left + right) / 2)
-
-
 def _one_dimensional_intervals(
     condition: sp.Expr,
     variable: sp.Symbol,
     bound: tuple[sp.Expr, sp.Expr] | None,
 ) -> tuple[tuple[sp.Expr, sp.Expr], ...]:
-    if condition is sp.false or isinstance(condition, BooleanFalse):
-        return ()
-    lo, hi = bound if bound is not None else (-sp.oo, sp.oo)
-    roots: list[sp.Expr] = []
-    if lo != -sp.oo:
-        roots.append(lo)
-    if hi != sp.oo:
-        roots.append(hi)
-    for poly in _relational_polynomials(condition):
-        if variable not in poly.free_symbols and sp.simplify(poly) != 0:
-            continue
-        if not poly.free_symbols <= {variable}:
-            raise ValueError(
-                "1D integration formula contains symbols outside the integration variable"
-            )
-        roots.extend(_finite_real_roots(poly, variable))
-    ordered: list[sp.Expr] = []
-    seen: set[str] = set()
-    for root in sorted(
-        roots,
-        key=lambda z: (
-            float(sp.N(z, 50))
-            if z not in (-sp.oo, sp.oo)
-            else (-float("inf") if z == -sp.oo else float("inf"))
+    """Return exact true intervals for a one-dimensional integral."""
+
+    return _shared_intervals(
+        condition,
+        variable,
+        bound,
+        extra_symbol_error=(
+            "1D integration formula contains symbols outside the integration variable"
         ),
-    ):
-        if root in (-sp.oo, sp.oo):
-            continue
-        if lo != -sp.oo and float(sp.N(root, 50)) < float(sp.N(lo, 50)):
-            continue
-        if hi != sp.oo and float(sp.N(root, 50)) > float(sp.N(hi, 50)):
-            continue
-        key = sp.sstr(root)
-        if key not in seen:
-            ordered.append(root)
-            seen.add(key)
-    cuts = [lo, *ordered, hi]
-    intervals: list[tuple[sp.Expr, sp.Expr]] = []
-    for left, right in zip(cuts, cuts[1:], strict=False):
-        if left == right:
-            continue
-        sample = _sample_between(left, right)
-        if _truth_at(condition, {variable: sample}):
-            intervals.append((left, right))
-    return tuple(intervals)
+    )
 
 
 def _integrate_1d(
@@ -337,7 +183,7 @@ def _radial_radii_squared(
         expr, op = _relation_parts(atom)
         try:
             poly = sp.Poly(expr, x, y)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return None
         coeff_x2 = poly.coeff_monomial(x**2)
         coeff_y2 = poly.coeff_monomial(y**2)
@@ -413,6 +259,7 @@ def _vertical_slice_data(
     y: sp.Symbol,
     bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
 ) -> tuple[sp.Expr, sp.Expr, tuple[tuple[sp.Expr, sp.Expr], ...]] | None:
+    """Extract exact vertical slice bounds and residual base conditions for integration."""
     try:
         atoms = _atoms(condition)
     except NotImplementedError:
@@ -431,11 +278,11 @@ def _vertical_slice_data(
         if op == "!=":
             continue
         if y not in expr.free_symbols:
-            x_conditions.append(_as_relation(expr, op))
+            x_conditions.append(make_zero_relation(expr, op))
             continue
         try:
             poly_y = sp.Poly(expr, y)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return None
         if poly_y.degree() != 1:
             return None
@@ -508,13 +355,13 @@ def _merge_interval_bound(
 
     try:
         poly = sp.Poly(relation_expr, variable)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if poly.degree() > 1 or relation_expr.free_symbols - {variable}:
         return None
     coeff = sp.simplify(poly.coeff_monomial(variable))
     if coeff == 0:
-        return (lower, upper) if _truth_at(_as_relation(relation_expr, op), {}) else None
+        return (lower, upper) if _truth_at(make_zero_relation(relation_expr, op), {}) else None
     rest = sp.simplify(poly.as_expr() - coeff * variable)
     boundary = sp.simplify(-rest / coeff)
     normalized_op = op
@@ -606,7 +453,7 @@ def _canonical_linear_coefficients(
 ) -> tuple[tuple[sp.Expr, ...], sp.Expr] | None:
     try:
         poly = sp.Poly(expr, *variables)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if poly.total_degree() > 1:
         return None
@@ -679,7 +526,7 @@ def _axis_aligned_ellipse_data(
         return None
     try:
         poly = sp.Poly(expr, x, y)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if poly.total_degree() != 2 or poly.coeff_monomial(x * y) != 0:
         return None
@@ -936,7 +783,7 @@ def _reduce_cad_extracted_vertical_bounds_2d(
         from .cad.cells import extract_vertical_bounds_from_cad_2d
 
         cells = extract_vertical_bounds_from_cad_2d(condition, (x, y), full_dimensional_only=True)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     pieces: list[RegionIntegralPiece] = []
     for cell in cells:
@@ -990,7 +837,7 @@ def _infer_region_dimension(condition: sp.Expr, ambient_dimension: int) -> int:
 
     try:
         atoms = _atoms(condition)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return ambient_dimension
     nontrivial_equalities: list[sp.Expr] = []
     for atom in atoms:
@@ -1016,7 +863,7 @@ def _zero_dimensional_points(
 
     try:
         atoms = _atoms(condition)
-    except Exception as exc:
+    except _RECOVERABLE_ERRORS as exc:
         raise NotImplementedError(
             "zero-dimensional integration currently supports conjunctions of relations"
         ) from exc
@@ -1058,7 +905,7 @@ def _zero_dimensional_points(
             )
         try:
             raw = sp.solve(equalities, tuple(variables), dict=True)
-        except Exception as exc:
+        except _RECOVERABLE_ERRORS as exc:
             raise NotImplementedError(
                 "could not solve the zero-dimensional equality system"
             ) from exc
@@ -1096,7 +943,7 @@ def _circle_radius_squared(condition: sp.Expr, x: sp.Symbol, y: sp.Symbol) -> sp
 
     try:
         atoms = _atoms(condition)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     radius_sq: sp.Expr | None = None
     other_atoms: list[sp.Expr] = []
@@ -1105,7 +952,7 @@ def _circle_radius_squared(condition: sp.Expr, x: sp.Symbol, y: sp.Symbol) -> sp
             expr, _ = _relation_parts(atom)
             try:
                 poly = sp.Poly(expr, x, y)
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 return None
             coeff_x2 = poly.coeff_monomial(x**2)
             coeff_y2 = poly.coeff_monomial(y**2)
@@ -1153,7 +1000,7 @@ def _graph_curve_data(
 
     try:
         atoms = _atoms(condition)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     graph: sp.Expr | None = None
     x_conditions: list[sp.Expr] = []
@@ -1165,7 +1012,7 @@ def _graph_curve_data(
                 continue
             try:
                 poly_y = sp.Poly(expr, y)
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 return None
             if poly_y.degree() != 1:
                 return None
@@ -1182,7 +1029,7 @@ def _graph_curve_data(
             if y in expr.free_symbols:
                 # A first implementation avoids inequalities along graph curves.
                 return None
-            x_conditions.append(_as_relation(expr, op))
+            x_conditions.append(make_zero_relation(expr, op))
         else:
             return None
     if graph is None:
@@ -1222,7 +1069,7 @@ def _integrate_intrinsic_dimension(
     *,
     bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
 ) -> tuple[sp.Expr, str]:
-    """Evaluate first-pass intrinsic-dimensional integrals."""
+    """Evaluate an intrinsic-dimensional integral with certified geometry."""
 
     ambient = len(variables)
     if measure_dimension == ambient:
@@ -1242,9 +1089,35 @@ def _integrate_intrinsic_dimension(
         graph = _integrate_graph_curve_intrinsic(integrand, condition, x, y)
         if graph is not None:
             return graph, "graph_curve_intrinsic_length_measure"
+    # Section cells use the induced Hausdorff metric, so they cannot be treated
+    # as zero-width limits of ambient Lebesgue integrals.
+    try:
+        from .cad.cells import extract_cylindrical_solution
+        from .cad.integration import intrinsic_solution_integrals
+
+        solution = extract_cylindrical_solution(condition, variables, selected_only=True)
+        pieces = intrinsic_solution_integrals(
+            solution, integrand, dimension=measure_dimension, evaluate=False, require_verified=True
+        )
+        if pieces:
+            values = []
+            for piece in pieces:
+                value = piece.doit()
+                if isinstance(value, sp.Integral) or getattr(value, "has", lambda *_: False)(
+                    sp.Integral
+                ):
+                    raise NotImplementedError(
+                        "SymPy could not evaluate an intrinsic CAD-cell integral"
+                    )
+                values.append(value)
+            return sp.simplify(sum(values, sp.Integer(0))), "cylindrical_solution_intrinsic_measure"
+    except NotImplementedError:
+        raise
+    except _RECOVERABLE_ERRORS:
+        pass
     raise NotImplementedError(
-        "intrinsic integration currently supports finite point sets, one-dimensional graph curves in R^2, "
-        "and origin-centered circles"
+        "intrinsic integration supports finite point sets and verified cylindrical CAD graph cells; "
+        "unsupported singular/non-graph strata fail conservatively"
     )
 
 
@@ -1263,27 +1136,24 @@ def _reduce_cylindrical_solution_cells_nd(
 
     try:
         from .cad.cells import extract_cylindrical_solution, extract_explicit_cylindrical_solution
+        from .cad.integration import full_dimensional_cell_integral
 
         cyl = extract_explicit_cylindrical_solution(condition, variables)
         if cyl is None:
             cyl = extract_cylindrical_solution(condition, variables, selected_only=True)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     pieces: list[RegionIntegralPiece] = []
     n = len(tuple(variables))
     for cell in getattr(cyl, "cells", ()):
         if getattr(cell, "dimension", None) != n:
             continue
-        limits = tuple(reversed(cell.iterated_limits()))
-        if len(limits) != n:
+        try:
+            adapted = full_dimensional_cell_integral(cell, integrand, require_verified=True)
+        except _RECOVERABLE_ERRORS:
             continue
-        # Skip degenerate cells defensively; full-dimensional cells should have
-        # proper sectors at every coordinate level.
-        if any(
-            sp.simplify(hi - lo) == 0
-            for _, lo, hi in limits
-            if lo not in (-sp.oo, sp.oo) and hi not in (-sp.oo, sp.oo)
-        ):
+        limits = adapted.limits
+        if len(limits) != n:
             continue
         pieces.append(
             RegionIntegralPiece(
@@ -1293,6 +1163,7 @@ def _reduce_cylindrical_solution_cells_nd(
                 diagnostics={
                     "cell_index": getattr(cell, "index", None),
                     "cell_dimension": getattr(cell, "dimension", None),
+                    "typed_bounds_verified": adapted.certified_bounds,
                 },
             )
         )
@@ -1313,15 +1184,15 @@ def reduce_region_integral(
 
     This is the structural layer used by ``integrate_over_region``. It does
     not call ``sympy.integrate`` unless callers later ask to evaluate the
-    returned pieces. The initial implementation supports the same conservative
-    families as ``integrate_over_region``: exact one-dimensional cell intervals,
-    origin-centered radial disk/annulus regions represented as signed vertical
-    slices, and simple two-dimensional vertical-slice regions.
+    returned pieces. The reducer uses standard-region shortcuts, exact
+    one-dimensional cells, radial/ellipse/simplex transformations, explicit
+    vertical slices, and certified CAD-extracted cylindrical bounds where
+    available. Unsupported or uncertified reductions are declined.
     """
 
-    vars_ = _normalize_variables(variables)
     formula = _normalize_formula(condition)
     expr = sp.sympify(integrand)
+    vars_ = _normalize_variables(variables, formula, expr)
     bound_map = _normalize_bounds(bounds, vars_)
 
     method = ""
@@ -1428,13 +1299,14 @@ def integrate_over_region(
 
     By default, integrals are with respect to ambient Lebesgue measure in
     ``variables``. ``measure_dimension="intrinsic"`` or an integer dimension
-    enables a first exact intrinsic layer for finite point sets, graph curves in
-    the plane, and origin-centered circles.
+    enables exact intrinsic integration on certified regular CAD strata, along
+    with specialized finite-point and standard-curve cases. Singular strata are
+    kept explicit and are never silently treated as regular manifolds.
     """
 
-    vars_ = _normalize_variables(variables)
     expr = sp.sympify(integrand)
     if isinstance(condition, StandardRegion):
+        vars_ = _normalize_variables(variables, expr)
         if bounds is not None:
             raise NotImplementedError(
                 "extra bounds are not yet supported for explicit StandardRegion objects"
@@ -1460,7 +1332,7 @@ def integrate_over_region(
         return result if return_result else result.value
 
     formula = _normalize_formula(condition)
-    expr = sp.sympify(integrand)
+    vars_ = _normalize_variables(variables, formula, expr)
     bound_map = _normalize_bounds(bounds, vars_)
     dim = _normalize_measure_dimension(measure_dimension, len(vars_), formula)
 

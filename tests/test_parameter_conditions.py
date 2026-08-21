@@ -42,3 +42,12 @@ def test_root_count_conditions_result_preserves_classification() -> None:
     assert result.condition_for_count(1) == sp.Eq(a, 0)
     assert result.condition_for_count(0) == (a > 0)
     assert result.classification.cells
+
+
+def test_solvability_string_names_reuse_existing_unassumed_symbols() -> None:
+    x, a = sp.symbols("x a")
+    result = solvability_conditions(sp.Eq(x**2, a), ["x"], ["a"], return_stratified=True)
+    assert result.parameters == (a,)
+    assert result.select({"a": 4}) is True
+    assert result.select({"a": -1}) is False
+    assert all(x not in branch.condition.free_symbols for branch in result.branches)

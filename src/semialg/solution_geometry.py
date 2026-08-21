@@ -160,8 +160,8 @@ def discretize_solution(
             diagnostics={"cell_count": len(cells), "samples_per_curve": samples_per_curve},
         )
 
-    # Fallback: return stored samples as points if their coordinates match the
-    # requested variables.
+    # Stored samples provide a useful visualization even when no explicit
+    # interval or cell geometry is available.
     for sample in samples:
         if all(var in sample for var in variables):
             points.append(tuple(sample[var] for var in variables))
@@ -208,7 +208,7 @@ def _truth_mask_from_formula(formula: sp.Expr, variables: Sequence[sp.Symbol], x
         return mask
 
 
-def _plot_formula_region_fallback(
+def _plot_formula_region(
     ax,
     formula: sp.Expr,
     variables: Sequence[sp.Symbol],
@@ -239,6 +239,52 @@ def _plot_formula_region_fallback(
     return True
 
 
+def _draw_plot_data(data: SolutionPlotData, ax, *, alpha: float, **plot_kwargs) -> None:
+    """Draw discretized one- or two-dimensional geometry on ``ax``.
+
+    The helper centralizes Matplotlib rendering for both solution objects and
+    explicit region objects.  Geometry extraction remains separate so plotting
+    never mutates or adapts the source object at runtime.
+    """
+
+    if len(data.variables) == 1:
+        for point in data.points:
+            ax.plot(
+                [float(sp.N(point[0]))],
+                [0.0],
+                marker="o",
+                linestyle="None",
+                **plot_kwargs,
+            )
+        for start, end in data.segments:
+            ax.plot(
+                [float(sp.N(start[0])), float(sp.N(end[0]))],
+                [0.0, 0.0],
+                **plot_kwargs,
+            )
+        ax.set_xlabel(sp.sstr(data.variables[0]))
+        ax.set_yticks([])
+        return
+
+    if len(data.variables) != 2:
+        raise NotImplementedError("plotting currently supports only 1D and 2D geometry")
+
+    for polygon in data.polygons:
+        xs = [float(sp.N(point[0])) for point in polygon]
+        ys = [float(sp.N(point[1])) for point in polygon]
+        ax.fill(xs, ys, alpha=alpha, **plot_kwargs)
+    for start, end in data.segments:
+        start_x, start_y = _numeric_pair(start)
+        end_x, end_y = _numeric_pair(end)
+        ax.plot([start_x, end_x], [start_y, end_y], **plot_kwargs)
+    for point in data.points:
+        x_value, y_value = _numeric_pair(point)
+        ax.plot([x_value], [y_value], marker="o", linestyle="None", **plot_kwargs)
+    ax.set_xlabel(sp.sstr(data.variables[0]))
+    ax.set_ylabel(sp.sstr(data.variables[1]))
+    ax.set_aspect("equal", adjustable="box")
+
+
 def plot_solution(
     solution,
     *,
@@ -264,19 +310,12 @@ def plot_solution(
 
     if ax is None:
         _, ax = plt.subplots()
-    if len(data.variables) == 1:
-        for point in data.points:
-            ax.plot([float(sp.N(point[0]))], [0.0], marker="o", linestyle="None", **plot_kwargs)
-        for start, end in data.segments:
-            ax.plot([float(sp.N(start[0])), float(sp.N(end[0]))], [0.0, 0.0], **plot_kwargs)
-        ax.set_xlabel(sp.sstr(data.variables[0]))
-        ax.set_yticks([])
-    elif len(data.variables) == 2:
-        alpha = plot_kwargs.pop("alpha", 0.25)
+    alpha = plot_kwargs.pop("alpha", 0.25)
+    if len(data.variables) == 2:
         if not _has_drawable_geometry(data):
             formula = _formula_from_solution(solution)
             if formula is not None:
-                _plot_formula_region_fallback(
+                _plot_formula_region(
                     ax,
                     formula,
                     data.variables,
@@ -285,38 +324,13 @@ def plot_solution(
                     alpha=alpha,
                     **plot_kwargs,
                 )
-        for polygon in data.polygons:
-            xs = [float(sp.N(point[0])) for point in polygon]
-            ys = [float(sp.N(point[1])) for point in polygon]
-            ax.fill(xs, ys, alpha=alpha, **plot_kwargs)
-        for start, end in data.segments:
-            ax.plot(
-                [_numeric_pair(start)[0], _numeric_pair(end)[0]],
-                [_numeric_pair(start)[1], _numeric_pair(end)[1]],
-                **plot_kwargs,
-            )
-        for point in data.points:
-            ax.plot(
-                [float(sp.N(point[0]))],
-                [float(sp.N(point[1]))],
-                marker="o",
-                linestyle="None",
-                **plot_kwargs,
-            )
-        ax.set_xlabel(sp.sstr(data.variables[0]))
-        ax.set_ylabel(sp.sstr(data.variables[1]))
-        ax.set_aspect("equal", adjustable="box")
-    else:
-        raise NotImplementedError("plot_solution currently supports only 1D and 2D solution views")
+    _draw_plot_data(data, ax, alpha=alpha, **plot_kwargs)
     if bounds and len(bounds) >= 2:
         ax.set_xlim(float(sp.N(bounds[0][0])), float(sp.N(bounds[0][1])))
         ax.set_ylim(float(sp.N(bounds[1][0])), float(sp.N(bounds[1][1])))
     if show:
         plt.show()
     return ax
-
-
-__all__ = ["SolutionPlotData", "discretize_solution", "plot_solution"]
 
 
 def discretize_region_geometry(
@@ -387,7 +401,8 @@ def discretize_region_geometry(
         else:
             polygons.append(pts)
     elif isinstance(region, (StadiumRegion, CapsuleRegion)) and len(region.start) == 2:
-        # Coarse convex-hull style representation; enough for visual debugging.
+        # A rectangle around the center segment is intentionally coarse; this
+        # function provides plotting geometry rather than a certified mesh.
         x0, y0 = region.start
         x1, y1 = region.end
         r = region.radius
@@ -417,48 +432,17 @@ def plot_region_geometry(
 ):
     """Plot an explicit standard-region object using Matplotlib."""
 
-    dummy = type("_SolutionLike", (), {})()
     data = discretize_region_geometry(
         region, variables=variables, samples_per_curve=samples_per_curve
     )
-    dummy.variables = data.variables
-    dummy.points = data.points
-    dummy.segments = data.segments
-    dummy.polygons = data.polygons
-    # Reuse simple Matplotlib logic by drawing directly.
     try:
         import matplotlib.pyplot as plt  # type: ignore
     except Exception as exc:  # pragma: no cover
         raise ImportError("plot_region_geometry requires matplotlib") from exc
     if ax is None:
         _, ax = plt.subplots()
-    if len(data.variables) == 1:
-        for point in data.points:
-            ax.plot([float(sp.N(point[0]))], [0.0], marker="o", linestyle="None", **plot_kwargs)
-        for start, end in data.segments:
-            ax.plot([float(sp.N(start[0])), float(sp.N(end[0]))], [0.0, 0.0], **plot_kwargs)
-    elif len(data.variables) == 2:
-        for polygon in data.polygons:
-            xs = [float(sp.N(point[0])) for point in polygon]
-            ys = [float(sp.N(point[1])) for point in polygon]
-            ax.fill(xs, ys, alpha=plot_kwargs.pop("alpha", 0.25), **plot_kwargs)
-        for start, end in data.segments:
-            ax.plot(
-                [float(sp.N(start[0])), float(sp.N(end[0]))],
-                [float(sp.N(start[1])), float(sp.N(end[1]))],
-                **plot_kwargs,
-            )
-        for point in data.points:
-            ax.plot(
-                [float(sp.N(point[0]))],
-                [float(sp.N(point[1]))],
-                marker="o",
-                linestyle="None",
-                **plot_kwargs,
-            )
-        ax.set_aspect("equal", adjustable="box")
-    else:
-        raise NotImplementedError("plot_region_geometry currently supports 1D and 2D views")
+    alpha = plot_kwargs.pop("alpha", 0.25)
+    _draw_plot_data(data, ax, alpha=alpha, **plot_kwargs)
     if show:
         plt.show()
     return ax
@@ -466,8 +450,8 @@ def plot_region_geometry(
 
 __all__ = [
     "SolutionPlotData",
-    "discretize_solution",
-    "plot_solution",
     "discretize_region_geometry",
+    "discretize_solution",
     "plot_region_geometry",
+    "plot_solution",
 ]

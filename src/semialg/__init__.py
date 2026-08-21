@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from importlib import import_module
+
+__version__ = "0.2.0b1"
+
 __all__ = [
+    "__version__",
     "CADComponent",
     "CADFunction",
     "CADOutput",
@@ -61,6 +66,22 @@ __all__ = [
     "CylindricalCoordinateConstraint",
     "CylindricalSolutionCell",
     "CylindricalSolution",
+    "CylindricalDecompositionCertificate",
+    "CADBound",
+    "AlgebraicRootFunction",
+    "CertifiedRootComparison",
+    "DelineabilityCertificate",
+    "RootOrderCertificate",
+    "CADCellBoundsCertificate",
+    "verify_cad_cell_bounds",
+    "CADCellIntegral",
+    "IntrinsicCellStratum",
+    "IntrinsicStratification",
+    "stratify_intrinsic_solution",
+    "full_dimensional_cell_integral",
+    "full_dimensional_solution_integrals",
+    "intrinsic_cell_integral",
+    "intrinsic_solution_integrals",
     "cylindrical_solution_from_structured",
     "extract_cylindrical_solution",
     "extract_explicit_cylindrical_solution",
@@ -76,6 +97,10 @@ __all__ = [
     "decompose_cylindrical_formula_to_vertical_bounds_2d",
     "FunctionRangeResult",
     "OptimizationResult",
+    "ParametricOptimizationResult",
+    "ParametricFunctionRangeResult",
+    "OptimizationCertificationPolicy",
+    "polynomial_locus_dimension",
     "PowerPolicy",
     "PreprocessResult",
     "RootFunction",
@@ -110,6 +135,11 @@ __all__ = [
     "semialgebraic_maximize",
     "sign_at",
     "sign_vector",
+    "algebraic_cache_stats",
+    "clear_algebraic_caches",
+    "ExactComputationContext",
+    "computation_context",
+    "current_computation_context",
     "IntervalComponent",
     "SemialgebraicSolution",
     "EquivalenceResult",
@@ -169,6 +199,11 @@ __all__ = [
     "region_closed",
     "region_compact",
     "simplify_under_assumptions",
+    "ConditionalBranch",
+    "ParameterStratifiedResult",
+    "ParameterStratificationCertificate",
+    "conditional_result",
+    "verify_parameter_stratification",
     "ParameterStratum",
     "ParameterizedCylindricalDecomposition",
     "parameterized_cylindrical_decomposition",
@@ -183,7 +218,125 @@ __all__ = [
     "BorderBasisResult",
     "compute_border_basis",
     "compute_border_basis_linear",
+    "DimensionMismatchError",
+    "Exists",
+    "ForAll",
+    "apply_quantifiers",
+    "split_quantifiers",
+    "require_point_dimension",
+    "require_same_length",
+    "zip_equal",
 ]
+
+_LAZY_EXPORTS = {
+    "Exists": ".quantifiers",
+    "ForAll": ".quantifiers",
+    "apply_quantifiers": ".quantifiers",
+    "split_quantifiers": ".quantifiers",
+    "DimensionMismatchError": ".errors",
+    "require_point_dimension": ".dimension_validation",
+    "require_same_length": ".dimension_validation",
+    "zip_equal": ".dimension_validation",
+    "RegionDifference": ".standard_regions",
+    "RegionIntersection": ".standard_regions",
+    "RegionSymmetricDifference": ".standard_regions",
+    "RegionUnion": ".standard_regions",
+    "algebraic_cache_stats": ".algebraic",
+    "build_cad_adjacency_graph": ".connectivity",
+    "cad": ".decomposition",
+    "cad_text": ".decomposition",
+    "canonicalize_one_dimensional_formula": ".decision",
+    "classify_real_roots": ".root_classification",
+    "clear_algebraic_caches": ".algebraic",
+    "component_instances": ".decomposition",
+    "component_instances_text": ".decomposition",
+    "computation_context": ".context",
+    "compute_border_basis": ".algebraic",
+    "compute_border_basis_linear": ".algebraic",
+    "conditional_result": ".conditional",
+    "current_computation_context": ".context",
+    "cylindrical_solution_from_structured": ".cad.cells",
+    "decompose_cylindrical_formula_to_vertical_bounds_2d": ".implicit_geometry",
+    "decompose_implicit_formula": ".implicit_geometry",
+    "discretize_region_geometry": ".solution_geometry",
+    "discretize_solution": ".solution_geometry",
+    "equivalent": ".decision",
+    "extract_cad_connectivity": ".connectivity",
+    "extract_cylindrical_solution": ".cad.cells",
+    "extract_explicit_cylindrical_solution": ".cad.cells",
+    "extract_structured_cad_cells": ".cad.cells",
+    "extract_symbolic_box_bounds": ".implicit_geometry",
+    "extract_vertical_bounds_from_cad_2d": ".cad.cells",
+    "find_instance": ".solve",
+    "find_instance_formula": ".solve",
+    "find_instance_text": ".solve",
+    "function_domain": ".domain_solve",
+    "function_range": ".optimization",
+    "generic_cad": ".decomposition",
+    "generic_cad_text": ".decomposition",
+    "implies": ".decision",
+    "integrate_over_parametric_region": ".parametric_integration",
+    "integrate_over_region": ".region_integrate",
+    "integrate_over_standard_region": ".standard_region_integrate",
+    "is_real_valued": ".domain_solve",
+    "is_satisfiable": ".decision",
+    "is_tautology": ".decision",
+    "metric_jacobian_factor": ".parametric_integration",
+    "normalize_domain_sensitive_constraints": ".domain_solve",
+    "parameterized_cylindrical_decomposition": ".parameter_stratification",
+    "plot_region_geometry": ".solution_geometry",
+    "plot_solution": ".solution_geometry",
+    "principal_subresultant_coefficients": ".algebraic",
+    "prove_negative": ".reasoning",
+    "prove_nonnegative": ".reasoning",
+    "prove_nonpositive": ".reasoning",
+    "prove_positive": ".reasoning",
+    "qe_by_complete_cad": ".qe",
+    "reduce_formula": ".solve",
+    "reduce_parametric_integral": ".parametric_integration",
+    "reduce_region_integral": ".region_integrate",
+    "reduce_text": ".solve",
+    "region_boundary": ".regions.operations",
+    "region_bounded": ".reasoning",
+    "region_centroid": ".moments",
+    "region_closed": ".reasoning",
+    "region_closure": ".regions.operations",
+    "region_compact": ".reasoning",
+    "region_complement": ".regions.operations",
+    "region_components": ".regions.operations",
+    "region_covariance": ".moments",
+    "region_difference": ".regions.operations",
+    "region_dimension": ".regions.operations",
+    "region_disjoint": ".reasoning",
+    "region_equal": ".reasoning",
+    "region_interior": ".regions.operations",
+    "region_intersection": ".regions.operations",
+    "region_moment": ".moments",
+    "region_subset": ".reasoning",
+    "region_union": ".regions.operations",
+    "resolve_formula": ".solve",
+    "resolve_text": ".solve",
+    "root_count_conditions": ".parameters",
+    "root_of": ".reconstruct",
+    "sample_point": ".sampling",
+    "sample_points": ".sampling",
+    "semialgebraic_level_function": ".implicit_geometry",
+    "semialgebraic_maximize": ".optimization",
+    "semialgebraic_measure": ".measure",
+    "semialgebraic_minimize": ".optimization",
+    "semialgebraicize": ".preprocess",
+    "sign_at": ".sampling",
+    "sign_vector": ".sampling",
+    "simplify_boole": ".symbolic_simplify",
+    "simplify_piecewise": ".symbolic_simplify",
+    "simplify_system": ".reasoning",
+    "simplify_under_assumptions": ".reasoning",
+    "solvability_conditions": ".parameters",
+    "solve_semialgebraic": ".decision",
+    "structured_cad_cells_to_vertical_bounds_2d": ".cad.cells",
+    "subresultant_prs": ".algebraic",
+    "verify_parameter_stratification": ".conditional",
+}
 
 _DECOMP_ATTRS = {
     "CADComponent",
@@ -200,7 +353,7 @@ _PREPROCESS_ATTRS = {"PowerPolicy", "PreprocessResult"}
 _QE_ATTRS = {"CompleteQEResult"}
 _RECONSTRUCT_ATTRS = {"RootFunction"}
 _GENERIC_ATTRS = {"GenericSplit"}
-_ROOT_CLASSIFICATION_ATTRS = {"RootClassificationCell", "RootClassificationResult"}
+_ROOT_CLASS_ATTRS = {"RootClassificationCell", "RootClassificationResult"}
 _ALGEBRAIC_ATTRS = {"SubresultantPRSResult", "BorderBasisError", "BorderBasisResult"}
 _MEASURE_ATTRS = {"MeasureResult"}
 _REGION_INTEGRATE_ATTRS = {"RegionIntegralResult", "RegionIntegralPiece", "ReducedRegionIntegral"}
@@ -228,7 +381,7 @@ _STANDARD_REGION_ATTRS = {
     "TransformedRegion",
     "BooleanRegion",
 }
-_PARAMETRIC_INTEGRATION_ATTRS = {"ParametricIntegralResult"}
+_PARAM_INTEGRAL_ATTRS = {"ParametricIntegralResult"}
 _IMPLICIT_UTILS_ATTRS = {"ImplicitFormulaPiece", "SymbolicBoxBounds", "VerticalBoundCell2D"}
 _CONNECTIVITY_ATTRS = {
     "CADAdjacencyEdge",
@@ -237,15 +390,39 @@ _CONNECTIVITY_ATTRS = {
 }
 
 _CAD_CELL_ATTRS = {
+    "CADBound",
+    "AlgebraicRootFunction",
+    "CertifiedRootComparison",
+    "DelineabilityCertificate",
+    "RootOrderCertificate",
+    "CADCellBoundsCertificate",
+    "verify_cad_cell_bounds",
+    "CADCellIntegral",
+    "IntrinsicCellStratum",
+    "IntrinsicStratification",
+    "stratify_intrinsic_solution",
+    "full_dimensional_cell_integral",
+    "full_dimensional_solution_integrals",
+    "intrinsic_cell_integral",
+    "intrinsic_solution_integrals",
     "CylindricalCoordinateConstraint",
     "CylindricalSolutionCell",
     "CylindricalSolution",
+    "CylindricalDecompositionCertificate",
     "StructuredCADLevel",
     "StructuredCADCell",
     "StructuredCADCellDecomposition",
 }
 
-_OPTIMIZATION_ATTRS = {"FunctionRangeResult", "OptimizationResult"}
+_CONTEXT_ATTRS = {"ExactComputationContext"}
+_OPTIMIZATION_ATTRS = {
+    "FunctionRangeResult",
+    "OptimizationResult",
+    "ParametricOptimizationResult",
+    "ParametricFunctionRangeResult",
+    "OptimizationCertificationPolicy",
+    "polynomial_locus_dimension",
+}
 _SAMPLING_ATTRS = set()
 _DECISION_ATTRS = {
     "IntervalComponent",
@@ -258,7 +435,12 @@ _DECISION_ATTRS = {
 _SOLUTION_GEOMETRY_ATTRS = {"SolutionPlotData"}
 _DOMAIN_SOLVE_ATTRS = {"DomainNormalizationResult"}
 _PARAMETER_ATTRS = {"SolvabilityConditionsResult", "RootCountConditionsResult"}
-_PARAMETER_STRATIFICATION_ATTRS = {"ParameterStratum", "ParameterizedCylindricalDecomposition"}
+_CONDITIONAL_ATTRS = {
+    "ConditionalBranch",
+    "ParameterStratifiedResult",
+    "ParameterStratificationCertificate",
+}
+_PARAM_STRATA_ATTRS = {"ParameterStratum", "ParameterizedCylindricalDecomposition"}
 _MOMENT_ATTRS = {"RegionMomentResult", "RegionCentroidResult", "RegionCovarianceResult"}
 _REASONING_ATTRS = {"SimplifiedSystem", "AssumptionSimplificationResult", "SignProofResult"}
 _SYMBOLIC_SIMPLIFY_ATTRS = {"BooleanSimplificationResult", "PiecewiseSimplificationResult"}
@@ -274,581 +456,16 @@ _SOLVE_ATTRS = {
 }
 
 
-def cad(*args, **kwargs):
-    from .decomposition import cad as impl
-
-    return impl(*args, **kwargs)
-
-
-def cad_text(*args, **kwargs):
-    from .decomposition import cad_text as impl
-
-    return impl(*args, **kwargs)
-
-
-def component_instances(*args, **kwargs):
-    from .decomposition import component_instances as impl
-
-    return impl(*args, **kwargs)
-
-
-def component_instances_text(*args, **kwargs):
-    from .decomposition import component_instances_text as impl
-
-    return impl(*args, **kwargs)
-
-
-def generic_cad(*args, **kwargs):
-    from .decomposition import generic_cad as impl
-
-    return impl(*args, **kwargs)
-
-
-def generic_cad_text(*args, **kwargs):
-    from .decomposition import generic_cad_text as impl
-
-    return impl(*args, **kwargs)
-
-
-def classify_real_roots(*args, **kwargs):
-    from .root_classification import classify_real_roots as impl
-
-    return impl(*args, **kwargs)
-
-
-def sample_point(*args, **kwargs):
-    from .sampling import sample_point as impl
-
-    return impl(*args, **kwargs)
-
-
-def sample_points(*args, **kwargs):
-    from .sampling import sample_points as impl
-
-    return impl(*args, **kwargs)
-
-
-def sign_at(*args, **kwargs):
-    from .sampling import sign_at as impl
-
-    return impl(*args, **kwargs)
-
-
-def sign_vector(*args, **kwargs):
-    from .sampling import sign_vector as impl
-
-    return impl(*args, **kwargs)
-
-
-def semialgebraic_measure(*args, **kwargs):
-    from .measure import semialgebraic_measure as impl
-
-    return impl(*args, **kwargs)
-
-
-def integrate_over_region(*args, **kwargs):
-    from .region_integrate import integrate_over_region as impl
-
-    return impl(*args, **kwargs)
-
-
-def reduce_region_integral(*args, **kwargs):
-    from .region_integrate import reduce_region_integral as impl
-
-    return impl(*args, **kwargs)
-
-
-def integrate_over_parametric_region(*args, **kwargs):
-    from .parametric_integration import integrate_over_parametric_region as impl
-
-    return impl(*args, **kwargs)
-
-
-def reduce_parametric_integral(*args, **kwargs):
-    from .parametric_integration import reduce_parametric_integral as impl
-
-    return impl(*args, **kwargs)
-
-
-def metric_jacobian_factor(*args, **kwargs):
-    from .parametric_integration import metric_jacobian_factor as impl
-
-    return impl(*args, **kwargs)
-
-
-def integrate_over_standard_region(*args, **kwargs):
-    from .standard_region_integrate import integrate_over_standard_region as impl
-
-    return impl(*args, **kwargs)
-
-
-def RegionUnion(*args, **kwargs):
-    from .standard_regions import RegionUnion as impl
-
-    return impl(*args, **kwargs)
-
-
-def RegionIntersection(*args, **kwargs):
-    from .standard_regions import RegionIntersection as impl
-
-    return impl(*args, **kwargs)
-
-
-def RegionDifference(*args, **kwargs):
-    from .standard_regions import RegionDifference as impl
-
-    return impl(*args, **kwargs)
-
-
-def RegionSymmetricDifference(*args, **kwargs):
-    from .standard_regions import RegionSymmetricDifference as impl
-
-    return impl(*args, **kwargs)
-
-
-def discretize_region_geometry(*args, **kwargs):
-    from .solution_geometry import discretize_region_geometry as impl
-
-    return impl(*args, **kwargs)
-
-
-def plot_region_geometry(*args, **kwargs):
-    from .solution_geometry import plot_region_geometry as impl
-
-    return impl(*args, **kwargs)
-
-
-def semialgebraic_level_function(*args, **kwargs):
-    from .implicit_utils import semialgebraic_level_function as impl
-
-    return impl(*args, **kwargs)
-
-
-def decompose_implicit_formula(*args, **kwargs):
-    from .implicit_utils import decompose_implicit_formula as impl
-
-    return impl(*args, **kwargs)
-
-
-def extract_symbolic_box_bounds(*args, **kwargs):
-    from .implicit_utils import extract_symbolic_box_bounds as impl
-
-    return impl(*args, **kwargs)
-
-
-def decompose_cylindrical_formula_to_vertical_bounds_2d(*args, **kwargs):
-    from .implicit_utils import decompose_cylindrical_formula_to_vertical_bounds_2d as impl
-
-    return impl(*args, **kwargs)
-
-
-def extract_structured_cad_cells(*args, **kwargs):
-    from .cad.cells import extract_structured_cad_cells as impl
-
-    return impl(*args, **kwargs)
-
-
-def extract_explicit_cylindrical_solution(*args, **kwargs):
-    from .cad.cells import extract_explicit_cylindrical_solution as impl
-
-    return impl(*args, **kwargs)
-
-
-def extract_cylindrical_solution(*args, **kwargs):
-    from .cad.cells import extract_cylindrical_solution as impl
-
-    return impl(*args, **kwargs)
-
-
-def cylindrical_solution_from_structured(*args, **kwargs):
-    from .cad.cells import cylindrical_solution_from_structured as impl
-
-    return impl(*args, **kwargs)
-
-
-def structured_cad_cells_to_vertical_bounds_2d(*args, **kwargs):
-    from .cad.cells import structured_cad_cells_to_vertical_bounds_2d as impl
-
-    return impl(*args, **kwargs)
-
-
-def extract_vertical_bounds_from_cad_2d(*args, **kwargs):
-    from .cad.cells import extract_vertical_bounds_from_cad_2d as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_moment(*args, **kwargs):
-    from .moments import region_moment as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_centroid(*args, **kwargs):
-    from .moments import region_centroid as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_covariance(*args, **kwargs):
-    from .moments import region_covariance as impl
-
-    return impl(*args, **kwargs)
-
-
-def function_range(*args, **kwargs):
-    from .optimization import function_range as impl
-
-    return impl(*args, **kwargs)
-
-
-def semialgebraic_minimize(*args, **kwargs):
-    from .optimization import semialgebraic_minimize as impl
-
-    return impl(*args, **kwargs)
-
-
-def semialgebraic_maximize(*args, **kwargs):
-    from .optimization import semialgebraic_maximize as impl
-
-    return impl(*args, **kwargs)
-
-
-def subresultant_prs(*args, **kwargs):
-    from .algebraic import subresultant_prs as impl
-
-    return impl(*args, **kwargs)
-
-
-def principal_subresultant_coefficients(*args, **kwargs):
-    from .algebraic import principal_subresultant_coefficients as impl
-
-    return impl(*args, **kwargs)
-
-
-def compute_border_basis(*args, **kwargs):
-    from .algebraic import compute_border_basis as impl
-
-    return impl(*args, **kwargs)
-
-
-def compute_border_basis_linear(*args, **kwargs):
-    from .algebraic import compute_border_basis_linear as impl
-
-    return impl(*args, **kwargs)
-
-
-def is_satisfiable(*args, **kwargs):
-    from .decision import is_satisfiable as impl
-
-    return impl(*args, **kwargs)
-
-
-def is_tautology(*args, **kwargs):
-    from .decision import is_tautology as impl
-
-    return impl(*args, **kwargs)
-
-
-def implies(*args, **kwargs):
-    from .decision import implies as impl
-
-    return impl(*args, **kwargs)
-
-
-def equivalent(lhs, rhs, variables=None, *args, **kwargs):
-    if kwargs.get("return_result", False):
-        from .decision import equivalent as impl
-
-        return impl(lhs, rhs, variables, *args, **kwargs)
-    import sympy as sp
-
-    left = sp.sympify(lhs)
-    right = sp.sympify(rhs)
-    if sp.sstr(left) == sp.sstr(right):
-        return True
-    if variables is not None and len(tuple(variables)) == 1:
-        try:
-            return bool(left.as_set() == right.as_set())
-        except (TypeError, ValueError, NotImplementedError, AttributeError):
-            pass
-    from .decision import equivalent as impl
-
-    return impl(left, right, variables, *args, **kwargs)
-
-
-def solve_semialgebraic(*args, **kwargs):
-    from .decision import solve_semialgebraic as impl
-
-    return impl(*args, **kwargs)
-
-
-def canonicalize_one_dimensional_formula(*args, **kwargs):
-    from .decision import canonicalize_one_dimensional_formula as impl
-
-    return impl(*args, **kwargs)
-
-
-def discretize_solution(*args, **kwargs):
-    from .solution_geometry import discretize_solution as impl
-
-    return impl(*args, **kwargs)
-
-
-def plot_solution(*args, **kwargs):
-    from .solution_geometry import plot_solution as impl
-
-    return impl(*args, **kwargs)
-
-
-def function_domain(*args, **kwargs):
-    from .domain_solve import function_domain as impl
-
-    return impl(*args, **kwargs)
-
-
-def is_real_valued(*args, **kwargs):
-    from .domain_solve import is_real_valued as impl
-
-    return impl(*args, **kwargs)
-
-
-def normalize_domain_sensitive_constraints(*args, **kwargs):
-    from .domain_solve import normalize_domain_sensitive_constraints as impl
-
-    return impl(*args, **kwargs)
-
-
-def parameterized_cylindrical_decomposition(*args, **kwargs):
-    from .parameter_stratification import parameterized_cylindrical_decomposition as impl
-
-    return impl(*args, **kwargs)
-
-
-def solvability_conditions(*args, **kwargs):
-    from .parameters import solvability_conditions as impl
-
-    return impl(*args, **kwargs)
-
-
-def root_count_conditions(*args, **kwargs):
-    from .parameters import root_count_conditions as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_union(*args, **kwargs):
-    from .regions.operations import region_union as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_intersection(*args, **kwargs):
-    from .regions.operations import region_intersection as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_difference(*args, **kwargs):
-    from .regions.operations import region_difference as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_complement(*args, **kwargs):
-    from .regions.operations import region_complement as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_closure(*args, **kwargs):
-    from .regions.operations import region_closure as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_interior(*args, **kwargs):
-    from .regions.operations import region_interior as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_boundary(*args, **kwargs):
-    from .regions.operations import region_boundary as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_dimension(*args, **kwargs):
-    from .regions.operations import region_dimension as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_components(*args, **kwargs):
-    from .regions.operations import region_components as impl
-
-    return impl(*args, **kwargs)
-
-
-def simplify_boole(*args, **kwargs):
-    from .symbolic_simplify import simplify_boole as impl
-
-    return impl(*args, **kwargs)
-
-
-def simplify_piecewise(*args, **kwargs):
-    from .symbolic_simplify import simplify_piecewise as impl
-
-    return impl(*args, **kwargs)
-
-
-def simplify_system(*args, **kwargs):
-    from .reasoning import simplify_system as impl
-
-    return impl(*args, **kwargs)
-
-
-def prove_positive(*args, **kwargs):
-    from .reasoning import prove_positive as impl
-
-    return impl(*args, **kwargs)
-
-
-def prove_nonnegative(*args, **kwargs):
-    from .reasoning import prove_nonnegative as impl
-
-    return impl(*args, **kwargs)
-
-
-def prove_negative(*args, **kwargs):
-    from .reasoning import prove_negative as impl
-
-    return impl(*args, **kwargs)
-
-
-def prove_nonpositive(*args, **kwargs):
-    from .reasoning import prove_nonpositive as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_subset(*args, **kwargs):
-    from .reasoning import region_subset as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_equal(*args, **kwargs):
-    from .reasoning import region_equal as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_disjoint(*args, **kwargs):
-    from .reasoning import region_disjoint as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_bounded(*args, **kwargs):
-    from .reasoning import region_bounded as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_closed(*args, **kwargs):
-    from .reasoning import region_closed as impl
-
-    return impl(*args, **kwargs)
-
-
-def region_compact(*args, **kwargs):
-    from .reasoning import region_compact as impl
-
-    return impl(*args, **kwargs)
-
-
-def simplify_under_assumptions(*args, **kwargs):
-    from .reasoning import simplify_under_assumptions as impl
-
-    return impl(*args, **kwargs)
-
-
-def qe_by_complete_cad(*args, **kwargs):
-    from .qe import qe_by_complete_cad as impl
-
-    return impl(*args, **kwargs)
-
-
-def root_of(*args, **kwargs):
-    from .reconstruct import root_of as impl
-
-    return impl(*args, **kwargs)
-
-
-def semialgebraicize(*args, **kwargs):
-    from .preprocess import semialgebraicize as impl
-
-    return impl(*args, **kwargs)
-
-
-def find_instance(*args, **kwargs):
-    from .solve import find_instance as impl
-
-    return impl(*args, **kwargs)
-
-
-def find_instance_formula(*args, **kwargs):
-    from .solve import find_instance_formula as impl
-
-    return impl(*args, **kwargs)
-
-
-def find_instance_text(*args, **kwargs):
-    from .solve import find_instance_text as impl
-
-    return impl(*args, **kwargs)
-
-
-def reduce_formula(*args, **kwargs):
-    from .solve import reduce_formula as impl
-
-    return impl(*args, **kwargs)
-
-
-def reduce_text(*args, **kwargs):
-    from .solve import reduce_text as impl
-
-    return impl(*args, **kwargs)
-
-
-def build_cad_adjacency_graph(*args, **kwargs):
-    from .connectivity import build_cad_adjacency_graph as impl
-
-    return impl(*args, **kwargs)
-
-
-def extract_cad_connectivity(*args, **kwargs):
-    from .connectivity import extract_cad_connectivity as impl
-
-    return impl(*args, **kwargs)
-
-
-def resolve_formula(*args, **kwargs):
-    from .solve import resolve_formula as impl
-
-    return impl(*args, **kwargs)
-
-
-def resolve_text(*args, **kwargs):
-    from .solve import resolve_text as impl
-
-    return impl(*args, **kwargs)
-
-
 def __getattr__(name: str):
-    if name in _DECOMP_ATTRS:
+    module_name = _LAZY_EXPORTS.get(name)
+    if module_name is not None:
+        mod = import_module(module_name, __name__)
+        value = getattr(mod, name)
+        globals()[name] = value
+        return value
+    if name in _CONTEXT_ATTRS:
+        from . import context as mod
+    elif name in _DECOMP_ATTRS:
         from . import decomposition as mod
     elif name in _PREPROCESS_ATTRS:
         from . import preprocess as mod
@@ -858,7 +475,7 @@ def __getattr__(name: str):
         from . import reconstruct as mod
     elif name in _GENERIC_ATTRS:
         from . import generic as mod
-    elif name in _ROOT_CLASSIFICATION_ATTRS:
+    elif name in _ROOT_CLASS_ATTRS:
         from . import root_classification as mod
     elif name in _ALGEBRAIC_ATTRS:
         from . import algebraic as mod
@@ -868,10 +485,10 @@ def __getattr__(name: str):
         from . import region_integrate as mod
     elif name in _STANDARD_REGION_ATTRS:
         from . import standard_regions as mod
-    elif name in _PARAMETRIC_INTEGRATION_ATTRS:
+    elif name in _PARAM_INTEGRAL_ATTRS:
         from . import parametric_integration as mod
     elif name in _IMPLICIT_UTILS_ATTRS:
-        from . import implicit_utils as mod
+        from . import implicit_geometry as mod
     elif name in _CONNECTIVITY_ATTRS:
         from . import connectivity as mod
     elif name in _CAD_CELL_ATTRS:
@@ -886,7 +503,9 @@ def __getattr__(name: str):
         from . import optimization as mod
     elif name in _PARAMETER_ATTRS:
         from . import parameters as mod
-    elif name in _PARAMETER_STRATIFICATION_ATTRS:
+    elif name in _CONDITIONAL_ATTRS:
+        from . import conditional as mod
+    elif name in _PARAM_STRATA_ATTRS:
         from . import parameter_stratification as mod
     elif name in _MOMENT_ATTRS:
         from . import moments as mod

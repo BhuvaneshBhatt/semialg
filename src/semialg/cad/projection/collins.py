@@ -6,6 +6,8 @@ from itertools import combinations
 
 import sympy as sp
 
+from ..performance_cache import PROJECTION_STEPS, PROJECTION_TOWERS, SQUAREFREE_BASES, STATS
+
 
 @dataclass(frozen=True)
 class ProjectionPolynomial:
@@ -72,6 +74,14 @@ def _poly_sort_key(poly: sp.Poly) -> tuple[str, tuple[str, ...]]:
     return (sp.sstr(sp.expand(poly.as_expr())), tuple(sp.sstr(gen) for gen in poly.gens))
 
 
+def _poly_cache_key(poly: sp.Poly) -> tuple[str, tuple[str, ...]]:
+    return (sp.srepr(sp.expand(poly.as_expr())), tuple(sp.srepr(gen) for gen in poly.gens))
+
+
+def _poly_family_cache_key(polys: Iterable[sp.Poly]) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    return tuple(sorted(_poly_cache_key(poly) for poly in polys))
+
+
 def normalize_poly(poly: sp.Poly) -> sp.Poly | None:
     if poly.is_zero:
         return None
@@ -119,6 +129,13 @@ def _squarefree_factors(poly: sp.Poly) -> tuple[sp.Poly, ...]:
 
 
 def squarefree_basis(polys: Iterable[sp.Poly]) -> tuple[sp.Poly, ...]:
+    polys = tuple(polys)
+    cache_key = _poly_family_cache_key(polys)
+    cached = SQUAREFREE_BASES.get(cache_key)
+    if cached is not None:
+        STATS.squarefree_hits += 1
+        return cached  # type: ignore[return-value]
+    STATS.squarefree_misses += 1
     seen: set[tuple[str, tuple[str, ...]]] = set()
     out: list[sp.Poly] = []
     for poly in polys:
@@ -127,7 +144,9 @@ def squarefree_basis(polys: Iterable[sp.Poly]) -> tuple[sp.Poly, ...]:
             if key not in seen:
                 seen.add(key)
                 out.append(factor)
-    return tuple(sorted(out, key=_poly_sort_key))
+    result = tuple(sorted(out, key=_poly_sort_key))
+    SQUAREFREE_BASES.put(cache_key, result)
+    return result
 
 
 def _as_poly(expr: sp.Expr, gens: Sequence[sp.Symbol]) -> sp.Poly | None:
@@ -247,6 +266,17 @@ def _resultant(
 def collins_proj_entries(
     polys: Sequence[sp.Poly], var: sp.Symbol, lower_gens: Sequence[sp.Symbol], level: int
 ) -> tuple[ProjectionPolynomial, ...]:
+    cache_key = (
+        _poly_family_cache_key(tuple(polys)),
+        sp.srepr(var),
+        tuple(sp.srepr(g) for g in lower_gens),
+        int(level),
+    )
+    cached = PROJECTION_STEPS.get(cache_key)
+    if cached is not None:
+        STATS.projection_step_hits += 1
+        return cached  # type: ignore[return-value]
+    STATS.projection_step_misses += 1
     basis = squarefree_basis(polys)
     active = [poly for poly in basis if poly.degree(var) > 0]
     inactive = [poly for poly in basis if poly.degree(var) == 0]
@@ -272,7 +302,9 @@ def collins_proj_entries(
         projected.extend(_discriminant(poly, var, lower_gens, level))
     for left, right in combinations(active, 2):
         projected.extend(_resultant(left, right, var, lower_gens, level))
-    return _dedupe_entries(projected)
+    result = _dedupe_entries(projected)
+    PROJECTION_STEPS.put(cache_key, result)
+    return result
 
 
 def collins_projection_step(
@@ -296,6 +328,18 @@ def build_collins_proj_set(
     vars_tuple = tuple(variables)
     if not vars_tuple:
         raise ValueError("at least one variable is required")
+    raw_exprs = tuple(
+        sp.expand(poly.as_expr() if isinstance(poly, sp.Poly) else poly) for poly in polys
+    )
+    tower_key = (
+        tuple(sp.srepr(expr) for expr in raw_exprs),
+        tuple(sp.srepr(v) for v in vars_tuple),
+    )
+    cached = PROJECTION_TOWERS.get(tower_key)
+    if cached is not None:
+        STATS.projection_tower_hits += 1
+        return cached  # type: ignore[return-value]
+    STATS.projection_tower_misses += 1
     current = squarefree_basis(
         poly if isinstance(poly, sp.Poly) else sp.Poly(sp.expand(poly), *vars_tuple)
         for poly in polys
@@ -320,9 +364,11 @@ def build_collins_proj_set(
         )
         for i in range(1, len(vars_tuple) + 1)
     )
-    return ProjectionTower(
+    result = ProjectionTower(
         variables=vars_tuple,
         levels=levels,
         original_polynomials=poly_levels[len(vars_tuple)],
         metadata={"projection": "collins", "complete": True, "provenance": True},
     )
+    PROJECTION_TOWERS.put(tower_key, result)
+    return result

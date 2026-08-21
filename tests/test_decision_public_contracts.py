@@ -154,3 +154,13 @@ def test_unsupported_sampling_strategy_fails_clearly() -> None:
     x = sp.symbols("x", real=True)
     with pytest.raises(ValueError, match="unsupported sample strategy"):
         sample_points(x >= 0, [x], strategy="not-a-strategy")
+
+
+def test_string_variable_reuses_unassumed_formula_symbol() -> None:
+    x = sp.Symbol("x")
+    result = is_satisfiable(x > 0, ["x"], return_result=True)
+    assert result.variables == (x,)
+    assert result.satisfiable
+    assert result.witness is not None
+    assert tuple(result.witness) == (x,)
+    assert result.witness[x] > 0

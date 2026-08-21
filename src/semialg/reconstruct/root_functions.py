@@ -1,48 +1,57 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 import sympy as sp
 
-root_of = sp.Function("root_of")
+from ..cad.bounds import AlgebraicRootFunction
 
 
-@dataclass(frozen=True)
-class RootFunction:
-    """A delineable real root of a fiber polynomial over a CAD base cell.
+class root_of(sp.Function):
+    """Opaque ordered real-root expression used in reconstructed formulas.
 
-    ``root_index`` is zero-based and follows the sorted real-root order used by
-    the lifting stack. The object is intentionally symbolic: it represents a
-    variable-dependent algebraic function, not an algebraic number obtained by
-    substituting a sample point into the base variables.
+    The fiber variable is binder-like: substitutions for that symbol must not
+    rewrite the polynomial inside the root selector.  Once all base parameters
+    are specialized and the polynomial is genuinely univariate in the fiber,
+    the node evaluates to the requested exact real root.
     """
 
-    polynomial: sp.Expr
-    fiber_var: sp.Symbol
-    root_index: int
-    base_vars: tuple[sp.Symbol, ...] = ()
-    base_index: tuple[int, ...] | None = None
+    nargs = 3
 
-    def as_expr(self) -> sp.Expr:
-        return root_function_expr(self.polynomial, self.fiber_var, self.root_index)
+    @classmethod
+    def eval(cls, polynomial, fiber_var, root_index):
+        polynomial = sp.sympify(polynomial)
+        fiber_var = sp.sympify(fiber_var)
+        root_index = sp.sympify(root_index)
+        if not isinstance(fiber_var, sp.Symbol) or root_index.is_Integer is not True:
+            return None
+        if not polynomial.free_symbols <= {fiber_var}:
+            return None
+        try:
+            roots = sp.real_roots(polynomial, fiber_var)
+        except (NotImplementedError, sp.PolynomialError, ValueError):
+            return None
+        index = int(root_index)
+        if 0 <= index < len(roots):
+            return roots[index]
+        return None
+
+    def _eval_is_real(self):
+        # By definition this selector denotes an ordered real root.
+        return True
+
+    def _eval_subs(self, old, new):
+        # Treat the fiber variable as bound within this root selector.
+        if old == self.args[1]:
+            return self
+        return super()._eval_subs(old, new)
+
+
+# ``RootFunction`` denotes the typed CAD root-function object; ``root_of`` is
+# only its exact symbolic presentation when no simpler expression is certified.
+RootFunction = AlgebraicRootFunction
 
 
 def root_function_expr(poly: sp.Expr, fiber_var: sp.Symbol, root_index: int) -> sp.Expr:
-    """Return an exact expression for a fiber root.
-
-    SymPy's ``RootOf`` is used for ordinary univariate polynomials. CAD also
-    needs to describe roots of fiber polynomials whose coefficients depend on
-    base variables. Those are algebraic functions over a base cell rather than
-    algebraic numbers, so they use the package-level ``root_of`` placeholder.
-    """
-
-    expanded = sp.expand(poly)
-    if expanded.free_symbols <= {fiber_var}:
-        try:
-            return sp.RootOf(expanded, sp.Integer(root_index - 1 if root_index > 0 else root_index))
-        except Exception:
-            pass
-    return root_of(expanded, fiber_var, sp.Integer(root_index))
+    return AlgebraicRootFunction(sp.expand(poly), fiber_var, int(root_index)).as_expr()
 
 
-__all__ = ["RootFunction", "root_function_expr", "root_of"]
+__all__ = ["AlgebraicRootFunction", "RootFunction", "root_function_expr", "root_of"]

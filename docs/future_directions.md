@@ -1,48 +1,52 @@
 # Future directions
 
-This page collects implementation directions that would substantially improve `semialg`.
+This page lists areas where the current algorithms can be extended or made more
+efficient.
 
-## Near-term
+## Engineering
 
-- Improve 2D CAD-to-vertical-bounds conversion.
-- Add a richer `boundary_description` return object.
-- Add `distance_to_region` and `nearest_point` using Lagrange multiplier and critical-point methods.
-- Add real-domain utilities:
-  - `function_domain`
-  - `is_real_valued`
-- Add better parameterized `Piecewise` or conditional answers.
-- Improve output formatting for intervals, unions, and semialgebraic pieces.
+- Migrate remaining public wrappers to the shared symbol resolver.
+- Narrow broad fallback handlers into explicit strategy, certification,
+  arithmetic, and resource-limit failures.
+- Reuse compatible sub-CADs and formula-truth caches within computation
+  contexts while preserving bounded memory use.
+- Improve formatting for intervals, unions, algebraic root functions, and
+  conditional results.
+- Expand API-level tests for less frequently used result classes and region
+  constructors.
 
-## Medium-term
+## CAD performance
 
-- Generalize intrinsic integration via parametrizations and metric Jacobians.
-- Add critical-point sampling.
-- Add roadmap-style connectivity algorithms.
-- Add exact algebraic sample-point infrastructure and stronger sign determination.
-- Improve radical conversion and exact ordering for algebraic functions.
+- Calibrate pilot-lifting and arithmetic-growth cost weights against a larger
+  benchmark corpus.
+- Propagate more logically necessary equational constraints through projection
+  chains.
+- Add stronger partial-CAD and truth-table-invariant CAD techniques.
+- Reuse compatible sub-CADs across related decision and certification calls.
+- Improve projection pruning and formula decomposition before full CAD.
 
-## Long-term
+## Parameter-dependent algorithms
 
-- Full exact global polynomial optimization.
-- SOS/SDP certificate backends.
-- Real radical and Positivstellensatz certificate verification.
-- RUR/geometric-resolution support for zero-dimensional systems.
-- Topological invariants in restricted cases:
-  - connected components;
-  - Euler characteristic;
-  - Betti numbers.
-- CAD-backed plotting and discretization tools inspired by symbolic region workflows.
+- Produce parameter-stratified integration results when the integrand or domain
+  changes topology across parameter cells.
+- Add on-demand elimination of exact first-order optimization and range
+  relations into quantifier-free formulas when affordable.
+- Improve normalization and merging of equivalent guarded results.
 
-## Region integration roadmap
+## Geometry and integration
 
-The most important region-integration target is a robust general pipeline:
+- Support regular CAD manifold strata that require alternative local charts.
+- Develop singular-stratum handling beyond isolated or lower-dimensional
+  singularities.
+- Add richer topology and roadmap algorithms together with selected topological
+  invariants.
+- Extend exact algebraic-function integration beyond direct SymPy evaluation.
 
-```text
-CAD decomposition
-  -> disjoint cell/stratum representation
-  -> vertical or parametric bounds
-  -> exact reduced integral pieces
-  -> symbolic/numeric evaluation
-```
+## Optimization and certificates
 
-The current implementation provides useful parts of this pipeline for standard shapes and common low-dimensional forms, but the complete general version remains future work.
+- Improve high-dimensional candidate generation and recursive boundary
+  optimization.
+- Add optional SOS/SDP certificate backends with exact certificate
+  verification.
+- Add real-radical and Positivstellensatz certificate verification where
+  useful.

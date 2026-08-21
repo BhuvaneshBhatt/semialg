@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 import sympy as sp
 
 from .sampling import sample_point
+from .symbol_resolution import normalize_variables as _resolve_symbols
+from .symbol_resolution import resolve_symbol
 
 
 @dataclass(frozen=True)
@@ -45,29 +47,33 @@ def _normalize_parameters(
     variable: sp.Symbol,
 ) -> tuple[sp.Symbol, ...]:
     if parameters is not None:
-        out: list[sp.Symbol] = []
-        seen: set[sp.Symbol] = set()
-        for param in parameters:
-            sym = sp.Symbol(param, real=True) if isinstance(param, str) else param
-            if sym != variable and sym not in seen:
-                out.append(sym)
-                seen.add(sym)
-        return tuple(out)
-    return tuple(sorted(expr.free_symbols - {variable}, key=lambda sym: sym.name))
+        return _resolve_symbols(
+            parameters,
+            context=(expr,),
+            append_context_symbols=False,
+            exclude=(variable,),
+        )
+    return tuple(sorted(expr.free_symbols - {variable}, key=lambda sym: (sym.name, sp.srepr(sym))))
 
 
 def _multiplicity_pattern(poly: sp.Poly) -> tuple[int, ...]:
-    roots = sp.roots(poly.as_expr(), poly.gens[0])
-    real_mults: list[int] = []
-    for root, mult in roots.items():
-        if root.is_real is True or bool(sp.N(sp.im(root), 80) == 0):
-            real_mults.append(int(mult))
-    if not real_mults:
-        try:
-            real_mults = [1 for _ in sp.real_roots(poly.as_expr())]
-        except Exception:
-            real_mults = []
-    return tuple(sorted(real_mults))
+    """Return real-root multiplicities using exact root isolation only."""
+
+    try:
+        roots = list(sp.real_roots(poly.as_expr()))
+    except (NotImplementedError, sp.PolynomialError, ValueError):
+        return ()
+    if not roots:
+        return ()
+    groups: list[tuple[sp.Expr, int]] = []
+    for root in roots:
+        for index, (known, multiplicity) in enumerate(groups):
+            if sp.simplify(root - known) == 0:
+                groups[index] = (known, multiplicity + 1)
+                break
+        else:
+            groups.append((root, 1))
+    return tuple(sorted(multiplicity for _, multiplicity in groups))
 
 
 def _unparameterized(expr: sp.Expr, variable: sp.Symbol) -> RootClassificationResult:
@@ -253,8 +259,8 @@ def classify_real_roots(
     sampled discriminant stratification for higher-degree parameter families.
     """
 
-    var = sp.Symbol(variable, real=True) if isinstance(variable, str) else variable
     expr = polynomial.as_expr() if isinstance(polynomial, sp.Poly) else sp.sympify(polynomial)
+    var = resolve_symbol(variable, context=(expr,))
     params = _normalize_parameters(parameters, expr, var)
     poly = sp.Poly(expr, var)
     if not params:

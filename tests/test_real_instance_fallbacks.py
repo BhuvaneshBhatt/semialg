@@ -75,3 +75,10 @@ def test_fast_factor_list_avoids_expanding_large_power():
     x, y = sp.symbols("x y")
     factors = fast_factor_list((x + y) ** 200)
     assert ((x + y), 200) in factors
+
+
+def test_coordinate_bounds_marks_unsupported_relations_incomplete():
+    x, y = sp.symbols("x y", real=True)
+    bounds = coordinate_bounds(x + y <= 1, (x, y))
+
+    assert not bounds.complete

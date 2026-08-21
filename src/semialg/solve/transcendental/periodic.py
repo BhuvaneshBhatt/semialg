@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import sympy as sp
 from sympy.calculus.util import periodicity
 
+from semialg.quantifiers import Exists
+
 from .state import TransProblemState
 
 
@@ -43,14 +45,31 @@ def compute_periodic_window(expr: sp.Expr, variable: sp.Symbol) -> PeriodicBound
     )
 
 
+def _period_index(variable: sp.Symbol, *expressions: sp.Expr) -> sp.Symbol:
+    """Create a non-colliding integer-index variable for periodic formulas."""
+
+    sympified = tuple(sp.sympify(expr) for expr in expressions)
+    occupied = set().union(*(expr.free_symbols for expr in sympified))
+    occupied.add(variable)
+    base = f"k_{variable.name}"
+    index = sp.Symbol(base, real=True)
+    counter = 1
+    while index in occupied:
+        index = sp.Symbol(f"{base}_{counter}", real=True)
+        counter += 1
+    return index
+
+
 def periodic_intv_form(
     variable: sp.Symbol,
     representative_formula: sp.Expr,
     period: sp.Expr,
 ) -> sp.Expr:
-    k = sp.Symbol(f"k_{variable.name}", integer=True)
-    lifted = sp.simplify(representative_formula.subs(variable, variable - k * period))
-    return sp.Exists(k, lifted)
+    """Repeat a representative Boolean formula over all integer periods."""
+
+    k = _period_index(variable, representative_formula, period)
+    shifted = representative_formula.subs(variable, variable - k * period)
+    return Exists(k, sp.And(sp.Contains(k, sp.S.Integers), shifted))
 
 
 def recon_periodic_represent(
@@ -61,9 +80,9 @@ def recon_periodic_represent(
     reps = tuple(sorted(set(sp.simplify(r) for r in representatives), key=sp.default_sort_key))
     if not reps:
         return sp.false
-    k = sp.Symbol(f"k_{variable.name}", integer=True)
-    clauses = [sp.Exists(k, sp.Eq(variable, sp.simplify(root + k * period))) for root in reps]
-    return sp.Or(*clauses) if len(clauses) > 1 else clauses[0]
+    k = _period_index(variable, period, *reps)
+    root_formula = sp.Or(*(sp.Eq(variable, sp.simplify(root + k * period)) for root in reps))
+    return Exists(k, sp.And(sp.Contains(k, sp.S.Integers), root_formula))
 
 
 def recon_periodic_domain(
@@ -73,18 +92,15 @@ def recon_periodic_domain(
 ) -> sp.Expr:
     if not true_intervals:
         return sp.false
-    k = sp.Symbol(f"k_{variable.name}", integer=True)
-    clauses = []
-    for a, b in true_intervals:
-        clauses.append(
-            sp.Exists(
-                k,
-                sp.And(
-                    variable > sp.simplify(a + k * period), variable < sp.simplify(b + k * period)
-                ),
-            )
-        )
-    return sp.Or(*clauses) if len(clauses) > 1 else clauses[0]
+    endpoints = tuple(value for interval in true_intervals for value in interval)
+    k = _period_index(variable, period, *endpoints)
+    representative = sp.simplify(variable - k * period)
+    clauses = [
+        sp.And(representative > sp.simplify(a), representative < sp.simplify(b))
+        for a, b in true_intervals
+    ]
+    interval_formula = sp.Or(*clauses) if len(clauses) > 1 else clauses[0]
+    return Exists(k, sp.And(sp.Contains(k, sp.S.Integers), interval_formula))
 
 
 def find_periodic_variables(state: TransProblemState) -> tuple[PeriodicBoundingResult, ...]:

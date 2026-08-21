@@ -4,12 +4,16 @@
 
 ## Range as a semialgebraic image
 
-The range of `f(x)` over a domain `C(x)` is represented by the formula:
+The range of `f(x)` over a domain `C(x)` is represented by an existential
+formula.  Programmatically, semialg represents it with `Exists`:
 
-```text
-exists x. C(x) and graph_f(x, t)
+```python
+from semialg import Exists
+
+image_relation = Exists(x, sp.And(C, graph_f))
 ```
 
+Mathematically this is $\exists x\,[C(x) \land \operatorname{graph}_f(x,t)]$,
 where `t` is a value symbol. Eliminating the original variables gives a condition on `t`.
 
 ```python
@@ -88,6 +92,27 @@ r.interval_count
 ```
 
 The primary answer is `range_condition`; `lower_bound` and `upper_bound` are summaries and may lose information for disconnected ranges.
+
+## Parameter-stratified ranges
+
+When an expression or its domain depends on symbolic parameters, pass `parameters=[...]` and `return_stratified=True`. The result is a `ParameterStratifiedResult`; each branch contains an exact `ParametricFunctionRangeResult` guarded by a semialgebraic parameter condition.
+
+```python
+a = sp.Symbol("a", real=True)
+
+r = function_range(
+    x + a,
+    sp.And(x >= 0, x <= 1),
+    [x],
+    parameters=[a],
+    return_stratified=True,
+)
+```
+
+`ParametricFunctionRangeResult.formula` is an exact first-order image relation.
+For new expression-facing code, wrap that relation with `Exists` (or use
+`apply_quantifiers`) when a single first-class quantified expression is desired;
+`quantifiers` remains available as the normalized internal elimination prefix. The relation is intentionally not forced through a second potentially expensive CAD elimination: `quantifier_free` is therefore `False`. This preserves an exact first-class parametric answer without making a range query unexpectedly perform a much larger QE problem.
 
 ## Limitations
 

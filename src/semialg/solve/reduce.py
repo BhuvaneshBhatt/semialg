@@ -15,6 +15,7 @@ from ..cad.constants import (
     PROJECTION_TTICAD,
 )
 from ..cad.reduced import decomp_form_reduced_safe
+from ..context import with_computation_context
 from ..formula import ParsedPrenexFormula, parse_formula, parse_quant_form_text, to_sympy
 from ..model import ProjectionConfig
 from ..planner.select import select_strat_for_form
@@ -146,6 +147,7 @@ def _safe_strategy_selection(parsed: ParsedPrenexFormula, fallback_vars: Sequenc
 
 
 def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | None = None):
+    """Dispatch real quantifier elimination through the configured exact strategy stack."""
     selection = None
     vars_ = parsed.vars
     strategy_name = (strategy or "collins").lower()
@@ -461,6 +463,7 @@ def _normalize_reduced_real_formula(
     )
 
 
+@with_computation_context
 def reduce_formula(
     parsed: ParsedPrenexFormula,
     config=None,

@@ -5,6 +5,9 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
+from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
+from ._common import expr_complexity as _expr_complexity
+from .formula_utils import conjuncts as _conjuncts
 from .output_normalization import CanonIntSolveResult, canon_int_result
 
 
@@ -19,17 +22,6 @@ class IntLinElimCand:
     divisibility_condition: sp.Expr
     substituted_atoms: tuple[sp.Expr, ...]
     score: tuple[int, int, str] = field(default_factory=tuple)
-
-
-def _conjuncts(expr: sp.Expr) -> list[sp.Expr]:
-    return list(expr.args) if isinstance(expr, sp.And) else [expr]
-
-
-def _expr_complexity(expr: sp.Expr) -> int:
-    try:
-        return int(sp.count_ops(expr, visual=False))
-    except Exception:
-        return len(sp.srepr(expr))
 
 
 def _candidate_score(
@@ -53,7 +45,7 @@ def enum_int_lin_elim_cands(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> li
         for var in reversed(variables):
             try:
                 poly = sp.Poly(diff, var)
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 continue
             if poly.degree() != 1:
                 continue
@@ -66,7 +58,7 @@ def enum_int_lin_elim_cands(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> li
             replacement = sp.simplify(numerator / denominator)
             try:
                 divisibility = sp.Eq(sp.Mod(numerator, denominator), 0)
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 divisibility = sp.Eq(sp.Mod(numerator, sp.Abs(denominator)), 0)
             rest = [a for a in conjuncts if a is not atom]
             substituted = tuple(sp.simplify(a.subs(var, replacement)) for a in rest)
@@ -155,7 +147,7 @@ def _terminal_integer_solve(
                     provenance=["linear_recursion"],
                     metadata={"solset": solset},
                 )
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
         return canon_int_result(
             (var,),

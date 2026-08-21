@@ -112,7 +112,8 @@ def _factorized_formula(
     if direct is not None:
         return direct
 
-    # Try one-variable case split: x in S_i && formula_i(rest)
+    # Splitting one quantified variable into residue classes can expose a
+    # smaller formula in the remaining variables.
     best = None
     for i, var in enumerate(variables):
         buckets = {}
@@ -342,7 +343,8 @@ def _apply_blocks_power(
     current = free_variables + tuple(v for block in blocks for v in block.variables)
     block_meta = []
 
-    # Fast path for a single uniform quantifier block
+    # A uniform quantifier block can be eliminated without rebuilding nested
+    # block structure.
     if len(blocks) == 1:
         block = blocks[0]
         try:

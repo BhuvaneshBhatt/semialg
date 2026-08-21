@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from .formula_utils import conjuncts as _conjuncts
+
 
 @dataclass(frozen=True)
 class LinDivisReduction:
@@ -14,10 +16,6 @@ class LinDivisReduction:
     replacement: sp.Expr
     divisibility_condition: sp.Expr
     reduced_formula: sp.Expr
-
-
-def _conjuncts(expr: sp.Expr) -> list[sp.Expr]:
-    return list(expr.args) if isinstance(expr, sp.And) else [expr]
 
 
 def detect_lin_reduction(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> LinDivisReduction | None:

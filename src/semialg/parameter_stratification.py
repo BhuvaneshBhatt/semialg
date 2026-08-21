@@ -7,35 +7,12 @@ import sympy as sp
 from sympy.logic.boolalg import Boolean
 
 from .cad.cells import CylindricalSolution, extract_cylindrical_solution
+from .conditional import ConditionalBranch, ParameterStratifiedResult, conditional_result
+from .normalization import normalize_formula as _normalize_formula
+from .normalization import normalize_variables as _normalize_variables
 from .parameters import solvability_conditions
 
 FormulaLike = sp.Expr | Boolean | bool
-
-
-def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
-    return sp.Symbol(var, real=True) if isinstance(var, str) else var
-
-
-def _normalize_formula(formula: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    if isinstance(formula, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(piece) for piece in formula]
-        return sp.And(*pieces) if pieces else sp.true
-    if formula is True:
-        return sp.true
-    if formula is False:
-        return sp.false
-    return formula if isinstance(formula, (sp.Basic, Boolean)) else sp.sympify(formula)
-
-
-def _normalize_symbols(symbols: Sequence[sp.Symbol | str] | None) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for item in symbols or ():
-        sym = _as_real_symbol(item)
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -97,6 +74,27 @@ class ParameterizedCylindricalDecomposition:
     def conditions(self) -> tuple[sp.Expr, ...]:
         return tuple(stratum.condition for stratum in self.strata)
 
+    def as_stratified_result(self) -> ParameterStratifiedResult:
+        """Expose the parameter cells themselves as certified guarded values.
+
+        The representative fiber ``solution`` inside each ``ParameterStratum``
+        remains sample data; this method does not claim that sampled fiber is
+        symbolically constant throughout the stratum.
+        """
+
+        branches = [ConditionalBranch(stratum.condition, stratum) for stratum in self.strata]
+        return conditional_result(
+            self.parameters,
+            branches,
+            coverage_condition=self.parameter_condition,
+            complete=True,
+            disjoint=bool(self.parameter_space_solution is not None),
+            certified=bool(self.parameter_space_solution is not None),
+            method=f"{self.method}+conditional",
+            diagnostics={"stratum_count": len(self.strata)},
+            normalize=False,
+        )
+
 
 def parameterized_cylindrical_decomposition(
     constraints: FormulaLike | Iterable[FormulaLike],
@@ -108,15 +106,20 @@ def parameterized_cylindrical_decomposition(
 ) -> ParameterizedCylindricalDecomposition:
     """Return a CAD-style parameter stratification for a semialgebraic system.
 
-    This is a conservative conservative parameterized solving path. It computes
+    This is a conservative parameterized solving path. It computes
     the parameter-space feasibility condition, decomposes that condition into
     cylindrical parameter cells, and optionally attaches a representative
     cylindrical solution for the fiber over each parameter sample.
     """
 
     expr = _normalize_formula(constraints)
-    vars_ = _normalize_symbols(variables)
-    params = _normalize_symbols(parameters)
+    params = _normalize_variables(parameters, expr, append_context_symbols=False)
+    vars_ = _normalize_variables(
+        variables,
+        expr,
+        append_context_symbols=False,
+        exclude=params,
+    )
     if not params:
         raise ValueError("parameterized_cylindrical_decomposition requires at least one parameter")
     param_condition = solvability_conditions(expr, vars_, params, domain=domain)
@@ -129,11 +132,12 @@ def parameterized_cylindrical_decomposition(
         parameter_solution = extract_cylindrical_solution(
             param_condition, params, selected_only=True
         )
-    except Exception:
+    except (NotImplementedError, ValueError, TypeError, ArithmeticError, sp.PolynomialError):
         parameter_solution = None
 
     if parameter_solution is None or not parameter_solution.cells:
-        # Fallback: one coarse stratum described by the full parameter condition.
+        # Keep the full parameter condition as one stratum when finer exact
+        # decomposition is unavailable.
         sample = {param: sp.Integer(0) for param in params}
         specialized = sp.simplify(expr.subs(sample))
         fiber_solution = None
@@ -142,7 +146,13 @@ def parameterized_cylindrical_decomposition(
                 fiber_solution = extract_cylindrical_solution(
                     specialized, vars_, selected_only=True
                 )
-            except Exception:
+            except (
+                NotImplementedError,
+                ValueError,
+                TypeError,
+                ArithmeticError,
+                sp.PolynomialError,
+            ):
                 fiber_solution = None
         strata.append(
             ParameterStratum(

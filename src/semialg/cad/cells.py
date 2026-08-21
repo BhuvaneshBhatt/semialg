@@ -7,8 +7,19 @@ import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
 from ..decomposition.cylindrical import CADResult, CellSet, cad
-from ..implicit_utils import VerticalBoundCell2D, _normalize_formula, _normalize_variables
-from ..reconstruct.cylindrical import path_condition, section_value_expr
+from ..exact_arithmetic import compare_exact_reals
+from ..implicit_geometry import VerticalBoundCell2D, _normalize_formula, _normalize_variables
+from ..reconstruct.cylindrical import path_condition, section_value_bound
+from ..reconstruct.radicals import fiber_root_candidates
+from .bounds import (
+    AlgebraicRootFunction,
+    CADBound,
+    CertifiedRootComparison,
+    DelineabilityCertificate,
+    RootOrderCertificate,
+    as_cad_bound,
+    bound_expr,
+)
 from .lifting.stack import CADCell
 
 
@@ -24,6 +35,12 @@ class StructuredCADLevel:
     sample: sp.Expr
     condition: sp.Expr
     index: tuple[int, ...]
+    lower_bound: CADBound | None = None
+    upper_bound: CADBound | None = None
+    lower_closed: bool = False
+    upper_closed: bool = False
+    delineability: DelineabilityCertificate | None = None
+    root_order: RootOrderCertificate | None = None
 
     @property
     def is_section(self) -> bool:
@@ -130,31 +147,185 @@ def _section_at_position(
     return None
 
 
-def _level_bounds(
-    level_cell: CADCell, variable: sp.Symbol, cells_by_level: Mapping[int, Sequence[CADCell]]
-) -> tuple[sp.Expr, sp.Expr]:
+def _section_delineability_certificate(
+    section: CADCell,
+    variable: sp.Symbol,
+    variables: Sequence[sp.Symbol],
+    cells_by_level: Mapping[int, Sequence[CADCell]],
+    *,
+    sign_invariant: bool = True,
+) -> DelineabilityCertificate:
+    """Build a certificate that identifies and orders a CAD section over its base cell."""
+    poly = sp.sympify(section.section_polynomial)
+    base_subs = {
+        variables[i]: sample_to_expr(section.sample[i])
+        for i in range(min(section.level - 1, len(variables)))
+    }
+    sample_subs = dict(base_subs)
+    sample_subs[variable] = sample_to_expr(section.sample[section.level - 1])
+    sample_root_verified = bool(sp.simplify(poly.subs(sample_subs)) == 0)
+    local_root_index = 0
+    try:
+        specialized = sp.Poly(sp.expand(poly.subs(base_subs)), variable, domain="EX")
+        roots = tuple(sp.real_roots(specialized.as_expr()))
+        sample_value = sample_to_expr(section.sample[section.level - 1])
+        matches = [i for i, root in enumerate(roots) if sp.simplify(root - sample_value) == 0]
+        if matches:
+            local_root_index = matches[0]
+    except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+        local_root_index = 0
+    siblings = _siblings(cells_by_level, section.level, section.parent_index)
+    sections = [cell for cell in siblings if cell.kind == "section"]
+    ordered = [cell.root_index for cell in sections]
+    stack_order_verified = all(idx is not None for idx in ordered) and tuple(ordered) == tuple(
+        sorted(ordered)
+    )
+
+    radical_branch_index = None
+    representation_verified = False
+    try:
+        candidates = fiber_root_candidates(poly, variable, ordered=False)
+        sample_value = sample_to_expr(section.sample[section.level - 1])
+        matches = []
+        for idx, candidate in enumerate(candidates):
+            specialized_candidate = sp.simplify(candidate.subs(base_subs))
+            if sp.simplify(specialized_candidate - sample_value) == 0:
+                matches.append(idx)
+        if len(matches) == 1:
+            radical_branch_index = matches[0]
+            # CAD delineability plus sign-invariance prevents a branch identity
+            # from swapping without a projection/root event inside the base cell.
+            representation_verified = bool(
+                sign_invariant and stack_order_verified and sample_root_verified
+            )
+    except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+        radical_branch_index = None
+        representation_verified = False
+
+    regular_section_verified = False
+    try:
+        fiber_derivative = sp.diff(poly, variable).subs(sample_subs)
+        sample_deriv_nonzero = bool(sp.simplify(fiber_derivative) != 0)
+        # In a certified CAD lifting stack, delineability plus invariant root
+        # order prevents a simple section from becoming multiple without a
+        # projection event.  The nonzero sample derivative therefore upgrades
+        # to a cell-wide regularity certificate only when the CAD certificate
+        # itself is valid; it is not treated as a stand-alone proof.
+        regular_section_verified = bool(
+            sign_invariant
+            and stack_order_verified
+            and sample_root_verified
+            and sample_deriv_nonzero
+        )
+    except (ValueError, TypeError, NotImplementedError):
+        regular_section_verified = False
+
+    return DelineabilityCertificate(
+        polynomial=poly,
+        fiber_variable=variable,
+        root_index=int(local_root_index),
+        base_variables=tuple(variables[: section.level - 1]),
+        base_index=section.parent_index,
+        section_index=section.index,
+        defining_polynomial_key=section.defining_polynomial_key,
+        stack_root_index=section.root_index,
+        sign_invariant=sign_invariant,
+        stack_order_verified=stack_order_verified,
+        sample_root_verified=sample_root_verified,
+        sample_root_value=sample_to_expr(section.sample[section.level - 1]),
+        radical_branch_index=radical_branch_index,
+        representation_verified=representation_verified,
+        regular_section_verified=regular_section_verified,
+        notes=("derived from CAD lifting stack order",),
+    )
+
+
+def _root_order_certificate(
+    level_cell: CADCell,
+    variable: sp.Symbol,
+    cells_by_level: Mapping[int, Sequence[CADCell]],
+) -> RootOrderCertificate | None:
+    if level_cell.kind != "sector":
+        return None
+    left = _section_at_position(
+        cells_by_level, level_cell.level, level_cell.parent_index, level_cell.stack_position - 1
+    )
+    right = _section_at_position(
+        cells_by_level, level_cell.level, level_cell.parent_index, level_cell.stack_position + 1
+    )
+    lower_idx = None if left is None else left.root_index
+    upper_idx = None if right is None else right.root_index
+    adjacent = True
+    if lower_idx is not None and upper_idx is not None:
+        adjacent = upper_idx == lower_idx + 1
+    order_verified = True
+    if left is not None and right is not None:
+        lv = sample_to_expr(left.sample[level_cell.level - 1])
+        rv = sample_to_expr(right.sample[level_cell.level - 1])
+        try:
+            order_verified = compare_exact_reals(rv, lv) > 0
+        except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            order_verified = False
+    return RootOrderCertificate(
+        fiber_variable=variable,
+        base_index=level_cell.parent_index,
+        lower_root_index=lower_idx,
+        upper_root_index=upper_idx,
+        adjacent=adjacent,
+        order_verified=order_verified,
+        notes=("adjacent section roots in lifting stack",),
+    )
+
+
+def _level_typed_bounds(
+    level_cell: CADCell,
+    variable: sp.Symbol,
+    variables: Sequence[sp.Symbol],
+    cells_by_level: Mapping[int, Sequence[CADCell]],
+    *,
+    sign_invariant: bool = True,
+) -> tuple[CADBound, CADBound, DelineabilityCertificate | None, RootOrderCertificate | None]:
+    base_vars = tuple(variables[: level_cell.level - 1])
     if level_cell.kind == "section":
-        value = section_value_expr(level_cell, variable)
-        return sp.simplify(value), sp.simplify(value)
+        cert = _section_delineability_certificate(
+            level_cell, variable, variables, cells_by_level, sign_invariant=sign_invariant
+        )
+        bound = section_value_bound(
+            level_cell, variable, base_variables=base_vars, certificate=cert, closed=True
+        )
+        return bound, bound, cert, None
     left_section = _section_at_position(
         cells_by_level, level_cell.level, level_cell.parent_index, level_cell.stack_position - 1
     )
     right_section = _section_at_position(
         cells_by_level, level_cell.level, level_cell.parent_index, level_cell.stack_position + 1
     )
+    left_cert = None
+    right_cert = None
     if left_section is not None:
-        lower = section_value_expr(left_section, variable)
+        left_cert = _section_delineability_certificate(
+            left_section, variable, variables, cells_by_level, sign_invariant=sign_invariant
+        )
+        lower = section_value_bound(
+            left_section, variable, base_variables=base_vars, certificate=left_cert, closed=False
+        )
     elif level_cell.lower_bound is not None:
-        lower = sample_to_expr(level_cell.lower_bound)
+        lower = as_cad_bound(level_cell.lower_bound, closed=False)
     else:
-        lower = -sp.oo
+        lower = as_cad_bound(-sp.oo, closed=False)
     if right_section is not None:
-        upper = section_value_expr(right_section, variable)
+        right_cert = _section_delineability_certificate(
+            right_section, variable, variables, cells_by_level, sign_invariant=sign_invariant
+        )
+        upper = section_value_bound(
+            right_section, variable, base_variables=base_vars, certificate=right_cert, closed=False
+        )
     elif level_cell.upper_bound is not None:
-        upper = sample_to_expr(level_cell.upper_bound)
+        upper = as_cad_bound(level_cell.upper_bound, closed=False)
     else:
-        upper = sp.oo
-    return sp.simplify(lower), sp.simplify(upper)
+        upper = as_cad_bound(sp.oo, closed=False)
+    cert = left_cert or right_cert
+    return lower, upper, cert, _root_order_certificate(level_cell, variable, cells_by_level)
 
 
 def _level_condition(
@@ -176,13 +347,17 @@ def _structured_cell_from_leaf(
     cells_by_level: Mapping[int, Sequence[CADCell]],
     *,
     selected: bool = True,
+    sign_invariant: bool = True,
 ) -> StructuredCADCell:
     levels: list[StructuredCADLevel] = []
     sample_map: dict[sp.Symbol, sp.Expr] = {}
     for level, variable in enumerate(variables, start=1):
         prefix = leaf.index[:level]
         level_cell = next(cell for cell in cells_by_level[level] if cell.index == prefix)
-        lower, upper = _level_bounds(level_cell, variable, cells_by_level)
+        lower_bound, upper_bound, delineability, root_order = _level_typed_bounds(
+            level_cell, variable, variables, cells_by_level, sign_invariant=sign_invariant
+        )
+        lower, upper = bound_expr(lower_bound), bound_expr(upper_bound)
         sample = sample_to_expr(level_cell.sample[level - 1])
         condition = _level_condition(variable, level_cell.kind, lower, upper)
         sample_map[variable] = sample
@@ -196,6 +371,12 @@ def _structured_cell_from_leaf(
                 sample=sample,
                 condition=condition,
                 index=level_cell.index,
+                lower_bound=lower_bound,
+                upper_bound=upper_bound,
+                lower_closed=level_cell.kind == "section",
+                upper_closed=level_cell.kind == "section",
+                delineability=delineability,
+                root_order=root_order,
             )
         )
     _CELLS_BY_LEVEL_REGISTRY[id(leaf)] = cells_by_level
@@ -217,10 +398,9 @@ def extract_structured_cad_cells(
 ) -> StructuredCADCellDecomposition:
     """Extract structured cells from a CAD result or from a formula.
 
-    Unlike the earlier vertical-slice parser, this function uses the package's
-    actual CAD lifting data. It therefore works for arbitrary formulas that the
-    complete CAD engine can decompose, including algebraic stack bounds such as
-    ``-sqrt(x) < y < sqrt(x)`` produced by a cell over ``y**2 - x``.
+    The representation is built directly from CAD lifting data and therefore
+    supports algebraic stack bounds such as ``-sqrt(x) < y < sqrt(x)`` from a
+    cell over ``y**2 - x``.
     """
 
     if isinstance(condition_or_cad, CADResult):
@@ -246,9 +426,14 @@ def extract_structured_cad_cells(
     else:
         leaves = tuple(result.cad.cells_by_level.get(len(vars_), ()))
     selected_indices = {cell.index for cell in result.cell_set.cells}
+    sign_invariance = result.cad.verify_sign_invariance()
     structured = tuple(
         _structured_cell_from_leaf(
-            cell, vars_, result.cad.cells_by_level, selected=cell.index in selected_indices
+            cell,
+            vars_,
+            result.cad.cells_by_level,
+            selected=cell.index in selected_indices,
+            sign_invariant=sign_invariance.ok,
         )
         for cell in leaves
     )
@@ -273,6 +458,20 @@ class CylindricalCoordinateConstraint:
     upper: sp.Expr
     sample: sp.Expr
     index: tuple[int, ...]
+    lower_bound: CADBound | None = None
+    upper_bound: CADBound | None = None
+    lower_closed: bool = False
+    upper_closed: bool = False
+    delineability: DelineabilityCertificate | None = None
+    root_order: RootOrderCertificate | None = None
+
+    @property
+    def typed_lower(self) -> CADBound:
+        return self.lower_bound or as_cad_bound(self.lower, closed=self.lower_closed)
+
+    @property
+    def typed_upper(self) -> CADBound:
+        return self.upper_bound or as_cad_bound(self.upper, closed=self.upper_closed)
 
     @property
     def is_section(self) -> bool:
@@ -287,7 +486,20 @@ class CylindricalCoordinateConstraint:
         return 0 if self.is_section else 1
 
     def as_formula(self, *, closed: bool = False) -> sp.Expr:
-        return _level_condition(self.variable, self.kind, self.lower, self.upper, closed=closed)
+        if self.is_section:
+            return sp.Eq(self.variable, self.lower)
+        parts: list[sp.Expr] = []
+        if self.lower != -sp.oo:
+            lower_closed = closed or self.lower_closed
+            parts.append(
+                self.variable >= self.lower if lower_closed else self.variable > self.lower
+            )
+        if self.upper != sp.oo:
+            upper_closed = closed or self.upper_closed
+            parts.append(
+                self.variable <= self.upper if upper_closed else self.variable < self.upper
+            )
+        return sp.And(*parts) if parts else sp.true
 
     def as_limit(self) -> tuple[sp.Symbol, sp.Expr, sp.Expr]:
         """Return ``(variable, lower, upper)`` for iterated-integral style use."""
@@ -336,9 +548,39 @@ class CylindricalSolutionCell:
         return {sym: sp.simplify(value) for sym, value in self.sample.items()}
 
     def iterated_limits(self) -> tuple[tuple[sp.Symbol, sp.Expr, sp.Expr], ...]:
-        """Return nested ``(var, lower, upper)`` limits in CAD variable order."""
+        """Return nested expression limits in CAD variable order."""
 
         return tuple(level.as_limit() for level in self.levels)
+
+    def cylindrical_bounds(self) -> tuple[tuple[sp.Symbol, CADBound, CADBound], ...]:
+        """Return typed nested bounds preserving algebraic root functions."""
+
+        return tuple(
+            (level.variable, level.typed_lower, level.typed_upper) for level in self.levels
+        )
+
+    def verify_bounds(self):
+        from .bounds import verify_cad_cell_bounds
+
+        return verify_cad_cell_bounds(self)
+
+
+@dataclass(frozen=True)
+class CylindricalDecompositionCertificate:
+    """Certificate that solution cells form a complete disjoint decomposition."""
+
+    coverage_verified: bool
+    pairwise_disjoint: bool
+    cells_verified: bool
+    source: str = "unknown"
+    notes: tuple[str, ...] = ()
+
+    @property
+    def certified(self) -> bool:
+        return self.coverage_verified and self.pairwise_disjoint and self.cells_verified
+
+    def verify(self) -> bool:
+        return self.certified
 
 
 @dataclass(frozen=True)
@@ -349,6 +591,7 @@ class CylindricalSolution:
     cells: tuple[CylindricalSolutionCell, ...]
     formula: sp.Expr
     source_decomposition: StructuredCADCellDecomposition | None = None
+    decomposition_cert: CylindricalDecompositionCertificate | None = None
 
     @property
     def dimension(self) -> int | None:
@@ -391,6 +634,12 @@ def _cylindrical_cell_from_structured(cell: StructuredCADCell) -> CylindricalSol
             upper=level.upper,
             sample=level.sample,
             index=level.index,
+            lower_bound=level.lower_bound,
+            upper_bound=level.upper_bound,
+            lower_closed=level.lower_closed,
+            upper_closed=level.upper_closed,
+            delineability=level.delineability,
+            root_order=level.root_order,
         )
         for level in cell.levels
     )
@@ -409,11 +658,22 @@ def cylindrical_solution_from_structured(
 ) -> CylindricalSolution:
     """Convert structured CAD cells to the public cylindrical solution form."""
 
+    cells = tuple(_cylindrical_cell_from_structured(cell) for cell in decomposition.cells)
+    from .bounds import verify_cad_cell_bounds
+
+    cert = CylindricalDecompositionCertificate(
+        coverage_verified=True,
+        pairwise_disjoint=True,
+        cells_verified=all(verify_cad_cell_bounds(cell).verify() for cell in cells),
+        source="cad",
+        notes=("CAD leaf cells form a cylindrical partition of the selected formula",),
+    )
     return CylindricalSolution(
         variables=decomposition.variables,
-        cells=tuple(_cylindrical_cell_from_structured(cell) for cell in decomposition.cells),
+        cells=cells,
         formula=decomposition.formula,
         source_decomposition=decomposition,
+        decomposition_cert=cert,
     )
 
 
@@ -431,6 +691,22 @@ def extract_cylindrical_solution(
     from levels ``< k``.
     """
 
+    if not isinstance(condition_or_cad, (CADResult, CellSet)):
+        formula = _normalize_formula(condition_or_cad)
+        vars_ = (
+            _normalize_variables(variables, formula)
+            if variables is not None
+            else tuple(sorted(formula.free_symbols, key=lambda symbol: symbol.name))
+        )
+        explicit = extract_explicit_cylindrical_solution(formula, vars_)
+        if explicit is not None and any(
+            isinstance(bound, AlgebraicRootFunction)
+            for cell in explicit.cells
+            for level in cell.levels
+            for bound in (level.lower_bound, level.upper_bound)
+            if bound is not None
+        ):
+            return explicit
     decomp = extract_structured_cad_cells(condition_or_cad, variables, selected_only=selected_only)
     return cylindrical_solution_from_structured(decomp)
 
@@ -453,7 +729,7 @@ def _sample_between_bounds(
 
 def _relational_bound_for_variable(
     atom: sp.Expr, variable: sp.Symbol
-) -> tuple[str, sp.Expr] | None:
+) -> tuple[str, sp.Expr, bool] | None:
     """Return ("lower"|"upper"|"equal", bound) for simple explicit atoms."""
 
     if not isinstance(atom, sp.core.relational.Relational):
@@ -461,18 +737,18 @@ def _relational_bound_for_variable(
     lhs, rhs = atom.lhs, atom.rhs
     if lhs == variable and not rhs.has(variable):
         if isinstance(atom, (sp.GreaterThan, sp.StrictGreaterThan)):
-            return ("lower", rhs)
+            return ("lower", rhs, isinstance(atom, sp.GreaterThan))
         if isinstance(atom, (sp.LessThan, sp.StrictLessThan)):
-            return ("upper", rhs)
+            return ("upper", rhs, isinstance(atom, sp.LessThan))
         if isinstance(atom, sp.Equality):
-            return ("equal", rhs)
+            return ("equal", rhs, True)
     if rhs == variable and not lhs.has(variable):
         if isinstance(atom, (sp.GreaterThan, sp.StrictGreaterThan)):
-            return ("upper", lhs)
+            return ("upper", lhs, isinstance(atom, sp.GreaterThan))
         if isinstance(atom, (sp.LessThan, sp.StrictLessThan)):
-            return ("lower", lhs)
+            return ("lower", lhs, isinstance(atom, sp.LessThan))
         if isinstance(atom, sp.Equality):
-            return ("equal", lhs)
+            return ("equal", lhs, True)
     return None
 
 
@@ -509,12 +785,277 @@ def _merge_upper(a: sp.Expr, b: sp.Expr) -> sp.Expr:
     return sp.Min(a, b)
 
 
+def _compare_expr(a: sp.Expr, b: sp.Expr) -> int | None:
+    """Return -1/0/1 when ``a`` is provably below/equal/above ``b``."""
+
+    diff = sp.simplify(sp.sympify(a) - sp.sympify(b))
+    if diff == 0:
+        return 0
+    if diff.is_positive is True:
+        return 1
+    if diff.is_negative is True:
+        return -1
+    return None
+
+
+def _affine_extreme_over_levels(
+    expr: sp.Expr,
+    levels: Sequence[CylindricalCoordinateConstraint],
+    *,
+    minimum: bool,
+) -> sp.Expr | None:
+    """Return an exact affine extreme over an established triangular cell.
+
+    The routine deliberately handles only expressions affine in each previous
+    coordinate with a coefficient whose sign is already decidable.  It is used
+    by the explicit cylindrical fast path to prove dependent bounds such as
+    ``0 <= x + y`` from earlier bounds ``x >= 0`` and ``y >= 0``.  Unsupported
+    nonlinear or sign-indeterminate cases return ``None`` and therefore fall
+    back to full CAD.
+    """
+
+    value = sp.expand(sp.sympify(expr))
+    for level in reversed(tuple(levels)):
+        var = level.variable
+        if var not in value.free_symbols:
+            continue
+        try:
+            poly = sp.Poly(value, var, domain="EX")
+        except sp.PolynomialError:
+            return None
+        if poly.degree() > 1:
+            return None
+        coeff = sp.simplify(poly.coeff_monomial(var))
+        if var in coeff.free_symbols:
+            return None
+        sign = _compare_expr(coeff, sp.Integer(0))
+        if sign is None:
+            return None
+        if sign == 0:
+            value = sp.simplify(value.subs(var, 0))
+            continue
+        choose_lower = (minimum and sign > 0) or (not minimum and sign < 0)
+        bound = level.lower if choose_lower else level.upper
+        if bound in (-sp.oo, sp.oo):
+            return None
+        value = sp.expand(value.subs(var, bound))
+    return sp.simplify(value)
+
+
+def _compare_over_base_cell(
+    left: sp.Expr,
+    right: sp.Expr,
+    levels: Sequence[CylindricalCoordinateConstraint],
+) -> int | None:
+    """Compare bounds exactly, using prior triangular bounds when needed."""
+
+    direct = _compare_expr(left, right)
+    if direct is not None:
+        return direct
+    diff = sp.expand(sp.sympify(right) - sp.sympify(left))
+    minimum = _affine_extreme_over_levels(diff, levels, minimum=True)
+    if minimum is not None:
+        min_cmp = _compare_expr(minimum, 0)
+        if min_cmp is not None and min_cmp >= 0:
+            maximum = _affine_extreme_over_levels(diff, levels, minimum=False)
+            if maximum is not None and _compare_expr(maximum, 0) == 0:
+                return 0
+            return -1
+    maximum = _affine_extreme_over_levels(diff, levels, minimum=False)
+    if maximum is not None:
+        max_cmp = _compare_expr(maximum, 0)
+        if max_cmp is not None and max_cmp < 0:
+            return 1
+    return None
+
+
+def _cell_pair_provably_disjoint(a: CylindricalSolutionCell, b: CylindricalSolutionCell) -> bool:
+    # A single coordinate separation is enough.  This deliberately declines
+    # dependent-bound cases whose separation is not globally provable.
+    for la, lb in zip(a.levels, b.levels, strict=True):
+        if la.variable != lb.variable:
+            return False
+        cmp_ab = _compare_expr(la.upper, lb.lower)
+        if cmp_ab == -1 or (cmp_ab == 0 and not (la.upper_closed and lb.lower_closed)):
+            return True
+        cmp_ba = _compare_expr(lb.upper, la.lower)
+        if cmp_ba == -1 or (cmp_ba == 0 and not (lb.upper_closed and la.lower_closed)):
+            return True
+    return False
+
+
+def _cells_pairwise_disjoint(cells: Sequence[CylindricalSolutionCell]) -> bool:
+    return all(
+        _cell_pair_provably_disjoint(cells[i], cells[j])
+        for i in range(len(cells))
+        for j in range(i + 1, len(cells))
+    )
+
+
+def _coefficient_sign_over_levels(
+    expr: sp.Expr,
+    levels: Sequence[CylindricalCoordinateConstraint],
+) -> int | None:
+    """Prove the sign of an expression over an established triangular base cell.
+
+    The helper is intentionally conservative.  It first uses SymPy's exact sign
+    information, then the existing affine-extreme machinery.  Unsupported
+    nonlinear coefficient dependencies are declined rather than approximated.
+    """
+
+    value = sp.simplify(sp.sympify(expr))
+    direct = _compare_expr(value, sp.Integer(0))
+    if direct is not None:
+        return direct
+    minimum = _affine_extreme_over_levels(value, levels, minimum=True)
+    maximum = _affine_extreme_over_levels(value, levels, minimum=False)
+    if minimum is not None:
+        minimum_sign = _compare_expr(minimum, sp.Integer(0))
+        if minimum_sign is not None and minimum_sign >= 0:
+            if maximum is not None and _compare_expr(maximum, sp.Integer(0)) == 0:
+                return 0
+            return 1
+    if maximum is not None:
+        maximum_sign = _compare_expr(maximum, sp.Integer(0))
+        if maximum_sign is not None and maximum_sign <= 0:
+            if minimum is not None and _compare_expr(minimum, sp.Integer(0)) == 0:
+                return 0
+            return -1
+    return None
+
+
+def _global_monotonicity_sign(
+    polynomial: sp.Poly,
+    variable: sp.Symbol,
+    levels: Sequence[CylindricalCoordinateConstraint],
+) -> int | None:
+    """Return ``1``/``-1`` for globally increasing/decreasing odd polynomials.
+
+    We only certify derivatives whose nonzero powers are even and whose
+    coefficients have a common proven sign over the preceding cylindrical
+    levels.  This covers forms such as ``z**3 + x*z + y`` on ``x >= 0`` while
+    deliberately declining sign-indefinite or more complicated cases.
+    """
+
+    if polynomial.degree() < 1 or polynomial.degree() % 2 == 0:
+        return None
+    derivative = sp.Poly(sp.diff(polynomial.as_expr(), variable), variable, domain="EX")
+    if derivative.is_zero:
+        return None
+    signs: list[int] = []
+    for (power,), coefficient in derivative.terms():
+        if power % 2:
+            return None
+        sign = _coefficient_sign_over_levels(coefficient, levels)
+        if sign is None:
+            return None
+        if sign != 0:
+            signs.append(sign)
+    if not signs:
+        return None
+    if all(sign > 0 for sign in signs):
+        return 1
+    if all(sign < 0 for sign in signs):
+        return -1
+    return None
+
+
+def _implicit_monotone_root_bound(
+    atom: sp.Expr,
+    variable: sp.Symbol,
+    levels: Sequence[CylindricalCoordinateConstraint],
+    sample_map: Mapping[sp.Symbol, sp.Expr],
+) -> tuple[str, AlgebraicRootFunction, bool] | None:
+    """Convert a certified monotone polynomial relation into one root bound.
+
+    The polynomial must have odd degree in ``variable`` and a derivative whose
+    sign is globally certified by :func:`_global_monotonicity_sign`.  Such a
+    polynomial has exactly one real root in every base fiber, so its relational
+    atom is equivalent to a single lower/upper bound (or section).
+    """
+
+    if not isinstance(
+        atom,
+        (
+            sp.Equality,
+            sp.LessThan,
+            sp.StrictLessThan,
+            sp.GreaterThan,
+            sp.StrictGreaterThan,
+        ),
+    ):
+        return None
+    residual = sp.expand(atom.lhs - atom.rhs)
+    try:
+        polynomial = sp.Poly(residual, variable, domain="EX")
+    except sp.PolynomialError:
+        return None
+    if polynomial.degree() <= 1:
+        return None
+    previous_variables = tuple(level.variable for level in levels)
+    if (residual.free_symbols - {variable}) - set(previous_variables):
+        return None
+    monotonicity = _global_monotonicity_sign(polynomial, variable, levels)
+    if monotonicity is None:
+        return None
+
+    specialized = sp.expand(residual.subs(dict(sample_map)))
+    try:
+        sample_roots = tuple(sp.real_roots(sp.Poly(specialized, variable).as_expr()))
+    except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+        return None
+    if len(sample_roots) != 1:
+        return None
+    sample_root = sp.sympify(sample_roots[0])
+    sample_verified = sp.simplify(specialized.subs(variable, sample_root)) == 0
+    if not sample_verified:
+        return None
+
+    base_variables = tuple(
+        level.variable for level in levels if level.variable in (residual.free_symbols - {variable})
+    )
+    certificate = DelineabilityCertificate(
+        polynomial=residual,
+        fiber_variable=variable,
+        root_index=0,
+        base_variables=base_variables,
+        sign_invariant=True,
+        stack_order_verified=True,
+        sample_root_verified=True,
+        sample_root_value=sample_root,
+        representation_verified=True,
+        notes=("unique real root certified by global monotonicity over the explicit base cell",),
+    )
+    root = AlgebraicRootFunction(
+        polynomial=residual,
+        fiber_variable=variable,
+        root_index=0,
+        base_variables=base_variables,
+        certificate=certificate,
+    )
+
+    if isinstance(atom, sp.Equality):
+        return ("equal", root, True)
+    relation_is_less = isinstance(atom, (sp.LessThan, sp.StrictLessThan))
+    closed = isinstance(atom, (sp.LessThan, sp.GreaterThan))
+    if monotonicity > 0:
+        kind = "upper" if relation_is_less else "lower"
+    else:
+        kind = "lower" if relation_is_less else "upper"
+    return (kind, root, closed)
+
+
 def _explicit_cylindrical_cell_from_conjunction(
     expr: sp.Expr,
     variables: Sequence[sp.Symbol | str],
     *,
     cell_index: int = 0,
 ) -> CylindricalSolutionCell | None:
+    """Convert a provably cylindrical conjunction into one typed solution cell.
+
+    The shortcut declines when symbolic bound ordering cannot be certified, so
+    callers can fall back to the general CAD decomposition.
+    """
     vars_ = tuple(sp.Symbol(v, real=True) if isinstance(v, str) else v for v in variables)
     atoms = list(_and_atoms(expr))
     levels: list[CylindricalCoordinateConstraint] = []
@@ -524,44 +1065,125 @@ def _explicit_cylindrical_cell_from_conjunction(
         later = set(vars_[level:])
         lower: sp.Expr = -sp.oo
         upper: sp.Expr = sp.oo
+        lower_closed = False
+        upper_closed = False
+        lower_typed: CADBound | None = None
+        upper_typed: CADBound | None = None
         for i, atom in enumerate(atoms):
             bound = _relational_bound_for_variable(atom, var)
             if bound is None:
                 continue
-            kind, value = bound
-            # Bounds may depend only on earlier variables for a cylindrical
-            # cell. If the apparent bound contains a later variable, this atom
-            # actually belongs to a later coordinate level (e.g. y <= x while
-            # processing x), so leave it for that level instead of rejecting the
-            # whole explicit decomposition.
+            kind, value, is_closed = bound
             if any(value.has(sym) for sym in later):
                 continue
+            new_value = sp.sympify(value)
             if kind == "lower":
-                lower = _merge_lower(lower, sp.sympify(value))
+                if lower == -sp.oo:
+                    lower, lower_closed = new_value, is_closed
+                else:
+                    cmp = _compare_over_base_cell(lower, new_value, levels)
+                    if cmp is not None:
+                        cmp = -cmp
+                    if cmp is None:
+                        return None
+                    if cmp > 0:
+                        lower, lower_closed = new_value, is_closed
+                    elif cmp == 0:
+                        lower_closed = lower_closed and is_closed
             elif kind == "upper":
-                upper = _merge_upper(upper, sp.sympify(value))
+                if upper == sp.oo:
+                    upper, upper_closed = new_value, is_closed
+                else:
+                    cmp = _compare_over_base_cell(new_value, upper, levels)
+                    if cmp is None:
+                        return None
+                    if cmp < 0:
+                        upper, upper_closed = new_value, is_closed
+                    elif cmp == 0:
+                        upper_closed = upper_closed and is_closed
             else:
-                lower = upper = sp.sympify(value)
+                if lower != -sp.oo:
+                    cmp = _compare_over_base_cell(lower, new_value, levels)
+                    if cmp is not None:
+                        cmp = -cmp
+                    if cmp is None or cmp < 0 or (cmp == 0 and not lower_closed):
+                        return None
+                if upper != sp.oo:
+                    cmp = _compare_over_base_cell(new_value, upper, levels)
+                    if cmp is None or cmp > 0 or (cmp == 0 and not upper_closed):
+                        return None
+                lower = upper = new_value
+                lower_closed = upper_closed = True
             used.add(i)
-        # Unsupported atoms involving this variable cannot be represented by
-        # this explicit syntactic path; leave them to the complete CAD extractor.
         for i, atom in enumerate(atoms):
             if i in used:
                 continue
-            if atom.has(var) and not any(atom.has(sym) for sym in later):
+            if not atom.has(var) or any(atom.has(sym) for sym in later):
+                continue
+            implicit = _implicit_monotone_root_bound(atom, var, levels, sample_map)
+            if implicit is None:
                 return None
-        sample = _sample_between_bounds(lower, upper, sample_map)
+            kind, root, is_closed = implicit
+            root_expr = root.as_expr()
+            if kind == "lower":
+                if lower != -sp.oo:
+                    return None
+                lower = root_expr
+                lower_closed = is_closed
+                lower_typed = as_cad_bound(root, closed=is_closed)
+            elif kind == "upper":
+                if upper != sp.oo:
+                    return None
+                upper = root_expr
+                upper_closed = is_closed
+                upper_typed = as_cad_bound(root, closed=is_closed)
+            else:
+                if lower != -sp.oo or upper != sp.oo:
+                    return None
+                lower = upper = root_expr
+                lower_closed = upper_closed = True
+                lower_typed = as_cad_bound(root, closed=True)
+                upper_typed = as_cad_bound(root, closed=True)
+            used.add(i)
+
+        if lower != -sp.oo and upper != sp.oo:
+            ordering = _compare_over_base_cell(lower, upper, levels)
+            if ordering is None:
+                return None
+            if ordering > 0:
+                return None
+            if ordering == 0 and not (lower_closed and upper_closed):
+                return None
+
+        if isinstance(lower_typed, AlgebraicRootFunction) and upper == sp.oo:
+            sample = sp.simplify(lower_typed.certificate.sample_root_value + 1)
+        elif isinstance(upper_typed, AlgebraicRootFunction) and lower == -sp.oo:
+            sample = sp.simplify(upper_typed.certificate.sample_root_value - 1)
+        elif (
+            isinstance(lower_typed, AlgebraicRootFunction)
+            and isinstance(upper_typed, AlgebraicRootFunction)
+            and lower == upper
+        ):
+            sample = sp.sympify(lower_typed.certificate.sample_root_value)
+        else:
+            sample = _sample_between_bounds(lower, upper, sample_map)
         sample_map[var] = sample
-        cell_kind = "section" if lower == upper else "sector"
+        cell_kind = "section" if _compare_over_base_cell(lower, upper, levels) == 0 else "sector"
+        lower_expr = sp.simplify(lower)
+        upper_expr = sp.simplify(upper)
         levels.append(
             CylindricalCoordinateConstraint(
                 variable=var,
                 level=level,
                 kind=cell_kind,
-                lower=sp.simplify(lower),
-                upper=sp.simplify(upper),
+                lower=lower_expr,
+                upper=upper_expr,
                 sample=sp.simplify(sample),
                 index=tuple([cell_index + 1] * level),
+                lower_bound=lower_typed or as_cad_bound(lower_expr, closed=lower_closed),
+                upper_bound=upper_typed or as_cad_bound(upper_expr, closed=upper_closed),
+                lower_closed=lower_closed,
+                upper_closed=upper_closed,
             )
         )
     return CylindricalSolutionCell(
@@ -588,14 +1210,40 @@ def extract_explicit_cylindrical_solution(
 
     formula = _normalize_formula(condition)
     vars_ = tuple(sp.Symbol(v, real=True) if isinstance(v, str) else v for v in variables)
+    if formula is sp.false or formula == sp.false:
+        cert = CylindricalDecompositionCertificate(
+            coverage_verified=True,
+            pairwise_disjoint=True,
+            cells_verified=True,
+            source="explicit-cylindrical",
+            notes=("normalized formula is empty",),
+        )
+        return CylindricalSolution(vars_, (), formula, None, cert)
     cells: list[CylindricalSolutionCell] = []
-    for i, piece in enumerate(_or_pieces(formula)):
+    pieces = _or_pieces(formula)
+    for i, piece in enumerate(pieces):
         cell = _explicit_cylindrical_cell_from_conjunction(piece, vars_, cell_index=i)
         if cell is None:
             return None
         cells.append(cell)
+    if len(cells) > 1 and not _cells_pairwise_disjoint(cells):
+        return None
+    from .bounds import verify_cad_cell_bounds
+
+    cells_verified = all(verify_cad_cell_bounds(cell).verify() for cell in cells)
+    cert = CylindricalDecompositionCertificate(
+        coverage_verified=True,
+        pairwise_disjoint=True,
+        cells_verified=cells_verified,
+        source="explicit-cylindrical",
+        notes=("each Or piece was preserved exactly and pairwise disjointness was proven",),
+    )
     return CylindricalSolution(
-        variables=vars_, cells=tuple(cells), formula=formula, source_decomposition=None
+        variables=vars_,
+        cells=tuple(cells),
+        formula=formula,
+        source_decomposition=None,
+        decomposition_cert=cert,
     )
 
 
@@ -642,9 +1290,25 @@ def extract_vertical_bounds_from_cad_2d(
 
 
 __all__ = [
+    "CADBound",
+    "AlgebraicRootFunction",
+    "CertifiedRootComparison",
+    "DelineabilityCertificate",
+    "RootOrderCertificate",
+    "CADCellBoundsCertificate",
+    "verify_cad_cell_bounds",
+    "CADCellIntegral",
+    "IntrinsicCellStratum",
+    "IntrinsicStratification",
+    "stratify_intrinsic_solution",
+    "full_dimensional_cell_integral",
+    "full_dimensional_solution_integrals",
+    "intrinsic_cell_integral",
+    "intrinsic_solution_integrals",
     "CylindricalCoordinateConstraint",
     "CylindricalSolutionCell",
     "CylindricalSolution",
+    "CylindricalDecompositionCertificate",
     "cylindrical_solution_from_structured",
     "extract_cylindrical_solution",
     "extract_explicit_cylindrical_solution",
@@ -655,3 +1319,18 @@ __all__ = [
     "structured_cad_cells_to_vertical_bounds_2d",
     "extract_vertical_bounds_from_cad_2d",
 ]
+
+# Public convenience re-exports kept here so the package-level lazy CAD-cell
+# namespace can expose typed bounds and cell integration without extra dispatch
+# tables.
+from .bounds import CADCellBoundsCertificate, verify_cad_cell_bounds  # noqa: E402
+from .integration import (  # noqa: E402
+    CADCellIntegral,
+    IntrinsicCellStratum,
+    IntrinsicStratification,
+    full_dimensional_cell_integral,
+    full_dimensional_solution_integrals,
+    intrinsic_cell_integral,
+    intrinsic_solution_integrals,
+    stratify_intrinsic_solution,
+)

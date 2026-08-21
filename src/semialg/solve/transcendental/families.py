@@ -126,11 +126,11 @@ def _rewrite_trig_equal_zero(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> s
     diff = sp.simplify(expr.lhs - expr.rhs)
     k = sp.Symbol(f"k_{x.name}", integer=True)
     if diff == sp.sin(x):
-        return sp.Exists(k, sp.Eq(x, sp.pi * k))
+        return sp.Contains(x, sp.imageset(k, sp.pi * k, sp.S.Integers))
     if diff == sp.cos(x):
-        return sp.Exists(k, sp.Eq(x, sp.pi / 2 + sp.pi * k))
+        return sp.Contains(x, sp.imageset(k, sp.pi / 2 + sp.pi * k, sp.S.Integers))
     if diff == sp.tan(x):
-        return sp.Exists(k, sp.Eq(x, sp.pi * k))
+        return sp.Contains(x, sp.imageset(k, sp.pi * k, sp.S.Integers))
     return None
 
 

@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 import sympy as sp
 from sympy.logic.boolalg import Boolean
 
+from .symbol_resolution import normalize_variables as _resolve_variables
+
 FormulaLike = sp.Expr | Boolean | bool
 
 
@@ -41,18 +43,7 @@ def _as_formula(constraints: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
 def _as_symbols(
     variables: Sequence[sp.Symbol | str] | None, expr: sp.Expr
 ) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for item in variables or ():
-        sym = sp.Symbol(item, real=True) if isinstance(item, str) else item
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    for sym in sorted(expr.free_symbols, key=lambda s: s.name):
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
+    return _resolve_variables(variables, context=(expr,), append_context_symbols=True)
 
 
 def _boolean_map(expr: sp.Expr, fn) -> sp.Expr:
@@ -80,14 +71,25 @@ def _domain_constraints_for_expr(expr: sp.Expr) -> tuple[sp.Expr, ...]:
                     constraints.append(base >= 0)
         elif sub.func == sp.log and sub.args:
             constraints.append(sub.args[0] > 0)
-    # Denominators of the expression must be nonzero. ``together`` is a cheap
-    # way to reveal most rational denominators while preserving symbolic form.
-    try:
-        _, den = sp.fraction(sp.together(expr))
-        if den != 1:
-            constraints.append(sp.Ne(den, 0))
-    except Exception:
-        pass
+    # Denominators must be nonzero.  Apply ``together`` only to scalar
+    # expression parts; passing Boolean formulas to it triggers deprecated
+    # Boolean arithmetic inside SymPy.
+    scalar_parts: list[sp.Expr] = []
+    if getattr(expr, "is_Relational", False):
+        scalar_parts.extend((expr.lhs, expr.rhs))
+    elif isinstance(expr, sp.logic.boolalg.Boolean):
+        for atom in sp.preorder_traversal(expr):
+            if getattr(atom, "is_Relational", False):
+                scalar_parts.extend((atom.lhs, atom.rhs))
+    else:
+        scalar_parts.append(expr)
+    for part in scalar_parts:
+        try:
+            _, den = sp.fraction(sp.together(part))
+            if den != 1:
+                constraints.append(sp.Ne(den, 0))
+        except (TypeError, ValueError, NotImplementedError, sp.SympifyError):
+            continue
     return tuple(dict.fromkeys(constraints))
 
 
@@ -322,8 +324,18 @@ def normalize_domain_sensitive_constraints(
 
     expr = _as_formula(constraints)
     vars_ = _as_symbols(variables, expr)
-    rewritten = _rewrite_formula(expr)
     domain_constraints = tuple(dict.fromkeys(_domain_constraints_for_expr(expr)))
+    special_heads = (sp.Abs, sp.Min, sp.Max, sp.Piecewise)
+    if not domain_constraints and not any(expr.has(head) for head in special_heads):
+        return DomainNormalizationResult(
+            formula=expr,
+            variables=vars_,
+            diagnostics={
+                "original_formula": sp.sstr(expr),
+                "normalized_formula": sp.sstr(expr),
+            },
+        )
+    rewritten = _rewrite_formula(expr)
     try:
         simplified = sp.simplify_logic(rewritten, form="dnf")
     except Exception:

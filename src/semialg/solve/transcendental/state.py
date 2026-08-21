@@ -5,6 +5,7 @@ from dataclasses import dataclass, field, replace
 
 import sympy as sp
 
+from ...quantifiers import split_quantifiers
 from ..domains import SolveDomain, normalize_domain
 
 
@@ -115,6 +116,16 @@ def build_trans_state(
     free_variables = tuple(free_variables)
     quantified_variables = tuple(quantified_variables)
     parameter_variables = tuple(parameter_variables)
+
+    # Expression-facing callers may provide a semialg Exists/ForAll prefix
+    # directly.  Explicit block/variable arguments take precedence so legacy
+    # internal callers remain unambiguous.
+    if quantifier_blocks is None and not quantified_variables:
+        prefix, matrix = split_quantifiers(formula)
+        if prefix:
+            formula = matrix
+            quantifier_blocks = tuple((q, (v,)) for q, v in prefix)
+
     blocks = norm_quant_blocks(quantifier_blocks, quantified_variables)
     qvars = (
         tuple(v for block in blocks for v in block.variables) if blocks else quantified_variables

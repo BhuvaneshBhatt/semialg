@@ -7,8 +7,15 @@ from itertools import product
 import sympy as sp
 from sympy import Eq
 
+from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
 from .congruence import solve_quant_free_mod_sys
 from .factorization import solve_int_recursion
+from .formula_utils import (
+    conjuncts as _conjuncts,
+)
+from .formula_utils import (
+    integer_roots_with_completeness as _integer_roots_complete,
+)
 from .groebner_recursion import rec_reduce_sys
 from .linear_divisibility import detect_lin_reduction
 from .linear_recursion import rec_reduce_int_lin_sys
@@ -23,10 +30,6 @@ class IntEqnSolveResult:
     method: str = "unknown"
     complete: bool = False
     metadata: dict = field(default_factory=dict)
-
-
-def _conjuncts(expr: sp.Expr) -> list[sp.Expr]:
-    return list(expr.args) if isinstance(expr, sp.And) else [expr]
 
 
 def sol_points_to_form(
@@ -113,7 +116,7 @@ def reduce_int_divis(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSol
                     complete=True,
                     metadata={"reduction": reduction},
                 )
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     return IntEqnSolveResult(
         variables=tuple(variables),
@@ -151,32 +154,35 @@ def solve_int_sys_via_factor(
     if len(eqs) != 1:
         return None
     diff = sp.expand(eqs[0].lhs - eqs[0].rhs)
-    coeff, factors = sp.factor_list(diff)
-    nonconstant = [f for f, e in factors for _ in range(e)]
+    _coeff, factors = sp.factor_list(diff)
+    nonconstant = [factor for factor, exponent in factors for _ in range(exponent)]
     if len(nonconstant) <= 1:
         return None
-    branch_points = []
-    branch_formulas = []
-    for factor in set([f for f, _e in factors]):
+
+    branch_points: list[tuple[int, ...]] = []
+    branch_formulas: list[sp.Expr] = []
+    all_branches_complete = True
+    for factor in {factor for factor, _exponent in factors}:
         subexpr = sp.And(*(others + [sp.Eq(factor, 0)]))
         sub = solve_int_methods(subexpr, variables)
-        if sub is not None:
-            if sub.complete and sub.solutions:
-                branch_points.extend(sub.solutions)
-            branch_formulas.append(sub.formula)
-        else:
+        if sub is None:
+            all_branches_complete = False
             branch_formulas.append(subexpr)
+            continue
+        branch_formulas.append(sub.formula)
+        if sub.complete:
+            branch_points.extend(sub.solutions)
+        else:
+            all_branches_complete = False
+
     branch_points = _dedupe_points(branch_points)
-    formula = (
-        sol_points_to_form(variables, branch_points) if branch_points else sp.Or(*branch_formulas)
-    )
+    formula = sp.simplify(sp.Or(*branch_formulas)) if branch_formulas else sp.false
     return IntEqnSolveResult(
         variables=variables,
         solutions=branch_points,
         formula=formula,
         method="factorization_branching",
-        complete=bool(branch_points)
-        and all(isinstance(f, IntEqnSolveResult) and f.complete for f in []),
+        complete=all_branches_complete,
         metadata={"factorized_equation": diff},
     )
 
@@ -203,28 +209,10 @@ def solve_int_branch(
     )
 
 
-def int_roots_of_univar_poly(poly_expr: sp.Expr, var: sp.Symbol) -> list[sp.Expr]:
-    try:
-        roots = sp.solveset(sp.Eq(poly_expr, 0), var, domain=sp.S.Integers)
-        if isinstance(roots, sp.FiniteSet):
-            return list(sorted(roots, key=sp.default_sort_key))
-    except Exception:
-        pass
-    try:
-        roots = sp.Poly(poly_expr, var).all_roots()
-        out = []
-        for r in roots:
-            sr = sp.simplify(r)
-            if sr.is_integer is True:
-                out.append(sr)
-        return list(sorted(set(out), key=sp.default_sort_key))
-    except Exception:
-        return []
-
-
 def solve_int_recursion2(
     expr: sp.Expr, variables: Sequence[sp.Symbol], *, max_branch_points: int = 200
 ) -> IntEqnSolveResult | None:
+    """Solve an integer polynomial system by bounded recursive elimination and branching."""
     variables = tuple(variables)
     atoms = _conjuncts(expr)
     eqs = [a for a in atoms if isinstance(a, Eq)]
@@ -234,7 +222,7 @@ def solve_int_recursion2(
     try:
         gb = sp.groebner(polys, *reversed(variables), order="lex")
         basis = [sp.expand(p.as_expr()) for p in gb.polys if sp.expand(p.as_expr()) != 0]
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         basis = polys
 
     # Seek a univariate polynomial in the earliest remaining variable.
@@ -249,8 +237,8 @@ def solve_int_recursion2(
     if chosen_var is None:
         return None
 
-    roots = int_roots_of_univar_poly(chosen_poly, chosen_var)
-    if not roots:
+    roots, roots_complete = _integer_roots_complete(chosen_poly, chosen_var)
+    if not roots and roots_complete:
         return IntEqnSolveResult(
             variables=variables,
             solutions=[],
@@ -259,11 +247,14 @@ def solve_int_recursion2(
             complete=True,
             metadata={"basis": basis},
         )
+    if not roots_complete:
+        return None
     if len(roots) > max_branch_points:
         return None
 
     points = []
     branch_formulas = []
+    all_branches_complete = True
     remaining = tuple(v for v in variables if v != chosen_var)
     for root in roots:
         substituted_atoms = [
@@ -276,28 +267,28 @@ def solve_int_recursion2(
                 points.append(tuple(root for _ in [chosen_var]))
             continue
         sub = solve_int_methods(substituted_expr, remaining)
-        if sub is not None and sub.complete and sub.solutions:
+        if sub is not None and sub.complete:
             for tail in sub.solutions:
                 mapping = {
                     chosen_var: root,
                     **{v: val for v, val in zip(remaining, tail, strict=True)},
                 }
                 points.append(tuple(mapping[v] for v in variables))
+            if sub.formula is not sp.false and not sub.solutions:
+                branch_formulas.append(sp.And(sp.Eq(chosen_var, root), sub.formula))
         else:
+            all_branches_complete = False
             branch_formulas.append(sp.And(sp.Eq(chosen_var, root), substituted_expr))
 
     points = _dedupe_points(points)
-    formula = (
-        sol_points_to_form(variables, points)
-        if points
-        else (sp.Or(*branch_formulas) if branch_formulas else sp.false)
-    )
+    point_formula = sol_points_to_form(variables, points) if points else sp.false
+    formula = sp.simplify(sp.Or(point_formula, *branch_formulas))
     return IntEqnSolveResult(
         variables=variables,
         solutions=points,
         formula=formula,
         method="groebner_recursive_integer_solver",
-        complete=bool(points),
+        complete=all_branches_complete,
         metadata={"basis": basis, "chosen_variable": chosen_var, "roots": roots},
     )
 
@@ -312,7 +303,7 @@ def mod_res_cands(
             if not res.points:
                 return []
             residue_sets.append((m, res.points))
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return None
     if not residue_sets:
         return None
@@ -325,7 +316,7 @@ def mod_res_cands(
             [pts for _m, pts in residue_sets], variables, [m for m, _pts in residue_sets]
         )
         return combined
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
 
 
@@ -372,8 +363,12 @@ def solve_int_pruning(
         solutions=points,
         formula=sol_points_to_form(variables, points),
         method="modular_pruning_with_bounded_lift_search",
-        complete=bool(points),
-        metadata={"moduli": tuple(moduli), "combined_modulus": combined_modulus},
+        complete=False,
+        metadata={
+            "moduli": tuple(moduli),
+            "combined_modulus": combined_modulus,
+            "search_radius": search_radius,
+        },
     )
 
 
@@ -492,7 +487,7 @@ def solve_int_methods(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSo
                 complete=pipeline_result.complete,
                 metadata={"provenance": pipeline_result.provenance, **pipeline_result.metadata},
             )
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         pass
 
     for solver in (
@@ -509,7 +504,7 @@ def solve_int_methods(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSo
     ):
         try:
             result = solver(expr, variables)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             result = None
         if result is not None:
             return result

@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 import sympy as sp
 
 from ...algebraic.rational_univariate import RationalUnivariateError, sign_of_algebraic_expression
+from ...exact_arithmetic import compare_exact_reals, exact_truth
 from ...status import SolverStatus
 from .atoms import _polynomial_degree, _to_negation_normal_form
 from .eliminate import (
@@ -30,12 +31,9 @@ def _truth_of_formula_at_assignment(
     if simplified == sp.false or simplified is sp.false:
         return False
     try:
-        return bool(simplified)
-    except TypeError:
-        try:
-            return bool(sp.N(simplified, 50))
-        except (TypeError, ValueError, sp.SympifyError):
-            return None
+        return exact_truth(simplified)
+    except ValueError:
+        return None
 
 
 def _real_roots_of_low_degree_polynomial(
@@ -61,12 +59,10 @@ def _real_roots_of_low_degree_polynomial(
         if is_real is True:
             real_roots.append(root)
             continue
-        try:
-            imag_part = abs(complex(sp.N(root, 50)).imag)
-        except (TypeError, ValueError, sp.SympifyError):
-            continue
-        if imag_part < 1e-40:
-            real_roots.append(root)
+        # Unknown reality must not be promoted from a fixed-precision
+        # approximation in witness reconstruction.  Leave such roots out; the
+        # caller can fall back to another certified strategy.
+        continue
     return tuple(real_roots)
 
 
@@ -87,12 +83,7 @@ def _compare_real_algebraic_values(left: sp.Expr, right: sp.Expr) -> int:
     try:
         return sign_of_algebraic_expression(difference)
     except RationalUnivariateError:
-        numeric_difference = sp.N(difference, 120)
-        if numeric_difference > 0:
-            return 1
-        if numeric_difference < 0:
-            return -1
-        return 0
+        return compare_exact_reals(left, right)
 
 
 def _insert_ordered_real_value(values: list[sp.Expr], value: sp.Expr) -> None:

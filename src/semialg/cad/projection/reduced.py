@@ -6,6 +6,7 @@ from typing import Literal
 
 import sympy as sp
 
+from ...ec.scoring import rank_eq_cons
 from .collins import ProjectionLevel, ProjectionTower, collins_projection_step, squarefree_basis
 
 ReducedTheory = Literal["mccallum", "lazard", "tticad"]
@@ -135,12 +136,27 @@ def subres_discrim(poly: sp.Poly, var: sp.Symbol, lower_gens: Sequence[sp.Symbol
 def _candidate_ec(
     active: Sequence[sp.Poly], equational_constraints: Sequence[sp.Expr]
 ) -> sp.Poly | None:
-    expanded_ecs = [sp.expand(item) for item in equational_constraints]
+    """Choose the simplest active polynomial matching a declared EC.
+
+    Ranking by degree and sparsity makes the choice deterministic and usually
+    reduces discriminant/resultant growth compared with basis-order selection.
+    """
+    matches: list[tuple[sp.Expr, sp.Poly]] = []
+    expanded_ecs = tuple(sp.expand(item) for item in equational_constraints)
     for poly in active:
         expr = sp.expand(poly.as_expr())
-        if any(sp.expand(expr - ec) == 0 or sp.expand(expr + ec) == 0 for ec in expanded_ecs):
+        for ec in expanded_ecs:
+            if sp.expand(expr - ec) == 0 or sp.expand(expr + ec) == 0:
+                matches.append((ec, poly))
+                break
+    if not matches:
+        return None
+    ranked = rank_eq_cons([expr for expr, _ in matches])
+    best = ranked[0].expr
+    for expr, poly in matches:
+        if sp.expand(expr - best) == 0 or sp.expand(expr + best) == 0:
             return poly
-    return None
+    return matches[0][1]
 
 
 def reduced_projection_step(

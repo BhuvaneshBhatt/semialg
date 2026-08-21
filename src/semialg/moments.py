@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from .formula import to_sympy
+from .normalization import normalize_formula as _normalize_formula
+from .normalization import normalize_variables as _normalize_variables
 from .region_integrate import integrate_over_region
 
 
@@ -53,23 +54,6 @@ class RegionCovarianceResult:
     method: str
     diagnostics: Mapping[str, object] | None = None
     exact: bool = True
-
-
-def _normalize_variables(variables: Sequence[sp.Symbol | str]) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for var in variables:
-        sym = sp.Symbol(var, real=True) if isinstance(var, str) else var
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
-
-
-def _normalize_formula(condition: object) -> sp.Expr:
-    if isinstance(condition, (sp.Basic, sp.logic.boolalg.Boolean)):
-        return condition  # type: ignore[return-value]
-    return to_sympy(condition)  # type: ignore[arg-type]
 
 
 def _monomial_from_powers(variables: Sequence[sp.Symbol], powers: Sequence[int]) -> sp.Expr:
@@ -136,8 +120,9 @@ def region_moment(
     may pass an explicit ``integrand`` for a general raw moment.
     """
 
-    vars_ = _normalize_variables(variables)
     formula = _normalize_formula(condition)
+    explicit_integrand = None if integrand is None else sp.sympify(integrand)
+    vars_ = _normalize_variables(variables, formula, explicit_integrand)
     moment_integrand, power_tuple = _moment_integrand(vars_, powers, integrand)
     value = integrate_over_region(
         moment_integrand,
@@ -180,8 +165,8 @@ def region_centroid(
 ) -> Mapping[sp.Symbol, sp.Expr] | RegionCentroidResult:
     """Return the centroid of a finite-measure semialgebraic region."""
 
-    vars_ = _normalize_variables(variables)
     formula = _normalize_formula(condition)
+    vars_ = _normalize_variables(variables, formula)
     measure = integrate_over_region(
         sp.Integer(1),
         formula,
@@ -244,8 +229,8 @@ def region_covariance(
 ) -> sp.Matrix | RegionCovarianceResult:
     """Return the covariance matrix of the uniform measure on a region."""
 
-    vars_ = _normalize_variables(variables)
     formula = _normalize_formula(condition)
+    vars_ = _normalize_variables(variables, formula)
     centroid_result = region_centroid(
         formula,
         vars_,
@@ -261,9 +246,9 @@ def region_covariance(
 
     entries: list[list[sp.Expr]] = []
     exact = centroid_result.exact
-    for _i, vi in enumerate(vars_):
+    for vi in vars_:
         row: list[sp.Expr] = []
-        for _j, vj in enumerate(vars_):
+        for vj in vars_:
             raw = integrate_over_region(
                 vi * vj,
                 formula,

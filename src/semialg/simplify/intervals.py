@@ -6,6 +6,8 @@ from functools import cmp_to_key
 
 import sympy as sp
 
+from ..exact_arithmetic import compare_exact_reals
+
 
 @dataclass(frozen=True)
 class Interval1D:
@@ -47,24 +49,7 @@ def _compare_expr(a: sp.Expr | None, b: sp.Expr | None, *, left: bool = True) ->
         return 1 if bb != sp.oo else 0
     if bb is sp.oo or bb == sp.oo:
         return -1
-    diff = sp.simplify(aa - bb)
-    if diff == 0:
-        return 0
-    try:
-        sign = sp.sign(diff)
-        if sign == -1:
-            return -1
-        if sign == 1:
-            return 1
-    except Exception:
-        pass
-    aval = sp.N(aa, 80)
-    bval = sp.N(bb, 80)
-    if aval < bval:
-        return -1
-    if aval > bval:
-        return 1
-    return 0
+    return compare_exact_reals(aa, bb)
 
 
 def _equal(a: sp.Expr, b: sp.Expr) -> bool:

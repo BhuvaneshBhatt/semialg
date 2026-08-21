@@ -5,8 +5,18 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 import sympy as sp
-from sympy import Eq
 
+from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
+from ._common import expr_complexity as _expr_complexity
+from .formula_utils import (
+    integer_roots as _integer_roots,
+)
+from .formula_utils import (
+    integer_roots_with_completeness as _integer_roots_complete,
+)
+from .formula_utils import (
+    split_equalities as _split_equalities,
+)
 from .output_normalization import canon_int_result, dedup_int_points
 
 
@@ -32,43 +42,6 @@ class GroebnerTriangAnalysis:
     mod_obstr_primes: tuple[int, ...] = ()
 
 
-def _conjuncts(expr: sp.Expr) -> list[sp.Expr]:
-    return list(expr.args) if isinstance(expr, sp.And) else [expr]
-
-
-def _split_atoms(expr: sp.Expr):
-    atoms = _conjuncts(expr)
-    eqs = [a for a in atoms if isinstance(a, Eq)]
-    others = [a for a in atoms if not isinstance(a, Eq)]
-    return eqs, others
-
-
-def _expr_complexity(expr: sp.Expr) -> int:
-    try:
-        return int(sp.count_ops(expr, visual=False))
-    except Exception:
-        return len(sp.srepr(expr))
-
-
-def int_roots_of_univar_poly(poly_expr: sp.Expr, var: sp.Symbol) -> list[sp.Expr]:
-    try:
-        roots = sp.solveset(sp.Eq(poly_expr, 0), var, domain=sp.S.Integers)
-        if isinstance(roots, sp.FiniteSet):
-            return list(sorted(roots, key=sp.default_sort_key))
-    except Exception:
-        pass
-    try:
-        roots = sp.Poly(poly_expr, var).all_roots()
-        out = []
-        for r in roots:
-            sr = sp.simplify(r)
-            if sr.is_integer is True:
-                out.append(sr)
-        return list(sorted(set(out), key=sp.default_sort_key))
-    except Exception:
-        return []
-
-
 def _compute_small_obstr(
     expr: sp.Expr, variables: Sequence[sp.Symbol], primes: Sequence[int] = (2, 3, 5, 7)
 ) -> dict:
@@ -82,7 +55,7 @@ def _compute_small_obstr(
             feasible_counts[p] = len(result.points)
             if result.points == []:
                 obstructions.append(p)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             continue
     return {"obstructing_primes": tuple(obstructions), "prime_solution_counts": feasible_counts}
 
@@ -94,14 +67,14 @@ def _groebner_basis_cached(polys_key, vars_key):
     try:
         gb = sp.groebner(polys, *reversed(tuple(vars_)), order="lex")
         return tuple(sp.expand(p.as_expr()) for p in gb.polys if sp.expand(p.as_expr()) != 0)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return tuple(polys)
 
 
 def compute_groebner_basis(
     expr: sp.Expr, variables: Sequence[sp.Symbol]
 ) -> tuple[sp.Expr, ...] | None:
-    eqs, _others = _split_atoms(expr)
+    eqs, _others = _split_equalities(expr)
     if not eqs:
         return None
     polys = tuple(sp.expand(eq.lhs - eq.rhs) for eq in eqs)
@@ -119,7 +92,7 @@ def extract_lin_basis(
         for poly_expr in basis:
             try:
                 p1 = sp.Poly(sp.expand(poly_expr), var)
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 continue
             if p1.degree() != 1:
                 continue
@@ -127,7 +100,8 @@ def extract_lin_basis(
             b = sp.expand(p1.coeff_monomial(1))
             if a == 0 or a.has(var) or b.has(var):
                 continue
-            # Prefer simpler affine solves
+            # Eliminating an affine variable avoids introducing unnecessary algebraic
+            # branches into the recursive polynomial system.
             score = (
                 _expr_complexity(a) + _expr_complexity(b),
                 len(poly_expr.free_symbols),
@@ -154,7 +128,7 @@ def _extract_consist_basis(
         free = tuple(v for v in variables if poly_expr.has(v))
         if len(free) == 1:
             var = free[0]
-            roots = int_roots_of_univar_poly(poly_expr, var)
+            roots = _integer_roots(poly_expr, var)
             if roots:
                 constraints.append(sp.Or(*[sp.Eq(var, r) for r in roots]))
     uniq = []
@@ -205,8 +179,8 @@ def _choose_recursive_step(
     for var in variables:
         candidates = [p for p in analysis.basis if p.free_symbols.issubset({var})]
         for poly in candidates:
-            roots = int_roots_of_univar_poly(poly, var)
-            if not roots:
+            roots, roots_complete = _integer_roots_complete(poly, var)
+            if not roots and roots_complete:
                 return GroebnerRecursiveStep(
                     var,
                     poly,
@@ -216,6 +190,8 @@ def _choose_recursive_step(
                     analysis.eliminated_variables,
                     analysis.consistency_constraints,
                 )
+            if not roots_complete:
+                continue
             if len(roots) > max_branch_points:
                 continue
             key = (len(roots), _expr_complexity(poly), var.name)
@@ -322,7 +298,7 @@ def _scan_coupled_branches(
         univ = sp.Poly(sp.expand(poly.subs(x, xv)), y)
         try:
             roots = univ.all_roots()
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             continue
         for r in roots:
             sr = sp.simplify(r)
@@ -338,6 +314,7 @@ def rec_reduce_sys(
     max_depth: int = 8,
     max_branch_points: int = 64,
 ):
+    """Recursively reduce an integer polynomial system with Groebner-derived constraints."""
     variables = tuple(variables)
     truth = sp.simplify(expr)
     if truth is sp.false:
@@ -372,7 +349,7 @@ def rec_reduce_sys(
                     provenance=["groebner"],
                     metadata={"solset": solset},
                 )
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
 
     obstruction = _compute_small_obstr(expr, variables)

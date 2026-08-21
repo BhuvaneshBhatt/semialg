@@ -13,6 +13,8 @@ separate solving backend.
 6. Sampling strategies have explicit meanings and reject unknown names
 7. Exact sign evaluation handles rational, algebraic, and RUR-backed points
 8. Boolean formulas are not routed through scalar simplification paths that can trigger SymPy `Mul(And(...))` deprecation warnings.
+9. String variable names preserve the exact SymPy symbol objects already present in a problem; ambiguous same-name symbols with different assumptions are rejected.
+10. Exact certificate paths do not promote fixed-precision numerical comparisons to exact truth/sign/order claims.
 
 ## Focused tests
 
@@ -28,15 +30,15 @@ These tests are intended to be small, public-API-level contracts. They should
 remain readable and should not depend on private implementation details except
 where a backend method string is part of the documented behavior.
 
-## Release checklist
+## Quality checklist
 
-Before cutting an archive:
+Before packaging or merging changes:
 
 ```bash
 python -m compileall src tests
 pytest -q
-python scripts/audit_release_readiness.py
+python scripts/verify_source_quality.py
 ```
 
-The release archive should not include `__pycache__`, `.pytest_cache`, scratch
+Generated archives should not include `__pycache__`, `.pytest_cache`, scratch
 `run_pytest_*` scripts, ad-hoc `check_*.py` files, or test logs.

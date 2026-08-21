@@ -78,7 +78,7 @@ def run_cad(args: argparse.Namespace) -> None:
             "formula": str(result.formula),
             "variables": [str(var) for var in result.variables],
             "cell_count_by_level": {str(k): v for k, v in result.cell_count_by_level().items()},
-            "projection_polynomial_count_by_level": {
+            "projection_poly_count_by_level": {
                 str(k): v for k, v in result.proj_poly_count_by_level().items()
             },
         }

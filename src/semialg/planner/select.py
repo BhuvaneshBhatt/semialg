@@ -10,11 +10,12 @@ from ..cad.constants import (
     PROJECTION_MCCALLUM,
     PROJECTION_TTICAD,
 )
-from ..formula import Formula, ParsedPrenexFormula, formula_polynomials
+from ..formula import Formula, ParsedPrenexFormula, equational_constraints, formula_polynomials
 from ..model import ProjectionConfig, QEConfig
 from .analyze import ProblemAnalysis, analyze_formula, analyze_parsed_formula
-from .heuristics import choose_best_var_order
-from .strategy_memory import StrategyMemory, feature_signature
+from .features import feature_signature
+from .heuristics import choose_best_variable_order
+from .strategy_memory import StrategyMemory
 
 PROJECTION_EC = PROJECTION_MCCALLUM
 
@@ -96,7 +97,11 @@ def select_strat_for_form(
     analysis = analyze_parsed_formula(parsed) if parsed is not None else analyze_formula(formula)
     polys = tuple(formula_polynomials(formula))
     order = (
-        choose_best_var_order(analysis.features, polys) if polys else analysis.features.variables
+        choose_best_variable_order(
+            analysis.features, polys, equational_constraints=tuple(equational_constraints(formula))
+        )
+        if polys
+        else analysis.features.variables
     )
     base = select_strat_analysis(analysis, strategy_memory=strategy_memory)
     return StrategySelection(

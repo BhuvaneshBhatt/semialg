@@ -9,6 +9,8 @@ import sympy as sp
 from sympy import Eq, Ne
 from sympy.matrices.normalforms import smith_normal_decomp
 
+from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
+
 
 @dataclass
 class ModularSolveResult:
@@ -22,10 +24,14 @@ class ModularSolveResult:
 
 
 def _coerce_modulus(modulus: int) -> int:
-    modulus = int(modulus)
-    if modulus <= 0:
+    """Return *modulus* as an exact positive integer, rejecting truncation/coercion."""
+    value = sp.sympify(modulus)
+    if value.is_integer is not True:
+        raise TypeError("Modulus must be an exact integer")
+    modulus_int = int(value)
+    if modulus_int <= 0:
         raise ValueError("Modulus must be a positive integer")
-    return modulus
+    return modulus_int
 
 
 def _is_prime_modulus(modulus: int) -> bool:
@@ -58,6 +64,8 @@ def combine_mod_crt(
     point_sets: Sequence[list[tuple[int, ...]]],
     variables: Sequence[sp.Symbol],
     moduli: Sequence[int],
+    *,
+    max_points: int | None = None,
 ) -> list[tuple[int, ...]]:
     variables = tuple(variables)
     moduli = tuple(map(_coerce_modulus, moduli))
@@ -82,6 +90,10 @@ def combine_mod_crt(
                 if ok:
                     new_combined.append(tuple(merged))
         combined = sorted(set(new_combined))
+        if max_points is not None and len(combined) > max_points:
+            raise RuntimeError(
+                f"CRT recombination exceeds max_points={max_points}: {len(combined)} partial points"
+            )
         combined_modulus *= modulus
     return combined
 
@@ -112,13 +124,50 @@ def norm_mod_form(expr: sp.Expr, modulus: int) -> sp.Expr:
     return _rel_to_mod_expr(expr, modulus)
 
 
+def _unwrap_normalized_mod_relation(rel: sp.Expr, modulus: int) -> sp.Expr:
+    """Recover the polynomial residual from ``Eq/Ne(Mod(p, m), 0)``.
+
+    ``norm_mod_form`` deliberately wraps residuals in ``Mod`` so formulas have
+    explicit modular semantics.  Polynomial and linear backends, however, need
+    the underlying residual.  If the wrapper modulus is the current modulus or
+    a multiple of it (as happens during CRT decomposition), reducing the inner
+    residual modulo the current modulus is equivalent.
+    """
+
+    modulus = _coerce_modulus(modulus)
+    if not isinstance(rel, (Eq, Ne)):
+        return rel
+    lhs, rhs = rel.lhs, rel.rhs
+    mod_expr = None
+    sign = 1
+    if rhs == 0 and lhs.func is sp.Mod:
+        mod_expr = lhs
+    elif lhs == 0 and rhs.func is sp.Mod:
+        mod_expr = rhs
+        sign = -1
+    if mod_expr is None:
+        return rel
+    residual, wrapper_modulus = mod_expr.args
+    if wrapper_modulus.is_Integer is not True:
+        return rel
+    wrapper = int(wrapper_modulus)
+    if wrapper <= 0 or wrapper % modulus != 0:
+        return rel
+    residual = sp.expand(sign * residual)
+    return sp.Eq(residual, 0) if isinstance(rel, Eq) else sp.Ne(residual, 0)
+
+
+def _unwrap_mod_relations(relations: Sequence[sp.Expr], modulus: int) -> list[sp.Expr]:
+    return [_unwrap_normalized_mod_relation(rel, modulus) for rel in relations]
+
+
 def _eval_modular_truth(expr: sp.Expr, assignment: dict[sp.Symbol, int], modulus: int) -> bool:
     val = norm_mod_form(expr, modulus).subs(assignment)
     try:
         if val in (True, False):
             return bool(val)
         return bool(sp.simplify(val))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return False
 
 
@@ -192,11 +241,19 @@ def simp_mod_ineqs(inequations: Sequence[sp.Expr], modulus: int) -> list[sp.Expr
     return out
 
 
-def _supports_direct_solver(equalities: Sequence[sp.Expr], variables: Sequence[sp.Symbol]) -> bool:
-    for rel in equalities:
+def _supports_direct_solver(
+    equalities: Sequence[sp.Expr], variables: Sequence[sp.Symbol], modulus: int
+) -> bool:
+    for rel in _unwrap_mod_relations(equalities, modulus):
         if not isinstance(rel, Eq):
             return False
-        poly = sp.Poly(sp.expand(rel.lhs - rel.rhs), *variables)
+        try:
+            poly = sp.Poly(sp.expand(rel.lhs - rel.rhs), *variables)
+        except (sp.PolynomialError, ValueError, TypeError):
+            # Normalized modular relations can contain ``Mod(...)`` wrappers.
+            # Those are still solvable by the exact enumeration fallback, but
+            # they are not valid input to the polynomial direct solver.
+            return False
         if poly.total_degree() > 1:
             return False
     return True
@@ -205,13 +262,14 @@ def _supports_direct_solver(equalities: Sequence[sp.Expr], variables: Sequence[s
 def _reduced_eqn_groebner(
     equalities: Sequence[sp.Expr], variables: Sequence[sp.Symbol], modulus: int
 ):
+    equalities = _unwrap_mod_relations(equalities, modulus)
     polys = [sp.expand(eq.lhs - eq.rhs) for eq in equalities if isinstance(eq, Eq)]
     if not polys:
         return []
     try:
         gb = sp.groebner(polys, *reversed(tuple(variables)), modulus=modulus, order="lex")
         return [sp.expand(g.as_expr()) for g in gb.polys if sp.expand(g.as_expr()) != 0]
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return polys
 
 
@@ -220,7 +278,7 @@ def _linear_system_matrix(
 ):
     rows = []
     rhs = []
-    for rel in equalities:
+    for rel in _unwrap_mod_relations(equalities, modulus):
         if not isinstance(rel, Eq):
             return None
         poly = sp.Poly(sp.expand(rel.lhs - rel.rhs), *variables)
@@ -368,19 +426,19 @@ def solve_mod_lin_sys(
             try:
                 points = combine_mod_crt(point_sets, variables, factors)
                 method = "crt_decomposed_linear_solver"
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 points = None
         if points is None:
             try:
                 points = solve_lin_sys_mod_comp(equalities, variables, modulus, max_points)
                 method = "smith_normal_form_mod_composite"
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 points = None
     elif _is_prime_modulus(modulus):
         try:
             points = enum_lin_sols_prime(equalities, variables, modulus, max_points)
             method = "linear_row_reduction_mod_prime"
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             points = None
 
     if points is None:
@@ -444,6 +502,7 @@ def rec_solve_basis(
     inequations: Sequence[sp.Expr] | None = None,
     partial_assignment: dict[sp.Symbol, int] | None = None,
 ) -> list[tuple[int, ...]]:
+    """Recursively solve a modular polynomial basis while pruning inconsistent residues."""
     modulus = _coerce_modulus(modulus)
     variables = tuple(variables)
     inequations = tuple(inequations or ())
@@ -530,9 +589,11 @@ def solve_mod_poly_sys(
             parts = [
                 solve_mod_poly_sys(equalities, variables, q, max_points=max_points) for q in factors
             ]
-            points = combine_mod_crt([p.points for p in parts], variables, factors)
+            points = combine_mod_crt(
+                [p.points for p in parts], variables, factors, max_points=max_points
+            )
             method = "crt_decomposed_polynomial_solver"
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             points = None
 
     reduced = _reduced_eqn_groebner(equalities, variables, modulus)
@@ -540,7 +601,7 @@ def solve_mod_poly_sys(
         try:
             points = rec_solve_basis(reduced, variables, modulus, max_points=max_points)
             method = "recursive_groebner_modular_solver"
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             points = None
 
     if points is None:
@@ -564,21 +625,54 @@ def solve_mod_poly_sys(
     )
 
 
+def _is_conjunction_of_equalities(expr: sp.Expr) -> bool:
+    if expr is sp.true:
+        return True
+    atoms = expr.args if isinstance(expr, sp.And) else (expr,)
+    return bool(atoms) and all(isinstance(atom, sp.Equality) for atom in atoms)
+
+
 def solve_quant_free_mod_sys(
     expr: sp.Expr, variables: Sequence[sp.Symbol], modulus: int, *, max_points: int = 10000
 ) -> ModularSolveResult:
+    """Solve an arbitrary quantifier-free Boolean modular formula exactly.
+
+    Fast polynomial/CRT paths are used only where their logical decomposition is
+    valid.  General Boolean structure (including ``Or``, ``Not`` and ``Ne``) is
+    evaluated over the finite residue space, which is an exact oracle.
+    """
     modulus = _coerce_modulus(modulus)
     variables = tuple(variables)
-    normalized = norm_mod_form(expr, modulus)
+    normalized = norm_mod_form(sp.sympify(expr), modulus)
 
+    if normalized is sp.false:
+        return ModularSolveResult(modulus, variables, [], sp.false, "constant_false", True, {})
+    if normalized is sp.true:
+        points = _enumerate_points(variables, modulus, max_points)
+        return ModularSolveResult(
+            modulus,
+            variables,
+            points,
+            _points_to_formula(points, variables),
+            "constant_true",
+            True,
+            {},
+        )
+
+    # CRT factorisation preserves conjunctions of equalities componentwise.  It
+    # does *not* preserve Ne/Or/Not componentwise (e.g. x != 0 mod 6 means
+    # nonzero in at least one CRT component, not every component), so arbitrary
+    # Boolean formulas deliberately bypass this fast path.
     factors = _factor_prime_powers(modulus)
-    if len(factors) > 1:
+    if len(factors) > 1 and _is_conjunction_of_equalities(normalized):
         try:
             parts = [
                 solve_quant_free_mod_sys(normalized, variables, q, max_points=max_points)
                 for q in factors
             ]
-            points = combine_mod_crt([p.points for p in parts], variables, factors)
+            points = combine_mod_crt(
+                [p.points for p in parts], variables, factors, max_points=max_points
+            )
             return ModularSolveResult(
                 modulus=modulus,
                 variables=variables,
@@ -588,51 +682,69 @@ def solve_quant_free_mod_sys(
                 complete=True,
                 metadata={"component_moduli": factors},
             )
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
 
-    eqs, neqs = _split_eqs_neqs(normalized)
-    neqs = simp_mod_ineqs(neqs, modulus)
-    if any(n is sp.false for n in neqs):
-        return ModularSolveResult(
-            modulus, variables, [], sp.false, "infeasible_by_inequation_simplification", True, {}
-        )
-
-    if eqs and not neqs and _supports_direct_solver(eqs, variables):
-        return solve_mod_lin_sys(eqs, variables, modulus, max_points=max_points)
-
-    if eqs:
-        reduced = _reduced_eqn_groebner([e for e in eqs if isinstance(e, Eq)], variables, modulus)
-        try:
-            points = rec_solve_basis(
-                reduced,
-                variables,
-                modulus,
-                max_points=max_points,
-                inequations=[sp.expand(n.lhs - n.rhs) for n in neqs if isinstance(n, Ne)],
-            )
+    # Preserve the existing direct linear/Groebner optimisation for a pure
+    # conjunction of Eq/Ne atoms over a prime-power modulus.
+    atoms = normalized.args if isinstance(normalized, sp.And) else (normalized,)
+    conjunctive_atoms = all(isinstance(a, (sp.Equality, sp.Unequality)) for a in atoms)
+    if conjunctive_atoms:
+        eqs, neqs = _split_eqs_neqs(normalized)
+        neqs = simp_mod_ineqs(neqs, modulus)
+        if any(n is sp.false for n in neqs):
             return ModularSolveResult(
-                modulus=modulus,
-                variables=variables,
-                points=points,
-                formula=_points_to_formula(points, variables),
-                method="recursive_quantifier_free_modular_solver",
-                complete=True,
-                metadata={
-                    "groebner_polynomials": [sp.srepr(p) for p in reduced],
-                    "inequation_count": len(neqs),
-                },
+                modulus,
+                variables,
+                [],
+                sp.false,
+                "infeasible_by_inequation_simplification",
+                True,
+                {},
             )
-        except Exception:
-            pass
+        if eqs and not neqs and _supports_direct_solver(eqs, variables, modulus):
+            return solve_mod_lin_sys(eqs, variables, modulus, max_points=max_points)
+        if eqs:
+            reduced = _reduced_eqn_groebner(
+                [e for e in eqs if isinstance(e, Eq)], variables, modulus
+            )
+            try:
+                points = rec_solve_basis(
+                    reduced,
+                    variables,
+                    modulus,
+                    max_points=max_points,
+                    inequations=[sp.expand(n.lhs - n.rhs) for n in neqs if isinstance(n, Ne)],
+                )
+                # Verify the original normalized Boolean formula before claiming
+                # completeness; this guards backend simplification mistakes.
+                points = [
+                    pt
+                    for pt in points
+                    if _eval_modular_truth(
+                        normalized, dict(zip(variables, pt, strict=True)), modulus
+                    )
+                ]
+                return ModularSolveResult(
+                    modulus=modulus,
+                    variables=variables,
+                    points=points,
+                    formula=_points_to_formula(points, variables),
+                    method="recursive_quantifier_free_modular_solver",
+                    complete=True,
+                    metadata={
+                        "groebner_polynomials": [sp.srepr(p) for p in reduced],
+                        "inequation_count": len(neqs),
+                    },
+                )
+            except _RECOVERABLE_ERRORS:
+                pass
 
     points = []
-    rebuilt = sp.And(*(list(eqs) + list(neqs))) if eqs or neqs else sp.true
     for pt in _enumerate_points(variables, modulus, max_points):
         subst = dict(zip(variables, pt, strict=True))
-        if _eval_modular_truth(rebuilt, subst, modulus):
+        if _eval_modular_truth(normalized, subst, modulus):
             points.append(pt)
-
     return ModularSolveResult(
         modulus=modulus,
         variables=variables,
@@ -640,7 +752,7 @@ def solve_quant_free_mod_sys(
         formula=_points_to_formula(points, variables),
         method="quantifier_free_enumeration",
         complete=True,
-        metadata={"normalized_formula": sp.srepr(rebuilt)},
+        metadata={"normalized_formula": sp.srepr(normalized)},
     )
 
 
@@ -661,6 +773,7 @@ def eliminate_one_var(
     *,
     max_points: int = 10000,
 ) -> sp.Expr:
+    """Eliminate one modular variable by exact residue enumeration under a point budget."""
     modulus = _coerce_modulus(modulus)
     variables = tuple(variables)
     remaining = tuple(v for v in variables if v != quantified_variable)
@@ -707,7 +820,8 @@ def eliminate_one_var(
                 if len(forbidden) < modulus:
                     surviving.append(pt)
                 continue
-            # Fallback local search only when heuristic stalls.
+            # Local search is reserved for cases where the congruence heuristic
+            # cannot produce another certified candidate.
             witnessed = False
             for q in range(modulus):
                 subst_q = dict(subst)
@@ -769,7 +883,7 @@ def solve_quant_mod_sys(
                 complete=True,
                 metadata={"component_moduli": factors},
             )
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
 
     formula = norm_mod_form(expr, modulus)

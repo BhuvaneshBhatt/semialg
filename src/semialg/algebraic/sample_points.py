@@ -27,10 +27,22 @@ def choose_sector_sample(left: Sample | None, right: Sample | None) -> RationalS
         return RationalSample(left.interval.right + 1)
     if left.interval.right < right.interval.left:
         return RationalSample(sp.Rational(left.interval.right + right.interval.left, 2))
-    # Overlapping isolating intervals should be rare after root sorting/deduping,
-    # but choose a certified rational using exact expressions when necessary.
-    left_value = sp.N(left.as_expr(), 100)
-    right_value = sp.N(right.as_expr(), 100)
-    if not left_value < right_value:
+    # Overlapping isolating intervals can occur before refinement.  Establish
+    # the order exactly, then refine algebraic isolating intervals until a
+    # rational separator is available.
+    from .comparison import compare_samples
+    from .roots import refine_isol_intv
+
+    if compare_samples(left, right) >= 0:
         raise ValueError("left sector bound must be strictly smaller than right sector bound")
-    return RationalSample(sp.Rational(str((left_value + right_value) / 2)))
+    refined_left, refined_right = left, right
+    for _ in range(32):
+        if refined_left.interval.right < refined_right.interval.left:
+            return RationalSample(
+                sp.Rational(refined_left.interval.right + refined_right.interval.left, 2)
+            )
+        if isinstance(refined_left, AlgebraicRoot):
+            refined_left = refine_isol_intv(refined_left, steps=2)
+        if isinstance(refined_right, AlgebraicRoot):
+            refined_right = refine_isol_intv(refined_right, steps=2)
+    raise ValueError("could not obtain disjoint exact isolating intervals for sector bounds")

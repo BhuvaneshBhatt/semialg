@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from ..exact_arithmetic import exact_sign
 from ..formula import And, Atom, BoolConst, Formula, Not, Or
 
 
@@ -19,15 +20,18 @@ def _formula_truth_status(formula: Formula, subs: dict[sp.Symbol, sp.Expr]):
             return bool(value == 0)
         if formula.op == "!=":
             return bool(value != 0)
-        numeric = sp.N(value, 50)
+        try:
+            sign = exact_sign(value)
+        except ValueError:
+            return None
         if formula.op == "<":
-            return bool(numeric < 0)
+            return sign < 0
         if formula.op == "<=":
-            return bool(numeric <= 0)
+            return sign <= 0
         if formula.op == ">":
-            return bool(numeric > 0)
+            return sign > 0
         if formula.op == ">=":
-            return bool(numeric >= 0)
+            return sign >= 0
         raise ValueError(f"Unsupported operator: {formula.op}")
     if isinstance(formula, And):
         saw_unknown = False

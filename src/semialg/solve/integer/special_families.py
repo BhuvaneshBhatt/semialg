@@ -6,8 +6,9 @@ from itertools import product
 from math import isqrt
 
 import sympy as sp
-from sympy import Eq
 
+from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
+from .formula_utils import split_equalities as _split_equalities
 from .output_normalization import canon_int_result
 from .thue import solve_binary_bounded
 
@@ -19,20 +20,9 @@ class SpecialFamDesc:
     metadata: dict
 
 
-def _conjuncts(expr: sp.Expr) -> list[sp.Expr]:
-    return list(expr.args) if isinstance(expr, sp.And) else [expr]
-
-
-def _split_eq(expr: sp.Expr):
-    atoms = _conjuncts(expr)
-    eqs = [a for a in atoms if isinstance(a, Eq)]
-    others = [a for a in atoms if not isinstance(a, Eq)]
-    return eqs, others
-
-
 def detect_sum_fam2(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> SpecialFamDesc | None:
     variables = tuple(variables)
-    eqs, others = _split_eq(expr)
+    eqs, others = _split_equalities(expr)
     if len(eqs) != 1 or others:
         return None
     diff = sp.expand(eqs[0].lhs - eqs[0].rhs)
@@ -44,7 +34,7 @@ def detect_sum_fam2(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> SpecialFam
         if c not in (0, 1):
             return None
         coeffs.append(int(c))
-    if sum(coeffs) == 0:
+    if not coeffs or any(c != 1 for c in coeffs):
         return None
     if any(sum(mon) not in (0, 2) for mon, coeff in poly.terms() if coeff != 0):
         return None
@@ -117,7 +107,7 @@ def detect_pythag_fam(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> SpecialF
     variables = tuple(variables)
     if len(variables) != 3:
         return None
-    eqs, others = _split_eq(expr)
+    eqs, others = _split_equalities(expr)
     if len(eqs) != 1 or others:
         return None
     x, y, z = variables
@@ -168,7 +158,7 @@ def solve_pythag_triples_fam(
 
 def detect_diag_fam(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> SpecialFamDesc | None:
     variables = tuple(variables)
-    eqs, others = _split_eq(expr)
+    eqs, others = _split_equalities(expr)
     if len(eqs) != 1 or others:
         return None
     diff = sp.expand(eqs[0].lhs - eqs[0].rhs)
@@ -207,12 +197,15 @@ def solve_diag_fam(expr: sp.Expr, variables: Sequence[sp.Symbol], *, search_boun
     target = desc.metadata["target"]
     coeffs = desc.metadata["coefficients"]
     vars_t = tuple(variables)
-    if k % 2 == 0 and target < -sum(0 for _ in coeffs):
+    even_sign_obstruction = k % 2 == 0 and (
+        (all(c > 0 for c in coeffs) and target < 0) or (all(c < 0 for c in coeffs) and target > 0)
+    )
+    if even_sign_obstruction:
         return canon_int_result(
             vars_t,
             formula=sp.false,
             solutions=[],
-            method="diagonal_sum_of_powers_even_obstruction",
+            method="diagonal_sum_of_powers_even_sign_obstruction",
             complete=True,
             provenance=["special_family"],
             metadata=desc.metadata,
@@ -284,7 +277,7 @@ def detect_pell_family(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> Special
     variables = tuple(variables)
     if len(variables) != 2:
         return None
-    eqs, others = _split_eq(expr)
+    eqs, others = _split_equalities(expr)
     if len(eqs) != 1 or others:
         return None
     x, y = variables
@@ -330,7 +323,7 @@ def solve_binary_scan(expr: sp.Expr, variables: Sequence[sp.Symbol], *, x_bound:
     variables = tuple(variables)
     if len(variables) != 2:
         return None
-    eqs, others = _split_eq(expr)
+    eqs, others = _split_equalities(expr)
     if len(eqs) != 1:
         return None
     x, y = variables
@@ -344,7 +337,7 @@ def solve_binary_scan(expr: sp.Expr, variables: Sequence[sp.Symbol], *, x_bound:
         univ = sp.Poly(sp.expand(diff.subs(x, xv)), y)
         try:
             roots = univ.all_roots()
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             continue
         for r in roots:
             sr = sp.simplify(r)
@@ -369,7 +362,7 @@ def solve_binary_scan(expr: sp.Expr, variables: Sequence[sp.Symbol], *, x_bound:
                     and sp.expand(diff.subs({x: a, y: b})) == 0
                 ):
                     pts.add((a, b))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         pass
     if not pts:
         return None
@@ -389,12 +382,12 @@ def solve_int_fams(expr: sp.Expr, variables: Sequence[sp.Symbol]):
         from .thue import solve_binary_lll
 
         thue = solve_binary_lll(expr, variables, search_bound=200)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         thue = None
     if thue is None:
         try:
             thue = solve_binary_bounded(expr, variables, search_bound=200)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             thue = None
     if thue is not None:
         return thue
@@ -409,7 +402,7 @@ def solve_int_fams(expr: sp.Expr, variables: Sequence[sp.Symbol]):
     ):
         try:
             out = solver(expr, variables)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             out = None
         if out is not None:
             return out

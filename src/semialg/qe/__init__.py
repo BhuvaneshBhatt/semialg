@@ -11,18 +11,6 @@ from .complete import (
     qe_from_cad,
 )
 from .prenex import eval_quantifier_free, qe_blocks, qe_parsed, qe_prenex, qe_prenex_suffix, qe_text
-from .virtual_substitution import (
-    QuadraticVirtualSubstitutionResult,
-    VirtualSubstitutionError,
-    VirtualSubstitutionQEResult,
-    VirtualSubstitutionWitnessResult,
-    can_use_quadratic_vs,
-    eliminate_exists_quadratic_variable,
-    eliminate_quadratic_variable,
-    reconstruct_vs_value,
-    try_quadratic_virtual_substitution_qe,
-    try_quadratic_virtual_substitution_witness,
-)
 
 __all__ = [
     "CellUnion",
@@ -53,3 +41,16 @@ __all__ = [
     "try_quadratic_virtual_substitution_witness",
     "reconstruct_vs_value",
 ]
+
+from .virtual_substitution import (
+    QuadraticVirtualSubstitutionResult,
+    VirtualSubstitutionError,
+    VirtualSubstitutionQEResult,
+    VirtualSubstitutionWitnessResult,
+    can_use_quadratic_vs,
+    eliminate_exists_quadratic_variable,
+    eliminate_quadratic_variable,
+    reconstruct_vs_value,
+    try_quadratic_virtual_substitution_qe,
+    try_quadratic_virtual_substitution_witness,
+)

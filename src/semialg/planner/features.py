@@ -43,6 +43,7 @@ class ProblemFeatures:
 
 
 def _formula_stats(formula: Formula) -> dict[str, int | bool]:
+    """Collect inexpensive logical-structure statistics used by solver planning."""
     from ..formula import And, Atom, BoolConst, Not, Or
 
     if isinstance(formula, BoolConst):
@@ -183,4 +184,19 @@ def extract_problem_features(
 def extract_features_parsed(parsed: ParsedPrenexFormula) -> ProblemFeatures:
     return extract_problem_features(
         parsed.matrix, variables=parsed.vars, quantifiers=parsed.quantifiers
+    )
+
+
+def feature_signature(features: ProblemFeatures) -> str:
+    """Return the stable signature used by planner strategy memory."""
+
+    return "|".join(
+        [
+            f"vars={features.variable_count}",
+            f"deg={features.max_total_degree}",
+            f"atoms={features.num_atoms}",
+            f"alts={features.quantifier_alternations}",
+            f"or={int(features.has_disjunction)}",
+            f"ec={int(features.has_ecs)}",
+        ]
     )

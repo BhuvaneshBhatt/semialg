@@ -6,7 +6,8 @@ from typing import Any
 
 import sympy as sp
 
-from ..formula import ParsedPrenexFormula, parse_quant_form_text
+from ..context import with_computation_context
+from ..formula import ParsedPrenexFormula, parse_quant_form_text, parse_quantified_expr
 from ..qe.complete import CompleteQEResult, qe_by_complete_cad
 from .domains import SolveDomain, normalize_domain
 
@@ -45,6 +46,7 @@ def _result_metadata(qe: CompleteQEResult) -> dict[str, Any]:
     }
 
 
+@with_computation_context
 def reduce_complete_formula(
     parsed: ParsedPrenexFormula,
     *,
@@ -62,6 +64,20 @@ def reduce_complete_formula(
         qe_result=qe,
         metadata=_result_metadata(qe),
     )
+
+
+def reduce_complete_expr(
+    expr: sp.Expr,
+    *,
+    variable_order: Sequence[sp.Symbol] | None = None,
+    free_variables: Sequence[sp.Symbol] | None = None,
+    return_result: bool = False,
+):
+    """Run complete real QE on a semialg ``Exists``/``ForAll`` expression."""
+
+    parsed = parse_quantified_expr(expr, variable_order=variable_order)
+    solved = reduce_complete_formula(parsed, free_variables=free_variables)
+    return solved if return_result else solved.result
 
 
 def reduce_complete_text(
@@ -101,6 +117,7 @@ def resolve_complete_text(text: str, **kwargs):
 __all__ = [
     "CompleteSolveResult",
     "reduce_complete_formula",
+    "reduce_complete_expr",
     "reduce_complete_text",
     "resolve_complete_text",
 ]

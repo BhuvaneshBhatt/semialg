@@ -2,7 +2,11 @@ import sympy as sp
 
 from semialg.cad.reduced import decompose_reduced_safe
 from semialg.formula import parse_formula
-from semialg.planner import brown_variable_order, cand_var_orders, extract_problem_features
+from semialg.planner import (
+    brown_variable_order,
+    candidate_variable_orders,
+    extract_problem_features,
+)
 from semialg.simplify.implication import minimize_disj_by_impl
 from semialg.simplify.result import simp_semialg_expr
 from semialg.solve.reduce import reduce_text
@@ -21,7 +25,7 @@ def test_planner_and_02():
     polys = (y**2 - x, x**2 + y)
     formula = parse_formula((y**2 - x >= 0) & (x**2 + y >= 0))
     features = extract_problem_features(formula, variables=(y, x))
-    orders = cand_var_orders(features, polys)
+    orders = candidate_variable_orders(features, polys)
     assert orders
     assert brown_variable_order(polys, (y, x)) in {item.order for item in orders}
     assert orders[0].score <= orders[-1].score
