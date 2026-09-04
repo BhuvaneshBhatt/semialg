@@ -5,8 +5,13 @@ from collections.abc import Mapping, Sequence
 import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
-from ..cad.bounds import AlgebraicRootFunction, CADBound, DelineabilityCertificate, as_cad_bound
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.bounds import (
+    AlgebraicRootFunction,
+    CADBound,
+    DelineabilityCertificate,
+    as_cad_bound,
+)
+from ..cad_algorithms.lifting.stack import CADCell
 from .radicals import fiber_root_expr
 
 
@@ -56,12 +61,32 @@ def section_value_bound(
     ):
         coefficient_symbols = sp.sympify(poly).free_symbols - {variable}
         if coefficient_symbols:
+            local_root_index = int(
+                certificate.root_index if certificate is not None else cell.root_index
+            )
+            if certificate is None and base_variables:
+                try:
+                    base_subs = {
+                        base_variables[i]: sample_to_expr(cell.sample[i])
+                        for i in range(min(cell.level - 1, len(base_variables)))
+                    }
+                    specialized = sp.expand(poly.subs(base_subs))
+                    exact_poly = sp.Poly(specialized, variable, extension=True)
+                    roots = tuple(
+                        root for root in exact_poly.all_roots() if root.is_real is not False
+                    )
+                    sample_value = sample_to_expr(cell.sample[cell.level - 1])
+                    matches = [
+                        i for i, root in enumerate(roots) if sp.simplify(root - sample_value) == 0
+                    ]
+                    if len(matches) == 1:
+                        local_root_index = matches[0]
+                except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+                    pass
             return AlgebraicRootFunction(
                 polynomial=sp.expand(poly),
                 fiber_variable=variable,
-                root_index=int(
-                    certificate.root_index if certificate is not None else cell.root_index
-                ),
+                root_index=local_root_index,
                 base_variables=tuple(base_variables),
                 base_index=cell.parent_index,
                 certificate=certificate,
@@ -77,10 +102,12 @@ def section_value_bound(
     return as_cad_bound(point, closed=closed)
 
 
-def section_value_expr(cell: CADCell, variable: sp.Symbol) -> sp.Expr:
+def section_value_expr(
+    cell: CADCell, variable: sp.Symbol, *, base_variables: Sequence[sp.Symbol] = ()
+) -> sp.Expr:
     """Return the symbolic value of a section cell as a radical/root function."""
 
-    return section_value_bound(cell, variable).as_expr()
+    return section_value_bound(cell, variable, base_variables=base_variables).as_expr()
 
 
 def _sector_bound_expr(
@@ -89,13 +116,14 @@ def _sector_bound_expr(
     cells_by_level: Mapping[int, Sequence[CADCell]],
     *,
     side: str,
+    base_variables: Sequence[sp.Symbol] = (),
 ) -> sp.Expr | None:
     offset = -1 if side == "left" else 1
     section = _section_at_position(
         cells_by_level, sector.level, sector.parent_index, sector.stack_position + offset
     )
     if section is not None:
-        return section_value_expr(section, variable)
+        return section_value_expr(section, variable, base_variables=base_variables)
     bound = sector.lower_bound if side == "left" else sector.upper_bound
     return None if bound is None else sample_to_expr(bound)
 
@@ -106,13 +134,18 @@ def level_cell_condition(
     cells_by_level: Mapping[int, Sequence[CADCell]],
     *,
     closed: bool = False,
+    base_variables: Sequence[sp.Symbol] = (),
 ) -> sp.Expr:
     """Return a symbolic condition for one level of a CAD path."""
 
     if cell.kind == "section":
-        return sp.Eq(variable, section_value_expr(cell, variable))
-    left = _sector_bound_expr(cell, variable, cells_by_level, side="left")
-    right = _sector_bound_expr(cell, variable, cells_by_level, side="right")
+        return sp.Eq(variable, section_value_expr(cell, variable, base_variables=base_variables))
+    left = _sector_bound_expr(
+        cell, variable, cells_by_level, side="left", base_variables=base_variables
+    )
+    right = _sector_bound_expr(
+        cell, variable, cells_by_level, side="right", base_variables=base_variables
+    )
     pieces: list[sp.Expr] = []
     if left is not None:
         pieces.append(variable >= left if closed else variable > left)
@@ -135,7 +168,13 @@ def path_condition(
         prefix = cell.index[:level]
         level_cell = next(item for item in cells_by_level[level] if item.index == prefix)
         pieces.append(
-            level_cell_condition(level_cell, variables[level - 1], cells_by_level, closed=closed)
+            level_cell_condition(
+                level_cell,
+                variables[level - 1],
+                cells_by_level,
+                closed=closed,
+                base_variables=variables[: level - 1],
+            )
         )
     kept = [piece for piece in pieces if piece is not sp.true and piece != sp.true]
     return sp.And(*kept) if kept else sp.true

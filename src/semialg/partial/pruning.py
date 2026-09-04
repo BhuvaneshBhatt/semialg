@@ -9,6 +9,7 @@ from ..formula import And, Atom, BoolConst, Formula, Not, Or
 
 
 def _formula_truth_status(formula: Formula, subs: dict[sp.Symbol, sp.Expr]):
+    """Evaluate a parsed formula under a partial assignment using three-valued exact logic."""
     if isinstance(formula, BoolConst):
         return formula.value
     if isinstance(formula, Atom):

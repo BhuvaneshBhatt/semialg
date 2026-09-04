@@ -6,7 +6,16 @@ from dataclasses import dataclass, field
 import sympy as sp
 
 from ..formula import Formula, ParsedPrenexFormula, equational_constraints, formula_polynomials
-from ..heuristics import suggest_var_polys
+from ..heuristics import rank_variables_by_polynomials
+from ..structural_keys import symbol_identity_key
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+)
 
 
 @dataclass(frozen=True)
@@ -116,14 +125,14 @@ def _degree_stats(polys: Sequence[sp.Expr], variables: Sequence[sp.Symbol]) -> t
             max_total = max(max_total, int(pobj.total_degree()))
             for var in variables:
                 max_var = max(max_var, int(pobj.degree(var)))
-        except Exception:
-            syms = tuple(sorted(poly.free_symbols, key=lambda s: s.name))
+        except _RECOVERABLE_ERRORS:
+            syms = tuple(sorted(poly.free_symbols, key=symbol_identity_key))
             try:
                 pobj = sp.Poly(poly, *syms) if syms else sp.Poly(poly)
                 max_total = max(max_total, int(pobj.total_degree()))
                 for var in syms:
                     max_var = max(max_var, int(pobj.degree(var)))
-            except Exception:
+            except _RECOVERABLE_ERRORS:
                 max_total = max(max_total, 1)
                 max_var = max(max_var, 1)
     return max_total, max_var
@@ -152,14 +161,14 @@ def extract_problem_features(
     polys = tuple(formula_polynomials(formula))
     if variables is None:
         variables = sorted(
-            {sym for poly in polys for sym in poly.free_symbols}, key=lambda s: s.name
+            {sym for poly in polys for sym in poly.free_symbols}, key=symbol_identity_key
         )
     vars_tuple = tuple(variables)
     stats = _formula_stats(formula)
     max_total, max_var = _degree_stats(polys, vars_tuple)
     quantified = tuple(var for _, var in quantifiers)
     free = tuple(var for var in vars_tuple if var not in quantified)
-    suggested = suggest_var_polys(polys, vars_tuple or None, strategy="degree")
+    suggested = rank_variables_by_polynomials(polys, vars_tuple or None, strategy="degree")
     return ProblemFeatures(
         variables=vars_tuple,
         quantified_variables=quantified,

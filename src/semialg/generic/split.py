@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from ..cad.decomposition import CompleteCAD
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.decomposition import CompleteCAD
+from ..cad_algorithms.lifting.stack import CADCell
 from ..reconstruct.cylindrical import path_condition
-from ..simplify.result import simplify_qe_formula
+from ..simplify.formula import simplify_qe_formula
 from ..topology.operations import boundary_cells, cells_formula, interior_cells
 from .exceptional import (
     ExceptionalCause,

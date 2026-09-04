@@ -5,13 +5,17 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from ..cad.decomposition import CompleteCAD, decomp_collins_complete, decomp_from_proj_tower
-from ..cad.projection.reduced import (
+from ..cad_algorithms.decomposition import (
+    CompleteCAD,
+    decomp_collins_complete,
+    decomp_from_proj_tower,
+)
+from ..cad_algorithms.projection.reduced import (
     ProjectionValidity,
     ReducedProjectionTower,
     build_reduced_proj_tower,
 )
-from ..cad.reduced import (
+from ..cad_algorithms.reduced import (
     ReducedCertificate,
     ReducedSideReport,
     _augment_tower_repairs,

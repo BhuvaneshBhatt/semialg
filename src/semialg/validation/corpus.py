@@ -4,7 +4,6 @@ import json
 from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
 
 import sympy as sp
 
@@ -23,7 +22,7 @@ class ValidationCase:
     quantifiers: tuple[tuple[str, str], ...] = ()
     expected_text: str | None = None
     tags: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, object] = field(default_factory=dict)
 
     def symbols(self) -> dict[str, sp.Symbol]:
         return {name: sp.Symbol(name, real=True) for name in self.variables}
@@ -36,7 +35,7 @@ class ValidationCase:
         syms = self.symbols()
         return tuple((q, syms[name]) for q, name in self.quantifiers)
 
-    def to_json_dict(self) -> dict[str, Any]:
+    def to_json_dict(self) -> dict[str, object]:
         data = asdict(self)
         data["variables"] = list(self.variables)
         data["quantifiers"] = [list(pair) for pair in self.quantifiers]
@@ -45,7 +44,7 @@ class ValidationCase:
         return data
 
     @classmethod
-    def from_json_dict(cls, data: Mapping[str, Any]) -> ValidationCase:
+    def from_json_dict(cls, data: Mapping[str, object]) -> ValidationCase:
         return cls(
             name=str(data["name"]),
             formula_text=str(data["formula_text"]),

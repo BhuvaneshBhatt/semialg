@@ -52,11 +52,25 @@ def compare_exact_reals(left: object, right: object) -> int:
     rhs = sp.sympify(right)
     if lhs == rhs or sp.simplify(lhs - rhs) == 0:
         return 0
-    if lhs is sp.oo or rhs is -sp.oo:
+    if lhs == sp.oo or rhs == -sp.oo:
         return 1
-    if lhs is -sp.oo or rhs is sp.oo:
+    if lhs == -sp.oo or rhs == sp.oo:
         return -1
     return exact_sign(sp.simplify(lhs - rhs))
+
+
+def compare_extended_reals(left: object, right: object) -> int:
+    """Compare exact values in the extended real line, returning -1, 0, or 1."""
+
+    lhs = sp.sympify(left)
+    rhs = sp.sympify(right)
+    if lhs == rhs:
+        return 0
+    if lhs == -sp.oo or rhs == sp.oo:
+        return -1
+    if lhs == sp.oo or rhs == -sp.oo:
+        return 1
+    return compare_exact_reals(lhs, rhs)
 
 
 def exact_truth(expr: object) -> bool:
@@ -91,4 +105,4 @@ def exact_truth(expr: object) -> bool:
     raise ValueError(f"could not determine exact truth of {sp.sstr(value)}")
 
 
-__all__ = ["compare_exact_reals", "exact_sign", "exact_truth"]
+__all__ = ["compare_exact_reals", "compare_extended_reals", "exact_sign", "exact_truth"]

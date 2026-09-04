@@ -58,3 +58,19 @@ def test_sample_point_is_validated_and_sign_vector_as_dict():
     assert signs[x] == 0
     assert signs[x - 1] == -1
     assert signs[x**2 - 1] == -1
+
+
+def test_relational_equivalence_skips_generic_logic_simplification():
+    x = sp.Symbol("x", real=True)
+    expanded = (
+        (-x <= 0)
+        | (-x < 0)
+        | ((-4 * x >= 0) & (4 * x >= 0))
+        | (sp.Eq(-4 * x, 0) & (4 * x >= 0) & (-16 * x < 0))
+        | ((4 * x >= 0) & ((-4 * x >= 0) | (-4 * x <= 0)))
+    )
+
+    result = equivalent(expanded, x >= 0, [x], return_result=True)
+
+    assert result.equivalent is True
+    assert result.method != "logic_simplify"

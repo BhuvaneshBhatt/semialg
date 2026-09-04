@@ -3,7 +3,7 @@ from __future__ import annotations
 import sympy as sp
 
 from ..model import QEResult
-from .common import cell_to_formula, qe_cells_and_vars
+from .cell_formulas import cell_to_formula, qe_cells_and_vars
 
 
 def region_components(cells_with_truth, variables):
@@ -17,9 +17,8 @@ def region_components(cells_with_truth, variables):
     components = []
     seen = set()
     for piece in pieces:
-        key = sp.srepr(piece)
-        if key not in seen:
-            seen.add(key)
+        if piece not in seen:
+            seen.add(piece)
             components.append(piece)
     return components
 

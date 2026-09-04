@@ -6,10 +6,10 @@ from dataclasses import dataclass
 import sympy as sp
 from sympy.logic.boolalg import Boolean
 
-from .cad.cells import CylindricalSolution, extract_cylindrical_solution
+from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+from .cad_algorithms.cells import CylindricalSolution, extract_cylindrical_solution
 from .conditional import ConditionalBranch, ParameterStratifiedResult, conditional_result
-from .normalization import normalize_formula as _normalize_formula
-from .normalization import normalize_variables as _normalize_variables
+from .normalization import normalize_formula, normalize_variables
 from .parameters import solvability_conditions
 
 FormulaLike = sp.Expr | Boolean | bool
@@ -112,9 +112,9 @@ def parameterized_cylindrical_decomposition(
     cylindrical solution for the fiber over each parameter sample.
     """
 
-    expr = _normalize_formula(constraints)
-    params = _normalize_variables(parameters, expr, append_context_symbols=False)
-    vars_ = _normalize_variables(
+    expr = normalize_formula(constraints)
+    params = normalize_variables(parameters, expr, append_context_symbols=False)
+    vars_ = normalize_variables(
         variables,
         expr,
         append_context_symbols=False,
@@ -132,7 +132,7 @@ def parameterized_cylindrical_decomposition(
         parameter_solution = extract_cylindrical_solution(
             param_condition, params, selected_only=True
         )
-    except (NotImplementedError, ValueError, TypeError, ArithmeticError, sp.PolynomialError):
+    except _RECOVERABLE_ERRORS:
         parameter_solution = None
 
     if parameter_solution is None or not parameter_solution.cells:
@@ -146,13 +146,7 @@ def parameterized_cylindrical_decomposition(
                 fiber_solution = extract_cylindrical_solution(
                     specialized, vars_, selected_only=True
                 )
-            except (
-                NotImplementedError,
-                ValueError,
-                TypeError,
-                ArithmeticError,
-                sp.PolynomialError,
-            ):
+            except _RECOVERABLE_ERRORS:
                 fiber_solution = None
         strata.append(
             ParameterStratum(
@@ -176,7 +170,7 @@ def parameterized_cylindrical_decomposition(
                     fiber_solution = extract_cylindrical_solution(
                         specialized, vars_, selected_only=True
                     )
-                except Exception:
+                except _RECOVERABLE_ERRORS:
                     fiber_solution = None
             strata.append(
                 ParameterStratum(
@@ -200,4 +194,127 @@ __all__ = [
     "ParameterStratum",
     "ParameterizedCylindricalDecomposition",
     "parameterized_cylindrical_decomposition",
+    "ParameterExceptionalPolynomial",
+    "ParameterExceptionalAnalysis",
+    "exceptional_parameter_analysis",
 ]
+
+
+@dataclass(frozen=True)
+class ParameterExceptionalPolynomial:
+    polynomial: sp.Expr
+    source: str
+    variable: sp.Symbol | None = None
+    parents: tuple[sp.Expr, ...] = ()
+
+    def branches(self) -> tuple[sp.Expr, sp.Expr, sp.Expr]:
+        p = sp.expand(self.polynomial)
+        return (p < 0, sp.Eq(p, 0), p > 0)
+
+
+@dataclass(frozen=True)
+class ParameterExceptionalAnalysis:
+    variables: tuple[sp.Symbol, ...]
+    parameters: tuple[sp.Symbol, ...]
+    causes: tuple[ParameterExceptionalPolynomial, ...]
+
+    @property
+    def exceptional_condition(self) -> sp.Expr:
+        if not self.causes:
+            return sp.false
+        return sp.Or(*(sp.Eq(c.polynomial, 0) for c in self.causes))
+
+    @property
+    def branching_polynomials(self) -> tuple[sp.Expr, ...]:
+        return tuple(c.polynomial for c in self.causes)
+
+
+def exceptional_parameter_analysis(
+    formula: FormulaLike | Iterable[FormulaLike],
+    variables: Sequence[sp.Symbol | str],
+    parameters: Sequence[sp.Symbol | str],
+) -> ParameterExceptionalAnalysis:
+    """Discover parameter polynomials where algebraic problem type can change.
+
+    Causes include leading coefficients (degree drops), coefficient sign
+    boundaries, discriminants (multiplicity/root-count changes), and pairwise
+    resultants (root collisions/common factors).  Only parameter-only
+    polynomials are retained, so every reported branch is a valid parameter
+    stratum boundary.
+    """
+
+    expr = normalize_formula(formula)
+    params = normalize_variables(parameters, expr, append_context_symbols=False)
+    vars_ = normalize_variables(variables, expr, append_context_symbols=False, exclude=params)
+
+    def relational_atoms(node: sp.Expr) -> tuple[sp.Expr, ...]:
+        if getattr(node, "is_Relational", False):
+            return (node,)
+        if isinstance(node, (sp.And, sp.Or)):
+            return tuple(atom for arg in node.args for atom in relational_atoms(arg))
+        if isinstance(node, sp.Not):
+            return relational_atoms(node.args[0])
+        return tuple()
+
+    polys = [sp.expand(atom.lhs - atom.rhs) for atom in relational_atoms(expr)]
+    causes: list[ParameterExceptionalPolynomial] = []
+    seen: set[tuple[str, str]] = set()
+
+    def add(poly_expr: sp.Expr, source: str, variable=None, parents=()):
+        candidate = sp.expand(poly_expr)
+        if candidate == 0 or candidate.free_symbols - set(params):
+            return
+        try:
+            pp = sp.Poly(candidate, *params) if params else sp.Poly(candidate)
+            if pp.total_degree() == 0:
+                return
+            _, primitive = pp.primitive()
+            factors = primitive.factor_list()[1]
+            factor_polys = [factor for factor, _multiplicity in factors] or [primitive]
+        except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
+            return
+        for factor_poly in factor_polys:
+            factor_expr = sp.expand(factor_poly.as_expr())
+            if factor_expr.could_extract_minus_sign():
+                factor_expr = -factor_expr
+            key = (source, sp.srepr(factor_expr))
+            if key not in seen:
+                seen.add(key)
+                causes.append(
+                    ParameterExceptionalPolynomial(factor_expr, source, variable, tuple(parents))
+                )
+
+    for expr_poly in polys:
+        for var in vars_:
+            try:
+                p = sp.Poly(expr_poly, var)
+            except (sp.PolynomialError, TypeError, ValueError):
+                continue
+            if p.degree() <= 0:
+                continue
+            add(p.LC(), "degree_drop", var, (expr_poly,))
+            for coeff in p.all_coeffs():
+                add(coeff, "coefficient_sign", var, (expr_poly,))
+            if p.degree() >= 2:
+                try:
+                    add(sp.discriminant(p.as_expr(), var), "discriminant", var, (expr_poly,))
+                except (sp.PolynomialError, TypeError, ValueError):
+                    pass
+
+    for i, left in enumerate(polys):
+        for right in polys[i + 1 :]:
+            for var in vars_:
+                if var not in left.free_symbols or var not in right.free_symbols:
+                    continue
+                try:
+                    add(sp.resultant(left, right, var), "resultant", var, (left, right))
+                except (sp.PolynomialError, TypeError, ValueError):
+                    pass
+    causes.sort(
+        key=lambda c: (
+            c.source,
+            "" if c.variable is None else c.variable.name,
+            sp.srepr(c.polynomial),
+        )
+    )
+    return ParameterExceptionalAnalysis(vars_, params, tuple(causes))

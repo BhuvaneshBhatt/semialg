@@ -20,10 +20,12 @@ from semialg import (
     SphereRegion,
     SphericalShellRegion,
     StadiumRegion,
+)
+from semialg.parametric_integration import (
     integrate_over_parametric_region,
-    integrate_over_standard_region,
     reduce_parametric_integral,
 )
+from semialg.standard_region_integrate import integrate_over_standard_region
 
 
 def test_parametric_integral_preserves_ambient_symbol_identity():
@@ -132,3 +134,95 @@ def test_region_difference_of_disjoint_intervals_preserves_left_region():
     left = IntervalRegion(0, 1)
     right = IntervalRegion(2, 3)
     assert integrate_over_standard_region(1, RegionDifference(left, right), [x]) == 1
+
+
+def test_degenerate_standard_region_dimensions_are_not_overstated():
+    assert BoxRegion(((0, 0), (0, 1))).dimension() == 1
+    assert SimplexRegion(((0, 0), (1, 0), (2, 0))).dimension() == 1
+    assert ParallelogramRegion((0, 0), ((1, 0), (2, 0))).dimension() == 1
+    assert ParallelepipedRegion((0, 0, 0), ((1, 0, 0), (2, 0, 0))).dimension() == 1
+    assert BallRegion((0, 0), 0).dimension() == 0
+    assert SphereRegion((0, 0, 0), 0).dimension() == 0
+    assert SphericalShellRegion((0, 0, 0), (1, 1)).dimension() == 2
+    assert CylinderRegion((0, 0, 0), (0, 0, 1), 0).dimension() == 1
+    assert CapsuleRegion((0, 0, 0), (0, 0, 1), 0).dimension() == 1
+
+
+def test_stadium_rejects_nonplanar_endpoints_but_capsule_allows_them():
+    with pytest.raises(ValueError, match="two-dimensional"):
+        StadiumRegion((0, 0, 0), (1, 0, 0), 1)
+    assert CapsuleRegion((0, 0, 0), (1, 0, 0), 1).ambient_dimension() == 3
+
+
+def test_polygon_rejects_self_intersection_and_accepts_closed_vertex_list():
+    with pytest.raises(ValueError, match="self-intersect"):
+        PolygonRegion(((0, 0), (2, 2), (0, 2), (2, 0)))
+    square = PolygonRegion(((0, 0), (1, 0), (1, 1), (0, 1), (0, 0)))
+    assert len(square.vertices) == 4
+
+
+def test_boolean_region_validates_arity_and_ambient_dimension():
+    from semialg.standard_regions import BooleanRegion
+
+    with pytest.raises(ValueError, match="exactly two"):
+        BooleanRegion("difference", (IntervalRegion(0, 1),))
+    with pytest.raises(ValueError, match="exactly one"):
+        BooleanRegion("complement", (IntervalRegion(0, 1), IntervalRegion(2, 3)))
+    with pytest.raises(ValueError, match="ambient dimension"):
+        BooleanRegion("union", (IntervalRegion(0, 1), BallRegion((0, 0), 1)))
+
+
+def test_boolean_intersection_dimension_handles_dimension_drop():
+    assert RegionIntersection(IntervalRegion(0, 1), IntervalRegion(1, 2)).dimension() == 0
+
+
+def test_concave_polygon_integration_uses_nonoverlapping_triangulation():
+    x, y = sp.symbols("x y", real=True)
+    polygon = PolygonRegion(((0, 0), (3, 0), (3, 3), (2, 3), (2, 1), (1, 1), (1, 3), (0, 3)))
+    assert integrate_over_standard_region(1, polygon, (x, y)) == 7
+
+
+def test_empty_and_open_degenerate_regions_have_empty_set_dimension():
+    from semialg import PointRegion
+
+    assert PointRegion(()).dimension() == -1
+    assert IntervalRegion(0, 0).dimension() == 0
+    assert IntervalRegion(0, 0, lower_closed=False).dimension() == -1
+    with pytest.raises(ValueError, match="at least one vertex"):
+        SimplexRegion(())
+    with pytest.raises(ValueError, match="three-dimensional"):
+        from semialg import TetrahedronRegion
+
+        TetrahedronRegion(((0, 0), (1, 0), (0, 1), (1, 1)))
+
+
+def test_standard_region_dimension_never_exceeds_ambient_dimension():
+    regions = (
+        BoxRegion(((0, 0), (0, 1))),
+        SimplexRegion(((0, 0), (1, 0), (2, 0))),
+        ParallelogramRegion((0, 0), ((1, 0), (2, 0))),
+        ParallelepipedRegion((0, 0, 0), ((1, 0, 0), (2, 0, 0))),
+        BallRegion((0, 0), 0),
+        SphereRegion((0, 0, 0), 0),
+        CylinderRegion((0, 0, 0), (0, 0, 1), 0),
+        StadiumRegion((0, 0), (1, 0), 0),
+        CapsuleRegion((0, 0, 0), (0, 0, 1), 0),
+    )
+    assert all(region.dimension() <= region.ambient_dimension() for region in regions)
+
+
+def test_transformed_region_validates_base_and_coordinate_count_early():
+    from semialg import TransformedRegion
+
+    base = BoxRegion(((0, 1), (0, 1)))
+    with pytest.raises(ValueError, match="base variable count"):
+        TransformedRegion(base, (0,), (sp.Symbol("u"),))
+    with pytest.raises(TypeError, match="StandardRegion"):
+        TransformedRegion(sp.true, (0,), ())  # type: ignore[arg-type]
+
+
+def test_boolean_region_rejects_nonregion_members_early():
+    from semialg.standard_regions import BooleanRegion
+
+    with pytest.raises(TypeError, match="StandardRegion"):
+        BooleanRegion("union", (IntervalRegion(0, 1), sp.true))  # type: ignore[arg-type]

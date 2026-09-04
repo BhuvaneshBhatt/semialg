@@ -9,6 +9,7 @@ import sympy as sp
 from sympy import Eq, Ne
 from sympy.matrices.normalforms import smith_normal_decomp
 
+from ...errors import InternalInvariantError, ResourceLimitError
 from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
 
 
@@ -91,7 +92,7 @@ def combine_mod_crt(
                     new_combined.append(tuple(merged))
         combined = sorted(set(new_combined))
         if max_points is not None and len(combined) > max_points:
-            raise RuntimeError(
+            raise ResourceLimitError(
                 f"CRT recombination exceeds max_points={max_points}: {len(combined)} partial points"
             )
         combined_modulus *= modulus
@@ -185,7 +186,7 @@ def _enumerate_points(
 ) -> list[tuple[int, ...]]:
     total = modulus ** len(tuple(variables))
     if total > max_points:
-        raise RuntimeError(f"Too many modular points to enumerate exactly: {total}")
+        raise ResourceLimitError(f"too many modular points to enumerate exactly: {total}")
     return [tuple(p) for p in product(range(modulus), repeat=len(tuple(variables)))]
 
 
@@ -268,7 +269,8 @@ def _reduced_eqn_groebner(
         return []
     try:
         gb = sp.groebner(polys, *reversed(tuple(variables)), modulus=modulus, order="lex")
-        return [sp.expand(g.as_expr()) for g in gb.polys if sp.expand(g.as_expr()) != 0]
+        expanded = [sp.expand(g.as_expr()) for g in gb.polys]
+        return [poly for poly in expanded if poly != 0]
     except _RECOVERABLE_ERRORS:
         return polys
 
@@ -337,7 +339,9 @@ def enum_lin_sols_prime(
     if rref is None:
         return []
     if modulus ** len(free_cols) > max_points:
-        raise RuntimeError("Too many modular free-variable assignments for exact linear solving")
+        raise ResourceLimitError(
+            "too many modular free-variable assignments for exact linear solving"
+        )
     points = []
     for free_vals in product(range(modulus), repeat=len(free_cols)):
         sol = [0] * len(variables)
@@ -396,7 +400,9 @@ def solve_lin_sys_mod_comp(
     for vals in value_sets:
         total *= len(vals)
     if total > max_points:
-        raise RuntimeError("Too many composite-modulus linear solutions for exact enumeration")
+        raise ResourceLimitError(
+            "too many composite-modulus linear solutions for exact enumeration"
+        )
     points = []
     for z in product(*value_sets):
         xvec = V * sp.Matrix(list(z))
@@ -411,6 +417,7 @@ def solve_mod_lin_sys(
     *,
     max_points: int = 10000,
 ) -> ModularSolveResult:
+    """Solve a linear congruence system exactly over the requested modulus."""
     modulus = _coerce_modulus(modulus)
     variables = tuple(variables)
     method = "linear_enumeration"
@@ -489,7 +496,8 @@ def score_branch_var(
         tup = (score, var.sort_key(), var, candidate_vals, free_of_others)
         if best is None or tup < best:
             best = tup
-    assert best is not None
+    if best is None:
+        raise InternalInvariantError("congruence variable selection produced no candidate")
     return best[2], best[3], best[4]
 
 
@@ -514,7 +522,6 @@ def rec_solve_basis(
     ]
     neqs = [sp.expand(p.subs(assignment)) for p in inequations]
 
-    # Early contradiction pruning
     for p in polys:
         if not p.free_symbols and int(sp.Mod(p, modulus)) != 0:
             return []
@@ -537,7 +544,7 @@ def rec_solve_basis(
                 pts.append(tuple(int(full[v] % modulus) for v in variables))
         return pts
 
-    target, allowed, direct_univariates = score_branch_var(polys, active_vars, modulus)
+    target, allowed, _direct_univariates = score_branch_var(polys, active_vars, modulus)
     # Advanced pruning: use inequations depending only on target to filter residues
     target_ineqs = [q for q in neqs if q.free_symbols.issubset({target})]
     if target_ineqs:
@@ -567,7 +574,7 @@ def rec_solve_basis(
         )
         pts.extend(child)
         if len(pts) > max_points:
-            raise RuntimeError("Too many recursively constructed modular solutions")
+            raise ResourceLimitError("too many recursively constructed modular solutions")
     return sorted(set(pts))
 
 
@@ -578,6 +585,7 @@ def solve_mod_poly_sys(
     *,
     max_points: int = 10000,
 ) -> ModularSolveResult:
+    """Solve a polynomial congruence system by exact modular decomposition and candidate checking."""
     modulus = _coerce_modulus(modulus)
     variables = tuple(variables)
     method = "polynomial_enumeration"
@@ -844,7 +852,7 @@ def eliminate_one_var(
     return _points_to_formula(projected, remaining)
 
 
-def solve_quant_mod_sys(
+def solve_quantified_modular_system(
     expr: sp.Expr,
     free_variables: Sequence[sp.Symbol],
     quantified_variables: Sequence[sp.Symbol],
@@ -853,6 +861,12 @@ def solve_quant_mod_sys(
     quantifier: str = "exists",
     max_points: int = 10000,
 ) -> ModularSolveResult:
+    """Eliminate quantified variables in a finite modular arithmetic domain.
+
+    Composite moduli are split into prime-power components when CRT combination
+    succeeds. Otherwise variables are eliminated directly by finite-domain
+    projection, with universal quantifiers reduced through negated existence.
+    """
     modulus = _coerce_modulus(modulus)
     free_variables = tuple(free_variables)
     quantified_variables = tuple(quantified_variables)
@@ -863,7 +877,7 @@ def solve_quant_mod_sys(
     if len(factors) > 1:
         try:
             parts = [
-                solve_quant_mod_sys(
+                solve_quantified_modular_system(
                     expr,
                     free_variables,
                     quantified_variables,
@@ -904,7 +918,6 @@ def solve_quant_mod_sys(
     return result
 
 
-# Convenience wrappers for modular solving
 def solve_modular_system(
     expr: sp.Expr, variables: Sequence[sp.Symbol], modulus: int, *, max_points: int = 10000
 ) -> ModularSolveResult:
@@ -928,7 +941,7 @@ __all__ = [
     "solve_quant_free_mod_sys",
     "find_quant_free_mod_inst",
     "eliminate_one_var",
-    "solve_quant_mod_sys",
+    "solve_quantified_modular_system",
     "solve_modular_system",
     "find_modular_instance",
 ]

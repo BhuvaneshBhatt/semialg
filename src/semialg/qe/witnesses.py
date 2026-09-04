@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.lifting.stack import CADCell
 from ..formula import Formula
 from .complete import CompleteQEResult, evaluate_formula_on_cell
 

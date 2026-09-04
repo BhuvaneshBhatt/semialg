@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
+from ..._errors import EXACT_OPERATION_ERRORS
 from .families import classify_trans_fams, default_trans_handlers
 from .state import QuantifierBlock, TransProblemState
 
@@ -46,7 +47,7 @@ def simp_piecewise_subexprs(state: TransProblemState) -> TransProblemState:
     try:
         f2 = sp.piecewise_fold(f)
         f2 = sp.simplify(f2)
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         f2 = f
     if f2 == f:
         return state
@@ -108,12 +109,18 @@ def _replacement_constraint(family_name: str, aux: sp.Symbol, expr: sp.Expr) -> 
     return sp.Eq(aux, expr)
 
 
-def replace_function_auxilia(
+def replace_function_families(
     state: TransProblemState,
     family_name: str,
     *,
     only_in_equations: bool = False,
 ) -> tuple[TransProblemState, FamilyReplacementStep | None]:
+    """Replace one supported function family by auxiliary variables and equations.
+
+    Every detected function value receives one fresh auxiliary symbol plus an
+    exact defining relation. The returned metadata records the replacement so
+    later reconstruction can map auxiliary solutions back to source expressions.
+    """
     handlers = {h.family_name: h for h in default_trans_handlers()}
     if family_name not in handlers:
         return state, None
@@ -162,7 +169,7 @@ def replace_function_auxilia(
     )
 
 
-def prep_trans_problem(
+def preprocess_transcendental_problem(
     state: TransProblemState,
     *,
     families_to_replace: Sequence[str] = (
@@ -175,6 +182,7 @@ def prep_trans_problem(
     ),
     quantifier_aware: bool = True,
 ) -> TransPrepResult:
+    """Apply exact structural preprocessing and auxiliary-family replacement to solver state."""
     current = simp_piecewise_subexprs(state)
     steps = []
     changed = current.formula != state.formula
@@ -189,7 +197,7 @@ def prep_trans_problem(
     ordered_families += [f for f in families_to_replace if f not in ordered_families]
 
     for family in ordered_families:
-        current, step = replace_function_auxilia(
+        current, step = replace_function_families(
             current,
             family,
             only_in_equations=bool(current.has_quantifiers),
@@ -212,6 +220,6 @@ __all__ = [
     "TransPrepResult",
     "simp_piecewise_subexprs",
     "build_quantifier_plan",
-    "replace_function_auxilia",
-    "prep_trans_problem",
+    "replace_function_families",
+    "preprocess_transcendental_problem",
 ]

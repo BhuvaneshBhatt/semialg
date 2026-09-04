@@ -152,7 +152,7 @@ simplify_system([sp.Eq(y, x + 1), y >= 2], [x, y], eliminate_equalities=True)
 
 ## Structured sign proofs
 
-The sign-proving helpers preserve their historical Boolean return values by
+The sign-proving helpers return Boolean values by
  default while also supporting `return_result=True` for diagnostics and
  counterexamples:
 

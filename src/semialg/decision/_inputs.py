@@ -6,7 +6,12 @@ import sympy as sp
 from sympy.logic.boolalg import Boolean
 from sympy.polys.polyerrors import PolynomialError
 
-from ..normalization import normalize_formula, normalize_problem_variables
+from ..normalization import (
+    normalize_formula,
+    normalize_problem_variables,
+    normalize_symbol_sequence,
+)
+from ..structural_keys import symbol_identity_key
 
 FormulaLike = sp.Expr | Boolean | bool
 
@@ -23,14 +28,7 @@ def normalize_decision_variables(
 
 
 def normalize_symbols(symbols: Sequence[sp.Symbol | str] | None) -> tuple[sp.Symbol, ...]:
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for item in symbols or ():
-        sym = as_real_symbol(item)
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
+    return normalize_symbol_sequence(tuple(symbols or ()))
 
 
 def normalize_solve_variables(
@@ -41,7 +39,7 @@ def normalize_solve_variables(
     params = set(parameters)
     if variables is not None:
         return tuple(sym for sym in normalize_symbols(variables) if sym not in params)
-    return tuple(sorted(formula.free_symbols - params, key=lambda item: item.name))
+    return tuple(sorted(formula.free_symbols - params, key=symbol_identity_key))
 
 
 def prepare_solve_inputs(
@@ -55,8 +53,9 @@ def prepare_solve_inputs(
     projection_order: Sequence[sp.Symbol | str] | None,
     normalize_domains: bool,
 ) -> tuple[sp.Expr, sp.Expr, tuple[sp.Symbol, ...], tuple[sp.Symbol, ...], str, object | None]:
+    """Normalize a decision problem into formula, variables, parameters, and quantifier metadata."""
     if domain.lower() not in {"real", "reals", "r", "rr"}:
-        raise NotImplementedError("solve_semialgebraic currently supports only the real domain")
+        raise NotImplementedError("solve_semialgebraic supports only the real domain")
     original = normalize_formula(constraints)
     params = normalize_symbols(parameters)
     solve_vars = normalize_solve_variables(variables, original, params)

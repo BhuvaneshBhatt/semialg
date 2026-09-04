@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
-from ..cad.constants import (
+from ..cad_algorithms.constants import (
     PROJECTION_COLLINS,
     PROJECTION_LAZARD,
     PROJECTION_MCCALLUM,
@@ -34,6 +34,7 @@ def select_strat_analysis(
     *,
     strategy_memory: StrategyMemory | None = None,
 ) -> StrategySelection:
+    """Select a solving strategy from extracted structural features and exactness requirements."""
     f = analysis.features
     notes = list(analysis.notes)
     signature = feature_signature(f)

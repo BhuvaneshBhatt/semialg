@@ -6,9 +6,26 @@ from dataclasses import dataclass, field
 import sympy as sp
 from sympy.logic.boolalg import Boolean
 
-from .symbol_resolution import normalize_variables as _resolve_variables
+from .errors import SemialgStrategyFailure
+from .function_graph import (
+    UnsupportedFunctionGraph,
+    has_semialgebraic_graph_special,
+    semialgebraic_function_graph,
+)
+from .internal_symbols import fresh_real_dummy
+from .normalization import normalize_formula, normalize_problem_variables
+from .simplify.boolean import simplify_boolean
 
 FormulaLike = sp.Expr | Boolean | bool
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+    SemialgStrategyFailure,
+)
 
 
 @dataclass(frozen=True)
@@ -27,23 +44,6 @@ class DomainNormalizationResult:
     rewrites: tuple[str, ...] = ()
     auxiliary_symbols: tuple[sp.Symbol, ...] = ()
     diagnostics: dict[str, object] = field(default_factory=dict)
-
-
-def _as_formula(constraints: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    if isinstance(constraints, (list, tuple, set, frozenset)):
-        pieces = [sp.sympify(item) for item in constraints]
-        return sp.And(*pieces) if pieces else sp.true
-    if constraints is True:
-        return sp.true
-    if constraints is False:
-        return sp.false
-    return sp.sympify(constraints)
-
-
-def _as_symbols(
-    variables: Sequence[sp.Symbol | str] | None, expr: sp.Expr
-) -> tuple[sp.Symbol, ...]:
-    return _resolve_variables(variables, context=(expr,), append_context_symbols=True)
 
 
 def _boolean_map(expr: sp.Expr, fn) -> sp.Expr:
@@ -65,10 +65,13 @@ def _domain_constraints_for_expr(expr: sp.Expr) -> tuple[sp.Expr, ...]:
     for sub in sp.preorder_traversal(expr):
         if isinstance(sub, sp.Pow):
             base, exponent = sub.as_base_exp()
-            if exponent.is_Rational:
-                q = int(exponent.q)
-                if q % 2 == 0:
-                    constraints.append(base >= 0)
+            # Ordinary SymPy Pow uses the principal complex branch.  A
+            # noninteger rational power of a real base is real on the
+            # nonnegative base locus (strictly positive for negative powers).
+            # Explicit real roots produced by sympy.real_root canonicalize to
+            # sign(base)*Abs(base)**r, so this rule only sees Abs(base) there.
+            if exponent.is_Rational and exponent.is_integer is False:
+                constraints.append(base > 0 if exponent < 0 else base >= 0)
         elif sub.func == sp.log and sub.args:
             constraints.append(sub.args[0] > 0)
     # Denominators must be nonzero.  Apply ``together`` only to scalar
@@ -93,14 +96,73 @@ def _domain_constraints_for_expr(expr: sp.Expr) -> tuple[sp.Expr, ...]:
     return tuple(dict.fromkeys(constraints))
 
 
-def function_domain(expr: sp.Expr, variables: Sequence[sp.Symbol | str] | None = None) -> sp.Expr:
-    """Return a conservative real-domain formula for supported expressions.
+def _graph_domain(expr: sp.Expr, variables: Sequence[sp.Symbol | str] | None) -> sp.Expr | None:
+    """Project a supported exact graph to its input variables."""
 
-    The initial scope is semialgebraic-friendly: rational denominators,
-    square/even roots, and logarithm positivity conditions are recognized.
+    if not has_semialgebraic_graph_special(expr):
+        return None
+    traversal = tuple(sp.preorder_traversal(expr))
+    rational_powers = sum(
+        isinstance(item, sp.Pow) and item.exp.is_Rational is True and item.exp.is_integer is False
+        for item in traversal
+    )
+    needs_projection = (
+        rational_powers > 1
+        or any(
+            isinstance(item, sp.Pow)
+            and item.exp.is_Rational is True
+            and item.exp.is_integer is False
+            and item.exp < 0
+            for item in traversal
+        )
+        or any(item.func in {sp.sign, sp.Min, sp.Max} for item in traversal)
+        or any(isinstance(item, sp.Piecewise) for item in traversal)
+    )
+    if not needs_projection:
+        return None
+    target = fresh_real_dummy("semialg_domain_value")
+    try:
+        graph = semialgebraic_function_graph(expr, target)
+        vars_ = normalize_problem_variables(variables, expr)
+        elimination = tuple(dict.fromkeys((target, *graph.auxiliary_variables)))
+        from .formula import parse_formula
+        from .qe import qe_by_complete_cad
+
+        parsed = parse_formula(graph.formula)
+        result = qe_by_complete_cad(
+            (*vars_, *elimination),
+            tuple(("exists", var) for var in elimination),
+            parsed,
+            free_variables=vars_,
+            return_result=True,
+        )
+        return sp.simplify(result.formula)
+    except (UnsupportedFunctionGraph, *_RECOVERABLE_ERRORS):
+        return None
+
+
+def function_domain(expr: sp.Expr, variables: Sequence[sp.Symbol | str] | None = None) -> sp.Expr:
+    """Return exact recognized real-domain constraints for ``expr``.
+
+    The semialgebraic graph engine handles rational expressions, ``Abs``,
+    ``sign``, ``Min``/``Max``, ``Piecewise``, and rational powers.  Ordinary
+    ``x**(p/q)`` follows SymPy's principal-branch ``Pow`` semantics; explicit
+    ``sympy.real_root`` expressions retain real-root semantics through their
+    canonical ``sign(x)*Abs(x)**(p/q)`` form.  Logarithms are handled by the
+    structural real-domain rule ``argument > 0`` even though their graphs are
+    not semialgebraic.
+
+    Graph projection is used when it can produce a purely semialgebraic input
+    condition.  Otherwise the function returns the conjunction of recognized
+    structural conditions.  This remains intentionally incomplete for arbitrary
+    SymPy functions: ``True`` means no restriction was proved by the supported
+    rules, not that every possible function head has been analyzed.
     """
 
     sym_expr = sp.sympify(expr)
+    exact = _graph_domain(sym_expr, variables)
+    if exact is not None:
+        return exact
     constraints = _domain_constraints_for_expr(sym_expr)
     return sp.And(*constraints) if constraints else sp.true
 
@@ -116,16 +178,16 @@ def is_real_valued(
     domain = function_domain(expr, variables)
     if domain is sp.true or domain == sp.true:
         return True
-    assumption_formula = _as_formula(assumptions)
-    vars_ = _as_symbols(variables, sp.And(domain, assumption_formula))
+    assumption_formula = normalize_formula(assumptions)
+    vars_ = normalize_problem_variables(variables, sp.And(domain, assumption_formula))
     try:
         from .decision import implies
 
         return implies(assumption_formula, domain, vars_)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         try:
             return bool(sp.simplify(sp.Implies(assumption_formula, domain)))
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return False
 
 
@@ -149,7 +211,7 @@ def _rewrite_rational_relation(rel: sp.Rel) -> sp.Expr | None:
     diff = sp.together(rel.lhs - rel.rhs)
     try:
         num, den = sp.fraction(diff)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if den == 1:
         return None
@@ -322,8 +384,8 @@ def normalize_domain_sensitive_constraints(
     in the supported semialgebraic subset.
     """
 
-    expr = _as_formula(constraints)
-    vars_ = _as_symbols(variables, expr)
+    expr = normalize_formula(constraints)
+    vars_ = normalize_problem_variables(variables, expr)
     domain_constraints = tuple(dict.fromkeys(_domain_constraints_for_expr(expr)))
     special_heads = (sp.Abs, sp.Min, sp.Max, sp.Piecewise)
     if not domain_constraints and not any(expr.has(head) for head in special_heads):
@@ -337,8 +399,8 @@ def normalize_domain_sensitive_constraints(
         )
     rewritten = _rewrite_formula(expr)
     try:
-        simplified = sp.simplify_logic(rewritten, form="dnf")
-    except Exception:
+        simplified = simplify_boolean(rewritten)
+    except _RECOVERABLE_ERRORS:
         simplified = sp.simplify(rewritten)
     rewrites: list[str] = []
     if simplified != expr:

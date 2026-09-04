@@ -1,27 +1,37 @@
-"""Shared exception hierarchy for semialgebraic algorithms."""
+"""Public exception exports for semialg.
+
+The canonical exception classes are defined in :mod:`semialg.errors` and are
+re-exported here as a compact import surface.
+"""
 
 from __future__ import annotations
 
+from .errors import (
+    AlgebraicSolvingError,
+    BackendFailure,
+    CertificationFailure,
+    DimensionMismatchError,
+    ExactEvaluationFailure,
+    FormulaNormalizationError,
+    QuantifierEliminationError,
+    ReconstructionFailure,
+    ResourceLimitError,
+    SemialgError,
+    SemialgStrategyFailure,
+    UnsupportedFragmentError,
+)
 
-class SemialgError(Exception):
-    """Base class for package-specific failures."""
-
-
-class UnsupportedFragmentError(SemialgError, ValueError):
-    """Raised when an input is outside a supported symbolic fragment."""
-
-
-class BackendFailure(SemialgError):
-    """Raised when an optional backend fails after accepting an input."""
-
-
-class FormulaNormalizationError(SemialgError, ValueError):
-    """Raised when a formula cannot be normalized for a solver."""
-
-
-class AlgebraicSolvingError(SemialgError, ValueError):
-    """Raised by exact algebraic solving backends."""
-
-
-class QuantifierEliminationError(SemialgError, ValueError):
-    """Raised by quantifier-elimination backends."""
+__all__ = [
+    "SemialgError",
+    "SemialgStrategyFailure",
+    "UnsupportedFragmentError",
+    "BackendFailure",
+    "FormulaNormalizationError",
+    "AlgebraicSolvingError",
+    "QuantifierEliminationError",
+    "ReconstructionFailure",
+    "DimensionMismatchError",
+    "CertificationFailure",
+    "ExactEvaluationFailure",
+    "ResourceLimitError",
+]

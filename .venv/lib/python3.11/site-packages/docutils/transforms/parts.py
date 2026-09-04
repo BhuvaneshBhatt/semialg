@@ -1,4 +1,4 @@
-# $Id: parts.py 10136 2025-05-20 15:48:27Z milde $
+# $Id: parts.py 10309 2026-04-09 14:35:52Z milde $
 # Authors: David Goodger <goodger@python.org>; Ueli Schlaepfer; Dmitry Jemerov
 # Copyright: This module has been placed in the public domain.
 
@@ -68,39 +68,41 @@ class SectNum(Transform):
 
 
 class Contents(Transform):
-
     """
+    Generate a table of contents (ToC)
+
     This transform generates a table of contents from the entire document tree
-    or from a single branch.  It locates "section" elements and builds them
-    into a nested bullet list, which is placed within a "topic" created by the
+    or from a single branch.  It locates <section> elements and builds them
+    into a nested bullet list, which is placed within a <topic> created by the
     contents directive.  A title is either explicitly specified, taken from
     the appropriate language module, or omitted (local table of contents).
     The depth may be specified.  Two-way references between the table of
     contents and section titles are generated (requires Writer support).
 
-    This transform requires a startnode, which contains generation
-    options and provides the location for the generated table of contents (the
-    startnode is replaced by the table of contents "topic").
+    This transform requires a startnode, a <pending> element which contains
+    generation options and provides the location for the generated ToC (the
+    startnode is replaced by the table of contents <bullet_list>).
     """
 
     default_priority = 720
 
     def apply(self) -> None:
+        # ensure the <topic> containing the ToC has a registered ID
+        self.toc_id = self.document.set_id(self.startnode.parent)
         # let the writer (or output software) build the contents list?
         toc_by_writer = getattr(self.document.settings, 'use_latex_toc', False)
         # TODO: handle "generate_oowriter_toc" setting of the "ODT" writer.
         if toc_by_writer:
             return
+
         details = self.startnode.details
         if 'local' in details:
+            # find the ToC root: a direct ancestor of startnode
             startnode = self.startnode.parent.parent
-            while not (isinstance(startnode, nodes.section)
-                       or isinstance(startnode, nodes.document)):
-                # find the ToC root: a direct ancestor of startnode
+            while not isinstance(startnode, (nodes.section, nodes.document)):
                 startnode = startnode.parent
         else:
             startnode = self.document
-        self.toc_id = self.startnode.parent['ids'][0]
         if 'backlinks' in details:
             self.backlinks = details['backlinks']
         else:

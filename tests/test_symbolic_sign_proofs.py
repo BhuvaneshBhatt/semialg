@@ -3,12 +3,12 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg import (
-    SignProofResult,
     prove_negative,
     prove_nonnegative,
     prove_nonpositive,
     prove_positive,
 )
+from semialg.reasoning import SignProofResult
 
 
 def test_prove_nonnegative_uses_square_certificate():

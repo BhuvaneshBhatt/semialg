@@ -1,0 +1,296 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
+
+import sympy as sp
+from sympy.logic.boolalg import Boolean
+
+from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+from .decision import implies
+from .normalization import normalize_formula, normalize_variables
+from .reasoning_results import AssumptionSimplificationResult
+from .symbolic_simplify import simplify_piecewise
+
+FormulaLike = sp.Expr | Boolean | bool
+
+
+def _provable(
+    condition: sp.Expr, assumptions: sp.Expr, variables: Sequence[sp.Symbol], strategy: str | None
+) -> bool:
+    """Return True when ``assumptions => condition`` can be proved."""
+
+    if condition in (True, sp.true):
+        return True
+    if condition in (False, sp.false):
+        return False
+    try:
+        return bool(implies(assumptions, condition, variables, strategy=strategy))
+    except _RECOVERABLE_ERRORS:
+        try:
+            simplified = sp.simplify(condition)
+            return bool(simplified is sp.true or simplified == sp.true)
+        except _RECOVERABLE_ERRORS:
+            return False
+
+
+def _simplify_abs(
+    expr: sp.Abs, assumptions: sp.Expr, variables: Sequence[sp.Symbol], strategy: str | None
+) -> sp.Expr:
+    arg = expr.args[0]
+    if _provable(arg >= 0, assumptions, variables, strategy):
+        return arg
+    if _provable(arg <= 0, assumptions, variables, strategy):
+        return -arg
+    return expr
+
+
+def _sqrt_square_base(base: sp.Expr) -> sp.Expr | None:
+    """Return ``g`` when ``base`` is syntactically a square ``g**2``.
+
+    This deliberately recognizes only identities that are valid over the real
+    domain without changing the domain of the expression. The caller then
+    simplifies ``Abs(g)`` under the active assumptions.
+    """
+
+    base = sp.factor(base)
+    if isinstance(base, sp.Pow) and base.exp == 2:
+        return base.base
+    if isinstance(base, sp.Mul):
+        coeff, factors = base.as_coeff_mul()
+        square_root_coeff = None
+        if coeff != 1:
+            root = sp.sqrt(coeff)
+            if (
+                root.is_Rational
+                or (root.is_Integer if hasattr(root, "is_Integer") else False)
+                or sp.simplify(root**2 - coeff) == 0
+                and root.is_real is not False
+            ):
+                square_root_coeff = root
+            else:
+                return None
+        pieces: list[sp.Expr] = []
+        if square_root_coeff not in (None, 1):
+            pieces.append(square_root_coeff)
+        for factor in factors:
+            if isinstance(factor, sp.Pow) and factor.exp.is_Integer and int(factor.exp) % 2 == 0:
+                pieces.append(factor.base ** (int(factor.exp) // 2))
+            else:
+                return None
+        return sp.Mul(*pieces) if pieces else sp.Integer(1)
+    return None
+
+
+def _simplify_power_under_assumptions(
+    node: sp.Pow,
+    assumptions: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    strategy: str | None,
+) -> sp.Expr | None:
+    if node.exp == sp.Rational(1, 2):
+        squared = _sqrt_square_base(node.base)
+        if squared is not None:
+            return _simplify_abs(sp.Abs(squared), assumptions, variables, strategy)
+        return sp.sqrt(node.base)
+    return None
+
+
+def _simplify_log_under_assumptions(
+    node: sp.log,
+    assumptions: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    strategy: str | None,
+) -> sp.Expr | None:
+    arg = node.args[0]
+    if arg.func == sp.exp:
+        inner = arg.args[0]
+        if all(sym.is_real is not False for sym in inner.free_symbols):
+            return inner
+    if isinstance(arg, sp.Pow) and arg.exp == 2:
+        base = arg.base
+        if _provable(base > 0, assumptions, variables, strategy):
+            return 2 * sp.log(base)
+        if _provable(base < 0, assumptions, variables, strategy):
+            return 2 * sp.log(-base)
+    return None
+
+
+def _proved_nonzero_denominator(
+    denom: sp.Expr,
+    assumptions: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    strategy: str | None,
+) -> bool:
+    if denom == 1:
+        return True
+    if denom.is_number:
+        try:
+            return bool(denom != 0)
+        except _RECOVERABLE_ERRORS:
+            return False
+    return _provable(sp.Ne(denom, 0), assumptions, variables, strategy)
+
+
+def _safe_cancel_under_assumptions(
+    expr: sp.Expr,
+    assumptions: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    strategy: str | None,
+    conditions: list[sp.Expr],
+    rewrites: list[str],
+    *,
+    allow_conditional: bool,
+) -> sp.Expr:
+    try:
+        _num, den = sp.fraction(sp.together(expr))
+        cancelled = sp.cancel(expr)
+        _cnum, cden = sp.fraction(sp.together(cancelled))
+    except _RECOVERABLE_ERRORS:
+        return expr
+    if cancelled == expr or den == cden:
+        return expr
+    # ``cancel`` is safe on the domain where the original denominator is nonzero.
+    condition = sp.Ne(den, 0)
+    if _proved_nonzero_denominator(den, assumptions, variables, strategy):
+        rewrites.append("cancel_proved_nonzero_denominator")
+        return cancelled
+    if allow_conditional:
+        conditions.append(condition)
+        rewrites.append("cancel_with_side_condition")
+        return cancelled
+    return expr
+
+
+def _safe_scalar_simplify(expr: sp.Expr) -> sp.Expr:
+    """Apply only conservative scalar cleanup.
+
+    Do not call ``sp.simplify`` here: for rational expressions it may cancel
+    denominators and silently change the domain. Domain-changing cancellation
+    is handled explicitly by ``_safe_cancel_under_assumptions``.
+    """
+
+    if isinstance(expr, Boolean):
+        return expr
+    try:
+        return sp.factor_terms(expr)
+    except _RECOVERABLE_ERRORS:
+        return expr
+
+
+def simplify_under_assumptions(
+    expr: sp.Expr,
+    assumptions: FormulaLike | Iterable[FormulaLike] = True,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+    return_conditions: bool = False,
+    return_result: bool = False,
+) -> sp.Expr | AssumptionSimplificationResult:
+    """Simplify real expressions using provable assumptions.
+
+    Supported rewrites include sign-sensitive ``Abs`` and ``sqrt(square)``
+    simplification, branch-wise ``Piecewise`` simplification, ``Min``/``Max``
+    dominance, real ``log(exp(x))``, positive-domain ``log(x**2)``, and safe
+    rational cancellation when the original denominator is provably nonzero.
+
+    By default, rewrites that need extra side conditions are not applied. With
+    ``return_conditions=True`` or ``return_result=True``, such conditional
+    rewrites may be returned together with their required side conditions.
+    """
+
+    expression = sp.sympify(expr)
+    asm = normalize_formula(assumptions)
+    vars_ = normalize_variables(
+        variables, sp.And(asm, expression >= expression) if expression.free_symbols else asm
+    )
+    conditions: list[sp.Expr] = []
+    rewrites: list[str] = []
+    allow_conditional = bool(return_conditions or return_result)
+
+    def rec(node: sp.Expr) -> sp.Expr:
+        """Recursively simplify supported expression heads while recording required side conditions."""
+        if isinstance(node, sp.Piecewise):
+            rebuilt = sp.Piecewise(*[(rec(value), cond) for value, cond in node.args])
+            result = simplify_piecewise(
+                rebuilt, vars_, assumptions=asm, strategy=strategy, return_result=True
+            )
+            if getattr(result, "simplified_branch_values", 0):
+                rewrites.append("piecewise_branch_values")
+            return result.expression
+        if isinstance(node, sp.Abs):
+            simplified = _simplify_abs(sp.Abs(rec(node.args[0])), asm, vars_, strategy)
+            if simplified != node:
+                rewrites.append("abs_sign")
+            return simplified
+        if isinstance(node, sp.Max):
+            args = tuple(rec(arg) for arg in node.args)
+            for candidate in args:
+                if all(
+                    _provable(candidate >= other, asm, vars_, strategy)
+                    for other in args
+                    if other != candidate
+                ):
+                    rewrites.append("max_dominance")
+                    return candidate
+            return sp.Max(*args)
+        if isinstance(node, sp.Min):
+            args = tuple(rec(arg) for arg in node.args)
+            for candidate in args:
+                if all(
+                    _provable(candidate <= other, asm, vars_, strategy)
+                    for other in args
+                    if other != candidate
+                ):
+                    rewrites.append("min_dominance")
+                    return candidate
+            return sp.Min(*args)
+        if isinstance(node, sp.Pow):
+            base = rec(node.base)
+            rebuilt = sp.Pow(base, node.exp, evaluate=False)
+            simplified_pow = _simplify_power_under_assumptions(rebuilt, asm, vars_, strategy)
+            if simplified_pow is not None and simplified_pow != rebuilt:
+                rewrites.append("sqrt_square")
+                return simplified_pow
+            return rebuilt
+        if node.func == sp.log:
+            arg = rec(node.args[0])
+            rebuilt = sp.log(arg)
+            simplified_log = _simplify_log_under_assumptions(rebuilt, asm, vars_, strategy)
+            if simplified_log is not None:
+                rewrites.append("log_domain")
+                return simplified_log
+            return rebuilt
+        if not node.args:
+            return node
+        try:
+            new_args = tuple(rec(arg) if isinstance(arg, sp.Expr) else arg for arg in node.args)
+            rebuilt = node.func(*new_args)
+            return _safe_scalar_simplify(rebuilt)
+        except _RECOVERABLE_ERRORS:
+            return node
+
+    simplified = rec(expression)
+    simplified = _safe_cancel_under_assumptions(
+        simplified,
+        asm,
+        vars_,
+        strategy,
+        conditions,
+        rewrites,
+        allow_conditional=allow_conditional,
+    )
+    simplified = _safe_scalar_simplify(simplified)
+    if return_conditions or return_result:
+        return AssumptionSimplificationResult(
+            expression=simplified,
+            original=expression,
+            assumptions=asm,
+            variables=vars_,
+            conditions=tuple(dict.fromkeys(conditions)),
+            rewrites=tuple(dict.fromkeys(rewrites)),
+            diagnostics={"conditional_rewrites_allowed": allow_conditional},
+        )
+    return simplified
+
+
+__all__ = ["AssumptionSimplificationResult", "simplify_under_assumptions"]

@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from ..cad.decomposition import CompleteCAD
-from ..cad.projection.collins import ProjectionPolynomial
+from ..cad_algorithms.decomposition import CompleteCAD
+from ..cad_algorithms.projection.collins import ProjectionPolynomial
 from ..formula import And, Atom, BoolConst, Formula, Not, Or
-from ..simplify.result import simplify_qe_formula
+from ..simplify.formula import simplify_qe_formula
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ def _normalize_poly(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Poly | 
         return None
     try:
         poly = sp.Poly(sp.expand(expr), *variables)
-    except Exception:
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         return None
     if poly.is_zero or poly.total_degree() == 0:
         return None
@@ -70,14 +70,14 @@ def input_boundary_causes(
     algebraic variety, and disequalities contribute their deleted locus.
     """
 
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     causes: list[ExceptionalCause] = []
     vars_tuple = tuple(variables)
     for expr in _atom_boundary_exprs(formula):
         poly = _normalize_poly(expr, vars_tuple)
         if poly is None:
             continue
-        key = sp.sstr(sp.expand(poly.as_expr()))
+        key = sp.expand(poly.as_expr())
         if key in seen:
             continue
         seen.add(key)
@@ -91,7 +91,7 @@ def projection_causes(
     """Return discriminant/resultant/nullification-style projection causes."""
 
     vars_tuple = tuple(variables)
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, sp.Expr]] = set()
     causes: list[ExceptionalCause] = []
     for level in cad.tower.levels:
         for entry in level.entries:
@@ -101,7 +101,7 @@ def projection_causes(
             poly = _normalize_poly(entry.poly.as_expr(), vars_tuple[: level.level])
             if poly is None:
                 continue
-            key = (source, sp.sstr(sp.expand(poly.as_expr())))
+            key = (source, sp.expand(poly.as_expr()))
             if key in seen:
                 continue
             seen.add(key)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ..model import QEResult
-from .common import qe_cells_and_vars, region_formula
+from .cell_formulas import qe_cells_and_vars, region_formula
 
 
 def region_interior(cells_with_truth, variables):

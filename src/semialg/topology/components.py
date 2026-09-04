@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 
-from ..cad.decomposition import CompleteCAD
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.decomposition import CompleteCAD
+from ..cad_algorithms.lifting.stack import CADCell
 from .incidence import closures_intersect, final_cells
 
 

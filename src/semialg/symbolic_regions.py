@@ -1,0 +1,665 @@
+"""Unified symbolic semialgebraic regions and region predicates.
+
+This module bridges semialg's formula-oriented region algorithms and the
+explicit ``StandardRegion`` hierarchy.  ``SemialgebraicRegion`` is a symbolic
+region value whose structural identity is just ``(formula, variables)``;
+expensive problem context and CAD artifacts are lazy, non-structural caches.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import sympy as sp
+from sympy.logic.boolalg import as_Boolean
+
+from .normalization import normalize_formula, normalize_variables
+from .structural_keys import ordered_symbols
+
+
+def _default_variables(dimension: int) -> tuple[sp.Symbol, ...]:
+    return tuple(sp.Symbol(f"x{i + 1}", real=True) for i in range(dimension))
+
+
+def _point_tuple(point: object) -> tuple[sp.Expr, ...]:
+    if isinstance(point, sp.Tuple) or isinstance(point, (tuple, list)):
+        values = tuple(point)
+    else:
+        values = (point,)
+    return tuple(sp.sympify(value) for value in values)
+
+
+def _fresh_symbols(prefix: str, count: int) -> tuple[sp.Dummy, ...]:
+    return tuple(sp.Dummy(f"{prefix}{i + 1}", real=True) for i in range(count))
+
+
+def _quantifier_free(expr: sp.Basic, variable_order: Sequence[sp.Symbol]) -> sp.Expr:
+    """Eliminate semialg quantifiers, including quantified Boolean branches."""
+
+    from sympy.logic.boolalg import BooleanFunction
+
+    from .formula import parse_quantified_expr
+    from .quantifiers import Exists, ForAll
+    from .solve.reduce import reduce_formula
+    from .structural_keys import symbol_identity_key
+
+    def eliminate(node: sp.Basic) -> sp.Basic:
+        if isinstance(node, (Exists, ForAll)):
+            body = eliminate(node.formula)
+            quantified = node.func(node.variables, body)
+            symbols = tuple(
+                sorted(getattr(quantified, "free_symbols", set()), key=symbol_identity_key)
+            )
+            order = tuple(dict.fromkeys(tuple(variable_order) + symbols + tuple(node.variables)))
+            parsed = parse_quantified_expr(quantified, variable_order=order)
+            return normalize_formula(reduce_formula(parsed, strategy="auto"))
+        if isinstance(node, BooleanFunction):
+            args = tuple(eliminate(arg) if isinstance(arg, sp.Basic) else arg for arg in node.args)
+            if args != node.args:
+                return node.func(*args)
+        return node
+
+    return normalize_formula(eliminate(expr))
+
+
+class SemialgebraicRegion(sp.Basic):
+    """A symbolic semialgebraic subset of ``R^n`` with lazy reusable state.
+
+    Parameters
+    ----------
+    formula:
+        A Boolean formula in ``variables``.  A leading semialg ``Exists`` or
+        ``ForAll`` prefix is permitted; it is eliminated lazily before CAD or
+        context operations that require a quantifier-free matrix.
+    variables:
+        Ambient coordinate variables.  When omitted they are inferred from the
+        formula.
+    context:
+        Optional pre-existing :class:`SemialgebraicContext` for the same
+        quantifier-free region formula.
+    cad:
+        Optional reusable ``CADResult`` for the region.
+
+    The context and CAD are caches, not part of structural equality/hash.
+    """
+
+    __slots__ = ("_context", "_cad", "_qf_formula")
+
+    def __new__(
+        cls,
+        formula: object,
+        variables: Sequence[sp.Symbol | str] | None = None,
+        *,
+        context=None,
+        cad=None,
+    ):
+        expr = as_Boolean(normalize_formula(formula))
+        vars_ = tuple(
+            normalize_variables(variables, expr, append_context_symbols=variables is None)
+        )
+        obj = sp.Basic.__new__(cls, expr, sp.Tuple(*vars_))
+        obj._context = context
+        obj._cad = cad
+        obj._qf_formula = None
+        if context is not None:
+            ctx_vars = tuple(getattr(context, "variables", ()))
+            if ctx_vars != vars_:
+                raise ValueError("context variables do not match region variables")
+        if cad is not None:
+            cad_vars = tuple(getattr(cad, "variables", ()))
+            if cad_vars != vars_:
+                raise ValueError("CAD variables do not match region variables")
+
+        # Quantifier-free formulas can validate supplied reusable state without
+        # doing any extra QE work.  Quantified inputs are checked lazily after
+        # their matrix has been eliminated by quantifier_free_formula().
+        from .quantifiers import split_quantifiers
+
+        prefix, _ = split_quantifiers(expr)
+        if not prefix:
+            obj._validate_cached_formulas(expr)
+        return obj
+
+    @property
+    def formula(self) -> sp.Expr:
+        return self.args[0]
+
+    @property
+    def variables(self) -> tuple[sp.Symbol, ...]:
+        return tuple(self.args[1])
+
+    @property
+    def ambient_dimension(self) -> int:
+        return len(self.variables)
+
+    @property
+    def context(self):
+        """Return/create the reusable :class:`SemialgebraicContext`."""
+
+        if self._context is None:
+            from .context import SemialgebraicContext
+
+            self._context = SemialgebraicContext(self.quantifier_free_formula(), self.variables)
+        elif self._qf_formula is None:
+            # Quantified regions defer formula compatibility checks until QE is
+            # actually needed. Accessing reusable state is such a boundary.
+            self.quantifier_free_formula()
+        return self._context
+
+    @property
+    def cad(self):
+        """Return the cached CAD result, if one has been built."""
+
+        if self._cad is not None and self._qf_formula is None:
+            self.quantifier_free_formula()
+        return self._cad
+
+    def _validate_cached_formulas(self, formula: sp.Expr) -> None:
+        """Reject reusable state that belongs to a different region formula."""
+
+        expected = normalize_formula(formula)
+        if self._context is not None:
+            context_formula = normalize_formula(getattr(self._context, "formula", sp.false))
+            if context_formula != expected:
+                raise ValueError("context formula does not match region formula")
+        if self._cad is not None:
+            cad_formula = normalize_formula(getattr(self._cad, "formula", sp.false))
+            if cad_formula != expected:
+                raise ValueError("CAD formula does not match region formula")
+
+    def quantifier_free_formula(self) -> sp.Expr:
+        if self._qf_formula is None:
+            self._qf_formula = _quantifier_free(self.formula, self.variables)
+            self._validate_cached_formulas(self._qf_formula)
+        return self._qf_formula
+
+    def ensure_cad(self, *, strategy: str = "auto"):
+        """Build the region CAD once and reuse it for later operations."""
+
+        if self._cad is None:
+            from .context import computation_context
+            from .decomposition.cylindrical import cad
+
+            with computation_context(self.context.computation):
+                self._cad = cad(
+                    self.quantifier_free_formula(),
+                    self.variables,
+                    output="formula",
+                    strategy=strategy,
+                    return_result=True,
+                )
+        return self._cad
+
+    def membership_formula(self, point: object, *, eliminate: bool = True) -> sp.Expr:
+        point_ = _point_tuple(point)
+        if len(point_) != len(self.variables):
+            raise ValueError(f"point has dimension {len(point_)}, expected {len(self.variables)}")
+        source = self.quantifier_free_formula() if eliminate else self.formula
+        return normalize_formula(source.xreplace(dict(zip(self.variables, point_, strict=True))))
+
+    def contains(self, point: object, *, strategy: str = "auto") -> bool:
+        point_ = _point_tuple(point)
+        if len(point_) != len(self.variables):
+            raise ValueError(f"point has dimension {len(point_)}, expected {len(self.variables)}")
+        if self.cad is not None:
+            try:
+                return bool(self.cad.as_function().contains(point_))
+            except (AttributeError, TypeError, ValueError, NotImplementedError):
+                pass
+        condition = self.membership_formula(point_)
+        if condition.free_symbols:
+            raise ValueError(
+                "membership remains symbolic; use membership_formula() or RegionElement"
+            )
+        simplified = sp.simplify(condition)
+        if simplified in (sp.true, sp.false):
+            return bool(simplified)
+        from .decision import is_satisfiable
+
+        return bool(is_satisfiable(condition, (), strategy=strategy))
+
+    def element(self, point: object) -> RegionElement:
+        return RegionElement(point, self)
+
+    def not_element(self, point: object) -> RegionNotElement:
+        return RegionNotElement(point, self)
+
+    def union(self, *others: object) -> SemialgebraicRegion:
+        regions = (self,) + tuple(
+            as_semialgebraic_region(other, self.variables) for other in others
+        )
+        _require_same_ambient(regions)
+        return SemialgebraicRegion(sp.Or(*(region.formula for region in regions)), self.variables)
+
+    def intersection(self, *others: object) -> SemialgebraicRegion:
+        regions = (self,) + tuple(
+            as_semialgebraic_region(other, self.variables) for other in others
+        )
+        _require_same_ambient(regions)
+        return SemialgebraicRegion(sp.And(*(region.formula for region in regions)), self.variables)
+
+    def difference(self, other: object) -> SemialgebraicRegion:
+        rhs = as_semialgebraic_region(other, self.variables)
+        _require_same_ambient((self, rhs))
+        return SemialgebraicRegion(sp.And(self.formula, sp.Not(rhs.formula)), self.variables)
+
+    def complement(self) -> SemialgebraicRegion:
+        return SemialgebraicRegion(sp.Not(self.formula), self.variables)
+
+    def closure(self, *, strategy: str | None = None) -> SemialgebraicRegion:
+        from .regions.operations import region_closure
+
+        return SemialgebraicRegion(
+            region_closure(self.quantifier_free_formula(), self.variables, strategy=strategy),
+            self.variables,
+        )
+
+    def interior(self, *, strategy: str | None = None) -> SemialgebraicRegion:
+        from .regions.operations import region_interior
+
+        return SemialgebraicRegion(
+            region_interior(self.quantifier_free_formula(), self.variables, strategy=strategy),
+            self.variables,
+        )
+
+    def boundary(self, *, strategy: str | None = None) -> SemialgebraicRegion:
+        from .regions.operations import region_boundary
+
+        return SemialgebraicRegion(
+            region_boundary(self.quantifier_free_formula(), self.variables, strategy=strategy),
+            self.variables,
+        )
+
+    def interior_closure(self, *, strategy: str | None = None) -> SemialgebraicRegion:
+        """Return the closure of the interior of this region."""
+        return self.interior(strategy=strategy).closure(strategy=strategy)
+
+    def closure_interior(self, *, strategy: str | None = None) -> SemialgebraicRegion:
+        """Return the interior of the closure of this region."""
+        return self.closure(strategy=strategy).interior(strategy=strategy)
+
+    def is_regular_closed(self, *, strategy: str | None = None) -> bool:
+        """Whether ``S = closure(interior(S))``."""
+        return self.equals_region(self.interior_closure(strategy=strategy), strategy=strategy)
+
+    def is_regular_open(self, *, strategy: str | None = None) -> bool:
+        """Whether ``S = interior(closure(S))``."""
+        return self.equals_region(self.closure_interior(strategy=strategy), strategy=strategy)
+
+    def as_cad_region(self, *, strategy: str = "auto"):
+        """Return a first-class reusable CAD-region wrapper."""
+        from .cad_region import CADRegion
+
+        return CADRegion(self.ensure_cad(strategy=strategy))
+
+    @property
+    def parameters(self) -> tuple[sp.Symbol, ...]:
+        """Free symbolic parameters distinct from ambient coordinates."""
+        symbols = self.formula.free_symbols - set(self.variables)
+        return ordered_symbols(symbols)
+
+    @property
+    def all_symbols(self) -> tuple[sp.Symbol, ...]:
+        """Ambient coordinates followed by region parameters."""
+        return (*self.variables, *self.parameters)
+
+    def region_variables(self, kind: str = "coordinates") -> tuple[sp.Symbol, ...]:
+        """Inspect coordinate variables, parameters, or all symbolic variables."""
+        key = kind.lower().replace("_", "-")
+        if key in {"coordinates", "coordinate", "ambient"}:
+            return self.variables
+        if key in {"parameters", "parameter", "params"}:
+            return self.parameters
+        if key in {"all", "symbols", "free"}:
+            return self.all_symbols
+        raise ValueError("kind must be 'coordinates', 'parameters', or 'all'")
+
+    def project(self, eliminate: Sequence[sp.Symbol | str]) -> SemialgebraicRegion:
+        """Exact coordinate projection by existential quantifier elimination."""
+        from .geometry_queries import semialgebraic_projection
+
+        eliminated = tuple(
+            normalize_variables(eliminate, self.formula, append_context_symbols=False)
+        )
+        kept = tuple(v for v in self.variables if v not in set(eliminated))
+        formula = semialgebraic_projection(
+            self.quantifier_free_formula(), eliminated, self.variables
+        )
+        return SemialgebraicRegion(formula, kept)
+
+    def image(
+        self,
+        mapping: Sequence[sp.Expr] | sp.Expr,
+        *,
+        variables: Sequence[sp.Symbol | str] | None = None,
+    ) -> SemialgebraicRegion:
+        """Exact image under a polynomial/rational semialgebraic map."""
+        from .geometry_queries import semialgebraic_image
+
+        maps = (
+            (sp.sympify(mapping),)
+            if isinstance(mapping, sp.Basic)
+            else tuple(map(sp.sympify, mapping))
+        )
+        targets = (
+            tuple(normalize_variables(variables, append_context_symbols=False))
+            if variables is not None
+            else tuple(sp.Symbol(f"y{i + 1}", real=True) for i in range(len(maps)))
+        )
+        formula = semialgebraic_image(
+            maps,
+            self.quantifier_free_formula(),
+            self.variables,
+            image_variables=targets,
+            parameters=self.parameters,
+        )
+        return SemialgebraicRegion(formula, targets)
+
+    def preimage(
+        self,
+        mapping: Sequence[sp.Expr] | sp.Expr,
+        source_variables: Sequence[sp.Symbol | str],
+    ) -> SemialgebraicRegion:
+        """Exact inverse image under a symbolic semialgebraic map."""
+        from .geometry_queries import semialgebraic_preimage
+
+        source = tuple(normalize_variables(source_variables, append_context_symbols=False))
+        formula = semialgebraic_preimage(
+            mapping, self.quantifier_free_formula(), source, target_variables=self.variables
+        )
+        return SemialgebraicRegion(formula, source)
+
+    def cell_complex(self):
+        """Return an exact dimension-stratified CAD incidence complex."""
+        from .cad_algorithms.cell_complex import build_cad_cell_complex
+
+        return build_cad_cell_complex(self.as_cad_region())
+
+    def euler_characteristic(self, *, compact_support: bool = True) -> int:
+        complex_ = self.cell_complex()
+        if not compact_support and not self.is_compact():
+            raise ValueError(
+                "ordinary Euler characteristic is exposed only for compact regions; "
+                "use compact_support=True for the additive semialgebraic invariant"
+            )
+        return complex_.euler_characteristic()
+
+    def singular_locus(self) -> SemialgebraicRegion:
+        from .region_analysis import region_singular_locus
+
+        return SemialgebraicRegion(region_singular_locus(self, self.variables), self.variables)
+
+    def nonsmooth_locus(self) -> SemialgebraicRegion:
+        """Return algebraic singularities together with transverse boundary corners."""
+        from .region_analysis import region_nonsmooth_locus
+
+        return SemialgebraicRegion(region_nonsmooth_locus(self, self.variables), self.variables)
+
+    def active_boundary_strata(self):
+        """Return exact pairwise-disjoint strata by active inequality boundaries."""
+        from .region_analysis import region_active_boundary_strata
+
+        return region_active_boundary_strata(self, self.variables)
+
+    def boundary_result(self):
+        """Return the exact boundary together with reusable CAD stratum metadata."""
+        from .region_analysis import region_boundary_result
+
+        return region_boundary_result(self, self.variables)
+
+    def bounded_parametric_cover(self, bounds):
+        """Return an exact identity-chart cover of this region inside finite bounds."""
+        from .parametric_geometry import bounded_parametric_cover
+
+        return bounded_parametric_cover(self, self.variables, bounds)
+
+    def regular_locus(self) -> SemialgebraicRegion:
+        from .region_analysis import region_regular_locus
+
+        return SemialgebraicRegion(region_regular_locus(self, self.variables), self.variables)
+
+    def local_dimension(self, point: object) -> int:
+        from .region_analysis import local_dimension
+
+        return local_dimension(self, point, self.variables)
+
+    def simplify(self, *, exact: bool = False) -> SemialgebraicRegion:
+        """Simplify the symbolic region formula; optionally use exact set reasoning."""
+        from .simplify.formula import simplify_semialgebraic_formula
+
+        formula = simplify_semialgebraic_formula(
+            self.quantifier_free_formula(), implication_minimize=exact
+        )
+        if exact and isinstance(formula, (sp.Or, sp.And)) and len(formula.args) > 1:
+            from .reasoning_regions import region_subset
+
+            args = list(formula.args)
+            keep = [True] * len(args)
+            for i, a in enumerate(args):
+                if not keep[i]:
+                    continue
+                for j, b in enumerate(args):
+                    if i == j or not keep[j]:
+                        continue
+                    if isinstance(formula, sp.Or):
+                        # A union B = B when A subset B.
+                        if region_subset(a, b, self.variables):
+                            keep[i] = False
+                            break
+                    else:
+                        # A intersect B = A when A subset B.
+                        if region_subset(a, b, self.variables):
+                            keep[j] = False
+            reduced = [arg for arg, flag in zip(args, keep, strict=True) if flag]
+            formula = (
+                formula.func(*reduced)
+                if reduced
+                else (sp.false if isinstance(formula, sp.Or) else sp.true)
+            )
+        return SemialgebraicRegion(formula, self.variables)
+
+    def integrate(
+        self,
+        integrand: object = 1,
+        *,
+        method: str = "symbolic",
+        measure_dimension: object = "ambient",
+        return_result: bool = False,
+        precision: int = 50,
+    ):
+        """Integrate over the region, falling back to exact CAD-cell integrals."""
+        from .region_integrate import integrate_over_region
+
+        try:
+            return integrate_over_region(
+                integrand,
+                self.quantifier_free_formula(),
+                self.variables,
+                method=method,
+                measure_dimension=measure_dimension,
+                return_result=return_result,
+                precision=precision,
+            )
+        except NotImplementedError:
+            if measure_dimension not in (None, "ambient", len(self.variables)):
+                raise
+            from .cad_algorithms.cells import extract_cylindrical_solution
+            from .cad_algorithms.integration import full_dimensional_solution_integrals
+
+            solution = extract_cylindrical_solution(self.ensure_cad(), selected_only=True)
+            pieces = full_dimensional_solution_integrals(solution, integrand, evaluate=False)
+            total = sp.Add(*(piece.integral for piece in pieces))
+            if method == "symbolic":
+                value = sp.simplify(total.doit())
+                if value.has(sp.Integral):
+                    return total
+                return value
+            if method in {"numeric", "auto"}:
+                value = total.doit()
+                return (
+                    sp.N(value, precision)
+                    if value.has(sp.Integral) is False
+                    else sp.N(total, precision)
+                )
+            raise
+
+    def measure(self, *, measure_dimension: object = "ambient", return_result: bool = False):
+        from .measure import semialgebraic_measure
+
+        return semialgebraic_measure(
+            self.quantifier_free_formula(),
+            self.variables,
+            measure_dimension=measure_dimension,
+            return_result=return_result,
+        )
+
+    def components(self) -> tuple[SemialgebraicRegion, ...]:
+        from .regions.operations import region_components
+
+        formulas = region_components(self.quantifier_free_formula(), self.variables)
+        return tuple(SemialgebraicRegion(formula, self.variables) for formula in formulas)
+
+    def dimension(self) -> int:
+        from .regions.operations import region_dimension
+
+        return region_dimension(self.quantifier_free_formula(), self.variables)
+
+    def is_bounded(self, *, strategy: str | None = None) -> bool:
+        from .reasoning_regions import region_bounded
+
+        return bool(
+            region_bounded(self.quantifier_free_formula(), self.variables, strategy=strategy)
+        )
+
+    def is_closed(self, *, strategy: str | None = None) -> bool:
+        from .reasoning_regions import region_closed
+
+        return bool(
+            region_closed(self.quantifier_free_formula(), self.variables, strategy=strategy)
+        )
+
+    def is_compact(self, *, strategy: str | None = None) -> bool:
+        from .reasoning_regions import region_compact
+
+        return bool(
+            region_compact(self.quantifier_free_formula(), self.variables, strategy=strategy)
+        )
+
+    def subset_of(self, other: object, *, evaluate: bool = True, strategy: str | None = None):
+        relation = RSubset(self, as_semialgebraic_region(other, self.variables))
+        return relation.evaluate(strategy=strategy) if evaluate else relation
+
+    def disjoint_from(self, other: object, *, evaluate: bool = True, strategy: str | None = None):
+        relation = RDisjoint(self, as_semialgebraic_region(other, self.variables))
+        return relation.evaluate(strategy=strategy) if evaluate else relation
+
+    def equals_region(self, other: object, *, evaluate: bool = True, strategy: str | None = None):
+        relation = REqual(self, as_semialgebraic_region(other, self.variables))
+        return relation.evaluate(strategy=strategy) if evaluate else relation
+
+    def _sympystr(self, printer) -> str:
+        variables = ", ".join(printer.doprint(v) for v in self.variables)
+        return f"SemialgebraicRegion(({variables}), {printer.doprint(self.formula)})"
+
+
+def _require_same_ambient(regions: Sequence[SemialgebraicRegion]) -> None:
+    if not regions:
+        return
+    variables = regions[0].variables
+    for region in regions[1:]:
+        if len(region.variables) != len(variables):
+            raise ValueError("region ambient dimensions do not match")
+
+
+# Import coercion and predicates after ``SemialgebraicRegion`` is defined to
+# keep the dependency graph acyclic while re-exporting the implementation
+# objects themselves.
+from .region_coercion import as_semialgebraic_region  # noqa: E402
+from .region_predicates import (  # noqa: E402
+    RDisjoint,
+    RegionElement,
+    RegionNotElement,
+    REqual,
+    RSubset,
+    region_element_conditions,
+    region_relation_conditions,
+)
+
+
+def region_interior_closure(
+    region: object,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> SemialgebraicRegion:
+    """Return closure(interior(region))."""
+    return as_semialgebraic_region(region, variables).interior_closure(strategy=strategy)
+
+
+def region_closure_interior(
+    region: object,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> SemialgebraicRegion:
+    """Return interior(closure(region))."""
+    return as_semialgebraic_region(region, variables).closure_interior(strategy=strategy)
+
+
+def is_regular_closed_region(
+    region: object,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether a region equals the closure of its interior."""
+    return as_semialgebraic_region(region, variables).is_regular_closed(strategy=strategy)
+
+
+def is_regular_open_region(
+    region: object,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether a region equals the interior of its closure."""
+    return as_semialgebraic_region(region, variables).is_regular_open(strategy=strategy)
+
+
+def region_variables(
+    region: object,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    kind: str = "coordinates",
+) -> tuple[sp.Symbol, ...]:
+    """Return coordinate variables, parameters, or all symbols of a region."""
+    return as_semialgebraic_region(region, variables).region_variables(kind)
+
+
+def simplify_region(
+    region: object,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    exact: bool = False,
+) -> SemialgebraicRegion:
+    """Canonicalize a symbolic semialgebraic region formula."""
+    return as_semialgebraic_region(region, variables).simplify(exact=exact)
+
+
+__all__ = [
+    "SemialgebraicRegion",
+    "as_semialgebraic_region",
+    "RegionElement",
+    "RegionNotElement",
+    "RSubset",
+    "RDisjoint",
+    "REqual",
+    "region_element_conditions",
+    "region_relation_conditions",
+    "region_interior_closure",
+    "region_closure_interior",
+    "is_regular_closed_region",
+    "is_regular_open_region",
+    "region_variables",
+    "simplify_region",
+]

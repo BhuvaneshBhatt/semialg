@@ -139,7 +139,7 @@ class EquivalenceResult:
 class SemialgebraicSolution:
     """Structured solution summary for a semialgebraic constraint system.
 
-    ``formula`` is the best currently available quantifier-free description of
+    ``formula`` is the best available quantifier-free description of
     the solution set in ``variables``. Optional metadata fields are left as ``None`` or empty tuples when an
     analysis is unsupported, rather than guessed.
     """
@@ -203,7 +203,7 @@ class SemialgebraicSolution:
                     forms.append(as_formula())
                 except TypeError:
                     forms.append(as_formula)
-                except Exception:
+                except (ValueError, NotImplementedError, AttributeError, sp.PolynomialError):
                     return None
             if not forms:
                 return None
@@ -221,9 +221,9 @@ class SemialgebraicSolution:
             except TypeError:
                 try:
                     return as_formula()
-                except Exception:
+                except (ValueError, NotImplementedError, AttributeError, sp.PolynomialError):
                     return None
-            except Exception:
+            except (ValueError, NotImplementedError, AttributeError, sp.PolynomialError):
                 return None
 
         def from_cells() -> sp.Expr | None:
@@ -239,9 +239,9 @@ class SemialgebraicSolution:
                 except TypeError:
                     try:
                         forms.append(as_formula())
-                    except Exception:
+                    except (ValueError, NotImplementedError, AttributeError, sp.PolynomialError):
                         return None
-                except Exception:
+                except (ValueError, NotImplementedError, AttributeError, sp.PolynomialError):
                     return None
             if not forms:
                 return None
@@ -375,7 +375,7 @@ class SemialgebraicSolution:
 
         try:
             return bool(sp.simplify(self.as_formula().subs(point)))
-        except Exception:
+        except (ValueError, NotImplementedError, AttributeError, sp.PolynomialError):
             return satisfies_formula(self.as_formula(), point, strict=False)
 
     def is_subset_of(self, other: SemialgebraicSolution | sp.Expr) -> bool:

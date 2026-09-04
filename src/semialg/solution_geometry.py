@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
+from ._errors import EXACT_OPERATION_ERRORS
+
 
 @dataclass(frozen=True)
 class SolutionPlotData:
@@ -196,14 +198,14 @@ def _truth_mask_from_formula(formula: sp.Expr, variables: Sequence[sp.Symbol], x
         if np.isscalar(values):
             return np.full(xx.shape, bool(values), dtype=bool)
         return np.asarray(values, dtype=bool)
-    except Exception:
+    except (*EXACT_OPERATION_ERRORS, AttributeError, NameError):
         mask = np.zeros(xx.shape, dtype=bool)
         for row in range(xx.shape[0]):
             for col in range(xx.shape[1]):
                 try:
                     value = formula.subs({x_var: float(xx[row, col]), y_var: float(yy[row, col])})
                     mask[row, col] = bool(value)
-                except Exception:
+                except (*EXACT_OPERATION_ERRORS, AttributeError, NameError):
                     mask[row, col] = False
         return mask
 
@@ -267,7 +269,7 @@ def _draw_plot_data(data: SolutionPlotData, ax, *, alpha: float, **plot_kwargs) 
         return
 
     if len(data.variables) != 2:
-        raise NotImplementedError("plotting currently supports only 1D and 2D geometry")
+        raise NotImplementedError("plotting supports only 1D and 2D geometry")
 
     for polygon in data.polygons:
         xs = [float(sp.N(point[0])) for point in polygon]
@@ -305,7 +307,7 @@ def plot_solution(
     data = discretize_solution(solution, bounds=bounds, samples_per_curve=samples_per_curve)
     try:
         import matplotlib.pyplot as plt  # type: ignore
-    except Exception as exc:  # pragma: no cover - optional dependency path
+    except ImportError as exc:  # pragma: no cover - optional dependency path
         raise ImportError("plot_solution requires matplotlib") from exc
 
     if ax is None:
@@ -437,7 +439,7 @@ def plot_region_geometry(
     )
     try:
         import matplotlib.pyplot as plt  # type: ignore
-    except Exception as exc:  # pragma: no cover
+    except ImportError as exc:  # pragma: no cover
         raise ImportError("plot_region_geometry requires matplotlib") from exc
     if ax is None:
         _, ax = plt.subplots()

@@ -1,7 +1,8 @@
 import pytest
 import sympy as sp
 
-from semialg import RegionIntegralResult, integrate_over_region
+from semialg import integrate_over_region
+from semialg.region_integrate import RegionIntegralResult
 
 pytestmark = pytest.mark.slow
 

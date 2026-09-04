@@ -61,6 +61,7 @@ def three_square_obstr(n: int) -> bool:
 def solve_sum_of_squares_fam(
     expr: sp.Expr, variables: Sequence[sp.Symbol], *, search_limit: int = 500
 ):
+    """Recognize and solve supported integer sum-of-squares equation families."""
     desc = detect_sum_fam2(expr, variables)
     if desc is None:
         return None
@@ -320,6 +321,7 @@ def solve_pell_family(expr: sp.Expr, variables: Sequence[sp.Symbol], *, search_b
 
 
 def solve_binary_scan(expr: sp.Expr, variables: Sequence[sp.Symbol], *, x_bound: int = 200):
+    """Search a bounded binary Diophantine family while preserving an explicit completeness status."""
     variables = tuple(variables)
     if len(variables) != 2:
         return None
@@ -332,7 +334,6 @@ def solve_binary_scan(expr: sp.Expr, variables: Sequence[sp.Symbol], *, x_bound:
     if poly.total_degree() < 3 or others:
         return None
     pts = set()
-    # Direct vertical scan
     for xv in range(-x_bound, x_bound + 1):
         univ = sp.Poly(sp.expand(diff.subs(x, xv)), y)
         try:
@@ -377,7 +378,6 @@ def solve_binary_scan(expr: sp.Expr, variables: Sequence[sp.Symbol], *, x_bound:
 
 
 def solve_int_fams(expr: sp.Expr, variables: Sequence[sp.Symbol]):
-    # First give the dedicated Thue-family layer a chance.
     try:
         from .thue import solve_binary_lll
 

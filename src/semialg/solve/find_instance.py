@@ -15,6 +15,8 @@ from ..instances.real_fallbacks import find_real_witnesses, satisfies_formula
 from ..partial.qe import lazy_find_inst_form
 from ..qe.virtual_substitution import try_quadratic_virtual_substitution_witness
 from ..status import SolverStatus
+from ..structural_keys import symbol_identity_key
+from ..symbol_resolution import build_symbol_table
 from .domains import SolveDomain, apply_assumptions, normalize_assumptions, normalize_domain
 from .integer.diophantine import solve_int_methods
 from .preprocess import semialgebraicize
@@ -66,7 +68,7 @@ def _coerce_vars(variable_order):
 
 def _norm_vars(variables: Sequence[sp.Symbol | str] | None, expr: sp.Expr) -> tuple[sp.Symbol, ...]:
     if variables is None:
-        return tuple(sorted(expr.free_symbols, key=lambda s: s.name))
+        return tuple(sorted(expr.free_symbols, key=symbol_identity_key))
     out: list[sp.Symbol] = []
     seen: set[sp.Symbol] = set()
     for var in variables:
@@ -77,16 +79,42 @@ def _norm_vars(variables: Sequence[sp.Symbol | str] | None, expr: sp.Expr) -> tu
     return tuple(out)
 
 
+def _ground_assignment(inst: Mapping[sp.Symbol, sp.Expr]) -> dict[sp.Symbol, sp.Expr]:
+    """Resolve dependencies between witness coordinates as far as possible."""
+
+    grounded = {var: sp.sympify(value) for var, value in inst.items()}
+    for _ in range(len(grounded)):
+        changed = False
+        for var, value in tuple(grounded.items()):
+            subs = {key: val for key, val in grounded.items() if key != var}
+            resolved = sp.simplify(value.subs(subs))
+            if resolved != value:
+                grounded[var] = resolved
+                changed = True
+        if not changed:
+            break
+    return grounded
+
+
 def _as_approx(inst: Mapping[sp.Symbol, sp.Expr]) -> Mapping[sp.Symbol, complex | float]:
+    """Return numeric coordinates only where an exact witness is ground."""
+
+    grounded = _ground_assignment(inst)
     approx: dict[sp.Symbol, complex | float] = {}
-    for var, value in inst.items():
+    vars_ = set(grounded)
+    for var, value in grounded.items():
         if value in (sp.true, True):
             approx[var] = 1.0
             continue
         if value in (sp.false, False):
             approx[var] = 0.0
             continue
-        num = complex(sp.N(value, 30))
+        if value.free_symbols & vars_:
+            continue
+        try:
+            num = complex(sp.N(value, 30))
+        except (TypeError, ValueError, ArithmeticError):
+            continue
         approx[var] = num.real if abs(num.imag) < 1e-24 else num
     return approx
 
@@ -272,10 +300,10 @@ def _quadratic_virtual_substitution_instance(
                         except (ValueError, TypeError, sp.SympifyError):
                             pass
             deduped: list[sp.Expr] = []
-            seen: set[str] = set()
+            seen: set[sp.Expr] = set()
             for value in values:
                 value = sp.simplify(value)
-                key = sp.sstr(value)
+                key = value
                 if key not in seen:
                     seen.add(key)
                     deduped.append(value)
@@ -422,13 +450,17 @@ def find_instance(
     random_seed: int | None = None,
     exact: bool = True,
     strict: bool = False,
-    return_result: bool = True,
+    return_result: bool = False,
 ):
     """Find satisfying assignments for a formula.
 
+    The default return is one exact mapping when ``count == 1`` and a tuple
+    of mappings when multiple instances are requested. Set ``return_result=True``
+    for :class:`InstanceResult` status, method, and diagnostics.
+
     For real quantifier-free formulas, CAD component extraction supplies one
     representative per connected component before any fallback sampling is used.
-    Non-real domains currently use exact SymPy/specialized finite methods and
+    Non-real domains use exact SymPy/specialized finite methods and
     return ``unknown``-style diagnostics through the result object when they
     cannot solve a requested class.
     """
@@ -506,14 +538,17 @@ def find_instance_formula(
     domain: str | SolveDomain | None = None,
     max_instances: int | None = None,
     count: int | None = None,
-    return_result: bool = True,
+    return_result: bool = False,
     strategy: str | None = "lazy",
     assumptions: Iterable[sp.Expr] | sp.Expr | None = None,
     random_seed: int | None = None,
     exact: bool = True,
     strict: bool = False,
 ):
-    """Find a witness for a structured formula using exact domain-aware search strategies."""
+    """Find exact witness mappings for a structured formula.
+
+    Set ``return_result=True`` for the structured :class:`InstanceResult`.
+    """
     inst_count = count if count is not None else (max_instances if max_instances is not None else 1)
     dom = normalize_domain(domain)
     expr = apply_assumptions(to_sympy(parsed.matrix), assumptions)
@@ -618,19 +653,19 @@ def find_instance_text(
     max_instances: int | None = None,
     count: int | None = None,
     use_preprocess: bool = True,
-    return_result: bool = True,
+    return_result: bool = False,
     strategy: str | None = "lazy",
     assumptions: Iterable[sp.Expr] | sp.Expr | None = None,
     random_seed: int | None = None,
     exact: bool = True,
     strict: bool = False,
 ):
-    """Find a witness for a textual formula after parsing and domain normalization."""
+    """Find exact witness mappings for a textual formula after parsing.
+
+    Set ``return_result=True`` for the structured :class:`InstanceResult`.
+    """
     variable_order = _coerce_vars(variable_order or variables)
-    parse_symbols = dict(symbols or {})
-    if variable_order is not None:
-        for var in variable_order:
-            parse_symbols.setdefault(var.name, var)
+    parse_symbols = build_symbol_table(symbols, variable_order or ())
     parsed = parse_quant_form_text(text, symbols=parse_symbols, variable_order=variable_order)
     preprocess_changed = False
     if use_preprocess:

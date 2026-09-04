@@ -14,6 +14,8 @@ from sympy.core.relational import (
 from sympy.logic.boolalg import And as SymAnd
 from sympy.logic.boolalg import Or as SymOr
 
+from ..structural_keys import symbol_identity_key
+
 
 @dataclass(frozen=True)
 class _Bound:
@@ -141,7 +143,7 @@ def _simplify_and_bounds(expr: SymAnd) -> sp.Expr:
         upper.pop(sym, None)
 
     atoms = keep + uncertain_bounds
-    for sym in sorted(set(lower) | set(upper), key=lambda s: s.name):
+    for sym in sorted(set(lower) | set(upper), key=symbol_identity_key):
         lo = lower.get(sym)
         hi = upper.get(sym)
         if lo is not None and hi is not None:

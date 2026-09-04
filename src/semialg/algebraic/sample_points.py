@@ -21,7 +21,6 @@ def choose_sector_sample(left: Sample | None, right: Sample | None) -> RationalS
     if left is None and right is None:
         return RationalSample(sp.Integer(0))
     if left is None:
-        assert right is not None
         return RationalSample(right.interval.left - 1)
     if right is None:
         return RationalSample(left.interval.right + 1)

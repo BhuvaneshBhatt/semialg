@@ -1,0 +1,246 @@
+"""Canonical polynomial helpers shared by CAD projection and lifting."""
+
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from functools import lru_cache
+from typing import TypeAlias
+
+import sympy as sp
+
+PolynomialKey: TypeAlias = tuple[
+    tuple[sp.Symbol, ...], object, tuple[tuple[tuple[int, ...], sp.Expr], ...]
+]
+
+
+def polynomial_structural_key(poly: sp.Poly) -> PolynomialKey:
+    """Return a hashable exact identity key without expression serialization."""
+
+    return (tuple(poly.gens), poly.domain, tuple(poly.terms()))
+
+
+def polynomial_sort_key(poly: sp.Poly) -> tuple[object, tuple[object, ...]]:
+    """Return a deterministic structural ordering key for normalized polynomials."""
+
+    return (
+        sp.default_sort_key(poly.as_expr()),
+        tuple(sp.default_sort_key(gen) for gen in poly.gens),
+    )
+
+
+def polynomial_family_key(polys: Iterable[sp.Poly]) -> tuple[PolynomialKey, ...]:
+    """Return an order-independent structural key for a polynomial family."""
+
+    ordered = sorted(polys, key=polynomial_sort_key)
+    return tuple(polynomial_structural_key(poly) for poly in ordered)
+
+
+@lru_cache(maxsize=4096)
+def polynomial_key(poly: sp.Poly) -> str:
+    """Return an identity-preserving canonical expression key for CAD metadata.
+
+    ``srepr`` retains Symbol assumptions, unlike pretty-printer text, so two
+    same-name generators with different identities cannot collide in sign or
+    provenance maps. The result remains cached because projection polynomials
+    recur across many cells during lifting.
+    """
+
+    expr = poly.as_expr()
+    readable = sp.sstr(expr)
+    if all(sp.srepr(symbol) == sp.srepr(sp.Symbol(symbol.name)) for symbol in expr.free_symbols):
+        return readable
+    return readable + "\x1f" + sp.srepr(expr)
+
+
+@dataclass(frozen=True)
+class CoefficientDomainPolicy:
+    """Cost guard for exact algebraic coefficient-domain construction.
+
+    Natural exact ground domains (notably ``ZZ`` and ``QQ``) are always kept.
+    Explicit algebraic number fields are constructed only when the extension
+    degree and coefficient-expression complexity are small enough to plausibly
+    beat SymPy's expression domain.  This is a performance policy only: every
+    selected representation is exact and callers may always fall back to EX.
+    """
+
+    max_extension_degree: int = 4
+    max_algebraic_generators: int = 2
+    max_coefficient_ops: int = 80
+
+
+@dataclass(frozen=True)
+class CoefficientDomainDecision:
+    domain: object
+    strategy: str
+    extension_degree: int | None = None
+    algebraic_generators: int = 0
+    coefficient_ops: int = 0
+
+
+DEFAULT_DOMAIN_POLICY = CoefficientDomainPolicy()
+
+
+def _algebraic_generator_count(expr: sp.Expr) -> int:
+    generators: set[sp.Expr] = set()
+    for atom in sp.preorder_traversal(expr):
+        if (
+            isinstance(atom, sp.Pow)
+            and atom.exp.is_Rational
+            and not atom.exp.is_Integer
+            or getattr(atom, "is_AlgebraicNumber", False)
+        ):
+            generators.add(atom)
+    return len(generators)
+
+
+def coefficient_domain_decision(
+    expr: sp.Expr,
+    var: sp.Symbol,
+    *,
+    algebraic_extension: bool = True,
+    policy: CoefficientDomainPolicy = DEFAULT_DOMAIN_POLICY,
+) -> CoefficientDomainDecision:
+    """Choose an exact univariate coefficient representation by cost policy."""
+
+    value = sp.sympify(expr)
+    try:
+        natural = sp.Poly(value, var)
+    except (sp.PolynomialError, TypeError, ValueError):
+        natural = None
+    if (
+        natural is not None
+        and natural.domain != sp.EX
+        and getattr(natural.domain, "is_Exact", False)
+    ):
+        return CoefficientDomainDecision(natural.domain, "natural_exact")
+    ops = int(sp.count_ops(value))
+    generators = _algebraic_generator_count(value)
+    if (
+        not algebraic_extension
+        or generators > policy.max_algebraic_generators
+        or ops > policy.max_coefficient_ops
+    ):
+        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops)
+    try:
+        extended = sp.Poly(value, var, extension=True)
+    except (sp.PolynomialError, TypeError, ValueError):
+        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops)
+    if extended.domain == sp.EX or not getattr(extended.domain, "is_Exact", False):
+        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops)
+    degree = None
+    try:
+        degree = int(extended.domain.ext.minpoly.degree())
+    except (AttributeError, TypeError, ValueError):
+        degree = 1
+    if degree is not None and degree > policy.max_extension_degree:
+        return CoefficientDomainDecision(sp.EX, "extension_too_large", degree, generators, ops)
+    return CoefficientDomainDecision(
+        extended.domain, "small_algebraic_extension", degree, generators, ops
+    )
+
+
+def exact_univariate_poly(
+    expr: sp.Expr,
+    var: sp.Symbol,
+    *,
+    algebraic_extension: bool = True,
+    policy: CoefficientDomainPolicy = DEFAULT_DOMAIN_POLICY,
+) -> sp.Poly:
+    """Return an exact univariate polynomial using selective domain promotion."""
+
+    value = sp.sympify(expr)
+    decision = coefficient_domain_decision(
+        value, var, algebraic_extension=algebraic_extension, policy=policy
+    )
+    if decision.strategy == "natural_exact":
+        return sp.Poly(value, var)
+    if decision.strategy == "small_algebraic_extension":
+        try:
+            return sp.Poly(value, var, extension=True)
+        except (sp.PolynomialError, TypeError, ValueError):
+            pass
+    return sp.Poly(value, var, domain="EX")
+
+
+def normalize_poly(poly: sp.Poly) -> sp.Poly | None:
+    """Normalize a nonconstant polynomial up to content, sign, and multiplicity."""
+
+    if poly.is_zero:
+        return None
+    primitive = poly.primitive()[1]
+    if primitive.is_zero:
+        return None
+    if primitive.LC().could_extract_minus_sign():
+        primitive = -primitive
+    try:
+        factors = sp.factor_list(primitive.as_expr(), *primitive.gens)[1]
+    except (sp.PolynomialError, ValueError, TypeError):
+        factors = [(primitive.as_expr(), 1)]
+    # SymPy can return the whole nonconstant expression as the coefficient
+    # with an empty factor list over unsupported/algebraic coefficient
+    # domains.  That means "not factored", not "constant polynomial".
+    if not factors and primitive.total_degree() > 0:
+        factors = [(primitive.as_expr(), 1)]
+    pieces: list[sp.Poly] = []
+    for factor, _mult in factors:
+        try:
+            factor_poly = sp.Poly(factor, *primitive.gens, domain=primitive.domain)
+        except (sp.PolynomialError, TypeError, ValueError):
+            factor_poly = sp.Poly(factor, *primitive.gens, extension=True)
+        if factor_poly.total_degree() > 0:
+            if factor_poly.LC().could_extract_minus_sign():
+                factor_poly = -factor_poly
+            pieces.append(factor_poly)
+    if not pieces:
+        return None
+    result = pieces[0]
+    for piece in pieces[1:]:
+        result *= piece
+    result = result.primitive()[1]
+    if result.LC().could_extract_minus_sign():
+        result = -result
+    return result
+
+
+def lower_polynomial(expr: sp.Expr, lower_gens: Sequence[sp.Symbol]) -> sp.Poly | None:
+    """Convert a projected expression to a normalized lower-dimensional polynomial."""
+
+    if not lower_gens:
+        return None
+    try:
+        poly = sp.Poly(expr, *lower_gens)
+    except (sp.PolynomialError, ValueError, TypeError):
+        return None
+    return normalize_poly(poly)
+
+
+def univariate_coefficients(poly: sp.Poly, var: sp.Symbol) -> tuple[sp.Expr, ...]:
+    """Return coefficients when ``poly`` is viewed as univariate in ``var``."""
+
+    return tuple(sp.Poly(poly.as_expr(), var).all_coeffs())
+
+
+def univariate_leading_coefficient(poly: sp.Poly, var: sp.Symbol) -> sp.Expr:
+    """Return the leading coefficient when viewed as univariate in ``var``."""
+
+    return sp.Poly(poly.as_expr(), var).LC()
+
+
+def discriminant_expression(poly: sp.Poly, var: sp.Symbol) -> sp.Expr:
+    """Return the discriminant expression with respect to ``var``."""
+
+    return sp.discriminant(poly.as_expr(), var)
+
+
+def resultant_expression(left: sp.Poly, right: sp.Poly, var: sp.Symbol) -> sp.Expr:
+    """Return the resultant expression with respect to ``var``."""
+
+    return sp.resultant(left.as_expr(), right.as_expr(), var)
+
+
+def derivative_resultant_expression(poly: sp.Poly, var: sp.Symbol) -> sp.Expr:
+    """Return ``Res(poly, d(poly)/dvar, var)`` without repeated caller conversions."""
+
+    expr = poly.as_expr()
+    return sp.resultant(expr, sp.diff(expr, var), var)

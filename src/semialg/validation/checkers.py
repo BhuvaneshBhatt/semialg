@@ -6,6 +6,8 @@ from typing import Protocol
 
 import sympy as sp
 
+from ..inequality_reduction import reduce_conjunctive_inequalities
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -47,10 +49,11 @@ class SymPyInequalityChecker:
     ) -> CheckResult:
         if quantifiers:
             return CheckResult(self.name, True, status="unsupported")
-        try:
-            formula = sp.reduce_inequalities(matrix, list(variables))
-        except Exception as exc:  # pragma: no cover
-            return CheckResult(self.name, True, status="error", diagnostics=(repr(exc),))
+        if len(variables) != 1:
+            return CheckResult(self.name, True, status="unsupported")
+        formula = reduce_conjunctive_inequalities(matrix, variables[0])
+        if formula is None:
+            return CheckResult(self.name, True, status="unsupported")
         truth = True if formula == sp.true else False if formula == sp.false else None
         return CheckResult(
             self.name, True, formula=formula, truth_value=truth, status="complete-for-fragment"

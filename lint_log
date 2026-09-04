@@ -1,0 +1,3541 @@
+I001 [*] Import block is un-sorted or un-formatted
+  --> examples/gallery/17_symbolic_region_conditions.py:3:1
+   |
+ 1 |   """Symbolic region conditions and active-boundary strata."""
+ 2 |
+ 3 | / import sympy as sp
+ 4 | |
+ 5 | | from semialg import ParametricRegion, region_active_boundary_strata
+ 6 | | from semialg.symbolic_regions import (
+ 7 | |     SemialgebraicRegion,
+ 8 | |     RegionElement,
+ 9 | |     RegionElementConditions,
+10 | |     as_semialgebraic_region,
+11 | | )
+   | |_^
+12 |
+13 |   x, y, t = sp.symbols("x y t", real=True)
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_function_analysis_convexity.py:3:1
+   |
+ 1 |   """Convexity engines used by :mod:`semialg.function_analysis`."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from collections.abc import Mapping
+ 6 | | import sympy as sp
+ 7 | |
+ 8 | | from .conditional import ParameterStratifiedResult, conditional_result
+ 9 | | from .context import SemialgebraicContext, computation_context
+10 | | from .convexity import ConvexityCertificate, convexity_certificate
+11 | | from .decision import is_satisfiable
+12 | | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+13 | | from .function_graph import UnsupportedFunctionGraph, semialgebraic_function_graph
+14 | | from .internal_symbols import fresh_real_dummy
+15 | | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+16 | | from .normalization import normalize_formula
+17 | | from .parameters import solvability_conditions
+18 | | from .presolve import PresolveResult, presolve_semialgebraic
+19 | | from .function_analysis import (
+20 | |     FunctionConvexityResult,
+21 | |     _FunctionAnalysisContext,
+22 | |     _algebraic_domain_formula,
+23 | |     _classify,
+24 | |     _copy_expression,
+25 | |     _copy_variables,
+26 | |     _domain_graph,
+27 | |     _function_graph,
+28 | |     _truth_condition,
+29 | | )
+   | |_^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_function_analysis_monotonicity.py:3:1
+   |
+ 1 |   """Monotonicity engines used by :mod:`semialg.function_analysis`."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from collections.abc import Mapping
+ 6 | | import sympy as sp
+ 7 | |
+ 8 | | from .conditional import ParameterStratifiedResult, conditional_result
+ 9 | | from .decision import is_satisfiable
+10 | | from .domain_solve import function_domain
+11 | | from .function_graph import UnsupportedFunctionGraph
+12 | | from .internal_symbols import fresh_real_dummy
+13 | | from .normalization import normalize_formula
+14 | | from .parameters import solvability_conditions
+15 | | from .regions.operations import region_dimension
+16 | | from .sampling import sample_point
+17 | | from .function_analysis import (
+18 | |     FunctionMonotonicityResult,
+19 | |     _FunctionAnalysisContext,
+20 | |     _algebraic_domain_formula,
+21 | |     _classify_monotonicity,
+22 | |     _domain_graph,
+23 | |     _function_graph,
+24 | | )
+   | |_^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_function_analysis_partitions.py:3:1
+   |
+ 1 |   """Exact convexity and monotonicity classification for semialgebraic functions."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from collections.abc import Mapping, Sequence
+ 6 | | from dataclasses import dataclass, field, replace
+ 7 | |
+ 8 | | import sympy as sp
+ 9 | |
+10 | | from .conditional import ParameterStratifiedResult, conditional_result
+11 | | from .context import SemialgebraicContext, computation_context
+12 | | from .convexity import ConvexityCertificate, convexity_certificate
+13 | | from .decision import is_satisfiable
+14 | | from .decomposition import cad
+15 | | from .derived_geometry import is_connected
+16 | | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+17 | | from .formula import parse_formula
+18 | | from .function_graph import (
+19 | |     UnsupportedFunctionGraph,
+20 | |     has_semialgebraic_graph_special,
+21 | |     semialgebraic_formula_graph,
+22 | |     semialgebraic_function_graph,
+23 | | )
+24 | | from .internal_symbols import fresh_real_dummy
+25 | | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | | from .normalization import normalize_formula, normalize_variables
+27 | | from .parameters import solvability_conditions
+28 | | from .presolve import PresolveResult, presolve_semialgebraic
+29 | | from .qe import qe_by_complete_cad
+30 | | from .reasoning_signs import function_sign
+31 | | from .reconstruct.cylindrical import path_condition
+32 | | from .regions.operations import region_dimension
+33 | | from .sampling import sample_point, sign_at
+34 | | from .structural_keys import symbol_identity_key
+35 | |
+36 | |
+37 | | from .function_analysis import (
+38 | |     FunctionPropertyPartitionResult,
+39 | |     _algebraic_domain_formula,
+40 | |     _domain_graph,
+41 | |     _function_graph,
+42 | |     _normalize_function_variables,
+43 | |     _truth_condition,
+44 | | )
+   | |_^
+   |
+help: Organize imports
+
+F401 [*] `collections.abc.Mapping` imported but unused
+ --> src/semialg/_function_analysis_partitions.py:5:29
+  |
+3 | from __future__ import annotations
+4 |
+5 | from collections.abc import Mapping, Sequence
+  |                             ^^^^^^^
+6 | from dataclasses import dataclass, field, replace
+  |
+help: Remove unused import: `collections.abc.Mapping`
+
+F401 [*] `dataclasses.dataclass` imported but unused
+ --> src/semialg/_function_analysis_partitions.py:6:25
+  |
+5 | from collections.abc import Mapping, Sequence
+6 | from dataclasses import dataclass, field, replace
+  |                         ^^^^^^^^^
+7 |
+8 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.field` imported but unused
+ --> src/semialg/_function_analysis_partitions.py:6:36
+  |
+5 | from collections.abc import Mapping, Sequence
+6 | from dataclasses import dataclass, field, replace
+  |                                    ^^^^^
+7 |
+8 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.replace` imported but unused
+ --> src/semialg/_function_analysis_partitions.py:6:43
+  |
+5 | from collections.abc import Mapping, Sequence
+6 | from dataclasses import dataclass, field, replace
+  |                                           ^^^^^^^
+7 |
+8 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `.context.SemialgebraicContext` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:11:22
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+   |                      ^^^^^^^^^^^^^^^^^^^^
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+   |
+help: Remove unused import
+
+F401 [*] `.context.computation_context` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:11:44
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+   |                                            ^^^^^^^^^^^^^^^^^^^
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+   |
+help: Remove unused import
+
+F401 [*] `.convexity.ConvexityCertificate` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:12:24
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+   |                        ^^^^^^^^^^^^^^^^^^^^
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+   |
+help: Remove unused import
+
+F401 [*] `.convexity.convexity_certificate` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:12:46
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+   |                                              ^^^^^^^^^^^^^^^^^^^^^
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+   |
+help: Remove unused import
+
+F401 [*] `.domain_solve.normalize_domain_sensitive_constraints` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:16:44
+   |
+14 | from .decomposition import cad
+15 | from .derived_geometry import is_connected
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 | from .formula import parse_formula
+18 | from .function_graph import (
+   |
+help: Remove unused import: `.domain_solve.normalize_domain_sensitive_constraints`
+
+F401 [*] `.function_graph.has_semialgebraic_graph_special` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:20:5
+   |
+18 | from .function_graph import (
+19 |     UnsupportedFunctionGraph,
+20 |     has_semialgebraic_graph_special,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+21 |     semialgebraic_formula_graph,
+22 |     semialgebraic_function_graph,
+   |
+help: Remove unused import
+
+F401 [*] `.function_graph.semialgebraic_formula_graph` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:21:5
+   |
+19 |     UnsupportedFunctionGraph,
+20 |     has_semialgebraic_graph_special,
+21 |     semialgebraic_formula_graph,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22 |     semialgebraic_function_graph,
+23 | )
+   |
+help: Remove unused import
+
+F401 [*] `.function_graph.semialgebraic_function_graph` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:22:5
+   |
+20 |     has_semialgebraic_graph_special,
+21 |     semialgebraic_formula_graph,
+22 |     semialgebraic_function_graph,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+23 | )
+24 | from .internal_symbols import fresh_real_dummy
+   |
+help: Remove unused import
+
+F401 [*] `.internal_symbols.fresh_real_dummy` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:24:31
+   |
+22 |     semialgebraic_function_graph,
+23 | )
+24 | from .internal_symbols import fresh_real_dummy
+   |                               ^^^^^^^^^^^^^^^^
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | from .normalization import normalize_formula, normalize_variables
+   |
+help: Remove unused import: `.internal_symbols.fresh_real_dummy`
+
+F401 [*] `.matrix_analysis.MatrixDefinitenessResult` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:25:30
+   |
+23 | )
+24 | from .internal_symbols import fresh_real_dummy
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+   |
+help: Remove unused import
+
+F401 [*] `.matrix_analysis.matrix_definiteness` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:25:56
+   |
+23 | )
+24 | from .internal_symbols import fresh_real_dummy
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+   |                                                        ^^^^^^^^^^^^^^^^^^^
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+   |
+help: Remove unused import
+
+F401 [*] `.parameters.solvability_conditions` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:27:25
+   |
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+   |                         ^^^^^^^^^^^^^^^^^^^^^^
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+29 | from .qe import qe_by_complete_cad
+   |
+help: Remove unused import: `.parameters.solvability_conditions`
+
+F401 [*] `.presolve.PresolveResult` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:28:23
+   |
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |                       ^^^^^^^^^^^^^^
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+   |
+help: Remove unused import
+
+F401 [*] `.presolve.presolve_semialgebraic` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:28:39
+   |
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+   |
+help: Remove unused import
+
+F401 [*] `.regions.operations.region_dimension` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:32:33
+   |
+30 | from .reasoning_signs import function_sign
+31 | from .reconstruct.cylindrical import path_condition
+32 | from .regions.operations import region_dimension
+   |                                 ^^^^^^^^^^^^^^^^
+33 | from .sampling import sample_point, sign_at
+34 | from .structural_keys import symbol_identity_key
+   |
+help: Remove unused import: `.regions.operations.region_dimension`
+
+F401 [*] `.function_analysis._normalize_function_variables` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:42:5
+   |
+40 |     _domain_graph,
+41 |     _function_graph,
+42 |     _normalize_function_variables,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+43 |     _truth_condition,
+44 | )
+   |
+help: Remove unused import
+
+F401 [*] `.function_analysis._truth_condition` imported but unused
+  --> src/semialg/_function_analysis_partitions.py:43:5
+   |
+41 |     _function_graph,
+42 |     _normalize_function_variables,
+43 |     _truth_condition,
+   |     ^^^^^^^^^^^^^^^^
+44 | )
+   |
+help: Remove unused import
+
+F821 Undefined name `function_monotonicity`
+   --> src/semialg/_function_analysis_partitions.py:194:28
+    |
+192 |             def classify_global(region):
+193 |                 if property_name == "monotonicity":
+194 |                     return function_monotonicity(expression, variable, domain=region)
+    |                            ^^^^^^^^^^^^^^^^^^^^^
+195 |                 return function_convexity(expression, (variable,), domain=region)
+    |
+
+F821 Undefined name `function_convexity`
+   --> src/semialg/_function_analysis_partitions.py:195:24
+    |
+193 |                 if property_name == "monotonicity":
+194 |                     return function_monotonicity(expression, variable, domain=region)
+195 |                 return function_convexity(expression, (variable,), domain=region)
+    |                        ^^^^^^^^^^^^^^^^^^
+196 |
+197 |             classification = classify_global(effective_domain)
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_function_analysis_properties.py:3:1
+   |
+ 1 |   """Exact convexity and monotonicity classification for semialgebraic functions."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from collections.abc import Mapping, Sequence
+ 6 | | from dataclasses import dataclass, field, replace
+ 7 | |
+ 8 | | import sympy as sp
+ 9 | |
+10 | | from .conditional import ParameterStratifiedResult, conditional_result
+11 | | from .context import SemialgebraicContext, computation_context
+12 | | from .convexity import ConvexityCertificate, convexity_certificate
+13 | | from .decision import is_satisfiable
+14 | | from .decomposition import cad
+15 | | from .derived_geometry import is_connected
+16 | | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+17 | | from .formula import parse_formula
+18 | | from .function_graph import (
+19 | |     UnsupportedFunctionGraph,
+20 | |     has_semialgebraic_graph_special,
+21 | |     semialgebraic_formula_graph,
+22 | |     semialgebraic_function_graph,
+23 | | )
+24 | | from .internal_symbols import fresh_real_dummy
+25 | | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | | from .normalization import normalize_formula, normalize_variables
+27 | | from .parameters import solvability_conditions
+28 | | from .presolve import PresolveResult, presolve_semialgebraic
+29 | | from .qe import qe_by_complete_cad
+30 | | from .reasoning_signs import function_sign
+31 | | from .reconstruct.cylindrical import path_condition
+32 | | from .regions.operations import region_dimension
+33 | | from .sampling import sample_point, sign_at
+34 | | from .structural_keys import symbol_identity_key
+35 | |
+36 | |
+37 | | from .function_analysis import (
+38 | |     FunctionConvexityResult,
+39 | |     FunctionPropertyPartitionResult,
+40 | |     _FunctionAnalysisContext,
+41 | | )
+42 | | from ._function_analysis_partitions import function_monotonic_partition
+   | |_______________________________________________________________________^
+   |
+help: Organize imports
+
+F401 [*] `collections.abc.Mapping` imported but unused
+ --> src/semialg/_function_analysis_properties.py:5:29
+  |
+3 | from __future__ import annotations
+4 |
+5 | from collections.abc import Mapping, Sequence
+  |                             ^^^^^^^
+6 | from dataclasses import dataclass, field, replace
+  |
+help: Remove unused import
+
+F401 [*] `collections.abc.Sequence` imported but unused
+ --> src/semialg/_function_analysis_properties.py:5:38
+  |
+3 | from __future__ import annotations
+4 |
+5 | from collections.abc import Mapping, Sequence
+  |                                      ^^^^^^^^
+6 | from dataclasses import dataclass, field, replace
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.dataclass` imported but unused
+ --> src/semialg/_function_analysis_properties.py:6:25
+  |
+5 | from collections.abc import Mapping, Sequence
+6 | from dataclasses import dataclass, field, replace
+  |                         ^^^^^^^^^
+7 |
+8 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.field` imported but unused
+ --> src/semialg/_function_analysis_properties.py:6:36
+  |
+5 | from collections.abc import Mapping, Sequence
+6 | from dataclasses import dataclass, field, replace
+  |                                    ^^^^^
+7 |
+8 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `.conditional.ParameterStratifiedResult` imported but unused
+  --> src/semialg/_function_analysis_properties.py:10:26
+   |
+ 8 | import sympy as sp
+ 9 |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+   |
+help: Remove unused import
+
+F401 [*] `.conditional.conditional_result` imported but unused
+  --> src/semialg/_function_analysis_properties.py:10:53
+   |
+ 8 | import sympy as sp
+ 9 |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+   |                                                     ^^^^^^^^^^^^^^^^^^
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+   |
+help: Remove unused import
+
+F401 [*] `.context.SemialgebraicContext` imported but unused
+  --> src/semialg/_function_analysis_properties.py:11:22
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+   |                      ^^^^^^^^^^^^^^^^^^^^
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+   |
+help: Remove unused import
+
+F401 [*] `.context.computation_context` imported but unused
+  --> src/semialg/_function_analysis_properties.py:11:44
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+   |                                            ^^^^^^^^^^^^^^^^^^^
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+   |
+help: Remove unused import
+
+F401 [*] `.convexity.ConvexityCertificate` imported but unused
+  --> src/semialg/_function_analysis_properties.py:12:24
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+   |                        ^^^^^^^^^^^^^^^^^^^^
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+   |
+help: Remove unused import
+
+F401 [*] `.convexity.convexity_certificate` imported but unused
+  --> src/semialg/_function_analysis_properties.py:12:46
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+   |                                              ^^^^^^^^^^^^^^^^^^^^^
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+   |
+help: Remove unused import
+
+F401 [*] `.decomposition.cad` imported but unused
+  --> src/semialg/_function_analysis_properties.py:14:28
+   |
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+   |                            ^^^
+15 | from .derived_geometry import is_connected
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+   |
+help: Remove unused import: `.decomposition.cad`
+
+F401 [*] `.derived_geometry.is_connected` imported but unused
+  --> src/semialg/_function_analysis_properties.py:15:31
+   |
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+15 | from .derived_geometry import is_connected
+   |                               ^^^^^^^^^^^^
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+17 | from .formula import parse_formula
+   |
+help: Remove unused import: `.derived_geometry.is_connected`
+
+F401 [*] `.domain_solve.function_domain` imported but unused
+  --> src/semialg/_function_analysis_properties.py:16:27
+   |
+14 | from .decomposition import cad
+15 | from .derived_geometry import is_connected
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+   |                           ^^^^^^^^^^^^^^^
+17 | from .formula import parse_formula
+18 | from .function_graph import (
+   |
+help: Remove unused import
+
+F401 [*] `.domain_solve.normalize_domain_sensitive_constraints` imported but unused
+  --> src/semialg/_function_analysis_properties.py:16:44
+   |
+14 | from .decomposition import cad
+15 | from .derived_geometry import is_connected
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+   |                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 | from .formula import parse_formula
+18 | from .function_graph import (
+   |
+help: Remove unused import
+
+F401 [*] `.formula.parse_formula` imported but unused
+  --> src/semialg/_function_analysis_properties.py:17:22
+   |
+15 | from .derived_geometry import is_connected
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+17 | from .formula import parse_formula
+   |                      ^^^^^^^^^^^^^
+18 | from .function_graph import (
+19 |     UnsupportedFunctionGraph,
+   |
+help: Remove unused import: `.formula.parse_formula`
+
+F401 [*] `.function_graph.has_semialgebraic_graph_special` imported but unused
+  --> src/semialg/_function_analysis_properties.py:20:5
+   |
+18 | from .function_graph import (
+19 |     UnsupportedFunctionGraph,
+20 |     has_semialgebraic_graph_special,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+21 |     semialgebraic_formula_graph,
+22 |     semialgebraic_function_graph,
+   |
+help: Remove unused import
+
+F401 [*] `.function_graph.semialgebraic_formula_graph` imported but unused
+  --> src/semialg/_function_analysis_properties.py:21:5
+   |
+19 |     UnsupportedFunctionGraph,
+20 |     has_semialgebraic_graph_special,
+21 |     semialgebraic_formula_graph,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22 |     semialgebraic_function_graph,
+23 | )
+   |
+help: Remove unused import
+
+F401 [*] `.matrix_analysis.MatrixDefinitenessResult` imported but unused
+  --> src/semialg/_function_analysis_properties.py:25:30
+   |
+23 | )
+24 | from .internal_symbols import fresh_real_dummy
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+   |
+help: Remove unused import: `.matrix_analysis.MatrixDefinitenessResult`
+
+F401 [*] `.normalization.normalize_formula` imported but unused
+  --> src/semialg/_function_analysis_properties.py:26:28
+   |
+24 | from .internal_symbols import fresh_real_dummy
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | from .normalization import normalize_formula, normalize_variables
+   |                            ^^^^^^^^^^^^^^^^^
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.normalize_variables` imported but unused
+  --> src/semialg/_function_analysis_properties.py:26:47
+   |
+24 | from .internal_symbols import fresh_real_dummy
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | from .normalization import normalize_formula, normalize_variables
+   |                                               ^^^^^^^^^^^^^^^^^^^
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |
+help: Remove unused import
+
+F401 [*] `.parameters.solvability_conditions` imported but unused
+  --> src/semialg/_function_analysis_properties.py:27:25
+   |
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+   |                         ^^^^^^^^^^^^^^^^^^^^^^
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+29 | from .qe import qe_by_complete_cad
+   |
+help: Remove unused import: `.parameters.solvability_conditions`
+
+F401 [*] `.presolve.PresolveResult` imported but unused
+  --> src/semialg/_function_analysis_properties.py:28:23
+   |
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |                       ^^^^^^^^^^^^^^
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+   |
+help: Remove unused import
+
+F401 [*] `.presolve.presolve_semialgebraic` imported but unused
+  --> src/semialg/_function_analysis_properties.py:28:39
+   |
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+   |
+help: Remove unused import
+
+F401 [*] `.qe.qe_by_complete_cad` imported but unused
+  --> src/semialg/_function_analysis_properties.py:29:17
+   |
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+29 | from .qe import qe_by_complete_cad
+   |                 ^^^^^^^^^^^^^^^^^^
+30 | from .reasoning_signs import function_sign
+31 | from .reconstruct.cylindrical import path_condition
+   |
+help: Remove unused import: `.qe.qe_by_complete_cad`
+
+F401 [*] `.reconstruct.cylindrical.path_condition` imported but unused
+  --> src/semialg/_function_analysis_properties.py:31:38
+   |
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+31 | from .reconstruct.cylindrical import path_condition
+   |                                      ^^^^^^^^^^^^^^
+32 | from .regions.operations import region_dimension
+33 | from .sampling import sample_point, sign_at
+   |
+help: Remove unused import: `.reconstruct.cylindrical.path_condition`
+
+F401 [*] `.regions.operations.region_dimension` imported but unused
+  --> src/semialg/_function_analysis_properties.py:32:33
+   |
+30 | from .reasoning_signs import function_sign
+31 | from .reconstruct.cylindrical import path_condition
+32 | from .regions.operations import region_dimension
+   |                                 ^^^^^^^^^^^^^^^^
+33 | from .sampling import sample_point, sign_at
+34 | from .structural_keys import symbol_identity_key
+   |
+help: Remove unused import: `.regions.operations.region_dimension`
+
+F401 [*] `.sampling.sample_point` imported but unused
+  --> src/semialg/_function_analysis_properties.py:33:23
+   |
+31 | from .reconstruct.cylindrical import path_condition
+32 | from .regions.operations import region_dimension
+33 | from .sampling import sample_point, sign_at
+   |                       ^^^^^^^^^^^^
+34 | from .structural_keys import symbol_identity_key
+   |
+help: Remove unused import
+
+F401 [*] `.sampling.sign_at` imported but unused
+  --> src/semialg/_function_analysis_properties.py:33:37
+   |
+31 | from .reconstruct.cylindrical import path_condition
+32 | from .regions.operations import region_dimension
+33 | from .sampling import sample_point, sign_at
+   |                                     ^^^^^^^
+34 | from .structural_keys import symbol_identity_key
+   |
+help: Remove unused import
+
+F401 [*] `.structural_keys.symbol_identity_key` imported but unused
+  --> src/semialg/_function_analysis_properties.py:34:30
+   |
+32 | from .regions.operations import region_dimension
+33 | from .sampling import sample_point, sign_at
+34 | from .structural_keys import symbol_identity_key
+   |                              ^^^^^^^^^^^^^^^^^^^
+   |
+help: Remove unused import: `.structural_keys.symbol_identity_key`
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_function_graph_image.py:3:1
+   |
+ 1 |   """Exact graph/image QE backends for function-range computation."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from collections.abc import Mapping
+ 6 | | import sympy as sp
+ 7 | | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+ 8 | |
+ 9 | | from ._optimization_backends import optimization_is_feasible as _optimization_is_feasible
+10 | | from ._optimization_backends import qe_by_complete_cad
+11 | | from .formula import parse_formula
+12 | | from .function_graph import (
+13 | |     UnsupportedFunctionGraph,
+14 | |     semialgebraic_formula_graph,
+15 | |     semialgebraic_function_graph,
+16 | | )
+17 | | from ._optimization_range import _EXPECTED_ERRORS
+18 | | from ._range_special_cases import _has_semialgebraic_special, _relation_for_function_graph
+   | |__________________________________________________________________________________________^
+   |
+help: Organize imports
+
+F401 [*] `collections.abc.Iterable` imported but unused
+ --> src/semialg/_optimization_certification.py:3:29
+  |
+1 | from __future__ import annotations
+2 |
+3 | from collections.abc import Iterable, Mapping, Sequence
+  |                             ^^^^^^^^
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+  |
+help: Remove unused import
+
+F401 [*] `collections.abc.Mapping` imported but unused
+ --> src/semialg/_optimization_certification.py:3:39
+  |
+1 | from __future__ import annotations
+2 |
+3 | from collections.abc import Iterable, Mapping, Sequence
+  |                                       ^^^^^^^
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+  |
+help: Remove unused import
+
+F401 [*] `collections.abc.Sequence` imported but unused
+ --> src/semialg/_optimization_certification.py:3:48
+  |
+1 | from __future__ import annotations
+2 |
+3 | from collections.abc import Iterable, Mapping, Sequence
+  |                                                ^^^^^^^^
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.dataclass` imported but unused
+ --> src/semialg/_optimization_certification.py:4:25
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass
+  |                         ^^^^^^^^^
+5 | from functools import lru_cache
+6 | from itertools import combinations
+  |
+help: Remove unused import: `dataclasses.dataclass`
+
+F401 [*] `itertools.combinations` imported but unused
+ --> src/semialg/_optimization_certification.py:6:23
+  |
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+6 | from itertools import combinations
+  |                       ^^^^^^^^^^^^
+7 | from typing import Literal
+  |
+help: Remove unused import: `itertools.combinations`
+
+F401 [*] `typing.Literal` imported but unused
+ --> src/semialg/_optimization_certification.py:7:20
+  |
+5 | from functools import lru_cache
+6 | from itertools import combinations
+7 | from typing import Literal
+  |                    ^^^^^^^
+8 |
+9 | import sympy as sp
+  |
+help: Remove unused import: `typing.Literal`
+
+F401 [*] `sympy.logic.boolalg.BooleanFalse` imported but unused
+  --> src/semialg/_optimization_certification.py:11:33
+   |
+ 9 | import sympy as sp
+10 | from sympy.core.sympify import SympifyError
+11 | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+   |                                 ^^^^^^^^^^^^
+12 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+   |
+help: Remove unused import
+
+F401 [*] `sympy.logic.boolalg.BooleanTrue` imported but unused
+  --> src/semialg/_optimization_certification.py:11:47
+   |
+ 9 | import sympy as sp
+10 | from sympy.core.sympify import SympifyError
+11 | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+   |                                               ^^^^^^^^^^^
+12 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+   |
+help: Remove unused import
+
+F401 [*] `._linear_relations.safe_linear_solution` imported but unused
+  --> src/semialg/_optimization_certification.py:14:32
+   |
+12 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+13 |
+14 | from ._linear_relations import safe_linear_solution
+   |                                ^^^^^^^^^^^^^^^^^^^^
+15 | from ._optimization_backends import qe_by_complete_cad
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+   |
+help: Remove unused import: `._linear_relations.safe_linear_solution`
+
+F401 [*] `.algebraic.groebner_utils.compute_groebner_basis` imported but unused
+  --> src/semialg/_optimization_certification.py:16:39
+   |
+14 | from ._linear_relations import safe_linear_solution
+15 | from ._optimization_backends import qe_by_complete_cad
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^
+17 | from .context import with_computation_context
+18 | from .exact_arithmetic import compare_exact_reals
+   |
+help: Remove unused import: `.algebraic.groebner_utils.compute_groebner_basis`
+
+F401 [*] `.context.with_computation_context` imported but unused
+  --> src/semialg/_optimization_certification.py:17:22
+   |
+15 | from ._optimization_backends import qe_by_complete_cad
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+17 | from .context import with_computation_context
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^
+18 | from .exact_arithmetic import compare_exact_reals
+19 | from .formula import parse_formula
+   |
+help: Remove unused import: `.context.with_computation_context`
+
+F401 [*] `.exact_arithmetic.compare_exact_reals` imported but unused
+  --> src/semialg/_optimization_certification.py:18:31
+   |
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+17 | from .context import with_computation_context
+18 | from .exact_arithmetic import compare_exact_reals
+   |                               ^^^^^^^^^^^^^^^^^^^
+19 | from .formula import parse_formula
+20 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+   |
+help: Remove unused import: `.exact_arithmetic.compare_exact_reals`
+
+F401 [*] `.formulas.boolean.bounded_dnf_branches` imported but unused
+  --> src/semialg/_optimization_certification.py:20:31
+   |
+18 | from .exact_arithmetic import compare_exact_reals
+19 | from .formula import parse_formula
+20 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+   |                               ^^^^^^^^^^^^^^^^^^^^
+21 | from .interval_decomposition import (
+22 |     finite_real_roots as _finite_real_roots,
+   |
+help: Remove unused import
+
+F401 [*] `.formulas.boolean.is_false_expr` imported but unused
+  --> src/semialg/_optimization_certification.py:20:53
+   |
+18 | from .exact_arithmetic import compare_exact_reals
+19 | from .formula import parse_formula
+20 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+   |                                                     ^^^^^^^^^^^^^
+21 | from .interval_decomposition import (
+22 |     finite_real_roots as _finite_real_roots,
+   |
+help: Remove unused import
+
+F401 [*] `.interval_decomposition.finite_real_roots` imported but unused
+  --> src/semialg/_optimization_certification.py:22:26
+   |
+20 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+21 | from .interval_decomposition import (
+22 |     finite_real_roots as _finite_real_roots,
+   |                          ^^^^^^^^^^^^^^^^^^
+23 | )
+24 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.interval_decomposition.finite_real_roots`
+
+F401 [*] `.interval_decomposition.one_dimensional_intervals` imported but unused
+  --> src/semialg/_optimization_certification.py:25:34
+   |
+23 | )
+24 | from .interval_decomposition import (
+25 |     one_dimensional_intervals as _one_dimensional_intervals,
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 | )
+27 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.interval_decomposition.one_dimensional_intervals`
+
+F401 [*] `.interval_decomposition.relational_polynomials` imported but unused
+  --> src/semialg/_optimization_certification.py:28:31
+   |
+26 | )
+27 | from .interval_decomposition import (
+28 |     relational_polynomials as _relational_polynomials,
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^
+29 | )
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+   |
+help: Remove unused import: `.interval_decomposition.relational_polynomials`
+
+F401 [*] `.normalization.normalize_constraints` imported but unused
+  --> src/semialg/_optimization_certification.py:30:28
+   |
+28 |     relational_polynomials as _relational_polynomials,
+29 | )
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+   |                            ^^^^^^^^^^^^^^^^^^^^^
+31 | from .optimization_active_sets import (
+32 |     jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.normalize_problem_variables` imported but unused
+  --> src/semialg/_optimization_certification.py:30:51
+   |
+28 |     relational_polynomials as _relational_polynomials,
+29 | )
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+31 | from .optimization_active_sets import (
+32 |     jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+   |
+help: Remove unused import
+
+F401 [*] `.optimization_active_sets.jacobian_rank_equations` imported but unused
+  --> src/semialg/_optimization_certification.py:32:32
+   |
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+31 | from .optimization_active_sets import (
+32 |     jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+33 | )
+34 | from .optimization_active_sets import (
+   |
+help: Remove unused import: `.optimization_active_sets.jacobian_rank_equations`
+
+F401 [*] `.optimization_active_sets.kkt_system` imported but unused
+  --> src/semialg/_optimization_certification.py:35:19
+   |
+33 | )
+34 | from .optimization_active_sets import (
+35 |     kkt_system as _kkt_system,
+   |                   ^^^^^^^^^^^
+36 | )
+37 | from .optimization_active_sets import (
+   |
+help: Remove unused import: `.optimization_active_sets.kkt_system`
+
+F401 [*] `.optimization_active_sets.pruned_active_subsets` imported but unused
+  --> src/semialg/_optimization_certification.py:38:30
+   |
+36 | )
+37 | from .optimization_active_sets import (
+38 |     pruned_active_subsets as _pruned_active_subsets,
+   |                              ^^^^^^^^^^^^^^^^^^^^^^
+39 | )
+40 | from .optimization_geometry import polynomial_locus_dimension
+   |
+help: Remove unused import: `.optimization_active_sets.pruned_active_subsets`
+
+F401 [*] `.optimization_geometry.polynomial_locus_dimension` imported but unused
+  --> src/semialg/_optimization_certification.py:40:36
+   |
+38 |     pruned_active_subsets as _pruned_active_subsets,
+39 | )
+40 | from .optimization_geometry import polynomial_locus_dimension
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+41 | from .optimization_results import (
+42 |     FunctionRangeResult,
+   |
+help: Remove unused import: `.optimization_geometry.polynomial_locus_dimension`
+
+F401 [*] `.optimization_results.OptimizationResult` imported but unused
+  --> src/semialg/_optimization_certification.py:44:5
+   |
+42 |     FunctionRangeResult,
+43 |     OptimizationCertificationPolicy,
+44 |     OptimizationResult,
+   |     ^^^^^^^^^^^^^^^^^^
+45 |     ParametricFunctionRangeResult,
+46 |     ParametricOptimizationResult,
+   |
+help: Remove unused import
+
+F401 [*] `.optimization_results.ParametricFunctionRangeResult` imported but unused
+  --> src/semialg/_optimization_certification.py:45:5
+   |
+43 |     OptimizationCertificationPolicy,
+44 |     OptimizationResult,
+45 |     ParametricFunctionRangeResult,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+46 |     ParametricOptimizationResult,
+47 | )
+   |
+help: Remove unused import
+
+F401 [*] `.optimization_results.ParametricOptimizationResult` imported but unused
+  --> src/semialg/_optimization_certification.py:46:5
+   |
+44 |     OptimizationResult,
+45 |     ParametricFunctionRangeResult,
+46 |     ParametricOptimizationResult,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+47 | )
+48 | from .relations import split_relation as _relation_parts
+   |
+help: Remove unused import
+
+F401 [*] `.structural_keys.point_key` imported but unused
+  --> src/semialg/_optimization_certification.py:49:30
+   |
+47 | )
+48 | from .relations import split_relation as _relation_parts
+49 | from .structural_keys import point_key
+   |                              ^^^^^^^^^
+50 |
+51 | _EXPECTED_ERRORS = (
+   |
+help: Remove unused import: `.structural_keys.point_key`
+
+F401 [*] `functools.cmp_to_key` imported but unused
+ --> src/semialg/_optimization_range.py:4:23
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from functools import cmp_to_key
+  |                       ^^^^^^^^^^
+5 |
+6 | import sympy as sp
+  |
+help: Remove unused import: `functools.cmp_to_key`
+
+F401 [*] `sympy.logic.boolalg.BooleanFalse` imported but unused
+  --> src/semialg/_optimization_range.py:9:33
+   |
+ 7 | from sympy.core.sympify import SympifyError
+ 8 | from sympy.logic.boolalg import And as SymAnd
+ 9 | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+   |                                 ^^^^^^^^^^^^
+10 | from sympy.logic.boolalg import Or as SymOr
+11 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+   |
+help: Remove unused import
+
+F401 [*] `sympy.logic.boolalg.BooleanTrue` imported but unused
+  --> src/semialg/_optimization_range.py:9:47
+   |
+ 7 | from sympy.core.sympify import SympifyError
+ 8 | from sympy.logic.boolalg import And as SymAnd
+ 9 | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+   |                                               ^^^^^^^^^^^
+10 | from sympy.logic.boolalg import Or as SymOr
+11 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+   |
+help: Remove unused import
+
+F401 [*] `._linear_relations.certified_sign` imported but unused
+  --> src/semialg/_optimization_range.py:17:32
+   |
+15 |     exact_algebraize_function_problem,
+16 | )
+17 | from ._linear_relations import certified_sign, safe_linear_solution
+   |                                ^^^^^^^^^^^^^^
+18 | from ._optimization_backends import optimization_is_feasible as _optimization_is_feasible
+19 | from ._optimization_backends import qe_by_complete_cad
+   |
+help: Remove unused import
+
+F401 [*] `._linear_relations.safe_linear_solution` imported but unused
+  --> src/semialg/_optimization_range.py:17:48
+   |
+15 |     exact_algebraize_function_problem,
+16 | )
+17 | from ._linear_relations import certified_sign, safe_linear_solution
+   |                                                ^^^^^^^^^^^^^^^^^^^^
+18 | from ._optimization_backends import optimization_is_feasible as _optimization_is_feasible
+19 | from ._optimization_backends import qe_by_complete_cad
+   |
+help: Remove unused import
+
+F401 [*] `._optimization_backends.optimization_is_feasible` imported but unused
+  --> src/semialg/_optimization_range.py:18:65
+   |
+16 | )
+17 | from ._linear_relations import certified_sign, safe_linear_solution
+18 | from ._optimization_backends import optimization_is_feasible as _optimization_is_feasible
+   |                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+19 | from ._optimization_backends import qe_by_complete_cad
+20 | from .context import with_computation_context
+   |
+help: Remove unused import: `._optimization_backends.optimization_is_feasible`
+
+F401 [*] `._optimization_backends.qe_by_complete_cad` imported but unused
+  --> src/semialg/_optimization_range.py:19:37
+   |
+17 | from ._linear_relations import certified_sign, safe_linear_solution
+18 | from ._optimization_backends import optimization_is_feasible as _optimization_is_feasible
+19 | from ._optimization_backends import qe_by_complete_cad
+   |                                     ^^^^^^^^^^^^^^^^^^
+20 | from .context import with_computation_context
+21 | from .exact_arithmetic import compare_exact_reals, compare_extended_reals
+   |
+help: Remove unused import: `._optimization_backends.qe_by_complete_cad`
+
+F401 [*] `.exact_arithmetic.compare_extended_reals` imported but unused
+  --> src/semialg/_optimization_range.py:21:52
+   |
+19 | from ._optimization_backends import qe_by_complete_cad
+20 | from .context import with_computation_context
+21 | from .exact_arithmetic import compare_exact_reals, compare_extended_reals
+   |                                                    ^^^^^^^^^^^^^^^^^^^^^^
+22 | from .formula import parse_formula
+23 | from .function_graph import (
+   |
+help: Remove unused import: `.exact_arithmetic.compare_extended_reals`
+
+F401 [*] `.formula.parse_formula` imported but unused
+  --> src/semialg/_optimization_range.py:22:22
+   |
+20 | from .context import with_computation_context
+21 | from .exact_arithmetic import compare_exact_reals, compare_extended_reals
+22 | from .formula import parse_formula
+   |                      ^^^^^^^^^^^^^
+23 | from .function_graph import (
+24 |     UnsupportedFunctionGraph,
+   |
+help: Remove unused import: `.formula.parse_formula`
+
+F401 [*] `.function_graph.UnsupportedFunctionGraph` imported but unused
+  --> src/semialg/_optimization_range.py:24:5
+   |
+22 | from .formula import parse_formula
+23 | from .function_graph import (
+24 |     UnsupportedFunctionGraph,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+25 |     has_semialgebraic_graph_special,
+26 |     semialgebraic_formula_graph,
+   |
+help: Remove unused import
+
+F401 [*] `.function_graph.has_semialgebraic_graph_special` imported but unused
+  --> src/semialg/_optimization_range.py:25:5
+   |
+23 | from .function_graph import (
+24 |     UnsupportedFunctionGraph,
+25 |     has_semialgebraic_graph_special,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 |     semialgebraic_formula_graph,
+27 |     semialgebraic_function_graph,
+   |
+help: Remove unused import
+
+F401 [*] `.function_graph.semialgebraic_formula_graph` imported but unused
+  --> src/semialg/_optimization_range.py:26:5
+   |
+24 |     UnsupportedFunctionGraph,
+25 |     has_semialgebraic_graph_special,
+26 |     semialgebraic_formula_graph,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+27 |     semialgebraic_function_graph,
+28 | )
+   |
+help: Remove unused import
+
+F401 [*] `.function_graph.semialgebraic_function_graph` imported but unused
+  --> src/semialg/_optimization_range.py:27:5
+   |
+25 |     has_semialgebraic_graph_special,
+26 |     semialgebraic_formula_graph,
+27 |     semialgebraic_function_graph,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+28 | )
+29 | from .normalization import normalize_constraints, normalize_problem_variables
+   |
+help: Remove unused import
+
+F401 [*] `.relations.split_relation` imported but unused
+  --> src/semialg/_optimization_range.py:31:42
+   |
+29 | from .normalization import normalize_constraints, normalize_problem_variables
+30 | from .optimization_results import FunctionRangeResult, OptimizationResult
+31 | from .relations import split_relation as _relation_parts
+   |                                          ^^^^^^^^^^^^^^^
+32 | from .symbol_resolution import resolve_symbol
+   |
+help: Remove unused import: `.relations.split_relation`
+
+F401 [*] `collections.abc.Iterable` imported but unused
+ --> src/semialg/_optimization_specializations.py:3:29
+  |
+1 | from __future__ import annotations
+2 |
+3 | from collections.abc import Iterable, Mapping, Sequence
+  |                             ^^^^^^^^
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+  |
+help: Remove unused import
+
+F401 [*] `collections.abc.Sequence` imported but unused
+ --> src/semialg/_optimization_specializations.py:3:48
+  |
+1 | from __future__ import annotations
+2 |
+3 | from collections.abc import Iterable, Mapping, Sequence
+  |                                                ^^^^^^^^
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.dataclass` imported but unused
+ --> src/semialg/_optimization_specializations.py:4:25
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass
+  |                         ^^^^^^^^^
+5 | from functools import lru_cache
+6 | from itertools import combinations
+  |
+help: Remove unused import: `dataclasses.dataclass`
+
+F401 [*] `functools.lru_cache` imported but unused
+ --> src/semialg/_optimization_specializations.py:5:23
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+  |                       ^^^^^^^^^
+6 | from itertools import combinations
+7 | from typing import Literal
+  |
+help: Remove unused import: `functools.lru_cache`
+
+F401 [*] `typing.Literal` imported but unused
+ --> src/semialg/_optimization_specializations.py:7:20
+  |
+5 | from functools import lru_cache
+6 | from itertools import combinations
+7 | from typing import Literal
+  |                    ^^^^^^^
+8 |
+9 | import sympy as sp
+  |
+help: Remove unused import: `typing.Literal`
+
+F401 [*] `sympy.logic.boolalg.BooleanFalse` imported but unused
+  --> src/semialg/_optimization_specializations.py:11:33
+   |
+ 9 | import sympy as sp
+10 | from sympy.core.sympify import SympifyError
+11 | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+   |                                 ^^^^^^^^^^^^
+12 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+   |
+help: Remove unused import
+
+F401 [*] `sympy.logic.boolalg.BooleanTrue` imported but unused
+  --> src/semialg/_optimization_specializations.py:11:47
+   |
+ 9 | import sympy as sp
+10 | from sympy.core.sympify import SympifyError
+11 | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+   |                                               ^^^^^^^^^^^
+12 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+   |
+help: Remove unused import
+
+F401 [*] `._linear_relations.safe_linear_solution` imported but unused
+  --> src/semialg/_optimization_specializations.py:14:32
+   |
+12 | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+13 |
+14 | from ._linear_relations import safe_linear_solution
+   |                                ^^^^^^^^^^^^^^^^^^^^
+15 | from ._optimization_backends import qe_by_complete_cad
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+   |
+help: Remove unused import: `._linear_relations.safe_linear_solution`
+
+F401 [*] `._optimization_backends.qe_by_complete_cad` imported but unused
+  --> src/semialg/_optimization_specializations.py:15:37
+   |
+14 | from ._linear_relations import safe_linear_solution
+15 | from ._optimization_backends import qe_by_complete_cad
+   |                                     ^^^^^^^^^^^^^^^^^^
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+17 | from .context import with_computation_context
+   |
+help: Remove unused import: `._optimization_backends.qe_by_complete_cad`
+
+F401 [*] `.algebraic.groebner_utils.compute_groebner_basis` imported but unused
+  --> src/semialg/_optimization_specializations.py:16:39
+   |
+14 | from ._linear_relations import safe_linear_solution
+15 | from ._optimization_backends import qe_by_complete_cad
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^
+17 | from .context import with_computation_context
+18 | from .exact_arithmetic import compare_exact_reals
+   |
+help: Remove unused import: `.algebraic.groebner_utils.compute_groebner_basis`
+
+F401 [*] `.context.with_computation_context` imported but unused
+  --> src/semialg/_optimization_specializations.py:17:22
+   |
+15 | from ._optimization_backends import qe_by_complete_cad
+16 | from .algebraic.groebner_utils import compute_groebner_basis
+17 | from .context import with_computation_context
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^
+18 | from .exact_arithmetic import compare_exact_reals
+19 | from .formula import parse_formula
+   |
+help: Remove unused import: `.context.with_computation_context`
+
+F401 [*] `.formula.parse_formula` imported but unused
+  --> src/semialg/_optimization_specializations.py:19:22
+   |
+17 | from .context import with_computation_context
+18 | from .exact_arithmetic import compare_exact_reals
+19 | from .formula import parse_formula
+   |                      ^^^^^^^^^^^^^
+20 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+21 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.formula.parse_formula`
+
+F401 [*] `.formulas.boolean.bounded_dnf_branches` imported but unused
+  --> src/semialg/_optimization_specializations.py:20:31
+   |
+18 | from .exact_arithmetic import compare_exact_reals
+19 | from .formula import parse_formula
+20 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+   |                               ^^^^^^^^^^^^^^^^^^^^
+21 | from .interval_decomposition import (
+22 |     finite_real_roots as _finite_real_roots,
+   |
+help: Remove unused import
+
+F401 [*] `.formulas.boolean.is_false_expr` imported but unused
+  --> src/semialg/_optimization_specializations.py:20:53
+   |
+18 | from .exact_arithmetic import compare_exact_reals
+19 | from .formula import parse_formula
+20 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+   |                                                     ^^^^^^^^^^^^^
+21 | from .interval_decomposition import (
+22 |     finite_real_roots as _finite_real_roots,
+   |
+help: Remove unused import
+
+F401 [*] `.interval_decomposition.one_dimensional_intervals` imported but unused
+  --> src/semialg/_optimization_specializations.py:25:34
+   |
+23 | )
+24 | from .interval_decomposition import (
+25 |     one_dimensional_intervals as _one_dimensional_intervals,
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 | )
+27 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.interval_decomposition.one_dimensional_intervals`
+
+F401 [*] `.interval_decomposition.relational_polynomials` imported but unused
+  --> src/semialg/_optimization_specializations.py:28:31
+   |
+26 | )
+27 | from .interval_decomposition import (
+28 |     relational_polynomials as _relational_polynomials,
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^
+29 | )
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+   |
+help: Remove unused import: `.interval_decomposition.relational_polynomials`
+
+F401 [*] `.normalization.normalize_constraints` imported but unused
+  --> src/semialg/_optimization_specializations.py:30:28
+   |
+28 |     relational_polynomials as _relational_polynomials,
+29 | )
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+   |                            ^^^^^^^^^^^^^^^^^^^^^
+31 | from .optimization_active_sets import (
+32 |     jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.normalize_problem_variables` imported but unused
+  --> src/semialg/_optimization_specializations.py:30:51
+   |
+28 |     relational_polynomials as _relational_polynomials,
+29 | )
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+31 | from .optimization_active_sets import (
+32 |     jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+   |
+help: Remove unused import
+
+F401 [*] `.optimization_active_sets.jacobian_rank_equations` imported but unused
+  --> src/semialg/_optimization_specializations.py:32:32
+   |
+30 | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+31 | from .optimization_active_sets import (
+32 |     jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+33 | )
+34 | from .optimization_active_sets import (
+   |
+help: Remove unused import: `.optimization_active_sets.jacobian_rank_equations`
+
+F401 [*] `.optimization_active_sets.kkt_system` imported but unused
+  --> src/semialg/_optimization_specializations.py:35:19
+   |
+33 | )
+34 | from .optimization_active_sets import (
+35 |     kkt_system as _kkt_system,
+   |                   ^^^^^^^^^^^
+36 | )
+37 | from .optimization_active_sets import (
+   |
+help: Remove unused import: `.optimization_active_sets.kkt_system`
+
+F401 [*] `.optimization_active_sets.pruned_active_subsets` imported but unused
+  --> src/semialg/_optimization_specializations.py:38:30
+   |
+36 | )
+37 | from .optimization_active_sets import (
+38 |     pruned_active_subsets as _pruned_active_subsets,
+   |                              ^^^^^^^^^^^^^^^^^^^^^^
+39 | )
+40 | from .optimization_geometry import polynomial_locus_dimension
+   |
+help: Remove unused import: `.optimization_active_sets.pruned_active_subsets`
+
+F401 [*] `.optimization_geometry.polynomial_locus_dimension` imported but unused
+  --> src/semialg/_optimization_specializations.py:40:36
+   |
+38 |     pruned_active_subsets as _pruned_active_subsets,
+39 | )
+40 | from .optimization_geometry import polynomial_locus_dimension
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+41 | from .optimization_results import (
+42 |     FunctionRangeResult,
+   |
+help: Remove unused import: `.optimization_geometry.polynomial_locus_dimension`
+
+F401 [*] `.optimization_results.FunctionRangeResult` imported but unused
+  --> src/semialg/_optimization_specializations.py:42:5
+   |
+40 | from .optimization_geometry import polynomial_locus_dimension
+41 | from .optimization_results import (
+42 |     FunctionRangeResult,
+   |     ^^^^^^^^^^^^^^^^^^^
+43 |     OptimizationCertificationPolicy,
+44 |     OptimizationResult,
+   |
+help: Remove unused import
+
+F401 [*] `.optimization_results.ParametricFunctionRangeResult` imported but unused
+  --> src/semialg/_optimization_specializations.py:45:5
+   |
+43 |     OptimizationCertificationPolicy,
+44 |     OptimizationResult,
+45 |     ParametricFunctionRangeResult,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+46 |     ParametricOptimizationResult,
+47 | )
+   |
+help: Remove unused import
+
+F401 [*] `.optimization_results.ParametricOptimizationResult` imported but unused
+  --> src/semialg/_optimization_specializations.py:46:5
+   |
+44 |     OptimizationResult,
+45 |     ParametricFunctionRangeResult,
+46 |     ParametricOptimizationResult,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+47 | )
+48 | from .relations import split_relation as _relation_parts
+   |
+help: Remove unused import
+
+E402 Module level import not at top of file
+  --> src/semialg/_optimization_specializations.py:64:1
+   |
+64 | / from .optimization import (
+65 | |     _Candidate,
+66 | |     _best_candidates,
+67 | |     _constraint_data,
+68 | |     _finite_compare,
+69 | |     _is_feasible,
+70 | |     _lift_reduced_points,
+71 | |     _real_point,
+72 | |     _reduce_linear_equalities,
+73 | | )
+   | |_^
+   |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_optimization_specializations.py:64:1
+   |
+64 | / from .optimization import (
+65 | |     _Candidate,
+66 | |     _best_candidates,
+67 | |     _constraint_data,
+68 | |     _finite_compare,
+69 | |     _is_feasible,
+70 | |     _lift_reduced_points,
+71 | |     _real_point,
+72 | |     _reduce_linear_equalities,
+73 | | )
+   | |_^
+   |
+help: Organize imports
+
+F401 [*] `.optimization._finite_compare` imported but unused
+  --> src/semialg/_optimization_specializations.py:68:5
+   |
+66 |     _best_candidates,
+67 |     _constraint_data,
+68 |     _finite_compare,
+   |     ^^^^^^^^^^^^^^^
+69 |     _is_feasible,
+70 |     _lift_reduced_points,
+   |
+help: Remove unused import: `.optimization._finite_compare`
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_range_special_cases.py:3:1
+   |
+ 1 |   """Fast exact special-case range and image reductions."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from functools import cmp_to_key
+ 6 | | import sympy as sp
+ 7 | | from sympy.logic.boolalg import And as SymAnd, BooleanFalse, BooleanTrue
+ 8 | | from sympy.calculus.util import function_range as sympy_range
+ 9 | |
+10 | | from ._linear_relations import certified_sign, safe_linear_solution
+11 | | from .exact_arithmetic import compare_extended_reals
+12 | | from .function_graph import has_semialgebraic_graph_special, semialgebraic_function_graph
+13 | | from .relations import split_relation as _relation_parts
+14 | | from ._optimization_range import _EXPECTED_ERRORS, _finite_compare, _intervals_from_range_set
+   | |_____________________________________________________________________________________________^
+   |
+help: Organize imports
+
+F401 [*] `sympy.calculus.util.function_range` imported but unused
+  --> src/semialg/_range_special_cases.py:8:51
+   |
+ 6 | import sympy as sp
+ 7 | from sympy.logic.boolalg import And as SymAnd, BooleanFalse, BooleanTrue
+ 8 | from sympy.calculus.util import function_range as sympy_range
+   |                                                   ^^^^^^^^^^^
+ 9 |
+10 | from ._linear_relations import certified_sign, safe_linear_solution
+   |
+help: Remove unused import: `sympy.calculus.util.function_range`
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_region_integrate_cad.py:1:1
+   |
+ 1 | / from __future__ import annotations
+ 2 | |
+ 3 | | from collections.abc import Mapping, Sequence
+ 4 | | from itertools import permutations
+ 5 | |
+ 6 | | import sympy as sp
+ 7 | | from sympy.core.relational import Equality, Unequality
+ 8 | | from sympy.logic.boolalg import Not as SymNot
+ 9 | | from sympy.logic.boolalg import Or as SymOr
+10 | |
+11 | | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | | from ._linear_relations import certified_sign, safe_linear_solution
+13 | | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+14 | | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+15 | | from .interval_decomposition import (
+16 | |     one_dimensional_intervals as _shared_intervals,
+17 | | )
+18 | | from .interval_decomposition import (
+19 | |     truth_at as _truth_at,
+20 | | )
+21 | | from .normalization import (
+22 | |     normalize_bounds,
+23 | |     normalize_formula,
+24 | |     normalize_variables,
+25 | |     require_conjunction,
+26 | | )
+27 | | from .region_integral_results import (
+28 | |     ReducedRegionIntegral,
+29 | |     RegionIntegralPiece,
+30 | |     RegionIntegralResult,
+31 | | )
+32 | | from .relations import make_zero_relation
+33 | | from .relations import split_relation as _relation_parts
+34 | | from .standard_region_integrate import integrate_over_standard_region
+35 | | from .standard_regions import StandardRegion
+36 | |
+37 | |
+38 | | from .region_integrate import _formula_with_explicit_bounds
+39 | | from ._region_integrate_geometry import _radial_radii_squared, _vertical_slice_data
+   | |___________________________________________________________________________________^
+   |
+help: Organize imports
+
+F401 [*] `sympy.core.relational.Equality` imported but unused
+ --> src/semialg/_region_integrate_cad.py:7:35
+  |
+6 | import sympy as sp
+7 | from sympy.core.relational import Equality, Unequality
+  |                                   ^^^^^^^^
+8 | from sympy.logic.boolalg import Not as SymNot
+9 | from sympy.logic.boolalg import Or as SymOr
+  |
+help: Remove unused import
+
+F401 [*] `sympy.core.relational.Unequality` imported but unused
+ --> src/semialg/_region_integrate_cad.py:7:45
+  |
+6 | import sympy as sp
+7 | from sympy.core.relational import Equality, Unequality
+  |                                             ^^^^^^^^^^
+8 | from sympy.logic.boolalg import Not as SymNot
+9 | from sympy.logic.boolalg import Or as SymOr
+  |
+help: Remove unused import
+
+F401 [*] `sympy.logic.boolalg.Not` imported but unused
+ --> src/semialg/_region_integrate_cad.py:8:40
+  |
+6 | import sympy as sp
+7 | from sympy.core.relational import Equality, Unequality
+8 | from sympy.logic.boolalg import Not as SymNot
+  |                                        ^^^^^^
+9 | from sympy.logic.boolalg import Or as SymOr
+  |
+help: Remove unused import: `sympy.logic.boolalg.Not`
+
+F401 [*] `sympy.logic.boolalg.Or` imported but unused
+  --> src/semialg/_region_integrate_cad.py:9:39
+   |
+ 7 | from sympy.core.relational import Equality, Unequality
+ 8 | from sympy.logic.boolalg import Not as SymNot
+ 9 | from sympy.logic.boolalg import Or as SymOr
+   |                                       ^^^^^
+10 |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+   |
+help: Remove unused import: `sympy.logic.boolalg.Or`
+
+F401 [*] `._linear_relations.certified_sign` imported but unused
+  --> src/semialg/_region_integrate_cad.py:12:32
+   |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | from ._linear_relations import certified_sign, safe_linear_solution
+   |                                ^^^^^^^^^^^^^^
+13 | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+   |
+help: Remove unused import
+
+F401 [*] `._linear_relations.safe_linear_solution` imported but unused
+  --> src/semialg/_region_integrate_cad.py:12:48
+   |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | from ._linear_relations import certified_sign, safe_linear_solution
+   |                                                ^^^^^^^^^^^^^^^^^^^^
+13 | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+   |
+help: Remove unused import
+
+F401 [*] `.interval_decomposition.one_dimensional_intervals` imported but unused
+  --> src/semialg/_region_integrate_cad.py:16:34
+   |
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+15 | from .interval_decomposition import (
+16 |     one_dimensional_intervals as _shared_intervals,
+   |                                  ^^^^^^^^^^^^^^^^^
+17 | )
+18 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.interval_decomposition.one_dimensional_intervals`
+
+F401 [*] `.interval_decomposition.truth_at` imported but unused
+  --> src/semialg/_region_integrate_cad.py:19:17
+   |
+17 | )
+18 | from .interval_decomposition import (
+19 |     truth_at as _truth_at,
+   |                 ^^^^^^^^^
+20 | )
+21 | from .normalization import (
+   |
+help: Remove unused import: `.interval_decomposition.truth_at`
+
+F401 [*] `.normalization.normalize_bounds` imported but unused
+  --> src/semialg/_region_integrate_cad.py:22:5
+   |
+20 | )
+21 | from .normalization import (
+22 |     normalize_bounds,
+   |     ^^^^^^^^^^^^^^^^
+23 |     normalize_formula,
+24 |     normalize_variables,
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.normalize_formula` imported but unused
+  --> src/semialg/_region_integrate_cad.py:23:5
+   |
+21 | from .normalization import (
+22 |     normalize_bounds,
+23 |     normalize_formula,
+   |     ^^^^^^^^^^^^^^^^^
+24 |     normalize_variables,
+25 |     require_conjunction,
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.normalize_variables` imported but unused
+  --> src/semialg/_region_integrate_cad.py:24:5
+   |
+22 |     normalize_bounds,
+23 |     normalize_formula,
+24 |     normalize_variables,
+   |     ^^^^^^^^^^^^^^^^^^^
+25 |     require_conjunction,
+26 | )
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.require_conjunction` imported but unused
+  --> src/semialg/_region_integrate_cad.py:25:5
+   |
+23 |     normalize_formula,
+24 |     normalize_variables,
+25 |     require_conjunction,
+   |     ^^^^^^^^^^^^^^^^^^^
+26 | )
+27 | from .region_integral_results import (
+   |
+help: Remove unused import
+
+F401 [*] `.region_integral_results.ReducedRegionIntegral` imported but unused
+  --> src/semialg/_region_integrate_cad.py:28:5
+   |
+26 | )
+27 | from .region_integral_results import (
+28 |     ReducedRegionIntegral,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+29 |     RegionIntegralPiece,
+30 |     RegionIntegralResult,
+   |
+help: Remove unused import
+
+F401 [*] `.region_integral_results.RegionIntegralResult` imported but unused
+  --> src/semialg/_region_integrate_cad.py:30:5
+   |
+28 |     ReducedRegionIntegral,
+29 |     RegionIntegralPiece,
+30 |     RegionIntegralResult,
+   |     ^^^^^^^^^^^^^^^^^^^^
+31 | )
+32 | from .relations import make_zero_relation
+   |
+help: Remove unused import
+
+F401 [*] `.relations.make_zero_relation` imported but unused
+  --> src/semialg/_region_integrate_cad.py:32:24
+   |
+30 |     RegionIntegralResult,
+31 | )
+32 | from .relations import make_zero_relation
+   |                        ^^^^^^^^^^^^^^^^^^
+33 | from .relations import split_relation as _relation_parts
+34 | from .standard_region_integrate import integrate_over_standard_region
+   |
+help: Remove unused import: `.relations.make_zero_relation`
+
+F401 [*] `.relations.split_relation` imported but unused
+  --> src/semialg/_region_integrate_cad.py:33:42
+   |
+31 | )
+32 | from .relations import make_zero_relation
+33 | from .relations import split_relation as _relation_parts
+   |                                          ^^^^^^^^^^^^^^^
+34 | from .standard_region_integrate import integrate_over_standard_region
+35 | from .standard_regions import StandardRegion
+   |
+help: Remove unused import: `.relations.split_relation`
+
+F401 [*] `.standard_region_integrate.integrate_over_standard_region` imported but unused
+  --> src/semialg/_region_integrate_cad.py:34:40
+   |
+32 | from .relations import make_zero_relation
+33 | from .relations import split_relation as _relation_parts
+34 | from .standard_region_integrate import integrate_over_standard_region
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+35 | from .standard_regions import StandardRegion
+   |
+help: Remove unused import: `.standard_region_integrate.integrate_over_standard_region`
+
+F401 [*] `.standard_regions.StandardRegion` imported but unused
+  --> src/semialg/_region_integrate_cad.py:35:31
+   |
+33 | from .relations import split_relation as _relation_parts
+34 | from .standard_region_integrate import integrate_over_standard_region
+35 | from .standard_regions import StandardRegion
+   |                               ^^^^^^^^^^^^^^
+   |
+help: Remove unused import: `.standard_regions.StandardRegion`
+
+F401 [*] `.region_integrate._formula_with_explicit_bounds` imported but unused
+  --> src/semialg/_region_integrate_cad.py:38:31
+   |
+38 | from .region_integrate import _formula_with_explicit_bounds
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+39 | from ._region_integrate_geometry import _radial_radii_squared, _vertical_slice_data
+   |
+help: Remove unused import: `.region_integrate._formula_with_explicit_bounds`
+
+E402 Module level import not at top of file
+   --> src/semialg/_region_integrate_cad.py:179:1
+    |
+179 | / from ._region_integrate_intrinsic import (
+180 | |     _integrate_intrinsic_dimension,
+181 | |     _normalize_measure_dimension,
+182 | | )
+    | |_^
+    |
+
+F401 [*] `._region_integrate_intrinsic._integrate_intrinsic_dimension` imported but unused
+   --> src/semialg/_region_integrate_cad.py:180:5
+    |
+179 | from ._region_integrate_intrinsic import (
+180 |     _integrate_intrinsic_dimension,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+181 |     _normalize_measure_dimension,
+182 | )
+    |
+help: Remove unused import
+
+F401 [*] `._region_integrate_intrinsic._normalize_measure_dimension` imported but unused
+   --> src/semialg/_region_integrate_cad.py:181:5
+    |
+179 | from ._region_integrate_intrinsic import (
+180 |     _integrate_intrinsic_dimension,
+181 |     _normalize_measure_dimension,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+182 | )
+    |
+help: Remove unused import
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/_region_integrate_geometry.py:1:1
+   |
+ 1 | / from __future__ import annotations
+ 2 | |
+ 3 | | from collections.abc import Mapping, Sequence
+ 4 | | from itertools import permutations
+ 5 | |
+ 6 | | import sympy as sp
+ 7 | | from sympy.core.relational import Equality, Unequality
+ 8 | | from sympy.logic.boolalg import Not as SymNot
+ 9 | | from sympy.logic.boolalg import Or as SymOr
+10 | |
+11 | | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | | from ._linear_relations import certified_sign, safe_linear_solution
+13 | | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+14 | | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+15 | | from .interval_decomposition import (
+16 | |     one_dimensional_intervals as _shared_intervals,
+17 | | )
+18 | | from .interval_decomposition import (
+19 | |     truth_at as _truth_at,
+20 | | )
+21 | | from .normalization import (
+22 | |     normalize_bounds,
+23 | |     normalize_formula,
+24 | |     normalize_variables,
+25 | |     require_conjunction,
+26 | | )
+27 | | from .region_integral_results import (
+28 | |     ReducedRegionIntegral,
+29 | |     RegionIntegralPiece,
+30 | |     RegionIntegralResult,
+31 | | )
+32 | | from .relations import make_zero_relation
+33 | | from .relations import split_relation as _relation_parts
+34 | | from .standard_region_integrate import integrate_over_standard_region
+35 | | from .standard_regions import StandardRegion
+36 | |
+37 | |
+38 | | from .region_integrate import _one_dimensional_intervals
+   | |________________________________________________________^
+   |
+help: Organize imports
+
+F401 [*] `itertools.permutations` imported but unused
+ --> src/semialg/_region_integrate_geometry.py:4:23
+  |
+3 | from collections.abc import Mapping, Sequence
+4 | from itertools import permutations
+  |                       ^^^^^^^^^^^^
+5 |
+6 | import sympy as sp
+  |
+help: Remove unused import: `itertools.permutations`
+
+F401 [*] `sympy.logic.boolalg.Not` imported but unused
+ --> src/semialg/_region_integrate_geometry.py:8:40
+  |
+6 | import sympy as sp
+7 | from sympy.core.relational import Equality, Unequality
+8 | from sympy.logic.boolalg import Not as SymNot
+  |                                        ^^^^^^
+9 | from sympy.logic.boolalg import Or as SymOr
+  |
+help: Remove unused import: `sympy.logic.boolalg.Not`
+
+F401 [*] `sympy.logic.boolalg.Or` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:9:39
+   |
+ 7 | from sympy.core.relational import Equality, Unequality
+ 8 | from sympy.logic.boolalg import Not as SymNot
+ 9 | from sympy.logic.boolalg import Or as SymOr
+   |                                       ^^^^^
+10 |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+   |
+help: Remove unused import: `sympy.logic.boolalg.Or`
+
+F401 [*] `.implicit_geometry.decompose_cylindrical_formula_to_vertical_bounds_2d` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:13:32
+   |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | from ._linear_relations import certified_sign, safe_linear_solution
+13 | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+15 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.implicit_geometry.decompose_cylindrical_formula_to_vertical_bounds_2d`
+
+F401 [*] `.interval_decomposition.one_dimensional_intervals` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:16:34
+   |
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+15 | from .interval_decomposition import (
+16 |     one_dimensional_intervals as _shared_intervals,
+   |                                  ^^^^^^^^^^^^^^^^^
+17 | )
+18 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.interval_decomposition.one_dimensional_intervals`
+
+F401 [*] `.normalization.normalize_bounds` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:22:5
+   |
+20 | )
+21 | from .normalization import (
+22 |     normalize_bounds,
+   |     ^^^^^^^^^^^^^^^^
+23 |     normalize_formula,
+24 |     normalize_variables,
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.normalize_formula` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:23:5
+   |
+21 | from .normalization import (
+22 |     normalize_bounds,
+23 |     normalize_formula,
+   |     ^^^^^^^^^^^^^^^^^
+24 |     normalize_variables,
+25 |     require_conjunction,
+   |
+help: Remove unused import
+
+F401 [*] `.normalization.normalize_variables` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:24:5
+   |
+22 |     normalize_bounds,
+23 |     normalize_formula,
+24 |     normalize_variables,
+   |     ^^^^^^^^^^^^^^^^^^^
+25 |     require_conjunction,
+26 | )
+   |
+help: Remove unused import
+
+F401 [*] `.region_integral_results.ReducedRegionIntegral` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:28:5
+   |
+26 | )
+27 | from .region_integral_results import (
+28 |     ReducedRegionIntegral,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+29 |     RegionIntegralPiece,
+30 |     RegionIntegralResult,
+   |
+help: Remove unused import
+
+F401 [*] `.region_integral_results.RegionIntegralResult` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:30:5
+   |
+28 |     ReducedRegionIntegral,
+29 |     RegionIntegralPiece,
+30 |     RegionIntegralResult,
+   |     ^^^^^^^^^^^^^^^^^^^^
+31 | )
+32 | from .relations import make_zero_relation
+   |
+help: Remove unused import
+
+F401 [*] `.standard_region_integrate.integrate_over_standard_region` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:34:40
+   |
+32 | from .relations import make_zero_relation
+33 | from .relations import split_relation as _relation_parts
+34 | from .standard_region_integrate import integrate_over_standard_region
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+35 | from .standard_regions import StandardRegion
+   |
+help: Remove unused import: `.standard_region_integrate.integrate_over_standard_region`
+
+F401 [*] `.standard_regions.StandardRegion` imported but unused
+  --> src/semialg/_region_integrate_geometry.py:35:31
+   |
+33 | from .relations import split_relation as _relation_parts
+34 | from .standard_region_integrate import integrate_over_standard_region
+35 | from .standard_regions import StandardRegion
+   |                               ^^^^^^^^^^^^^^
+   |
+help: Remove unused import: `.standard_regions.StandardRegion`
+
+F401 [*] `dataclasses.dataclass` imported but unused
+ --> src/semialg/decision/_predicates.py:4:25
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass, field
+  |                         ^^^^^^^^^
+5 |
+6 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.field` imported but unused
+ --> src/semialg/decision/_predicates.py:4:36
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass, field
+  |                                    ^^^^^
+5 |
+6 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `sympy.polys.polyerrors.PolynomialError` imported but unused
+  --> src/semialg/decision/_predicates.py:8:52
+   |
+ 6 | import sympy as sp
+ 7 | from sympy.logic.boolalg import Boolean
+ 8 | from sympy.polys.polyerrors import CoercionFailed, PolynomialError
+   |                                                    ^^^^^^^^^^^^^^^
+ 9 |
+10 | from ..algebraic.equality_ideal import EqualityIdealContext
+   |
+help: Remove unused import: `sympy.polys.polyerrors.PolynomialError`
+
+F401 [*] `..algebraic.equality_ideal.EqualityIdealContext` imported but unused
+  --> src/semialg/decision/_predicates.py:10:40
+   |
+ 8 | from sympy.polys.polyerrors import CoercionFailed, PolynomialError
+ 9 |
+10 | from ..algebraic.equality_ideal import EqualityIdealContext
+   |                                        ^^^^^^^^^^^^^^^^^^^^
+11 | from ..algebraic.rational_univariate import solve_formula_with_rur
+12 | from ..context import with_computation_context
+   |
+help: Remove unused import: `..algebraic.equality_ideal.EqualityIdealContext`
+
+F401 [*] `..algebraic.rational_univariate.solve_formula_with_rur` imported but unused
+  --> src/semialg/decision/_predicates.py:11:45
+   |
+10 | from ..algebraic.equality_ideal import EqualityIdealContext
+11 | from ..algebraic.rational_univariate import solve_formula_with_rur
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^
+12 | from ..context import with_computation_context
+13 | from ..decision_diagnostics import solution_capability_diagnostics
+   |
+help: Remove unused import: `..algebraic.rational_univariate.solve_formula_with_rur`
+
+F401 [*] `..decision_diagnostics.solution_capability_diagnostics` imported but unused
+  --> src/semialg/decision/_predicates.py:13:36
+   |
+11 | from ..algebraic.rational_univariate import solve_formula_with_rur
+12 | from ..context import with_computation_context
+13 | from ..decision_diagnostics import solution_capability_diagnostics
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 | from ..formula import ParsedPrenexFormula, parse_formula
+15 | from ..formulas.boolean import is_false_expr, is_true_expr
+   |
+help: Remove unused import: `..decision_diagnostics.solution_capability_diagnostics`
+
+F401 [*] `..formula.ParsedPrenexFormula` imported but unused
+  --> src/semialg/decision/_predicates.py:14:23
+   |
+12 | from ..context import with_computation_context
+13 | from ..decision_diagnostics import solution_capability_diagnostics
+14 | from ..formula import ParsedPrenexFormula, parse_formula
+   |                       ^^^^^^^^^^^^^^^^^^^
+15 | from ..formulas.boolean import is_false_expr, is_true_expr
+16 | from ..incidence import decompose_conjunctive_formula
+   |
+help: Remove unused import: `..formula.ParsedPrenexFormula`
+
+F401 [*] `..normalization.conjuncts` imported but unused
+  --> src/semialg/decision/_predicates.py:18:29
+   |
+16 | from ..incidence import decompose_conjunctive_formula
+17 | from ..inequality_reduction import reduce_conjunctive_inequalities
+18 | from ..normalization import conjuncts, normalize_formula
+   |                             ^^^^^^^^^
+19 | from ..qe import qe_by_complete_cad
+20 | from ..simplify.boolean import simplify_boolean
+   |
+help: Remove unused import: `..normalization.conjuncts`
+
+F401 [*] `..simplify.boolean.simplify_boolean` imported but unused
+  --> src/semialg/decision/_predicates.py:20:32
+   |
+18 | from ..normalization import conjuncts, normalize_formula
+19 | from ..qe import qe_by_complete_cad
+20 | from ..simplify.boolean import simplify_boolean
+   |                                ^^^^^^^^^^^^^^^^
+21 | from ..solve import reduce_formula
+22 | from ..solve.planner import (
+   |
+help: Remove unused import: `..simplify.boolean.simplify_boolean`
+
+F401 [*] `..solve.reduce_formula` imported but unused
+  --> src/semialg/decision/_predicates.py:21:21
+   |
+19 | from ..qe import qe_by_complete_cad
+20 | from ..simplify.boolean import simplify_boolean
+21 | from ..solve import reduce_formula
+   |                     ^^^^^^^^^^^^^^
+22 | from ..solve.planner import (
+23 |     affine_presolve,
+   |
+help: Remove unused import: `..solve.reduce_formula`
+
+F401 [*] `..solve.planner.groebner_reduce_conjunction` imported but unused
+  --> src/semialg/decision/_predicates.py:25:5
+   |
+23 |     affine_presolve,
+24 |     exact_linear_feasibility,
+25 |     groebner_reduce_conjunction,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 |     profile_semialgebraic_system,
+27 |     reconstruct_affine_assignment,
+   |
+help: Remove unused import
+
+F401 [*] `..solve.planner.reconstruct_affine_assignment` imported but unused
+  --> src/semialg/decision/_predicates.py:27:5
+   |
+25 |     groebner_reduce_conjunction,
+26 |     profile_semialgebraic_system,
+27 |     reconstruct_affine_assignment,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+28 |     reconstruct_affine_solution_formula,
+29 | )
+   |
+help: Remove unused import
+
+F401 [*] `..solve.planner.reconstruct_affine_solution_formula` imported but unused
+  --> src/semialg/decision/_predicates.py:28:5
+   |
+26 |     profile_semialgebraic_system,
+27 |     reconstruct_affine_assignment,
+28 |     reconstruct_affine_solution_formula,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+29 | )
+30 | from ..structural_keys import symbol_identity_key
+   |
+help: Remove unused import
+
+F401 [*] `..structural_keys.symbol_identity_key` imported but unused
+  --> src/semialg/decision/_predicates.py:30:31
+   |
+28 |     reconstruct_affine_solution_formula,
+29 | )
+30 | from ..structural_keys import symbol_identity_key
+   |                               ^^^^^^^^^^^^^^^^^^^
+31 | from ._inputs import (
+32 |     as_real_symbol as _as_real_symbol,
+   |
+help: Remove unused import: `..structural_keys.symbol_identity_key`
+
+F401 [*] `._inputs.as_real_symbol` imported but unused
+  --> src/semialg/decision/_predicates.py:32:23
+   |
+30 | from ..structural_keys import symbol_identity_key
+31 | from ._inputs import (
+32 |     as_real_symbol as _as_real_symbol,
+   |                       ^^^^^^^^^^^^^^^
+33 | )
+34 | from ._inputs import (
+   |
+help: Remove unused import: `._inputs.as_real_symbol`
+
+F401 [*] `._inputs.prepare_solve_inputs` imported but unused
+  --> src/semialg/decision/_predicates.py:38:29
+   |
+36 | )
+37 | from ._inputs import (
+38 |     prepare_solve_inputs as _prepare_solve_inputs,
+   |                             ^^^^^^^^^^^^^^^^^^^^^
+39 | )
+40 | from ._metadata import (
+   |
+help: Remove unused import: `._inputs.prepare_solve_inputs`
+
+F401 [*] `._metadata.collect_solution_metadata` imported but unused
+  --> src/semialg/decision/_predicates.py:41:34
+   |
+39 | )
+40 | from ._metadata import (
+41 |     collect_solution_metadata as _collect_solution_metadata,
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+42 | )
+43 | from ._metadata import (
+   |
+help: Remove unused import: `._metadata.collect_solution_metadata`
+
+F401 [*] `._metadata.components_formula` imported but unused
+  --> src/semialg/decision/_predicates.py:44:27
+   |
+42 | )
+43 | from ._metadata import (
+44 |     components_formula as _components_formula,
+   |                           ^^^^^^^^^^^^^^^^^^^
+45 | )
+46 | from ._metadata import (
+   |
+help: Remove unused import: `._metadata.components_formula`
+
+F401 [*] `._metadata.metadata_request_for_output` imported but unused
+  --> src/semialg/decision/_predicates.py:47:36
+   |
+45 | )
+46 | from ._metadata import (
+47 |     metadata_request_for_output as _metadata_request_for_output,
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+48 | )
+49 | from ._metadata import (
+   |
+help: Remove unused import: `._metadata.metadata_request_for_output`
+
+F401 [*] `._outputs.add_standard_solver_diagnostics` imported but unused
+  --> src/semialg/decision/_predicates.py:53:40
+   |
+51 | )
+52 | from ._outputs import (
+53 |     add_standard_solver_diagnostics as _add_standard_solver_diagnostics,
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+54 | )
+55 | from ._outputs import (
+   |
+help: Remove unused import: `._outputs.add_standard_solver_diagnostics`
+
+F401 [*] `._outputs.select_solution_output` imported but unused
+  --> src/semialg/decision/_predicates.py:56:31
+   |
+54 | )
+55 | from ._outputs import (
+56 |     select_solution_output as _select_solution_output,
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+   |
+help: Remove unused import: `._outputs.select_solution_output`
+
+F401 [*] `.sampling_helpers._collect_structural_samples` imported but unused
+  --> src/semialg/decision/_predicates.py:59:31
+   |
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+59 | from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+60 | from .solution import (
+61 |     EquivalenceResult,
+   |
+help: Remove unused import
+
+F401 [*] `.sampling_helpers._normalize_sample_request` imported but unused
+  --> src/semialg/decision/_predicates.py:59:60
+   |
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+59 | from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
+   |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+60 | from .solution import (
+61 |     EquivalenceResult,
+   |
+help: Remove unused import
+
+F401 [*] `.solution.IntervalComponent` imported but unused
+  --> src/semialg/decision/_predicates.py:63:5
+   |
+61 |     EquivalenceResult,
+62 |     ImplicationResult,
+63 |     IntervalComponent,
+   |     ^^^^^^^^^^^^^^^^^
+64 |     SatisfiabilityResult,
+65 |     SemialgebraicSolution,
+   |
+help: Remove unused import
+
+F401 [*] `.solution.SemialgebraicSolution` imported but unused
+  --> src/semialg/decision/_predicates.py:65:5
+   |
+63 |     IntervalComponent,
+64 |     SatisfiabilityResult,
+65 |     SemialgebraicSolution,
+   |     ^^^^^^^^^^^^^^^^^^^^^
+66 |     TautologyResult,
+67 | )
+   |
+help: Remove unused import
+
+E402 Module level import not at top of file
+  --> src/semialg/decision/_predicates.py:82:1
+   |
+82 | / from .api import (
+83 | |     _make_quantified_sentence,
+84 | |     _merge_variables,
+85 | |     _safe_simplify_expr,
+86 | |     _truth_from_qe_result,
+87 | |     _try_rur_formula,
+88 | | )
+   | |_^
+   |
+
+F401 [*] `.api._merge_variables` imported but unused
+  --> src/semialg/decision/_predicates.py:84:5
+   |
+82 | from .api import (
+83 |     _make_quantified_sentence,
+84 |     _merge_variables,
+   |     ^^^^^^^^^^^^^^^^
+85 |     _safe_simplify_expr,
+86 |     _truth_from_qe_result,
+   |
+help: Remove unused import
+
+F401 [*] `.api._safe_simplify_expr` imported but unused
+  --> src/semialg/decision/_predicates.py:85:5
+   |
+83 |     _make_quantified_sentence,
+84 |     _merge_variables,
+85 |     _safe_simplify_expr,
+   |     ^^^^^^^^^^^^^^^^^^^
+86 |     _truth_from_qe_result,
+87 |     _try_rur_formula,
+   |
+help: Remove unused import
+
+F401 [*] `collections.abc.Mapping` imported but unused
+ --> src/semialg/decision/_solve_api.py:3:39
+  |
+1 | from __future__ import annotations
+2 |
+3 | from collections.abc import Iterable, Mapping, Sequence
+  |                                       ^^^^^^^
+4 | from dataclasses import dataclass, field
+  |
+help: Remove unused import: `collections.abc.Mapping`
+
+F401 [*] `dataclasses.dataclass` imported but unused
+ --> src/semialg/decision/_solve_api.py:4:25
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass, field
+  |                         ^^^^^^^^^
+5 |
+6 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `dataclasses.field` imported but unused
+ --> src/semialg/decision/_solve_api.py:4:36
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass, field
+  |                                    ^^^^^
+5 |
+6 | import sympy as sp
+  |
+help: Remove unused import
+
+F401 [*] `..algebraic.equality_ideal.EqualityIdealContext` imported but unused
+  --> src/semialg/decision/_solve_api.py:10:40
+   |
+ 8 | from sympy.polys.polyerrors import CoercionFailed, PolynomialError
+ 9 |
+10 | from ..algebraic.equality_ideal import EqualityIdealContext
+   |                                        ^^^^^^^^^^^^^^^^^^^^
+11 | from ..algebraic.rational_univariate import solve_formula_with_rur
+12 | from ..context import with_computation_context
+   |
+help: Remove unused import: `..algebraic.equality_ideal.EqualityIdealContext`
+
+F401 [*] `..algebraic.rational_univariate.solve_formula_with_rur` imported but unused
+  --> src/semialg/decision/_solve_api.py:11:45
+   |
+10 | from ..algebraic.equality_ideal import EqualityIdealContext
+11 | from ..algebraic.rational_univariate import solve_formula_with_rur
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^
+12 | from ..context import with_computation_context
+13 | from ..decision_diagnostics import solution_capability_diagnostics
+   |
+help: Remove unused import: `..algebraic.rational_univariate.solve_formula_with_rur`
+
+F401 [*] `..incidence.decompose_conjunctive_formula` imported but unused
+  --> src/semialg/decision/_solve_api.py:16:25
+   |
+14 | from ..formula import ParsedPrenexFormula, parse_formula
+15 | from ..formulas.boolean import is_false_expr, is_true_expr
+16 | from ..incidence import decompose_conjunctive_formula
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 | from ..inequality_reduction import reduce_conjunctive_inequalities
+18 | from ..normalization import conjuncts, normalize_formula
+   |
+help: Remove unused import: `..incidence.decompose_conjunctive_formula`
+
+F401 [*] `..inequality_reduction.reduce_conjunctive_inequalities` imported but unused
+  --> src/semialg/decision/_solve_api.py:17:36
+   |
+15 | from ..formulas.boolean import is_false_expr, is_true_expr
+16 | from ..incidence import decompose_conjunctive_formula
+17 | from ..inequality_reduction import reduce_conjunctive_inequalities
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+18 | from ..normalization import conjuncts, normalize_formula
+19 | from ..qe import qe_by_complete_cad
+   |
+help: Remove unused import: `..inequality_reduction.reduce_conjunctive_inequalities`
+
+F401 [*] `..normalization.normalize_formula` imported but unused
+  --> src/semialg/decision/_solve_api.py:18:40
+   |
+16 | from ..incidence import decompose_conjunctive_formula
+17 | from ..inequality_reduction import reduce_conjunctive_inequalities
+18 | from ..normalization import conjuncts, normalize_formula
+   |                                        ^^^^^^^^^^^^^^^^^
+19 | from ..qe import qe_by_complete_cad
+20 | from ..simplify.boolean import simplify_boolean
+   |
+help: Remove unused import: `..normalization.normalize_formula`
+
+F401 [*] `..qe.qe_by_complete_cad` imported but unused
+  --> src/semialg/decision/_solve_api.py:19:18
+   |
+17 | from ..inequality_reduction import reduce_conjunctive_inequalities
+18 | from ..normalization import conjuncts, normalize_formula
+19 | from ..qe import qe_by_complete_cad
+   |                  ^^^^^^^^^^^^^^^^^^
+20 | from ..simplify.boolean import simplify_boolean
+21 | from ..solve import reduce_formula
+   |
+help: Remove unused import: `..qe.qe_by_complete_cad`
+
+F401 [*] `..simplify.boolean.simplify_boolean` imported but unused
+  --> src/semialg/decision/_solve_api.py:20:32
+   |
+18 | from ..normalization import conjuncts, normalize_formula
+19 | from ..qe import qe_by_complete_cad
+20 | from ..simplify.boolean import simplify_boolean
+   |                                ^^^^^^^^^^^^^^^^
+21 | from ..solve import reduce_formula
+22 | from ..solve.planner import (
+   |
+help: Remove unused import: `..simplify.boolean.simplify_boolean`
+
+F401 [*] `..solve.planner.groebner_reduce_conjunction` imported but unused
+  --> src/semialg/decision/_solve_api.py:25:5
+   |
+23 |     affine_presolve,
+24 |     exact_linear_feasibility,
+25 |     groebner_reduce_conjunction,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 |     profile_semialgebraic_system,
+27 |     reconstruct_affine_assignment,
+   |
+help: Remove unused import
+
+F401 [*] `..solve.planner.reconstruct_affine_assignment` imported but unused
+  --> src/semialg/decision/_solve_api.py:27:5
+   |
+25 |     groebner_reduce_conjunction,
+26 |     profile_semialgebraic_system,
+27 |     reconstruct_affine_assignment,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+28 |     reconstruct_affine_solution_formula,
+29 | )
+   |
+help: Remove unused import
+
+F401 [*] `..structural_keys.symbol_identity_key` imported but unused
+  --> src/semialg/decision/_solve_api.py:30:31
+   |
+28 |     reconstruct_affine_solution_formula,
+29 | )
+30 | from ..structural_keys import symbol_identity_key
+   |                               ^^^^^^^^^^^^^^^^^^^
+31 | from ._inputs import (
+32 |     as_real_symbol as _as_real_symbol,
+   |
+help: Remove unused import: `..structural_keys.symbol_identity_key`
+
+F401 [*] `._inputs.as_real_symbol` imported but unused
+  --> src/semialg/decision/_solve_api.py:32:23
+   |
+30 | from ..structural_keys import symbol_identity_key
+31 | from ._inputs import (
+32 |     as_real_symbol as _as_real_symbol,
+   |                       ^^^^^^^^^^^^^^^
+33 | )
+34 | from ._inputs import (
+   |
+help: Remove unused import: `._inputs.as_real_symbol`
+
+F401 [*] `._inputs.normalize_decision_variables` imported but unused
+  --> src/semialg/decision/_solve_api.py:35:37
+   |
+33 | )
+34 | from ._inputs import (
+35 |     normalize_decision_variables as _normalize_variables,
+   |                                     ^^^^^^^^^^^^^^^^^^^^
+36 | )
+37 | from ._inputs import (
+   |
+help: Remove unused import: `._inputs.normalize_decision_variables`
+
+F401 [*] `._metadata.components_formula` imported but unused
+  --> src/semialg/decision/_solve_api.py:44:27
+   |
+42 | )
+43 | from ._metadata import (
+44 |     components_formula as _components_formula,
+   |                           ^^^^^^^^^^^^^^^^^^^
+45 | )
+46 | from ._metadata import (
+   |
+help: Remove unused import: `._metadata.components_formula`
+
+F401 [*] `._metadata.one_dim_components` imported but unused
+  --> src/semialg/decision/_solve_api.py:50:27
+   |
+48 | )
+49 | from ._metadata import (
+50 |     one_dim_components as _one_dim_components,
+   |                           ^^^^^^^^^^^^^^^^^^^
+51 | )
+52 | from ._outputs import (
+   |
+help: Remove unused import: `._metadata.one_dim_components`
+
+F401 [*] `._witnesses.find_validated_witness` imported but unused
+  --> src/semialg/decision/_solve_api.py:58:51
+   |
+56 |     select_solution_output as _select_solution_output,
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^
+59 | from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
+60 | from .solution import (
+   |
+help: Remove unused import: `._witnesses.find_validated_witness`
+
+F401 [*] `.solution.EquivalenceResult` imported but unused
+  --> src/semialg/decision/_solve_api.py:61:5
+   |
+59 | from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
+60 | from .solution import (
+61 |     EquivalenceResult,
+   |     ^^^^^^^^^^^^^^^^^
+62 |     ImplicationResult,
+63 |     IntervalComponent,
+   |
+help: Remove unused import
+
+F401 [*] `.solution.ImplicationResult` imported but unused
+  --> src/semialg/decision/_solve_api.py:62:5
+   |
+60 | from .solution import (
+61 |     EquivalenceResult,
+62 |     ImplicationResult,
+   |     ^^^^^^^^^^^^^^^^^
+63 |     IntervalComponent,
+64 |     SatisfiabilityResult,
+   |
+help: Remove unused import
+
+F401 [*] `.solution.IntervalComponent` imported but unused
+  --> src/semialg/decision/_solve_api.py:63:5
+   |
+61 |     EquivalenceResult,
+62 |     ImplicationResult,
+63 |     IntervalComponent,
+   |     ^^^^^^^^^^^^^^^^^
+64 |     SatisfiabilityResult,
+65 |     SemialgebraicSolution,
+   |
+help: Remove unused import
+
+F401 [*] `.solution.SatisfiabilityResult` imported but unused
+  --> src/semialg/decision/_solve_api.py:64:5
+   |
+62 |     ImplicationResult,
+63 |     IntervalComponent,
+64 |     SatisfiabilityResult,
+   |     ^^^^^^^^^^^^^^^^^^^^
+65 |     SemialgebraicSolution,
+66 |     TautologyResult,
+   |
+help: Remove unused import
+
+F401 [*] `.solution.TautologyResult` imported but unused
+  --> src/semialg/decision/_solve_api.py:66:5
+   |
+64 |     SatisfiabilityResult,
+65 |     SemialgebraicSolution,
+66 |     TautologyResult,
+   |     ^^^^^^^^^^^^^^^
+67 | )
+   |
+help: Remove unused import
+
+E402 Module level import not at top of file
+  --> src/semialg/decision/_solve_api.py:82:1
+   |
+82 | / from .api import (
+83 | |     _fast_solution_formula,
+84 | |     _finite_points_formula,
+85 | |     _merge_variables,
+86 | |     _parameter_solution_data,
+87 | |     _planner_step,
+88 | |     _run_auto_solve_plan,
+89 | |     _safe_simplify_expr,
+90 | |     _trivial_solution,
+91 | |     _try_rur_formula,
+92 | | )
+   | |_^
+93 |   from ._predicates import is_satisfiable
+   |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/decision/_solve_api.py:82:1
+   |
+82 | / from .api import (
+83 | |     _fast_solution_formula,
+84 | |     _finite_points_formula,
+85 | |     _merge_variables,
+86 | |     _parameter_solution_data,
+87 | |     _planner_step,
+88 | |     _run_auto_solve_plan,
+89 | |     _safe_simplify_expr,
+90 | |     _trivial_solution,
+91 | |     _try_rur_formula,
+92 | | )
+93 | | from ._predicates import is_satisfiable
+   | |_______________________________________^
+   |
+help: Organize imports
+
+F401 [*] `.api._merge_variables` imported but unused
+  --> src/semialg/decision/_solve_api.py:85:5
+   |
+83 |     _fast_solution_formula,
+84 |     _finite_points_formula,
+85 |     _merge_variables,
+   |     ^^^^^^^^^^^^^^^^
+86 |     _parameter_solution_data,
+87 |     _planner_step,
+   |
+help: Remove unused import: `.api._merge_variables`
+
+E402 Module level import not at top of file
+  --> src/semialg/decision/_solve_api.py:93:1
+   |
+91 |     _try_rur_formula,
+92 | )
+93 | from ._predicates import is_satisfiable
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+
+F401 [*] `..context.with_computation_context` imported but unused
+  --> src/semialg/decision/api.py:12:23
+   |
+10 | from ..algebraic.equality_ideal import EqualityIdealContext
+11 | from ..algebraic.rational_univariate import solve_formula_with_rur
+12 | from ..context import with_computation_context
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^
+13 | from ..decision_diagnostics import solution_capability_diagnostics
+14 | from ..formula import ParsedPrenexFormula, parse_formula
+   |
+help: Remove unused import: `..context.with_computation_context`
+
+F401 [*] `._inputs.normalize_decision_variables` imported but unused
+  --> src/semialg/decision/api.py:35:37
+   |
+33 | )
+34 | from ._inputs import (
+35 |     normalize_decision_variables as _normalize_variables,
+   |                                     ^^^^^^^^^^^^^^^^^^^^
+36 | )
+37 | from ._inputs import (
+   |
+help: Remove unused import: `._inputs.normalize_decision_variables`
+
+F401 [*] `._inputs.prepare_solve_inputs` imported but unused
+  --> src/semialg/decision/api.py:38:29
+   |
+36 | )
+37 | from ._inputs import (
+38 |     prepare_solve_inputs as _prepare_solve_inputs,
+   |                             ^^^^^^^^^^^^^^^^^^^^^
+39 | )
+40 | from ._metadata import (
+   |
+help: Remove unused import: `._inputs.prepare_solve_inputs`
+
+F401 [*] `._metadata.metadata_request_for_output` imported but unused
+  --> src/semialg/decision/api.py:47:36
+   |
+45 | )
+46 | from ._metadata import (
+47 |     metadata_request_for_output as _metadata_request_for_output,
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+48 | )
+49 | from ._metadata import (
+   |
+help: Remove unused import: `._metadata.metadata_request_for_output`
+
+F401 [*] `._outputs.add_standard_solver_diagnostics` imported but unused
+  --> src/semialg/decision/api.py:53:40
+   |
+51 | )
+52 | from ._outputs import (
+53 |     add_standard_solver_diagnostics as _add_standard_solver_diagnostics,
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+54 | )
+55 | from ._outputs import (
+   |
+help: Remove unused import: `._outputs.add_standard_solver_diagnostics`
+
+F401 [*] `._outputs.select_solution_output` imported but unused
+  --> src/semialg/decision/api.py:56:31
+   |
+54 | )
+55 | from ._outputs import (
+56 |     select_solution_output as _select_solution_output,
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+   |
+help: Remove unused import: `._outputs.select_solution_output`
+
+F401 [*] `._witnesses.find_validated_witness` imported but unused
+  --> src/semialg/decision/api.py:58:51
+   |
+56 |     select_solution_output as _select_solution_output,
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^
+59 | from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
+60 | from .solution import (
+   |
+help: Remove unused import: `._witnesses.find_validated_witness`
+
+F401 [*] `.sampling_helpers._collect_structural_samples` imported but unused
+  --> src/semialg/decision/api.py:59:31
+   |
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+59 | from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+60 | from .solution import (
+61 |     EquivalenceResult,
+   |
+help: Remove unused import
+
+F401 [*] `.sampling_helpers._normalize_sample_request` imported but unused
+  --> src/semialg/decision/api.py:59:60
+   |
+57 | )
+58 | from ._witnesses import find_validated_witness as _find_validated_witness
+59 | from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
+   |                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+60 | from .solution import (
+61 |     EquivalenceResult,
+   |
+help: Remove unused import
+
+E402 Module level import not at top of file
+   --> src/semialg/decision/api.py:743:1
+    |
+743 | from ._predicates import equivalent, implies, is_satisfiable, is_tautology
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/decision/api.py:828:1
+    |
+828 | from ._solve_api import solve_semialgebraic
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+
+F401 [*] `.conditional.conditional_result` imported but unused
+  --> src/semialg/function_analysis.py:10:53
+   |
+ 8 | import sympy as sp
+ 9 |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+   |                                                     ^^^^^^^^^^^^^^^^^^
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+   |
+help: Remove unused import: `.conditional.conditional_result`
+
+F401 [*] `.context.computation_context` imported but unused
+  --> src/semialg/function_analysis.py:11:44
+   |
+10 | from .conditional import ParameterStratifiedResult, conditional_result
+11 | from .context import SemialgebraicContext, computation_context
+   |                                            ^^^^^^^^^^^^^^^^^^^
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+   |
+help: Remove unused import: `.context.computation_context`
+
+F401 [*] `.decision.is_satisfiable` imported but unused
+  --> src/semialg/function_analysis.py:13:23
+   |
+11 | from .context import SemialgebraicContext, computation_context
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+   |                       ^^^^^^^^^^^^^^
+14 | from .decomposition import cad
+15 | from .derived_geometry import is_connected
+   |
+help: Remove unused import: `.decision.is_satisfiable`
+
+F401 [*] `.decomposition.cad` imported but unused
+  --> src/semialg/function_analysis.py:14:28
+   |
+12 | from .convexity import ConvexityCertificate, convexity_certificate
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+   |                            ^^^
+15 | from .derived_geometry import is_connected
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+   |
+help: Remove unused import: `.decomposition.cad`
+
+F401 [*] `.derived_geometry.is_connected` imported but unused
+  --> src/semialg/function_analysis.py:15:31
+   |
+13 | from .decision import is_satisfiable
+14 | from .decomposition import cad
+15 | from .derived_geometry import is_connected
+   |                               ^^^^^^^^^^^^
+16 | from .domain_solve import function_domain, normalize_domain_sensitive_constraints
+17 | from .formula import parse_formula
+   |
+help: Remove unused import: `.derived_geometry.is_connected`
+
+F401 [*] `.function_graph.UnsupportedFunctionGraph` imported but unused
+  --> src/semialg/function_analysis.py:19:5
+   |
+17 | from .formula import parse_formula
+18 | from .function_graph import (
+19 |     UnsupportedFunctionGraph,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+20 |     has_semialgebraic_graph_special,
+21 |     semialgebraic_formula_graph,
+   |
+help: Remove unused import: `.function_graph.UnsupportedFunctionGraph`
+
+F401 [*] `.matrix_analysis.matrix_definiteness` imported but unused
+  --> src/semialg/function_analysis.py:25:56
+   |
+23 | )
+24 | from .internal_symbols import fresh_real_dummy
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+   |                                                        ^^^^^^^^^^^^^^^^^^^
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+   |
+help: Remove unused import: `.matrix_analysis.matrix_definiteness`
+
+F401 [*] `.parameters.solvability_conditions` imported but unused
+  --> src/semialg/function_analysis.py:27:25
+   |
+25 | from .matrix_analysis import MatrixDefinitenessResult, matrix_definiteness
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+   |                         ^^^^^^^^^^^^^^^^^^^^^^
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+29 | from .qe import qe_by_complete_cad
+   |
+help: Remove unused import: `.parameters.solvability_conditions`
+
+F401 [*] `.presolve.PresolveResult` imported but unused
+  --> src/semialg/function_analysis.py:28:23
+   |
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |                       ^^^^^^^^^^^^^^
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+   |
+help: Remove unused import
+
+F401 [*] `.presolve.presolve_semialgebraic` imported but unused
+  --> src/semialg/function_analysis.py:28:39
+   |
+26 | from .normalization import normalize_formula, normalize_variables
+27 | from .parameters import solvability_conditions
+28 | from .presolve import PresolveResult, presolve_semialgebraic
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+   |
+help: Remove unused import
+
+F401 [*] `.reconstruct.cylindrical.path_condition` imported but unused
+  --> src/semialg/function_analysis.py:31:38
+   |
+29 | from .qe import qe_by_complete_cad
+30 | from .reasoning_signs import function_sign
+31 | from .reconstruct.cylindrical import path_condition
+   |                                      ^^^^^^^^^^^^^^
+32 | from .regions.operations import region_dimension
+33 | from .sampling import sample_point, sign_at
+   |
+help: Remove unused import: `.reconstruct.cylindrical.path_condition`
+
+F401 [*] `.regions.operations.region_dimension` imported but unused
+  --> src/semialg/function_analysis.py:32:33
+   |
+30 | from .reasoning_signs import function_sign
+31 | from .reconstruct.cylindrical import path_condition
+32 | from .regions.operations import region_dimension
+   |                                 ^^^^^^^^^^^^^^^^
+33 | from .sampling import sample_point, sign_at
+34 | from .structural_keys import symbol_identity_key
+   |
+help: Remove unused import: `.regions.operations.region_dimension`
+
+F401 [*] `.sampling.sample_point` imported but unused
+  --> src/semialg/function_analysis.py:33:23
+   |
+31 | from .reconstruct.cylindrical import path_condition
+32 | from .regions.operations import region_dimension
+33 | from .sampling import sample_point, sign_at
+   |                       ^^^^^^^^^^^^
+34 | from .structural_keys import symbol_identity_key
+   |
+help: Remove unused import
+
+F401 [*] `.sampling.sign_at` imported but unused
+  --> src/semialg/function_analysis.py:33:37
+   |
+31 | from .reconstruct.cylindrical import path_condition
+32 | from .regions.operations import region_dimension
+33 | from .sampling import sample_point, sign_at
+   |                                     ^^^^^^^
+34 | from .structural_keys import symbol_identity_key
+   |
+help: Remove unused import
+
+F821 Undefined name `_partition_from_derivative_sign`
+   --> src/semialg/function_analysis.py:172:52
+    |
+170 |     def monotonic_partition(self, variable: sp.Symbol) -> FunctionPropertyPartitionResult:
+171 |         if variable not in self._monotonic_partitions:
+172 |             self._monotonic_partitions[variable] = _partition_from_derivative_sign(
+    |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+173 |                 self.expression,
+174 |                 variable,
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/function_analysis.py:345:1
+    |
+345 | / from ._function_analysis_partitions import (
+346 | |     function_convex_partition,
+347 | |     function_monotonic_partition,
+348 | |     function_sign_partition,
+349 | | )
+    | |_^
+    |
+
+E402 Module level import not at top of file
+   --> src/semialg/function_analysis.py:425:1
+    |
+425 | from ._function_analysis_properties import _augment_convexity_result
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/geometry_queries.py:3:1
+   |
+ 1 |   """High-level exact semialgebraic geometry queries built from CAD/QE and optimization."""
+ 2 |
+ 3 | / from __future__ import annotations
+ 4 | |
+ 5 | | from collections import deque
+ 6 | | from collections.abc import Mapping, Sequence
+ 7 | | from dataclasses import dataclass
+ 8 | |
+ 9 | | import sympy as sp
+10 | |
+11 | | from .cad_algorithms.cells import extract_cylindrical_solution
+12 | | from ._critical_loci import iter_positive_dimensional_critical_loci
+13 | | from .connectivity import (
+14 | |     CADConnectivityGraph,
+15 | |     extract_cad_connectivity,
+16 | |     factorized_equality_components,
+17 | | )
+18 | | from .convexity import (
+19 | |     _is_affine_polyhedron,  # noqa: F401 - shared implementation used by focused tests
+20 | |     _is_convex_by_definition,  # noqa: F401 - shared implementation used by focused tests
+21 | |     _is_convex_polynomial_intersection,  # noqa: F401 - shared implementation used by focused tests
+22 | |     is_convex,
+23 | | )
+24 | | from .errors import ResourceLimitError
+25 | | from .formula import parse_formula
+26 | | from .formulas.boolean import is_true_expr
+27 | | from .internal_symbols import fresh_real_dummy
+28 | | from .normalization import (
+29 | |     normalize_formula,
+30 | |     normalize_point,
+31 | |     normalize_problem_variables,
+32 | |     normalize_variables,
+33 | | )
+34 | | from .optimization import (
+35 | |     _constraint_data,
+36 | |     _kkt_candidate_points,
+37 | |     semialgebraic_maximize,
+38 | |     semialgebraic_minimize,
+39 | | )
+40 | | from .optimization_results import OptimizationResult
+41 | | from .qe import qe_by_complete_cad
+42 | | from .reasoning import region_compact
+43 | | from .solve.find_instance import find_instance
+44 | | from .structural_keys import symbol_identity_key
+45 | | from .symbol_resolution import resolve_symbol
+   | |_____________________________________________^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/semialg/optimization.py:1:1
+   |
+ 1 | / from __future__ import annotations
+ 2 | |
+ 3 | | from collections.abc import Iterable, Mapping, Sequence
+ 4 | | from dataclasses import dataclass
+ 5 | | from functools import lru_cache
+ 6 | | from itertools import combinations
+ 7 | | from typing import Literal
+ 8 | |
+ 9 | | import sympy as sp
+10 | | from sympy.core.sympify import SympifyError
+11 | | from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+12 | | from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+13 | |
+14 | | from ._linear_relations import safe_linear_solution
+15 | | from ._optimization_backends import qe_by_complete_cad
+16 | | from .context import with_computation_context
+17 | | from ._critical_loci import (
+18 | |     iter_positive_dimensional_critical_loci,
+19 | |     project_kkt_locus as _project_kkt_locus,
+20 | | )
+21 | | from .exact_arithmetic import compare_exact_reals
+22 | | from .formula import parse_formula
+23 | | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+24 | | from .interval_decomposition import (
+25 | |     finite_real_roots as _finite_real_roots,
+26 | | )
+27 | | from .interval_decomposition import (
+28 | |     one_dimensional_intervals as _one_dimensional_intervals,
+29 | | )
+30 | | from .interval_decomposition import (
+31 | |     relational_polynomials as _relational_polynomials,
+32 | | )
+33 | | from .normalization import normalize_constraints, normalize_problem_variables, require_conjunction
+34 | | from .optimization_active_sets import (
+35 | |     jacobian_rank_equations as _jacobian_rank_deficiency_equations,
+36 | | )
+37 | | from .optimization_active_sets import (
+38 | |     kkt_system as _kkt_system,
+39 | | )
+40 | | from .optimization_active_sets import (
+41 | |     pruned_active_subsets as _pruned_active_subsets,
+42 | | )
+43 | | from .optimization_geometry import polynomial_locus_dimension
+44 | | from .optimization_results import (
+45 | |     FunctionRangeResult,
+46 | |     OptimizationCertificationPolicy,
+47 | |     OptimizationResult,
+48 | |     ParametricFunctionRangeResult,
+49 | |     ParametricOptimizationResult,
+50 | | )
+51 | | from .relations import split_relation as _relation_parts
+52 | | from .structural_keys import point_key
+   | |______________________________________^
+53 |
+54 |   _EXPECTED_ERRORS = (
+   |
+help: Organize imports
+
+F401 [*] `functools.lru_cache` imported but unused
+ --> src/semialg/optimization.py:5:23
+  |
+3 | from collections.abc import Iterable, Mapping, Sequence
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+  |                       ^^^^^^^^^
+6 | from itertools import combinations
+7 | from typing import Literal
+  |
+help: Remove unused import: `functools.lru_cache`
+
+F401 [*] `itertools.combinations` imported but unused
+ --> src/semialg/optimization.py:6:23
+  |
+4 | from dataclasses import dataclass
+5 | from functools import lru_cache
+6 | from itertools import combinations
+  |                       ^^^^^^^^^^^^
+7 | from typing import Literal
+  |
+help: Remove unused import: `itertools.combinations`
+
+F401 [*] `._optimization_backends.qe_by_complete_cad` imported but unused
+  --> src/semialg/optimization.py:15:37
+   |
+14 | from ._linear_relations import safe_linear_solution
+15 | from ._optimization_backends import qe_by_complete_cad
+   |                                     ^^^^^^^^^^^^^^^^^^
+16 | from .context import with_computation_context
+17 | from ._critical_loci import (
+   |
+help: Remove unused import: `._optimization_backends.qe_by_complete_cad`
+
+F401 [*] `._critical_loci.project_kkt_locus` imported but unused
+  --> src/semialg/optimization.py:19:26
+   |
+17 | from ._critical_loci import (
+18 |     iter_positive_dimensional_critical_loci,
+19 |     project_kkt_locus as _project_kkt_locus,
+   |                          ^^^^^^^^^^^^^^^^^^
+20 | )
+21 | from .exact_arithmetic import compare_exact_reals
+   |
+help: Remove unused import: `._critical_loci.project_kkt_locus`
+
+F401 [*] `.formula.parse_formula` imported but unused
+  --> src/semialg/optimization.py:22:22
+   |
+20 | )
+21 | from .exact_arithmetic import compare_exact_reals
+22 | from .formula import parse_formula
+   |                      ^^^^^^^^^^^^^
+23 | from .formulas.boolean import bounded_dnf_branches, is_false_expr
+24 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.formula.parse_formula`
+
+F401 [*] `._optimization_certification._cached_complete_range_certification` imported but unused
+   --> src/semialg/optimization.py:623:5
+    |
+622 | from ._optimization_certification import (
+623 |     _cached_complete_range_certification,
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+624 |     _certify_candidate_by_qe,
+625 |     _certify_optimum_by_range,
+    |
+help: Remove unused import: `._optimization_certification._cached_complete_range_certification`
+
+I001 [*] Import block is un-sorted or un-formatted
+    --> src/semialg/optimization.py:1029:1
+     |
+1029 | / from ._range_special_cases import _graph_formula_for_expression  # noqa: F401
+1030 | | from ._optimization_range import function_range  # noqa: F401
+     | |_______________________________________________^
+1031 |
+1032 |   __all__ = [
+     |
+help: Organize imports
+
+F401 [*] `itertools.permutations` imported but unused
+ --> src/semialg/region_integrate.py:4:23
+  |
+3 | from collections.abc import Mapping, Sequence
+4 | from itertools import permutations
+  |                       ^^^^^^^^^^^^
+5 |
+6 | import sympy as sp
+  |
+help: Remove unused import: `itertools.permutations`
+
+F401 [*] `sympy.core.relational.Equality` imported but unused
+ --> src/semialg/region_integrate.py:7:35
+  |
+6 | import sympy as sp
+7 | from sympy.core.relational import Equality, Unequality
+  |                                   ^^^^^^^^
+8 | from sympy.logic.boolalg import Not as SymNot
+9 | from sympy.logic.boolalg import Or as SymOr
+  |
+help: Remove unused import
+
+F401 [*] `sympy.core.relational.Unequality` imported but unused
+ --> src/semialg/region_integrate.py:7:45
+  |
+6 | import sympy as sp
+7 | from sympy.core.relational import Equality, Unequality
+  |                                             ^^^^^^^^^^
+8 | from sympy.logic.boolalg import Not as SymNot
+9 | from sympy.logic.boolalg import Or as SymOr
+  |
+help: Remove unused import
+
+F401 [*] `._errors.EXACT_OPERATION_ERRORS` imported but unused
+  --> src/semialg/region_integrate.py:11:48
+   |
+ 9 | from sympy.logic.boolalg import Or as SymOr
+10 |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+   |                                                ^^^^^^^^^^^^^^^^^^^
+12 | from ._linear_relations import certified_sign, safe_linear_solution
+13 | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+   |
+help: Remove unused import: `._errors.EXACT_OPERATION_ERRORS`
+
+F401 [*] `._linear_relations.certified_sign` imported but unused
+  --> src/semialg/region_integrate.py:12:32
+   |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | from ._linear_relations import certified_sign, safe_linear_solution
+   |                                ^^^^^^^^^^^^^^
+13 | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+   |
+help: Remove unused import
+
+F401 [*] `._linear_relations.safe_linear_solution` imported but unused
+  --> src/semialg/region_integrate.py:12:48
+   |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | from ._linear_relations import certified_sign, safe_linear_solution
+   |                                                ^^^^^^^^^^^^^^^^^^^^
+13 | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+   |
+help: Remove unused import
+
+F401 [*] `.implicit_geometry.decompose_cylindrical_formula_to_vertical_bounds_2d` imported but unused
+  --> src/semialg/region_integrate.py:13:32
+   |
+11 | from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+12 | from ._linear_relations import certified_sign, safe_linear_solution
+13 | from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 | from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
+15 | from .interval_decomposition import (
+   |
+help: Remove unused import: `.implicit_geometry.decompose_cylindrical_formula_to_vertical_bounds_2d`
+
+F401 [*] `.interval_decomposition.truth_at` imported but unused
+  --> src/semialg/region_integrate.py:19:17
+   |
+17 | )
+18 | from .interval_decomposition import (
+19 |     truth_at as _truth_at,
+   |                 ^^^^^^^^^
+20 | )
+21 | from .normalization import (
+   |
+help: Remove unused import: `.interval_decomposition.truth_at`
+
+F401 [*] `.normalization.require_conjunction` imported but unused
+  --> src/semialg/region_integrate.py:25:5
+   |
+23 |     normalize_formula,
+24 |     normalize_variables,
+25 |     require_conjunction,
+   |     ^^^^^^^^^^^^^^^^^^^
+26 | )
+27 | from .region_integral_results import (
+   |
+help: Remove unused import: `.normalization.require_conjunction`
+
+F401 [*] `.relations.make_zero_relation` imported but unused
+  --> src/semialg/region_integrate.py:32:24
+   |
+30 |     RegionIntegralResult,
+31 | )
+32 | from .relations import make_zero_relation
+   |                        ^^^^^^^^^^^^^^^^^^
+33 | from .relations import split_relation as _relation_parts
+34 | from .standard_region_integrate import integrate_over_standard_region
+   |
+help: Remove unused import: `.relations.make_zero_relation`
+
+F401 [*] `.relations.split_relation` imported but unused
+  --> src/semialg/region_integrate.py:33:42
+   |
+31 | )
+32 | from .relations import make_zero_relation
+33 | from .relations import split_relation as _relation_parts
+   |                                          ^^^^^^^^^^^^^^^
+34 | from .standard_region_integrate import integrate_over_standard_region
+35 | from .standard_regions import StandardRegion
+   |
+help: Remove unused import: `.relations.split_relation`
+
+F401 [*] `._region_integrate_geometry._axis_aligned_ellipse_data` imported but unused
+  --> src/semialg/region_integrate.py:79:5
+   |
+78 | from ._region_integrate_geometry import (
+79 |     _axis_aligned_ellipse_data,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+80 |     _box_limits_from_condition,
+81 |     _integrate_axis_aligned_ellipse_polynomial,
+   |
+help: Remove unused import
+
+F401 [*] `._region_integrate_geometry._box_limits_from_condition` imported but unused
+  --> src/semialg/region_integrate.py:80:5
+   |
+78 | from ._region_integrate_geometry import (
+79 |     _axis_aligned_ellipse_data,
+80 |     _box_limits_from_condition,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+81 |     _integrate_axis_aligned_ellipse_polynomial,
+82 |     _integrate_radial_polynomial,
+   |
+help: Remove unused import
+
+I001 [*] Import block is un-sorted or un-formatted
+   --> src/semialg/region_integrate.py:156:1
+    |
+156 | / from ._region_integrate_intrinsic import (
+157 | |     _integrate_intrinsic_dimension,
+158 | |     _normalize_measure_dimension,
+159 | | )
+160 | |
+161 | | from ._region_integrate_cad import (
+162 | |     _cad_integration_orders,
+163 | |     _integration_piece_score,
+164 | |     _reduce_cad_extracted_vertical_bounds_2d,
+165 | |     _reduce_cylindrical_solution_cells_nd,
+166 | |     _reduce_cylindrical_vertical_bounds_2d,
+167 | |     _reduce_radial_vertical_pieces,
+168 | |     _reduce_vertical_slice,
+169 | |     _reduce_with_best_cad_order,
+170 | |     _reduce_with_best_explicit_cylindrical_order,
+171 | | )
+    | |_^
+    |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests/test_auditable_collins.py:1:1
+   |
+ 1 | / import sympy as sp
+ 2 | |
+ 3 | | from semialg.cad_algorithms.polynomial_utils import polynomial_key
+ 4 | |
+ 5 | | from semialg.cad_algorithms import (
+ 6 | |     ProjectionPolynomial,
+ 7 | |     build_collins_proj_set,
+ 8 | |     decomp_collins_complete,
+ 9 | |     verify_cad_sign_inv,
+10 | | )
+   | |_^
+   |
+help: Organize imports
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests/test_structural_identity_and_geometry_contracts.py:1:1
+   |
+ 1 | / import pytest
+ 2 | | import sympy as sp
+ 3 | |
+ 4 | | import semialg
+ 5 | | from semialg.cache_utils import BoundedLRU
+ 6 | | from semialg.parameters import SolvabilityConditionsResult
+ 7 | | from semialg.sampling import _dedupe_points
+ 8 | | from semialg.symbolic_simplify import simplify_boole
+ 9 | | from semialg.symbolic_regions import (
+10 | |     SemialgebraicRegion,
+11 | |     RegionElement,
+12 | |     RSubset,
+13 | |     region_element_conditions,
+14 | |     region_relation_conditions,
+15 | | )
+   | |_^
+   |
+help: Organize imports
+
+Found 273 errors.
+[*] 261 fixable with the `--fix` option.

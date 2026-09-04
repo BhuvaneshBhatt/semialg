@@ -1,13 +1,9 @@
 import pytest
 import sympy as sp
 
-from semialg import (
-    canonicalize_one_dimensional_formula,
-    function_domain,
-    is_real_valued,
-    normalize_domain_sensitive_constraints,
-    solve_semialgebraic,
-)
+from semialg import function_domain, is_real_valued, solve_semialgebraic
+from semialg.decision import canonicalize_one_dimensional_formula
+from semialg.domain_solve import normalize_domain_sensitive_constraints
 
 pytestmark = pytest.mark.slow
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 import sympy as sp
 
@@ -44,7 +43,7 @@ class SemialgOptions:
     exact: bool = True
     diagnostics: bool = True
     strict: bool = False
-    metadata: Mapping[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, object] = field(default_factory=dict)
 
     @classmethod
     def from_values(
@@ -61,7 +60,7 @@ class SemialgOptions:
         exact: bool | None = None,
         diagnostics: bool | None = None,
         strict: bool = False,
-        metadata: Mapping[str, Any] | None = None,
+        metadata: Mapping[str, object] | None = None,
     ) -> SemialgOptions:
         return cls(
             domain=normalize_domain(domain),

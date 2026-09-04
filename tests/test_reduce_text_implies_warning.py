@@ -5,7 +5,7 @@ import warnings
 import sympy as sp
 from sympy.utilities.exceptions import SymPyDeprecationWarning
 
-from semialg import reduce_text
+from semialg.solve import reduce_text
 
 
 def test_reduce_text_forall_implies_no_boolean_mul_warning():

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from .._errors import EXACT_OPERATION_ERRORS
+
 
 @dataclass(frozen=True)
 class RandomSectionWitness:
@@ -22,6 +24,7 @@ def find_random_section_wit(
     seed: int = 7,
     attempts: int = 7,
 ) -> RandomSectionWitness:
+    """Search bounded random sections for a satisfying witness while preserving exact checks."""
     variables = tuple(variables)
     if len(variables) <= 1:
         return RandomSectionWitness(None, 0, seed)
@@ -44,7 +47,7 @@ def find_random_section_wit(
             pieces = [reduced]
         try:
             sols = sp.solve(pieces, (section_symbol,), dict=True)
-        except Exception:
+        except EXACT_OPERATION_ERRORS:
             sols = []
         if isinstance(sols, list) and sols:
             value = sols[0].get(section_symbol)

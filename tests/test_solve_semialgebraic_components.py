@@ -1,6 +1,7 @@
 import sympy as sp
 
-from semialg import IntervalComponent, solve_semialgebraic
+from semialg import solve_semialgebraic
+from semialg.decision import IntervalComponent
 
 
 def test_solve_semialgebraic_closed_interval_component():

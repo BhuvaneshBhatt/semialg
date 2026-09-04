@@ -7,8 +7,10 @@ parallel symbolic data.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Sized
+from collections.abc import Iterable, Iterator, Mapping, Sequence, Sized
 from typing import TypeVar
+
+import sympy as sp
 
 from .errors import DimensionMismatchError
 
@@ -71,4 +73,15 @@ def zip_equal(
         raise DimensionMismatchError(f"{context} dimension mismatch") from exc
 
 
-__all__ = ["require_point_dimension", "require_same_length", "zip_equal"]
+def assignments_from_points(
+    variables: Sequence[sp.Symbol],
+    points: Iterable[Sequence[sp.Expr]],
+    *,
+    context: str = "solution point",
+) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
+    """Convert ordered coordinate tuples to assignment mappings with strict shape checks."""
+
+    return tuple(dict(zip_equal(variables, point, context=context)) for point in points)
+
+
+__all__ = ["assignments_from_points", "require_point_dimension", "require_same_length", "zip_equal"]

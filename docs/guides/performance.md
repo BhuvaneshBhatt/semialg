@@ -20,9 +20,11 @@ Optimization does some equality-based dimension reduction automatically.
 
 ## Variable order matters
 
-Different CAD variable orders can change projection degree and cell count dramatically. semialg's automatic planner combines projection statistics with estimated lifting/root counts and bounded pilot lifting for leading candidates.
+Different CAD variable orders can change projection degree, coefficient height, root-isolation burden, and cell count dramatically; on difficult inputs the runtime and memory difference can be orders of magnitude. Variable order should therefore be one of the first things inspected when a CAD-backed computation is unexpectedly expensive.
 
-If you supply an order manually, benchmark it on the actual problem family rather than assuming a syntactic heuristic will generalize.
+`semialg`'s automatic planner combines structural incidence/degree scores with projection statistics, estimated lifting/root counts, and bounded pilot lifting for leading candidates. CAD-driven region integration also considers alternative coordinate orders because a good order can turn algebraic/root-function bounds into simple polynomial bounds. Expert code can inspect order suggestions through `semialg.heuristics.suggest_variable_order` and `suggest_cad_variable_order`.
+
+If you supply an order manually, benchmark it on the actual problem family rather than assuming a syntactic heuristic will generalize. Preserve logical structure: variables in one quantifier block may be reorderable, but moving variables across alternating `Exists`/`ForAll` blocks is not semantics-preserving. For reconstructed free-variable cells, also consider whether a particular cylindrical orientation is useful to the downstream task.
 
 ## Equational constraints and partial CAD
 
@@ -63,3 +65,42 @@ A different mathematical formulation often matters more than micro-optimizing Py
 ## Performance expectations
 
 Low-dimensional polynomial problems are the intended sweet spot. Higher-dimensional or high-degree problems can become expensive even when the final answer is simple. See [Limitations](../limitations.md) and [Errors and failure modes](errors_and_failure_modes.md).
+
+## Structural cache keys
+
+Projection and exact-algebraic caches use immutable SymPy/`Poly` structure for identity rather than serializing expressions with `sstr` or `srepr`. This avoids repeated expression-to-string conversion in hot cache and deduplication paths and preserves exact symbol identity, including assumption-distinct symbols that share a printed name. Human-readable strings are still used for diagnostics and provenance, but not as mathematical identity keys.
+
+Collins and reduced CAD projection also share the same low-level polynomial normalization and projection operations. This reduces repeated `Poly -> Expr -> Poly` conversion while keeping the projection algorithms themselves separate and auditable.
+
+## Tunable resource and heuristic limits
+
+Several resource limits are explicit
+options so applications can trade runtime and memory for aggressiveness without
+patching semialg internals:
+
+- `cad(..., max_preprocess_aux_vars=3)` bounds existential auxiliaries introduced
+  by semialgebraic preprocessing; `None` disables this guard.
+- `semialgebraic_minimize(..., max_boolean_branches=32)` and
+  `semialgebraic_maximize(...)` bound DNF branch expansion before per-branch
+  optimization.
+- `semialg.simplify.simplify_semialgebraic_formula` exposes
+  `max_dnf_branches`, `max_implication_atoms`, `max_implication_vars`, and
+  `max_implication_degree`. These affect how aggressively semantic redundancy is
+  searched for, not the meaning of the returned formula.
+- `semialg.planner.candidate_variable_orders` exposes the returned candidate
+  `limit`, `exhaustive_var_limit`, `projection_var_limit`, and
+  `projection_shortlist`.
+- `sample_point`/`sample_points` expose `default_sampling_radius`,
+  `random_attempts_min`, `random_attempts_each`, `max_random_denominator`,
+  and `numeric_precision`; an explicit `random_attempts` still overrides the
+  automatic attempt policy.
+- `sign_at` and `sign_vector` expose `numeric_precision` for their explicitly
+  inexact (`exact=False`) fallback.
+
+Process-local performance-cache capacities are expert controls rather than root
+APIs. Use `semialg.algebraic.configure_algebraic_cache_limits(...)` for root,
+sign, comparison, specialization, and RUR caches, and
+`semialg.cad_algorithms.configure_cad_cache_limits(...)` for projection-tower,
+squarefree-base, projection-step, and complete-CAD caches. Resizing a cache keeps
+its newest entries up to the new capacity and does not change mathematical
+semantics.

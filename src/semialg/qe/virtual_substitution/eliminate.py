@@ -5,6 +5,7 @@ from collections.abc import Sequence
 import sympy as sp
 
 from ...status import CoverageStatus
+from ...structural_keys import symbol_identity_key
 from .atoms import (
     _and,
     _canonical_atom,
@@ -13,17 +14,17 @@ from .atoms import (
     _polynomial_degree,
     _to_negation_normal_form,
 )
+from .results import (
+    QuadraticVirtualSubstitutionResult,
+    VirtualSubstitutionError,
+    VirtualSubstitutionQEResult,
+)
 from .substitution import (
     _root_candidates_from_polynomial,
     _unique_polynomials,
     substitute_infinity,
     substitute_perturbed_quadratic_root,
     substitute_quadratic_root,
-)
-from .types import (
-    QuadraticVirtualSubstitutionResult,
-    VirtualSubstitutionError,
-    VirtualSubstitutionQEResult,
 )
 
 
@@ -35,7 +36,7 @@ def _normalize_quantifier_name(name: str) -> str:
 
 
 def _free_symbols_in_expr(expr: sp.Expr) -> tuple[sp.Symbol, ...]:
-    return tuple(sorted(getattr(expr, "free_symbols", set()), key=lambda sym: sym.name))
+    return tuple(sorted(getattr(expr, "free_symbols", set()), key=symbol_identity_key))
 
 
 def can_use_quadratic_vs(formula: sp.Expr, variable: sp.Symbol) -> bool:
@@ -85,7 +86,6 @@ def try_quadratic_virtual_substitution_qe(
         if dual is None or dual.remaining_quantifiers:
             return None
         formula = _to_negation_normal_form(dual.formula, negate=True)
-        pass
         result_symbols = _free_symbols_in_expr(formula)
         is_sentence = not result_symbols
         truth_value = None
@@ -176,7 +176,6 @@ def try_quadratic_virtual_substitution_qe(
     is_sentence = not result_symbols and not remaining
     truth_value = None
     formula_out = current_formula
-    pass
     if is_sentence:
         simplified = sp.simplify(formula_out)
         if simplified == sp.true or simplified is sp.true:

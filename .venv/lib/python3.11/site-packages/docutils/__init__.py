@@ -1,4 +1,4 @@
-# $Id: __init__.py 10275 2025-12-18 18:44:54Z grubert $
+# $Id: __init__.py 10338 2026-05-27 17:20:40Z grubert $
 # Author: David Goodger <goodger@python.org>
 # Copyright: This module has been placed in the public domain.
 
@@ -85,7 +85,7 @@ if TYPE_CHECKING:
 
 __docformat__ = 'reStructuredText'
 
-__version__ = '0.22.4'
+__version__ = '0.23'
 """Docutils version identifier (complies with PEP 440)::
 
     major.minor[.micro][releaselevel[serial]][.dev]
@@ -158,8 +158,8 @@ class VersionInfo(namedtuple('VersionInfo',
 
 __version_info__ = VersionInfo(
     major=0,
-    minor=22,
-    micro=4,
+    minor=23,
+    micro=0,
     releaselevel='final',  # one of 'alpha', 'beta', 'candidate', 'final'
     serial=0,  # pre-release number (0 for final releases and snapshots)
     release=True  # True for official releases and pre-releases

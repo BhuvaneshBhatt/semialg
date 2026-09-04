@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import (
+from semialg.cad_algorithms.cells import (
     extract_cylindrical_solution,
     intrinsic_solution_integrals,
     stratify_intrinsic_solution,

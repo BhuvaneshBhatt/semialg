@@ -10,6 +10,7 @@ import sympy as sp
 from ..conditional import ParameterStratifiedResult
 from ..normalization import normalize_formula, normalize_variables
 from ..parameters import root_count_conditions, solvability_conditions
+from ..structural_keys import symbol_identity_key
 
 FormulaLike = sp.Expr | sp.logic.boolalg.Boolean | bool
 
@@ -97,7 +98,7 @@ def analyze_root_count_regimes(
     else:
         var = variable
     if parameters is None:
-        params = tuple(sorted(expr.free_symbols - {var}, key=lambda symbol: symbol.name))
+        params = tuple(sorted(expr.free_symbols - {var}, key=symbol_identity_key))
     else:
         params = normalize_variables(parameters, expr, append_context_symbols=False)
     if var in params:

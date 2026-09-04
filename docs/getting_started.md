@@ -65,6 +65,7 @@ opt = semialgebraic_minimize(
     x**2 + y**2,
     x + y >= 1,
     [x, y],
+    return_result=True,
 )
 opt.value
 # 1/2
@@ -152,3 +153,11 @@ These distinctions are explained in [Exactness and certification](concepts/exact
 ## 10. When a problem is slow
 
 CAD complexity can grow rapidly with variable count and degree. Before forcing a complete computation, see the [Performance guide](guides/performance.md) and [Errors and failure modes](guides/errors_and_failure_modes.md).
+
+## Further exploration
+
+- [Which function should I use?](guides/choosing_an_api.md)
+- [How semialg chooses an algorithm](concepts/algorithm_selection.md)
+- [Understanding result objects](concepts/result_objects.md)
+- [Parameterized computation tutorial](guides/parameterized_computation.md)
+- [Worked example gallery](examples/index.md)

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import sympy as sp
 
 from .normalization import normalize_variables
-from .standard_regions import ParametricRegion
+from .standard_regions import ParametricRegion, _effective_parametric_data
 
 
 @dataclass(frozen=True)
@@ -57,11 +57,24 @@ def reduce_parametric_integral(
     )
     if len(vars_) != len(region.mapping):
         raise ValueError("ambient variable count must match the parametrization mapping dimension")
-    jac_factor = metric_jacobian_factor(region.mapping, region.parameters)
-    transformed = sp.simplify(
-        expr.subs(dict(zip(vars_, region.mapping, strict=True))) * jac_factor / region.multiplicity
+    parameters, limits, mapping, assumptions = _effective_parametric_data(
+        region.parameters, region.limits, region.mapping, region.assumptions
     )
-    return transformed, region.limits, jac_factor
+    if assumptions not in (True, sp.true):
+        raise NotImplementedError(
+            "parametric integration with additional parameter assumptions is not certified"
+        )
+    if parameters:
+        jacobian = sp.Matrix(mapping).jacobian(parameters)
+        if int(jacobian.rank()) < len(parameters):
+            raise NotImplementedError(
+                "parametrization has positive-dimensional fibers; image measure requires an exact image decomposition"
+            )
+    jac_factor = metric_jacobian_factor(mapping, parameters)
+    transformed = sp.simplify(
+        expr.subs(dict(zip(vars_, mapping, strict=True))) * jac_factor / region.multiplicity
+    )
+    return transformed, limits, jac_factor
 
 
 def integrate_over_parametric_region(

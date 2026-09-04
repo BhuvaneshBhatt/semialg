@@ -1,11 +1,11 @@
 import sympy as sp
 
-from semialg import algebraic_cache_stats, clear_algebraic_caches
+from semialg.algebraic import algebraic_cache_stats, clear_algebraic_caches
 from semialg.algebraic.comparison import compare_samples
 from semialg.algebraic.rational_univariate import compute_rational_univariate_representation
 from semialg.algebraic.roots import isolate_real_roots
 from semialg.algebraic.signs import sign_at_sample
-from semialg.cad.bounds import AlgebraicRootFunction
+from semialg.cad_algorithms.bounds import AlgebraicRootFunction
 from semialg.formula import parse_quant_form_text
 from semialg.partial.qe import lazy_resolve_formula
 from semialg.planner.features import ProblemFeatures
@@ -78,7 +78,7 @@ def test_resultant_ec_propagates_to_lower_level_and_prunes_before_z_lift():
 
 
 def test_multilevel_resultant_chain_restricts_two_prefix_levels():
-    x, y, z = sp.symbols("x y z", real=True)
+    _x, _y, _z = sp.symbols("x y z", real=True)
     # The first two ECs imply y=0 after eliminating z; y=0 together with
     # y-x=0 then implies x=0. Both lower levels can therefore section-lift.
     parsed = parse_quant_form_text(
@@ -97,3 +97,24 @@ def test_universal_level_is_not_unsafely_restricted_to_ec_sections():
     result = lazy_resolve_formula(parsed.vars, parsed.quantifiers, parsed.matrix)
     assert result.truth_value is False
     assert result.stats.ec_section_lifts == 0
+
+
+def test_algebraic_root_cache_preserves_assumption_distinct_symbol_identity():
+    clear_algebraic_caches()
+    x_real = sp.Symbol("x", real=True)
+    x_positive = sp.Symbol("x", positive=True)
+    real_roots = isolate_real_roots(x_real**2 - 2, x_real)
+    positive_roots = isolate_real_roots(x_positive**2 - 2, x_positive)
+    assert len(real_roots) == 2
+    assert len(positive_roots) == 2
+    stats = algebraic_cache_stats()
+    assert stats.cache_misses >= 2
+
+
+def test_expression_cache_key_does_not_factor_large_relational_residuals():
+    from semialg.algebraic.cache import expr_key
+
+    x, a, t = sp.symbols("x a t", real=True)
+    expr = (t - a - x) * (x + 1) + (t - a - x) * (x + 2)
+
+    assert expr_key(expr) == expr

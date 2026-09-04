@@ -2,24 +2,26 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg.cad.lifting.lazard import lazard_evaluate, lazard_valuation
-from semialg.cad.reduced import decompose_reduced_safe
+from semialg.cad_algorithms.lifting.lazard import lazard_evaluate, lazard_valuation
+from semialg.cad_algorithms.reduced import decompose_reduced_safe
 from semialg.formula import Atom
 from semialg.qe.complete import qe_by_complete_cad
-from semialg.simplify import simp_semialg_expr
+from semialg.simplify import simplify_semialgebraic_formula
 from semialg.tticad.safe import decompose_tticad_safe
 
 
 def test_multivar_simpl_01():
     x, y = sp.symbols("x y", real=True)
-    assert simp_semialg_expr((x > 1) & (x > 0)) == (x > 1)
-    assert simp_semialg_expr(sp.Eq(x, 0) & (x**2 + y > 0)) == (sp.Eq(x, 0) & (y > 0))
+    assert simplify_semialgebraic_formula((x > 1) & (x > 0)) == (x > 1)
+    assert simplify_semialgebraic_formula(sp.Eq(x, 0) & (x**2 + y > 0)) == (sp.Eq(x, 0) & (y > 0))
 
 
 def test_multivar_simpl_02():
     x, y, z = sp.symbols("x y z", real=True)
     matrix = Atom(y**2 - x, ">=") & Atom(z**2 + 1, ">")
-    result = qe_by_complete_cad([z, y, x], [("exists", z)], matrix, free_variables=[x, y])
+    result = qe_by_complete_cad(
+        [z, y, x], [("exists", z)], matrix, free_variables=[x, y], return_result=True
+    )
     assert result.status == "complete"
     assert result.cell_union is not None
     assert result.cell_union.cells_by_level

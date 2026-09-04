@@ -15,6 +15,8 @@ separate solving backend.
 8. Boolean formulas are not routed through scalar simplification paths that can trigger SymPy `Mul(And(...))` deprecation warnings.
 9. String variable names preserve the exact SymPy symbol objects already present in a problem; ambiguous same-name symbols with different assumptions are rejected.
 10. Exact certificate paths do not promote fixed-precision numerical comparisons to exact truth/sign/order claims.
+11. Fast affine elimination/bound extraction divides only by coefficients whose nonzero status or sign is globally certified; unresolved parameter strata return an incomplete/unknown fast-path result.
+12. Cheap dimension metadata is exact when present; parameter-dependent or nonlinear cases remain `None` until a certified geometry backend establishes dimension.
 
 ## Focused tests
 

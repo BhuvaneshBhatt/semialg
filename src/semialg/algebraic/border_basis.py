@@ -5,8 +5,16 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+)
+
 from .rational_univariate.quotient import (
-    _as_rational_polynomial,
+    _as_exact_polynomial,
     _coefficient_vector,
     _leading_exponent_grevlex,
     _monomial_from_exponent,
@@ -149,7 +157,7 @@ class BorderBasisResult:
             return None
         try:
             poly = sp.Poly(sp.expand(expression), *self.variables, domain=sp.QQ)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return None
         order_index = {tuple(exp): index for index, exp in enumerate(self.order_ideal)}
         zero = tuple(0 for _ in self.variables)
@@ -255,14 +263,6 @@ class BorderBasisResult:
         return all(
             residual == sp.zeros(*residual.shape) for _, _, residual in self.commutation_residuals()
         )
-
-
-def _supporting_standard_order(
-    groebner_basis: sp.polys.polytools.GroebnerBasis,
-    variables: Sequence[sp.Symbol],
-) -> tuple[tuple[int, ...], ...]:
-    leading_exponents = [_leading_exponent_grevlex(poly) for poly in groebner_basis.polys]
-    return _standard_exponents(leading_exponents, len(tuple(variables)))
 
 
 def _sort_exponents(exponents: Iterable[Sequence[int]]) -> tuple[tuple[int, ...], ...]:
@@ -613,7 +613,7 @@ def compute_border_basis_linear(
     if not variable_tuple:
         raise BorderBasisError("at least one variable is required")
     polys = [
-        _as_rational_polynomial(sp.sympify(poly), variable_tuple).as_expr() for poly in polynomials
+        _as_exact_polynomial(sp.sympify(poly), variable_tuple).as_expr() for poly in polynomials
     ]
     if not polys:
         raise BorderBasisError("at least one polynomial generator is required")
@@ -697,7 +697,7 @@ def compute_border_basis(
         used. Custom order ideals are accepted only when all reduced border
         monomials expand in that basis.
     domain:
-        Exact coefficient domain; currently intended for ``QQ``-compatible
+        Exact coefficient domain; intended for ``QQ``-compatible
         computations.
     groebner_order:
         Monomial order used to compute the supporting Groebner basis.
@@ -718,7 +718,7 @@ def compute_border_basis(
     algorithm_key = algorithm.lower().replace("_", "-")
     if algorithm_key in {"linear", "macaulay", "macaulay-linear", "native"}:
         if order_ideal is not None:
-            message = "custom order_ideal is only supported by algorithm='groebner' in this release"
+            message = "custom order_ideal requires algorithm='groebner'"
             if strict:
                 raise BorderBasisError(message)
             variable_tuple = tuple(variables)
@@ -752,7 +752,7 @@ def compute_border_basis(
     if not variable_tuple:
         raise BorderBasisError("at least one variable is required")
     polys = [
-        _as_rational_polynomial(sp.sympify(poly), variable_tuple).as_expr() for poly in polynomials
+        _as_exact_polynomial(sp.sympify(poly), variable_tuple).as_expr() for poly in polynomials
     ]
     if not polys:
         raise BorderBasisError("at least one polynomial generator is required")
@@ -802,7 +802,7 @@ def compute_border_basis(
             )
             default_order = mapped
             reduction_basis = reversed_basis
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
     if order_ideal is None:
         default_order = _preferred_order_ideal_from_quotient(

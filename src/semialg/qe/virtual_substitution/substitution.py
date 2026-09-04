@@ -18,7 +18,7 @@ from .atoms import (
     _polynomial_degree,
     _relation,
 )
-from .types import VirtualSubstitutionError, _QuadraticPoint
+from .results import VirtualSubstitutionError, _QuadraticPoint
 
 
 def _multiply_radical_pairs(
@@ -271,7 +271,7 @@ def _root_candidates_from_polynomial(
 
 def _unique_polynomials(formula: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr, ...]:
     polynomials: list[sp.Expr] = []
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     for atom in _iter_atoms(formula):
         polynomial, _ = _canonical_atom(atom)
         degree = _polynomial_degree(polynomial, variable)
@@ -281,7 +281,7 @@ def _unique_polynomials(formula: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr,
             )
         if degree <= 0:
             continue
-        key = sp.sstr(sp.expand(polynomial))
+        key = sp.expand(polynomial)
         if key not in seen:
             polynomials.append(sp.expand(polynomial))
             seen.add(key)

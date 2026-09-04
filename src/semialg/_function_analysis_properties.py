@@ -1,0 +1,506 @@
+"""Exact convexity and monotonicity classification for semialgebraic functions."""
+
+from __future__ import annotations
+
+from dataclasses import replace
+
+import sympy as sp
+
+from ._function_analysis_partitions import function_monotonic_partition
+from .decision import is_satisfiable
+from .function_analysis import (
+    FunctionConvexityResult,
+    FunctionPropertyPartitionResult,
+    _FunctionAnalysisContext,
+)
+from .function_graph import (
+    UnsupportedFunctionGraph,
+    semialgebraic_function_graph,
+)
+from .internal_symbols import fresh_real_dummy
+from .matrix_analysis import matrix_definiteness
+from .reasoning_signs import function_sign
+
+
+def _strong_curvature_properties(
+    expression: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    domain: sp.Expr,
+    *,
+    analysis: _FunctionAnalysisContext | None = None,
+) -> tuple[bool | None, bool | None, sp.Expr | None, sp.Expr | None]:
+    """Cheap exact strong-curvature certificates, including 1D Hessian ranges."""
+    if not variables:
+        return False, False, None, None
+    try:
+        hessian = (
+            analysis.hessian
+            if analysis is not None
+            else sp.ImmutableMatrix(sp.hessian(expression, variables))
+        )
+    except (TypeError, ValueError, NotImplementedError):
+        return None, None, None, None
+    if not any(entry.free_symbols & set(variables) for entry in hessian):
+        try:
+            pd = matrix_definiteness(
+                hessian, (), requested="positive_definite", domain=domain, return_result=True
+            )
+            nd = matrix_definiteness(
+                hessian, (), requested="negative_definite", domain=domain, return_result=True
+            )
+        except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            return None, None, None, None
+        strong_convex = bool(pd.outcome)
+        strong_concave = bool(nd.outcome)
+        modulus = concavity_modulus = None
+        if len(variables) == 1:
+            value = sp.simplify(hessian[0, 0])
+            modulus = value if strong_convex else None
+            concavity_modulus = -value if strong_concave else None
+        return strong_convex, strong_concave, modulus, concavity_modulus
+
+    # In one dimension strong convexity is exactly a positive lower bound on
+    # f'' (and strong concavity a negative upper bound).  Reuse the exact range
+    # engine rather than introducing an existential modulus QE problem.
+    if len(variables) == 1:
+        variable = variables[0]
+        second = hessian[0, 0]
+        if not second.has(sp.DiracDelta, sp.Derivative):
+            try:
+                from ._optimization_range import function_range
+
+                range_result = function_range(second, domain, (variable,), return_result=True)
+                infimum = range_result.infimum
+                supremum = range_result.supremum
+                strong_convex = None
+                strong_concave = None
+                modulus = concavity_modulus = None
+                if infimum is not None and infimum != -sp.oo:
+                    sign = function_sign(infimum, ())
+                    if sign == "positive":
+                        strong_convex, modulus = True, infimum
+                    elif sign in {"zero", "negative"}:
+                        strong_convex = False
+                if supremum is not None and supremum != sp.oo:
+                    sign = function_sign(supremum, ())
+                    if sign == "negative":
+                        strong_concave, concavity_modulus = True, -supremum
+                    elif sign in {"zero", "positive"}:
+                        strong_concave = False
+                return strong_convex, strong_concave, modulus, concavity_modulus
+            except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+                pass
+    return None, None, None, None
+
+
+def _strict_univariate_curvature(
+    expression: sp.Expr,
+    variable: sp.Symbol,
+    domain: sp.Expr,
+    *,
+    sense: str,
+    analysis: _FunctionAnalysisContext | None = None,
+) -> bool | None:
+    """Certify strict 1D curvature without a second property-query recursion."""
+    if expression.has(sp.Abs, sp.Piecewise, sp.sign):
+        return None
+    try:
+        second = (
+            analysis.derivative(variable, 2)
+            if analysis is not None
+            else sp.diff(expression, variable, 2)
+        )
+        sign = (
+            analysis.sign(second)
+            if analysis is not None
+            else function_sign(second, (variable,), assumptions=domain)
+        )
+    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        return None
+    if sense == "convex":
+        if sign == "positive":
+            return True
+        if sign != "nonnegative":
+            return False if sign in {"negative", "nonpositive", "mixed"} else None
+    else:
+        if sign == "negative":
+            return True
+        if sign != "nonpositive":
+            return False if sign in {"positive", "nonnegative", "mixed"} else None
+    # A nonzero univariate rational second derivative has only isolated zeros,
+    # so weak curvature still integrates to strict curvature on an interval.
+    try:
+        if second.is_rational_function(variable) and sp.cancel(second) != 0:
+            return True
+    except (TypeError, ValueError):
+        pass
+    return None
+
+
+def _log_curvature_property(
+    expression: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    domain: sp.Expr,
+    *,
+    sense: str,
+    analysis: _FunctionAnalysisContext | None = None,
+) -> bool | None:
+    """Use the algebraic Hessian criterion for log-convexity/log-concavity."""
+    if not variables:
+        return True
+    try:
+        positivity = (
+            analysis.sign(expression)
+            if analysis is not None
+            else function_sign(expression, variables, assumptions=domain)
+        )
+    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        return None
+    if positivity != "positive":
+        return False if positivity in {"negative", "zero", "nonpositive", "mixed"} else None
+    try:
+        gradient = (
+            analysis.gradient
+            if analysis is not None
+            else sp.ImmutableMatrix([sp.diff(expression, v) for v in variables])
+        )
+        hessian = (
+            analysis.hessian
+            if analysis is not None
+            else sp.ImmutableMatrix(sp.hessian(expression, variables))
+        )
+        curvature = sp.ImmutableMatrix(expression * hessian - gradient * gradient.T)
+        requested = "positive_semidefinite" if sense == "convex" else "negative_semidefinite"
+        result = matrix_definiteness(
+            curvature, variables, domain=domain, requested=requested, return_result=True
+        )
+        return result.outcome
+    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        return None
+
+
+def _quasi_from_monotonic_partition(
+    expression: sp.Expr,
+    variable: sp.Symbol,
+    domain: sp.Expr,
+    *,
+    sense: str,
+    strict: bool,
+    partition: FunctionPropertyPartitionResult | None = None,
+) -> bool | None:
+    """Decide univariate quasi-curvature from the exact monotonicity partition."""
+    if partition is None:
+        try:
+            partition = function_monotonic_partition(
+                expression, variable, domain=domain, return_result=True
+            )
+        except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            return None
+    sequence = [
+        classification
+        for classification, _region in partition.pieces
+        if classification != "constant"
+    ]
+    if any(item == "unknown" for item in sequence):
+        return None
+    if sense == "convex":
+        left = {"decreasing", "strictly_decreasing"}
+        right = {"increasing", "strictly_increasing"}
+        strict_left = {"strictly_decreasing"}
+        strict_right = {"strictly_increasing"}
+    else:
+        left = {"increasing", "strictly_increasing"}
+        right = {"decreasing", "strictly_decreasing"}
+        strict_left = {"strictly_increasing"}
+        strict_right = {"strictly_decreasing"}
+    allowed_left = strict_left if strict else left
+    allowed_right = strict_right if strict else right
+    # There may be only one side.  Once the direction switches it may not switch back.
+    side_state = 0
+    for item in sequence:
+        if side_state == 0 and item in allowed_left:
+            continue
+        if item in allowed_right:
+            side_state = 1
+            continue
+        return False
+    return True
+
+
+def _stationary_global_extremum_property(
+    expression: sp.Expr,
+    variable: sp.Symbol,
+    domain: sp.Expr,
+    *,
+    sense: str,
+    analysis: _FunctionAnalysisContext | None = None,
+    smoothness=None,
+) -> bool | None:
+    """Exact univariate pseudo-curvature test using stationary global extrema.
+
+    For differentiable univariate quasiconvex functions, pseudoconvexity is
+    equivalent to every stationary point being a global minimum; reverse the
+    inequalities for pseudoconcavity.  Polynomial/rational functions use a
+    direct derivative equation, avoiding function-graph QE entirely.
+    """
+    if smoothness is None:
+        if analysis is not None:
+            smoothness = analysis.smoothness(1)
+        else:
+            from .function_properties import function_smoothness
+
+            smoothness = function_smoothness(expression, variable, domain=domain, max_order=1)
+    if smoothness.continuous is not True or smoothness.differentiability_order not in (1, sp.oo):
+        return False if smoothness.smooth is False else None
+    stationary = fresh_real_dummy(f"semialg_stationary_{variable.name}")
+    comparison = fresh_real_dummy(f"semialg_comparison_{variable.name}")
+    try:
+        derivative = (
+            analysis.derivative(variable) if analysis is not None else sp.diff(expression, variable)
+        )
+    except (TypeError, ValueError, NotImplementedError):
+        return None
+    # Prefer the direct formula because it avoids repeated pairwise QE queries.
+    direct_supported = expression.is_rational_function(
+        variable
+    ) and derivative.is_rational_function(variable)
+    if not direct_supported:
+        # Supported algebraic graph fallback remains exact, but is deliberately secondary.
+        try:
+            stationary_value = fresh_real_dummy("semialg_stationary_value")
+            comparison_value = fresh_real_dummy("semialg_comparison_value")
+            stationary_graph = semialgebraic_function_graph(
+                expression.xreplace({variable: stationary}), stationary_value
+            )
+            comparison_graph = semialgebraic_function_graph(
+                expression.xreplace({variable: comparison}), comparison_value
+            )
+            derivative_value = fresh_real_dummy("semialg_derivative_value")
+            derivative_graph = semialgebraic_function_graph(
+                derivative.xreplace({variable: stationary}), derivative_value
+            )
+        except UnsupportedFunctionGraph:
+            return None
+        worse = (
+            comparison_value < stationary_value
+            if sense == "convex"
+            else comparison_value > stationary_value
+        )
+        formula = sp.And(
+            domain.xreplace({variable: stationary}),
+            domain.xreplace({variable: comparison}),
+            stationary_graph.formula,
+            comparison_graph.formula,
+            derivative_graph.formula,
+            sp.Eq(derivative_value, 0),
+            worse,
+        )
+        quantified = tuple(
+            dict.fromkeys(
+                (
+                    stationary,
+                    comparison,
+                    stationary_value,
+                    comparison_value,
+                    derivative_value,
+                    *stationary_graph.auxiliary_variables,
+                    *comparison_graph.auxiliary_variables,
+                    *derivative_graph.auxiliary_variables,
+                )
+            )
+        )
+    else:
+        stationary_expr = expression.xreplace({variable: stationary})
+        comparison_expr = expression.xreplace({variable: comparison})
+        derivative_expr = derivative.xreplace({variable: stationary})
+        worse = (
+            comparison_expr < stationary_expr
+            if sense == "convex"
+            else comparison_expr > stationary_expr
+        )
+        formula = sp.And(
+            domain.xreplace({variable: stationary}),
+            domain.xreplace({variable: comparison}),
+            sp.Eq(derivative_expr, 0),
+            worse,
+        )
+        quantified = (stationary, comparison)
+    try:
+        return not bool(is_satisfiable(formula, quantified))
+    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        return None
+
+
+def _augment_convexity_result(
+    result: FunctionConvexityResult,
+    expression: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    properties: str,
+    analysis: _FunctionAnalysisContext | None = None,
+) -> FunctionConvexityResult:
+    """Attach requested secondary convexity properties while reusing the primary analysis context."""
+    if result.classification in {"unknown", "nonconvex_domain"}:
+        return result
+    strict_convex = strict_concave = None
+    strong_convex = strong_concave = None
+    strong_modulus = strong_concavity_modulus = None
+    if len(variables) == 1:
+        if result.convex is True:
+            strict_convex = _strict_univariate_curvature(
+                expression, variables[0], result.domain, sense="convex", analysis=analysis
+            )
+        if result.concave is True:
+            strict_concave = _strict_univariate_curvature(
+                expression, variables[0], result.domain, sense="concave", analysis=analysis
+            )
+    strong_convex, strong_concave, strong_modulus, strong_concavity_modulus = (
+        _strong_curvature_properties(expression, variables, result.domain, analysis=analysis)
+    )
+    # Strong curvature implies strict curvature on nontrivial convex domains.
+    if strong_convex is True:
+        strict_convex = True
+    if strong_concave is True:
+        strict_concave = True
+
+    classification = result.classification
+    if strong_convex is True:
+        classification = "strongly_convex"
+    elif strong_concave is True:
+        classification = "strongly_concave"
+    elif strict_convex is True and result.convex is True:
+        classification = "strictly_convex"
+    elif strict_concave is True and result.concave is True:
+        classification = "strictly_concave"
+
+    kwargs = dict(
+        classification=classification,
+        strictly_convex=strict_convex,
+        strictly_concave=strict_concave,
+        strongly_convex=strong_convex,
+        strongly_concave=strong_concave,
+        strong_convexity_modulus=strong_modulus,
+        strong_concavity_modulus=strong_concavity_modulus,
+    )
+    if properties == "all":
+        quasiconvex = True if result.convex is True else None
+        quasiconcave = True if result.concave is True else None
+        strict_quasiconvex = True if strict_convex is True else None
+        strict_quasiconcave = True if strict_concave is True else None
+        if len(variables) == 1:
+            v = variables[0]
+            partition = None
+            if any(
+                value is None
+                for value in (quasiconvex, quasiconcave, strict_quasiconvex, strict_quasiconcave)
+            ):
+                try:
+                    partition = (
+                        analysis.monotonic_partition(v)
+                        if analysis is not None
+                        else function_monotonic_partition(
+                            expression, v, domain=result.domain, return_result=True
+                        )
+                    )
+                except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+                    partition = None
+            if quasiconvex is None:
+                quasiconvex = _quasi_from_monotonic_partition(
+                    expression, v, result.domain, sense="convex", strict=False, partition=partition
+                )
+            if quasiconcave is None:
+                quasiconcave = _quasi_from_monotonic_partition(
+                    expression, v, result.domain, sense="concave", strict=False, partition=partition
+                )
+            if strict_quasiconvex is None:
+                strict_quasiconvex = _quasi_from_monotonic_partition(
+                    expression, v, result.domain, sense="convex", strict=True, partition=partition
+                )
+            if strict_quasiconcave is None:
+                strict_quasiconcave = _quasi_from_monotonic_partition(
+                    expression, v, result.domain, sense="concave", strict=True, partition=partition
+                )
+            smoothness = None
+            if quasiconvex is True or quasiconcave is True:
+                try:
+                    smoothness = analysis.smoothness(1) if analysis is not None else None
+                except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+                    smoothness = None
+            # Differentiable convex/concave functions are automatically pseudo-
+            # convex/pseudo-concave; only genuinely nonconvex quasi-curvature
+            # needs the stationary-global-extremum test.
+            if result.convex is True:
+                try:
+                    smoothness = smoothness or (
+                        analysis.smoothness(1) if analysis is not None else None
+                    )
+                    pseudoconvex = (
+                        True
+                        if smoothness and smoothness.differentiability_order in (1, sp.oo)
+                        else False
+                        if smoothness and smoothness.smooth is False
+                        else None
+                    )
+                except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+                    pseudoconvex = None
+            else:
+                pseudoconvex = (
+                    _stationary_global_extremum_property(
+                        expression,
+                        v,
+                        result.domain,
+                        sense="convex",
+                        analysis=analysis,
+                        smoothness=smoothness,
+                    )
+                    if quasiconvex is True
+                    else False
+                    if quasiconvex is False
+                    else None
+                )
+            if result.concave is True:
+                try:
+                    smoothness = smoothness or (
+                        analysis.smoothness(1) if analysis is not None else None
+                    )
+                    pseudoconcave = (
+                        True
+                        if smoothness and smoothness.differentiability_order in (1, sp.oo)
+                        else False
+                        if smoothness and smoothness.smooth is False
+                        else None
+                    )
+                except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+                    pseudoconcave = None
+            else:
+                pseudoconcave = (
+                    _stationary_global_extremum_property(
+                        expression,
+                        v,
+                        result.domain,
+                        sense="concave",
+                        analysis=analysis,
+                        smoothness=smoothness,
+                    )
+                    if quasiconcave is True
+                    else False
+                    if quasiconcave is False
+                    else None
+                )
+        else:
+            pseudoconvex = pseudoconcave = None
+        kwargs.update(
+            quasiconvex=quasiconvex,
+            quasiconcave=quasiconcave,
+            strictly_quasiconvex=strict_quasiconvex,
+            strictly_quasiconcave=strict_quasiconcave,
+            pseudoconvex=pseudoconvex,
+            pseudoconcave=pseudoconcave,
+            log_convex=_log_curvature_property(
+                expression, variables, result.domain, sense="convex", analysis=analysis
+            ),
+            log_concave=_log_curvature_property(
+                expression, variables, result.domain, sense="concave", analysis=analysis
+            ),
+        )
+    return replace(result, **kwargs)

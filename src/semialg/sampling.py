@@ -18,21 +18,21 @@ from .algebraic import (
 )
 from .algebraic.rational_univariate import solve_formula_with_rur
 from .dimension_validation import require_point_dimension, require_same_length, zip_equal
-from .errors import DimensionMismatchError
+from .errors import DimensionMismatchError, SemialgStrategyFailure
 from .formula import to_sympy
 from .instances.real_fallbacks import satisfies_formula
-from .normalization import normalize_sampling_variables as _shared_variables
+from .normalization import normalize_sampling_variables
 from .solve import find_instance
+from .structural_keys import point_key
 
-
-def _normalize_variables(
-    variables: Sequence[sp.Symbol | str] | None,
-    exprs: Iterable[sp.Expr],
-) -> tuple[sp.Symbol, ...]:
-    """Resolve sampling variables against symbols in the sampled formulas."""
-
-    expr_tuple = tuple(sp.sympify(expr) for expr in exprs)
-    return _shared_variables(variables, *expr_tuple)
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+    SemialgStrategyFailure,
+)
 
 
 def _as_expr_value(value: object) -> sp.Expr:
@@ -104,6 +104,7 @@ def sign_at(
     *,
     variables: Sequence[sp.Symbol | str] | None = None,
     exact: bool = True,
+    numeric_precision: int = 120,
 ) -> int:
     """Return the sign of a polynomial/expression at a point.
 
@@ -113,8 +114,10 @@ def sign_at(
     objects. Numeric fallback is available only when ``exact=False``.
     """
 
+    if numeric_precision < 1:
+        raise ValueError("numeric_precision must be positive")
     expr = poly.as_expr() if isinstance(poly, sp.Poly) else sp.sympify(poly)
-    vars_ = _normalize_variables(variables, [expr])
+    vars_ = normalize_sampling_variables(variables, sp.sympify(expr))
 
     if _is_rur_point(point):
         return _sign_at_rur_point(expr, point, vars_)
@@ -133,7 +136,7 @@ def sign_at(
     if all_semialg_samples and len(samples) == len(values):
         try:
             return sign_at_sample(expr, samples)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             pass
 
     substituted = sp.cancel(
@@ -141,13 +144,13 @@ def sign_at(
     )
     try:
         return sign_of_algebraic_expression(substituted)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         if exact:
             raise ValueError(
                 f"could not determine exact sign of {sp.sstr(expr)} at {point!r}"
             ) from None
 
-    numeric = sp.N(substituted, 120)
+    numeric = sp.N(substituted, numeric_precision)
     if numeric == 0:
         return 0
     if numeric > 0:
@@ -164,19 +167,23 @@ def sign_vector(
     variables: Sequence[sp.Symbol | str] | None = None,
     exact: bool = True,
     as_dict: bool = False,
+    numeric_precision: int = 120,
 ) -> tuple[int, ...] | dict[sp.Expr, int]:
     """Return the signs of ``polys`` at ``point`` in input order.
 
     Set ``as_dict=True`` to receive a mapping from each input expression to its
-    sign. This keeps the historical tuple return by default while supporting
+    sign. This returns a tuple by default while supporting
     more inspectable CAD/debugging workflows.
     """
 
     exprs = tuple(
         poly.as_expr() if isinstance(poly, sp.Poly) else sp.sympify(poly) for poly in polys
     )
-    vars_ = _normalize_variables(variables, exprs)
-    signs = tuple(sign_at(expr, point, variables=vars_, exact=exact) for expr in exprs)
+    vars_ = normalize_sampling_variables(variables, *(sp.sympify(expr) for expr in exprs))
+    signs = tuple(
+        sign_at(expr, point, variables=vars_, exact=exact, numeric_precision=numeric_precision)
+        for expr in exprs
+    )
     if as_dict:
         return dict(zip_equal(exprs, signs, context="sign vector"))
     return signs
@@ -215,10 +222,10 @@ def _bounds_for_variables(
 
 
 def _grid_values_for_interval(
-    lo: sp.Expr, hi: sp.Expr, *, resolution: int, exact: bool
+    lo: sp.Expr, hi: sp.Expr, *, resolution: int, exact: bool, numeric_precision: int
 ) -> tuple[sp.Expr, ...]:
     def finalize(value: sp.Expr) -> sp.Expr:
-        return sp.simplify(value) if exact else sp.Float(value, 30)
+        return sp.simplify(value) if exact else sp.Float(value, numeric_precision)
 
     if resolution <= 1:
         return (finalize((lo + hi) / 2),)
@@ -233,10 +240,14 @@ def _bounded_rational_grid(
     *,
     resolution: int,
     exact: bool,
+    default_radius: int,
+    numeric_precision: int,
 ):
-    intervals = _bounds_for_variables(variables, bounds)
+    intervals = _bounds_for_variables(variables, bounds, default_radius=default_radius)
     value_lists = [
-        _grid_values_for_interval(lo, hi, resolution=resolution, exact=exact)
+        _grid_values_for_interval(
+            lo, hi, resolution=resolution, exact=exact, numeric_precision=numeric_precision
+        )
         for lo, hi in intervals
     ]
     for coords in product(*value_lists):
@@ -250,9 +261,12 @@ def _random_points(
     attempts: int,
     seed: int | None,
     exact: bool,
+    default_radius: int,
+    max_denominator: int,
+    numeric_precision: int,
 ):
     rng = _random.Random(seed)
-    intervals = _bounds_for_variables(variables, bounds)
+    intervals = _bounds_for_variables(variables, bounds, default_radius=default_radius)
     for _ in range(max(0, attempts)):
         point: dict[sp.Symbol, sp.Expr] = {}
         for var, (lo, hi) in zip_equal(variables, intervals, context="sampling intervals"):
@@ -262,9 +276,11 @@ def _random_points(
             if exact:
                 # Use a finite-denominator rational approximation so exact
                 # validation remains possible for polynomial inequalities.
-                value = sp.Rational(str(lo_f + (hi_f - lo_f) * u)).limit_denominator(10**6)
+                value = sp.Rational(str(lo_f + (hi_f - lo_f) * u)).limit_denominator(
+                    max_denominator
+                )
             else:
-                value = sp.Float(lo_f + (hi_f - lo_f) * u, 30)
+                value = sp.Float(lo_f + (hi_f - lo_f) * u, numeric_precision)
             point[var] = value
         yield point
 
@@ -273,11 +289,9 @@ def _dedupe_points(
     points: Iterable[Mapping[sp.Symbol, sp.Expr]],
 ) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
     out: list[dict[sp.Symbol, sp.Expr]] = []
-    seen: set[tuple[tuple[str, str], ...]] = set()
+    seen: set[tuple[tuple[sp.Symbol, sp.Expr], ...]] = set()
     for point in points:
-        key = tuple(
-            sorted((sp.sstr(var), sp.sstr(sp.simplify(value))) for var, value in point.items())
-        )
+        key = point_key(point)
         if key not in seen:
             out.append({var: sp.sympify(value) for var, value in point.items()})
             seen.add(key)
@@ -301,7 +315,7 @@ def _rur_points(
         rur_result = solve_formula_with_rur(
             formula, tuple(variables), real=True, max_solutions=count
         )
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return ()
     if rur_result is None or rur_result.partial:
         return ()
@@ -326,7 +340,7 @@ def _cad_points(
             strict=strict,
             return_result=True,
         )
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return ()
     return tuple(dict(point) for point in getattr(result, "instances", ()))
 
@@ -346,6 +360,11 @@ def sample_points(
     | None = None,
     grid_resolution: int = 9,
     random_attempts: int | None = None,
+    default_sampling_radius: int = 3,
+    random_attempts_min: int = 100,
+    random_attempts_each: int = 50,
+    max_random_denominator: int = 1_000_000,
+    numeric_precision: int = 30,
 ) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
     """Return satisfying real sample points for a quantifier-free formula.
 
@@ -369,7 +388,15 @@ def sample_points(
     """
 
     expr = to_sympy(formula) if not isinstance(formula, (sp.Basic, Boolean)) else formula
-    vars_ = _normalize_variables(variables, [expr])
+    vars_ = normalize_sampling_variables(variables, sp.sympify(expr))
+    if default_sampling_radius < 0:
+        raise ValueError("default_sampling_radius must be nonnegative")
+    if random_attempts_min < 0 or random_attempts_each < 0:
+        raise ValueError("random attempt policy values must be nonnegative")
+    if max_random_denominator < 1:
+        raise ValueError("max_random_denominator must be positive")
+    if numeric_precision < 1:
+        raise ValueError("numeric_precision must be positive")
     if count <= 0:
         return ()
     key = strategy.lower().replace("-", "_")
@@ -399,22 +426,42 @@ def sample_points(
             return valid[:count]
 
     if key in {"representative", "rational", "complete"}:
-        for point in _small_rational_grid(vars_):
+        for point in _small_rational_grid(vars_, radius=default_sampling_radius):
             candidate_points.append(point)
             valid = _validated(candidate_points, expr, strict=strict)
             if len(valid) >= count:
                 return valid[:count]
 
     if key == "grid":
-        for point in _bounded_rational_grid(vars_, bounds, resolution=grid_resolution, exact=exact):
+        for point in _bounded_rational_grid(
+            vars_,
+            bounds,
+            resolution=grid_resolution,
+            exact=exact,
+            default_radius=default_sampling_radius,
+            numeric_precision=numeric_precision,
+        ):
             candidate_points.append(point)
             valid = _validated(candidate_points, expr, strict=strict)
             if len(valid) >= count:
                 return valid[:count]
 
     if key == "random":
-        attempts = random_attempts if random_attempts is not None else max(100, 50 * count)
-        for point in _random_points(vars_, bounds, attempts=attempts, seed=seed, exact=exact):
+        attempts = (
+            random_attempts
+            if random_attempts is not None
+            else max(random_attempts_min, random_attempts_each * count)
+        )
+        for point in _random_points(
+            vars_,
+            bounds,
+            attempts=attempts,
+            seed=seed,
+            exact=exact,
+            default_radius=default_sampling_radius,
+            max_denominator=max_random_denominator,
+            numeric_precision=numeric_precision,
+        ):
             candidate_points.append(point)
             valid = _validated(candidate_points, expr, strict=strict)
             if len(valid) >= count:
@@ -442,6 +489,11 @@ def sample_point(
     | None = None,
     grid_resolution: int = 9,
     random_attempts: int | None = None,
+    default_sampling_radius: int = 3,
+    random_attempts_min: int = 100,
+    random_attempts_each: int = 50,
+    max_random_denominator: int = 1_000_000,
+    numeric_precision: int = 30,
 ) -> dict[sp.Symbol, sp.Expr] | None:
     """Return one satisfying real sample point for ``formula``, or ``None``."""
 
@@ -456,6 +508,11 @@ def sample_point(
         bounds=bounds,
         grid_resolution=grid_resolution,
         random_attempts=random_attempts,
+        default_sampling_radius=default_sampling_radius,
+        random_attempts_min=random_attempts_min,
+        random_attempts_each=random_attempts_each,
+        max_random_denominator=max_random_denominator,
+        numeric_precision=numeric_precision,
     )
     return points[0] if points else None
 

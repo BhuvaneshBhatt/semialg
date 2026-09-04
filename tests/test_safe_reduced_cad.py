@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg.cad.projection.mccallum import build_mccallum_proj_set
-from semialg.cad.reduced import decompose_reduced_safe
+from semialg.cad_algorithms.projection.mccallum import build_mccallum_proj_set
+from semialg.cad_algorithms.reduced import decompose_reduced_safe
 from semialg.formula import parse_formula
 from semialg.tticad.safe import decompose_tticad_safe
 

@@ -6,6 +6,8 @@ from functools import cmp_to_key
 import sympy as sp
 
 from ..exact_arithmetic import compare_exact_reals
+from ..internal_symbols import fresh_real_dummy
+from ..structural_keys import symbol_identity_key
 from .cache import CACHE, poly_key
 from .intervals import RationalInterval
 from .samples import AlgebraicRoot
@@ -19,7 +21,7 @@ def _as_univariate_poly(poly: sp.Poly | sp.Expr, var: sp.Symbol | None = None) -
             return sp.Poly(poly.as_expr(), var, domain="EX")
         return poly
     if var is None:
-        symbols = sorted(poly.free_symbols, key=lambda s: s.name)
+        symbols = sorted(poly.free_symbols, key=symbol_identity_key)
         if len(symbols) != 1:
             raise ValueError("a variable is required unless the expression is univariate")
         var = symbols[0]
@@ -65,7 +67,7 @@ def rational_intv_around(root: sp.Expr) -> RationalInterval:
         interval = root._get_interval()
         left, right = interval.as_tuple() if hasattr(interval, "as_tuple") else tuple(interval)
         return RationalInterval(sp.Rational(left), sp.Rational(right))
-    t = sp.Dummy("_alpha", real=True)
+    t = fresh_real_dummy("alpha")
     try:
         minimal = sp.Poly(sp.minpoly(root, t), t, domain=sp.QQ)
         intervals = minimal.intervals(eps=sp.Rational(1, 10**30))
@@ -195,6 +197,7 @@ def _isolate_algebraic_coeff_roots(poly: sp.Poly) -> list[tuple[RationalInterval
             _factor: sp.Poly = factor,
             _multiplicity: int = multiplicity,
         ) -> None:
+            """Bisect an isolating interval until every retained interval contains one real root."""
             if count <= 0:
                 return
             if count == 1:
@@ -264,7 +267,7 @@ def isolate_real_roots(
     univar = _as_univariate_poly(poly, var)
     if univar.degree() <= 0:
         return ()
-    key = (poly_key(univar), str(univar.gens[0]))
+    key = (poly_key(univar), univar.gens[0])
     CACHE.stats.calls += 1
     cached = CACHE.roots.get(key)
     if cached is not None:

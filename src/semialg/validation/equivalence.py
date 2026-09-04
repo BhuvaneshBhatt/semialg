@@ -5,12 +5,13 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
+from ..errors import InternalInvariantError
 from .symmetric_difference import find_grid_witness
 
 
 @dataclass(frozen=True)
 class EquivCounterex:
-    point: Mapping[str, object]
+    point: Mapping[sp.Symbol, object]
     left: bool
     right: bool
 
@@ -30,9 +31,10 @@ def sym_diff_empty(
     check = find_grid_witness(left, right, variables)
     if check.equivalent_on_grid:
         return EquivalenceReport(equivalent=True, checked_points=check.checked_points)
-    assert check.witness is not None
+    if check.witness is None:
+        raise InternalInvariantError("failed equivalence check did not provide a witness")
     mismatch = EquivCounterex(
-        point={sp.sstr(sym): val for sym, val in check.witness.assignment.items()},
+        point=dict(check.witness.assignment),
         left=check.witness.left_value,
         right=check.witness.right_value,
     )

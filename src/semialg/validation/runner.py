@@ -8,6 +8,8 @@ from pathlib import Path
 
 import sympy as sp
 
+from .._errors import EXACT_OPERATION_ERRORS
+from ..errors import SemialgError
 from ..parser import parse_quantified_formula
 from ..qe.complete import qe_by_complete_cad
 from .checkers import CheckResult, FormulaChecker, SymPyInequalityChecker
@@ -89,6 +91,7 @@ class ValidationRunReport:
 def validate_case(
     case: ValidationCase, *, checkers: Sequence[FormulaChecker] | None = None
 ) -> CaseValidationResult:
+    """Run one validation case and record exact agreement, diagnostics, and failure details."""
     start = time.perf_counter()
     diagnostics: list[str] = []
     checker_results: list[CheckResult] = []
@@ -99,10 +102,12 @@ def validate_case(
         )
         case_variables = case.sympy_variables()
         case_quantifiers = case.sympy_quantifiers() or parsed.quantifiers
-        result = qe_by_complete_cad(case_variables, case_quantifiers, parsed.matrix)
+        result = qe_by_complete_cad(
+            case_variables, case_quantifiers, parsed.matrix, return_result=True
+        )
         solver_formula = result.formula
         solver_status = result.status
-    except Exception as exc:
+    except (SemialgError, SyntaxError, *EXACT_OPERATION_ERRORS) as exc:
         return CaseValidationResult(
             case, "error", None, time.perf_counter() - start, False, diagnostics=(repr(exc),)
         )
@@ -114,7 +119,7 @@ def validate_case(
             check = find_grid_witness(expected_expr, solver_formula, tuple(result.free_variables))
             equivalence_checks.append(check)
             passed = passed and check.equivalent_on_grid
-        except Exception as exc:
+        except (SemialgError, SyntaxError, *EXACT_OPERATION_ERRORS) as exc:
             passed = False
             diagnostics.append(f"expected comparison failed: {exc!r}")
 

@@ -1,5 +1,7 @@
 # API overview
 
+For an exhaustive, machine-checked list of every root-level export, see the [Public API index](reference/public_api.md).
+
 This page is a map of the public API. It is intentionally navigational; signatures, contracts, result semantics, and examples live in the family reference pages.
 
 ## Decision and quantifier elimination
@@ -38,25 +40,31 @@ Use these when the primary question is whether a real formula is true, feasible,
 - `semialgebraic_minimize`, `semialgebraic_maximize`
 - `function_range`
 - `polynomial_locus_dimension`
+- `critical_values`
 - `OptimizationResult` and parametric result types
 
 → [Optimization and range reference](reference/optimization_and_range.md)
 
 ## Regions and geometry
 
+- Extrema sets: `argmin_set`, `argmax_set`, `extrema_set`
+- Level families: `level_set`, `sublevel_set`, `superlevel_set`
+
 - Boolean operations: `region_union`, `region_intersection`, `region_difference`, `region_complement`
-- Topology: `region_closure`, `region_interior`, `region_boundary`
-- Predicates and structure: `region_dimension`, `region_components`, `region_subset`, `region_equal`, `region_disjoint`, `region_bounded`, `region_closed`, `region_compact`
+- Topology: `region_closure`, `region_interior`, `region_boundary`, `is_path_connected`, `path_between`, `euler_characteristic`
+- Predicates and structure: `is_empty`, `is_bounded`, `is_compact`, `is_open`, `is_closed`, `is_subset`, `is_equal`, `is_disjoint`, `intersects`, `is_dense_in`, `contains_point`, `is_convex`, `is_connected`, `is_path_connected`, `is_full_dimensional`, `has_empty_interior`, plus the lower-level `region_*` operations
+- Maps and metric queries: `semialgebraic_projection`, `semialgebraic_image`, `semialgebraic_preimage`, `fiber`, `translate`, `scale`, `linear_image`, `affine_transform`, `minkowski_sum`, `squared_distance_range`, `distance_set`, `bounding_box`, `coordinate_range`, `distance_to_region`, `distance_between_regions`, `nearest_point`, `closest_points`, `diameter`, `support_function`, `width`
+- Local algebraic geometry: `singular_locus`, `is_singular`, `is_smooth`, `tangent_space`, `tangent_dimension`, `tangent_cone`
 - Standard regions: intervals, boxes, balls, spheres, shells, simplices, polytopes, parametric and transformed regions
 
 → [Regions reference](reference/regions.md)
 
 ## Integration, measure, and moments
 
-- `reduce_region_integral`, `integrate_over_region`
-- `semialgebraic_measure`
+- `reduce_region_integral`, `integrate_over_region` (including parameter-stratified formula regions)
+- `semialgebraic_measure` (including parameter-stratified measure)
 - `integrate_over_standard_region`, `integrate_over_parametric_region`
-- `region_moment`, `region_centroid`, `region_covariance`
+- `region_moment`, `region_centroid`, `region_covariance`, plus `centroid`, `moment_matrix`, `covariance_matrix`, `inertia_tensor`
 
 → [Integration and moments reference](reference/integration_and_moments.md)
 
@@ -96,6 +104,8 @@ Use these when the primary question is whether a real formula is true, feasible,
 
 ## Choosing an API
 
+For a decision table and comparisons between overlapping abstractions, see [Which function should I use?](guides/choosing_an_api.md).
+
 - Need a Boolean answer? Start with the [decision APIs](reference/decision_and_qe.md).
 - Need actual points or a solution representation? Use [solving](reference/solving_and_sampling.md).
 - Need the decomposition itself? Use [CAD](reference/cad.md).
@@ -105,3 +115,8 @@ Use these when the primary question is whether a real formula is true, feasible,
 - Need behavior as parameters vary? Use [parameter-stratified APIs](reference/parameters.md).
 
 For guarantees shared across all of these families, read [Exactness and certification](concepts/exactness_and_certification.md).
+
+
+## Errors and failure modes
+
+Package-specific exceptions derive from `semialg.SemialgError` and the canonical classes in `semialg.errors`, including strategy/unsupported-fragment, backend, normalization, algebraic-solving, QE, reconstruction, certification, exact-evaluation, dimension, and resource-limit failures. `semialg.exceptions` exposes the same classes from a dedicated exception module.

@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 import sympy as sp
 
 from ...formulas.boolean import bounded_dnf_branches, is_false_expr, is_true_expr
+from .quotient import _as_exact_polynomial
 from .representation import RationalUnivariateError, RationalUnivariateFormulaResult
 from .signs import evaluate_boolean_formula_at_point, solve_rur_semialgebraic_system
 
@@ -28,6 +29,7 @@ def _branch_equalities_and_constraints(
     branch: Sequence[sp.Expr | bool],
     variables: Sequence[sp.Symbol],
 ) -> tuple[tuple[sp.Expr, ...], sp.Expr | bool] | None:
+    """Separate one Boolean branch into exact algebraic equalities and residual constraints for RUR solving."""
     equalities: list[sp.Expr] = []
     constraints: list[sp.Expr | bool] = []
     variable_set = set(variables)
@@ -44,8 +46,15 @@ def _branch_equalities_and_constraints(
                 return tuple(), sp.false
             if residual.free_symbols <= variable_set:
                 try:
-                    sp.Poly(residual, *variables, domain=sp.QQ)
-                except (sp.PolynomialError, ValueError, TypeError):
+                    _as_exact_polynomial(residual, variables)
+                except (
+                    RationalUnivariateError,
+                    sp.PolynomialError,
+                    sp.polys.polyerrors.CoercionFailed,
+                    ValueError,
+                    TypeError,
+                    NotImplementedError,
+                ):
                     constraints.append(atom)
                 else:
                     equalities.append(residual)
@@ -61,21 +70,18 @@ def _branch_equalities_and_constraints(
     return tuple(equalities), constraint_formula
 
 
-def solve_formula_with_rur(
+def _solve_formula_with_rur(
     formula: sp.Expr | bool,
     variables: Sequence[sp.Symbol],
     *,
-    real: bool = True,
-    max_solutions: int | None = None,
+    real: bool,
+    max_solutions: int | None,
+    branch_solver,
 ) -> RationalUnivariateFormulaResult | None:
-    """Try to solve a finite Boolean formula by RUR branch enumeration.
+    """Solve supported Boolean branches with an explicit RUR branch solver.
 
-    Each disjunctive branch must contain enough rational polynomial equalities
-    in ``variables`` to define a zero-dimensional candidate set. Remaining
-    relations are evaluated exactly at the algebraic candidate points. The
-    function returns ``None`` when no branch is in the supported RUR fragment;
-    an empty result with status ``"unsat"`` means at least one branch was
-    supported and all supported branches were unsatisfiable.
+    Keeping the branch solver explicit makes backend-failure handling testable
+    without replacing module globals.
     """
 
     variable_tuple = tuple(variables)
@@ -116,23 +122,32 @@ def solve_formula_with_rur(
             continue
         if len(equalities) < len(variable_tuple):
             skipped_branches += 1
-            notes.append("skipped branch without enough rational equalities for RUR")
+            notes.append(
+                "skipped branch without enough exact algebraic polynomial equalities for RUR"
+            )
             continue
         try:
-            branch_solutions = solve_rur_semialgebraic_system(
+            branch_solutions = branch_solver(
                 equalities,
                 variable_tuple,
                 constraints,
                 real=real,
                 as_assignments=True,
             )
-        except RationalUnivariateError as exc:
+        except (
+            RationalUnivariateError,
+            sp.polys.polyerrors.CoercionFailed,
+            sp.PolynomialError,
+            ValueError,
+            TypeError,
+            NotImplementedError,
+        ) as exc:
             skipped_branches += 1
             notes.append(f"skipped branch outside RUR fragment: {exc}")
             continue
         solved_branches += 1
         for assignment in branch_solutions:  # type: ignore[assignment]
-            key = tuple(sp.sstr(sp.simplify(assignment[var])) for var in variable_tuple)
+            key = tuple(sp.simplify(assignment[var]) for var in variable_tuple)
             if key not in seen:
                 seen.add(key)
                 assignments.append(dict(assignment))
@@ -163,4 +178,26 @@ def solve_formula_with_rur(
         solved_branches=solved_branches,
         skipped_branches=skipped_branches,
         notes=tuple(notes),
+    )
+
+
+def solve_formula_with_rur(
+    formula: sp.Expr | bool,
+    variables: Sequence[sp.Symbol],
+    *,
+    real: bool = True,
+    max_solutions: int | None = None,
+) -> RationalUnivariateFormulaResult | None:
+    """Try to solve a finite Boolean formula with exact RUR branch enumeration.
+
+    The function returns ``None`` when no branch belongs to the supported finite
+    algebraic fragment. Backend domain failures are contained as non-applicability.
+    """
+
+    return _solve_formula_with_rur(
+        formula,
+        variables,
+        real=real,
+        max_solutions=max_solutions,
+        branch_solver=solve_rur_semialgebraic_system,
     )

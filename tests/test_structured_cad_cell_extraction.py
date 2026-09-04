@@ -2,12 +2,14 @@ import pytest
 import sympy as sp
 
 from semialg import (
-    extract_structured_cad_cells,
-    extract_vertical_bounds_from_cad_2d,
     integrate_over_region,
     reduce_region_integral,
     region_boundary,
     solve_semialgebraic,
+)
+from semialg.cad_algorithms.cells import (
+    extract_structured_cad_cells,
+    extract_vertical_bounds_from_cad_2d,
 )
 
 pytestmark = pytest.mark.slow

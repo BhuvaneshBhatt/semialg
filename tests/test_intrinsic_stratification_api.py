@@ -5,11 +5,12 @@ from dataclasses import replace
 import pytest
 import sympy as sp
 
-from semialg import (
+from semialg.cad_algorithms.cells import (
     DelineabilityCertificate,
     IntrinsicCellStratum,
     IntrinsicStratification,
     extract_explicit_cylindrical_solution,
+    intrinsic_cell_integral,
     intrinsic_solution_integrals,
     stratify_intrinsic_solution,
 )
@@ -74,24 +75,18 @@ def test_dimension_filter_in_stratification():
     assert not stratify_intrinsic_solution(sol, dimension=0).strata
 
 
-def test_public_intrinsic_stratification_exports_are_importable():
-    import semialg
-
-    for name in (
-        "IntrinsicCellStratum",
-        "IntrinsicStratification",
-        "stratify_intrinsic_solution",
-        "intrinsic_cell_integral",
-        "intrinsic_solution_integrals",
-    ):
-        assert name in semialg.__all__
-        assert getattr(semialg, name) is not None
+def test_intrinsic_stratification_api_is_importable():
+    assert IntrinsicCellStratum is not None
+    assert IntrinsicStratification is not None
+    assert callable(stratify_intrinsic_solution)
+    assert callable(intrinsic_cell_integral)
+    assert callable(intrinsic_solution_integrals)
 
 
 def test_algebraic_section_without_certificate_is_never_classified_regular() -> None:
     from dataclasses import replace
 
-    from semialg import AlgebraicRootFunction
+    from semialg.cad_algorithms.cells import AlgebraicRootFunction
 
     x, y = sp.symbols("x y", real=True)
     sol = extract_explicit_cylindrical_solution(sp.And(x >= 0, x <= 1, sp.Eq(y, x)), [x, y])

@@ -9,9 +9,11 @@ import sympy as sp
 from ..algebraic.comparison import sort_samples
 from ..algebraic.roots import isolate_real_roots
 from ..algebraic.samples import sample_to_expr
-from ..cad.decomposition import _build_stack, _stack_roots_over_point
-from ..cad.lifting.stack import CADCell
-from ..cad.projection.collins import ProjectionTower, build_collins_proj_set
+from ..cad_algorithms.decomposition import _build_stack, _stack_roots_over_point
+from ..cad_algorithms.lifting.stack import CADCell
+from ..cad_algorithms.polynomial_utils import exact_univariate_poly
+from ..cad_algorithms.projection.collins import ProjectionTower, build_collins_proj_set
+from ..errors import InternalInvariantError
 from ..formula import Formula, equational_constraints, formula_polynomials
 from ..qe.complete import evaluate_formula_on_cell, norm_internal_order
 from .pruning import evaluate_pruning_status
@@ -44,8 +46,8 @@ class LazyResolveResult:
     status: str
     backend: str
     stats: LazyCADStats
-    witness: Mapping[str, sp.Expr] | None = None
-    counterexample: Mapping[str, sp.Expr] | None = None
+    witness: Mapping[sp.Symbol, sp.Expr] | None = None
+    counterexample: Mapping[sp.Symbol, sp.Expr] | None = None
 
 
 @dataclass(frozen=True)
@@ -135,12 +137,12 @@ def _propagate_equational_constraints(
     as ECs because their vanishing is not necessary for a single equation.
     """
     vars_tuple = tuple(variables)
-    known: dict[str, sp.Expr] = {}
-    original_keys: set[str] = set()
+    known: dict[sp.Expr, sp.Expr] = {}
+    original_keys: set[sp.Expr] = set()
     for expr in constraints:
         norm = _normalize_ec(expr)
         if norm is not None:
-            key = sp.srepr(norm)
+            key = norm
             known[key] = norm
             original_keys.add(key)
     changed = True
@@ -165,7 +167,7 @@ def _propagate_equational_constraints(
                     norm = _normalize_ec(resultant)
                     if norm is None or norm.is_number:
                         continue
-                    key = sp.srepr(norm)
+                    key = norm
                     if key not in known and _main_level(norm, vars_tuple) < level:
                         known[key] = norm
                         changed = True
@@ -176,7 +178,7 @@ def _propagate_equational_constraints(
         if level > 0:
             by_level.setdefault(level, []).append(expr)
     ordered = {
-        level: tuple(sorted(items, key=lambda e: (sp.count_ops(e), len(sp.sstr(e)), sp.sstr(e))))
+        level: tuple(sorted(items, key=lambda e: (sp.count_ops(e), sp.default_sort_key(e))))
         for level, items in by_level.items()
     }
     derived = sum(1 for key in known if key not in original_keys)
@@ -211,7 +213,7 @@ def _specialized_ec_roots(
         if specialized.free_symbols - {var}:
             continue
         try:
-            poly = sp.Poly(specialized, var, domain="EX")
+            poly = exact_univariate_poly(specialized, var, algebraic_extension=False)
         except (sp.PolynomialError, ValueError, TypeError):
             continue
         if poly.degree() <= 0:
@@ -240,7 +242,8 @@ def _stack_for_parent(
             roots.extend(isolate_real_roots(poly))
         stack = _build_stack(None, sort_samples(tuple(roots)), 1, tower)
     else:
-        assert parent is not None
+        if parent is None:
+            raise InternalInvariantError("higher-level CAD lifting requires a parent cell")
         roots = _stack_roots_over_point(
             tower.level(level).polynomials,
             variables,
@@ -313,7 +316,7 @@ def lazy_resolve_formula(
     """
 
     start = perf_counter()
-    variables, free, quantified, notes = norm_internal_order(vars_, quantifiers, matrix, None)
+    variables, free, _quantified, notes = norm_internal_order(vars_, quantifiers, matrix, None)
     if free:
         raise ValueError(
             "lazy_resolve_formula requires a sentence; use reduce for formulas with free variables"
@@ -332,8 +335,8 @@ def lazy_resolve_formula(
         ec_by_level=ecs_by_level,
         derived_ec_count=derived_ec_count,
     )
-    witness: dict[str, sp.Expr] | None = None
-    counterexample: dict[str, sp.Expr] | None = None
+    witness: dict[sp.Symbol, sp.Expr] | None = None
+    counterexample: dict[sp.Symbol, sp.Expr] | None = None
 
     def visit_truth_path(level: int, parent: CADCell | None) -> tuple[bool, CADCell | None]:
         """Evaluate quantified truth while lifting only logically needed cells."""
@@ -344,15 +347,16 @@ def lazy_resolve_formula(
             if prefix_truth is not None:
                 return prefix_truth, parent
         if level > len(variables):
-            assert parent is not None
+            if parent is None:
+                raise InternalInvariantError(
+                    "quantified truth evaluation reached a leaf without a cell"
+                )
             state.evaluated_leaf_cells += 1
             truth = evaluate_formula_on_cell(matrix, parent, variables)
             if truth and witness is None:
-                witness = {sp.sstr(k): v for k, v in _sample_mapping(variables, parent).items()}
+                witness = {k: v for k, v in _sample_mapping(variables, parent).items()}
             if not truth and counterexample is None:
-                counterexample = {
-                    sp.sstr(k): v for k, v in _sample_mapping(variables, parent).items()
-                }
+                counterexample = {k: v for k, v in _sample_mapping(variables, parent).items()}
             return truth, parent
 
         q = qmap[variables[level - 1]]
@@ -387,7 +391,7 @@ def lazy_resolve_formula(
 
     truth, leaf = visit_truth_path(1, None)
     if leaf is not None:
-        mapping = {sp.sstr(k): v for k, v in _sample_mapping(variables, leaf).items()}
+        mapping = {k: v for k, v in _sample_mapping(variables, leaf).items()}
         if truth:
             witness = witness or mapping
         else:
@@ -415,7 +419,7 @@ def lazy_find_inst_form(
         variables = tuple(vars_)
         quantifiers = tuple(("exists", sym) for sym in variables)
     else:
-        variables, free, quantified, notes = norm_internal_order(vars_, quantifiers, matrix, None)
+        variables, free, _quantified, _notes = norm_internal_order(vars_, quantifiers, matrix, None)
         if free:
             # For instance finding, treat free variables as existential search
             # variables ahead of explicitly quantified ones.
@@ -448,7 +452,8 @@ def lazy_find_inst_form(
                     found_cell = parent
                 return prefix_truth
         if level > len(variables):
-            assert parent is not None
+            if parent is None:
+                raise InternalInvariantError("instance search reached a leaf without a cell")
             state.evaluated_leaf_cells += 1
             truth = evaluate_formula_on_cell(matrix, parent, variables)
             if truth:

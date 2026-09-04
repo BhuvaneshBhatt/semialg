@@ -55,6 +55,7 @@ def norm_factor_int_eqn(
 
 
 def _extract_simple_bounds(other_atoms: Sequence[sp.Expr], var: sp.Symbol):
+    """Extract explicit integer coordinate bounds from simple relational constraints."""
     lower = None
     upper = None
     equals = set()
@@ -321,9 +322,15 @@ def factor_thread_eqn(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> CanonInt
     return None
 
 
-def solve_int_recursion(
+def solve_factorized_integer_equation(
     expr: sp.Expr, variables: Sequence[sp.Symbol]
 ) -> CanonIntSolveResult | None:
+    """Solve an integer equation by branching on exact polynomial factors.
+
+    Factors ruled out by arithmetic constraints are discarded before recursive
+    solving. Surviving point solutions are deduplicated; unresolved factor
+    branches remain symbolic and the completeness flag reflects that distinction.
+    """
     variables = tuple(variables)
 
     threaded = factor_thread_eqn(expr, variables)
@@ -388,5 +395,5 @@ __all__ = [
     "norm_factor_int_eqn",
     "enum_factor_branches",
     "factor_thread_eqn",
-    "solve_int_recursion",
+    "solve_factorized_integer_equation",
 ]

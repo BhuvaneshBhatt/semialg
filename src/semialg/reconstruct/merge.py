@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 
 import sympy as sp
 
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.lifting.stack import CADCell
 from .cylindrical import path_condition
 from .nested import NestedFormulaResult, nested_formula_from_cells
 

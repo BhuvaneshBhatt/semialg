@@ -1,133 +1,50 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
 
 import sympy as sp
-from sympy.core.relational import Equality, Unequality
-from sympy.logic.boolalg import And as SymAnd
-from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 from sympy.logic.boolalg import Not as SymNot
 from sympy.logic.boolalg import Or as SymOr
 
-from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
-from .interval_decomposition import (
-    finite_real_roots as _finite_real_roots,
-)
+from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
 from .interval_decomposition import (
     one_dimensional_intervals as _shared_intervals,
 )
-from .interval_decomposition import (
-    truth_at as _truth_at,
-)
 from .normalization import (
-    normalize_bounds as _normalize_bounds,
+    normalize_bounds,
+    normalize_formula,
+    normalize_variables,
 )
-from .normalization import (
-    normalize_formula as _normalize_formula,
+from .region_integral_results import (
+    ReducedRegionIntegral,
+    RegionIntegralPiece,
+    RegionIntegralResult,
 )
-from .normalization import (
-    normalize_variables as _normalize_variables,
-)
-from .relations import make_zero_relation
-from .relations import split_relation as _relation_parts
 from .standard_region_integrate import integrate_over_standard_region
 from .standard_regions import StandardRegion
 
-_RECOVERABLE_ERRORS = (
-    ArithmeticError,
-    TypeError,
-    ValueError,
-    NotImplementedError,
-    RuntimeError,
-    sp.PolynomialError,
-)
 
+def _formula_with_explicit_bounds(
+    condition: sp.Expr,
+    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
+) -> sp.Expr:
+    """Conjoin explicit integration bounds to a region formula.
 
-@dataclass(frozen=True)
-class RegionIntegralResult:
-    """Integral over a supported semialgebraic region.
-
-    Integrals use ambient Lebesgue measure by default. Lower-dimensional
-    equality-only subsets therefore contribute zero unless the caller requests
-    ``measure_dimension="intrinsic"`` or an explicit Hausdorff dimension.
-
-    ``exact`` is true for symbolic evaluation and false for numerical
-    evaluation. ``evaluated`` records whether the returned value has been
-    evaluated rather than left as an explicit ``Integral`` expression.
+    CAD Boolean decomposition should see the actual bounded integration domain,
+    especially for complements whose ambient semialgebraic set is unbounded.
     """
 
-    value: sp.Expr
-    integrand: sp.Expr
-    condition: sp.Expr
-    variables: tuple[sp.Symbol, ...]
-    method: str
-    diagnostics: Mapping[str, object] | None = None
-    exact: bool = True
-    evaluated: bool = True
-    error_estimate: sp.Expr | None = None
+    constraints: list[sp.Expr] = [condition]
+    for var, (lower, upper) in bounds.items():
+        if lower != -sp.oo:
+            constraints.append(var >= lower)
+        if upper != sp.oo:
+            constraints.append(var <= upper)
+    return sp.And(*constraints) if len(constraints) > 1 else condition
 
 
-@dataclass(frozen=True)
-class RegionIntegralPiece:
-    """One iterated-integral piece for a semialgebraic region integral.
-
-    ``limits`` uses SymPy's integral-limit convention, for example
-    ``((x, a, b), (y, lower(x), upper(x)))``. Pieces may be signed: Boolean
-    differences such as annuli are represented by using a negative integrand on
-    the subtracted part.
-    """
-
-    integrand: sp.Expr
-    limits: tuple[tuple[sp.Symbol, sp.Expr, sp.Expr], ...]
-    method: str
-    diagnostics: Mapping[str, object] | None = None
-
-    def as_integral(self) -> sp.Integral:
-        """Return this piece as an unevaluated SymPy ``Integral``."""
-
-        return sp.Integral(self.integrand, *self.limits)
-
-
-@dataclass(frozen=True)
-class ReducedRegionIntegral:
-    """Reduction of a region integral to explicit iterated-integral pieces."""
-
-    integrand: sp.Expr
-    condition: sp.Expr
-    variables: tuple[sp.Symbol, ...]
-    pieces: tuple[RegionIntegralPiece, ...]
-    method: str
-    diagnostics: Mapping[str, object] | None = None
-
-    def as_integrals(self) -> tuple[sp.Integral, ...]:
-        """Return each reduced piece as an unevaluated SymPy ``Integral``."""
-
-        return tuple(piece.as_integral() for piece in self.pieces)
-
-    def unevaluated_sum(self) -> sp.Expr:
-        """Return the formal sum of unevaluated piece integrals."""
-
-        if not self.pieces:
-            return sp.Integer(0)
-        return sp.Add(*self.as_integrals())
-
-
-def _atoms(condition: sp.Expr) -> tuple[sp.Expr, ...]:
-    if condition is sp.true or isinstance(condition, BooleanTrue):
-        return ()
-    if condition is sp.false or isinstance(condition, BooleanFalse):
-        return (sp.false,)
-    if isinstance(condition, SymAnd):
-        out: list[sp.Expr] = []
-        for arg in condition.args:
-            out.extend(_atoms(arg))
-        return tuple(out)
-    if isinstance(condition, (SymOr, SymNot)):
-        raise NotImplementedError("this reconstruction path currently supports conjunctions only")
-    if getattr(condition, "is_Relational", False):
-        return (condition,)
-    raise TypeError(f"unsupported formula expression: {condition!r}")
+def _has_boolean_branching(condition: sp.Expr) -> bool:
+    return bool(condition.has(SymOr) or condition.has(SymNot))
 
 
 def _one_dimensional_intervals(
@@ -147,461 +64,13 @@ def _one_dimensional_intervals(
     )
 
 
-def _integrate_1d(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    variable: sp.Symbol,
-    bound: tuple[sp.Expr, sp.Expr] | None,
-) -> sp.Expr:
-    total = sp.Integer(0)
-    for lo, hi in _one_dimensional_intervals(condition, variable, bound):
-        if lo == -sp.oo or hi == sp.oo:
-            val = sp.integrate(integrand, (variable, lo, hi))
-        else:
-            val = sp.integrate(integrand, (variable, lo, hi))
-        if isinstance(val, sp.Integral):
-            raise NotImplementedError("SymPy could not evaluate one of the exact 1D integrals")
-        total += val
-    return sp.simplify(total)
-
-
-def _radial_radii_squared(
-    condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
-) -> tuple[sp.Expr, sp.Expr] | None:
-    try:
-        atoms = _atoms(condition)
-    except NotImplementedError:
-        return None
-    lower = sp.Integer(0)
-    upper = sp.oo
-    found = False
-    for atom in atoms:
-        if atom is sp.false:
-            return (sp.Integer(0), sp.Integer(0))
-        if not getattr(atom, "is_Relational", False):
-            return None
-        expr, op = _relation_parts(atom)
-        try:
-            poly = sp.Poly(expr, x, y)
-        except _RECOVERABLE_ERRORS:
-            return None
-        coeff_x2 = poly.coeff_monomial(x**2)
-        coeff_y2 = poly.coeff_monomial(y**2)
-        if coeff_x2 == 0 or sp.simplify(coeff_x2 - coeff_y2) != 0:
-            return None
-        if any(monom not in {(2, 0), (0, 2), (0, 0)} for monom in poly.monoms()):
-            return None
-        constant = poly.coeff_monomial(1)
-        radius_sq = sp.simplify(-constant / coeff_x2)
-        if op == "==":
-            return (sp.Integer(0), sp.Integer(0))
-        if op == "!=":
-            found = True
-            continue
-        if sp.simplify(coeff_x2).is_negative:
-            op = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}[op]
-        if op in ("<", "<="):
-            upper = sp.Min(upper, radius_sq) if upper is not sp.oo else radius_sq
-            found = True
-        elif op in (">", ">="):
-            lower = sp.Max(lower, radius_sq)
-            found = True
-    if not found:
-        return None
-    lower = sp.simplify(lower)
-    upper = sp.simplify(upper)
-    if upper == sp.oo:
-        raise NotImplementedError("unbounded radial integrals are not yet supported")
-    if bool(upper <= lower) or bool(upper <= 0):
-        return (sp.Integer(0), sp.Integer(0))
-    if bool(lower < 0):
-        lower = sp.Integer(0)
-    return lower, upper
-
-
-def _angular_monomial_integral(i: int, j: int) -> sp.Expr:
-    if i % 2 or j % 2:
-        return sp.Integer(0)
-    return sp.simplify(
-        2
-        * sp.gamma(sp.Rational(i + 1, 2))
-        * sp.gamma(sp.Rational(j + 1, 2))
-        / sp.gamma(sp.Rational(i + j + 2, 2))
-    )
-
-
-def _integrate_radial_polynomial(
-    integrand: sp.Expr, condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
-) -> sp.Expr | None:
-    radii = _radial_radii_squared(condition, x, y)
-    if radii is None:
-        return None
-    lower_sq, upper_sq = radii
-    if lower_sq == upper_sq:
-        return sp.Integer(0)
-    poly = sp.Poly(sp.expand(integrand), x, y)
-    if set(poly.as_expr().free_symbols) - {x, y}:
-        return None
-    total = sp.Integer(0)
-    for (i, j), coeff in poly.terms():
-        angular = _angular_monomial_integral(i, j)
-        if angular == 0:
-            continue
-        power = sp.Rational(i + j + 2, 2)
-        radial = sp.simplify((upper_sq**power - lower_sq**power) / (i + j + 2))
-        total += coeff * angular * radial
-    return sp.simplify(total)
-
-
-def _vertical_slice_data(
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
-) -> tuple[sp.Expr, sp.Expr, tuple[tuple[sp.Expr, sp.Expr], ...]] | None:
-    """Extract exact vertical slice bounds and residual base conditions for integration."""
-    try:
-        atoms = _atoms(condition)
-    except NotImplementedError:
-        return None
-    lower_bounds: list[sp.Expr] = []
-    upper_bounds: list[sp.Expr] = []
-    x_conditions: list[sp.Expr] = []
-    for atom in atoms:
-        if atom is sp.false:
-            return (sp.Integer(0), sp.Integer(0), ())
-        expr, op = _relation_parts(atom)
-        if op == "==":
-            if sp.simplify(expr) != 0:
-                return (sp.Integer(0), sp.Integer(0), ())
-            continue
-        if op == "!=":
-            continue
-        if y not in expr.free_symbols:
-            x_conditions.append(make_zero_relation(expr, op))
-            continue
-        try:
-            poly_y = sp.Poly(expr, y)
-        except _RECOVERABLE_ERRORS:
-            return None
-        if poly_y.degree() != 1:
-            return None
-        coeff = sp.simplify(poly_y.coeff_monomial(y))
-        rest = sp.simplify(poly_y.as_expr() - coeff * y)
-        boundary = sp.simplify(-rest / coeff)
-        if coeff.is_negative:
-            flipped = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}[op]
-        elif coeff.is_positive:
-            flipped = op
-        else:
-            return None
-        if flipped in ("<", "<="):
-            upper_bounds.append(boundary)
-        elif flipped in (">", ">="):
-            lower_bounds.append(boundary)
-    if len(lower_bounds) != 1 or len(upper_bounds) != 1:
-        return None
-    lower = lower_bounds[0]
-    upper = upper_bounds[0]
-    x_conditions.append(lower <= upper)
-    if x in bounds:
-        lo, hi = bounds[x]
-        x_conditions.extend([x >= lo, x <= hi])
-    if y in bounds:
-        lo, hi = bounds[y]
-        # The first implementation avoids piecewise max/min in the slice height.
-        if sp.simplify(lower - lo) != 0 or sp.simplify(upper - hi) != 0:
-            x_conditions.extend([lower >= lo, upper <= hi])
-    x_condition = sp.And(*x_conditions) if x_conditions else sp.true
-    intervals = _one_dimensional_intervals(x_condition, x, None)
-    return lower, upper, intervals
-
-
-def _integrate_vertical_slice(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
-) -> sp.Expr | None:
-    data = _vertical_slice_data(condition, x, y, bounds)
-    if data is None:
-        return None
-    lower, upper, intervals = data
-    if not intervals:
-        return sp.Integer(0)
-    inner = sp.integrate(integrand, (y, lower, upper))
-    if isinstance(inner, sp.Integral):
-        raise NotImplementedError("SymPy could not evaluate the inner vertical-slice integral")
-    total = sp.Integer(0)
-    for lo, hi in intervals:
-        if lo == -sp.oo or hi == sp.oo:
-            raise NotImplementedError("unbounded vertical-slice integrals are not yet supported")
-        val = sp.integrate(inner, (x, lo, hi))
-        if isinstance(val, sp.Integral):
-            raise NotImplementedError("SymPy could not evaluate the outer vertical-slice integral")
-        total += val
-    return sp.simplify(total)
-
-
-def _merge_interval_bound(
-    lower: sp.Expr,
-    upper: sp.Expr,
-    relation_expr: sp.Expr,
-    op: str,
-    variable: sp.Symbol,
-) -> tuple[sp.Expr, sp.Expr] | None:
-    """Update a one-variable interval bound from a linear relation."""
-
-    try:
-        poly = sp.Poly(relation_expr, variable)
-    except _RECOVERABLE_ERRORS:
-        return None
-    if poly.degree() > 1 or relation_expr.free_symbols - {variable}:
-        return None
-    coeff = sp.simplify(poly.coeff_monomial(variable))
-    if coeff == 0:
-        return (lower, upper) if _truth_at(make_zero_relation(relation_expr, op), {}) else None
-    rest = sp.simplify(poly.as_expr() - coeff * variable)
-    boundary = sp.simplify(-rest / coeff)
-    normalized_op = op
-    if coeff.is_negative:
-        normalized_op = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}[op]
-    elif not coeff.is_positive:
-        return None
-    if normalized_op in ("<", "<="):
-        upper = boundary if upper == sp.oo else sp.Min(upper, boundary)
-    elif normalized_op in (">", ">="):
-        lower = boundary if lower == -sp.oo else sp.Max(lower, boundary)
-    else:
-        return None
-    return sp.simplify(lower), sp.simplify(upper)
-
-
-def _box_limits_from_condition(
-    condition: sp.Expr,
-    variables: Sequence[sp.Symbol],
-    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
-) -> tuple[tuple[sp.Symbol, sp.Expr, sp.Expr], ...] | None:
-    """Recognize axis-aligned boxes from independent linear bounds."""
-
-    try:
-        atoms = _atoms(condition)
-    except NotImplementedError:
-        return None
-    lower: dict[sp.Symbol, sp.Expr] = {
-        var: bounds.get(var, (-sp.oo, sp.oo))[0] for var in variables
-    }
-    upper: dict[sp.Symbol, sp.Expr] = {
-        var: bounds.get(var, (-sp.oo, sp.oo))[1] for var in variables
-    }
-    saw_condition = bool(bounds)
-    for atom in atoms:
-        if atom is sp.false:
-            return ()
-        if isinstance(atom, (Equality, Unequality)):
-            return None
-        if not getattr(atom, "is_Relational", False):
-            return None
-        expr, op = _relation_parts(atom)
-        involved = [var for var in variables if var in expr.free_symbols]
-        if len(involved) != 1:
-            return None
-        var = involved[0]
-        merged = _merge_interval_bound(lower[var], upper[var], expr, op, var)
-        if merged is None:
-            return None
-        lower[var], upper[var] = merged
-        saw_condition = True
-    if not saw_condition:
-        return None
-    limits: list[tuple[sp.Symbol, sp.Expr, sp.Expr]] = []
-    for var in reversed(tuple(variables)):
-        lo = sp.simplify(lower[var])
-        hi = sp.simplify(upper[var])
-        if lo == -sp.oo or hi == sp.oo:
-            return None
-        if bool(sp.simplify(hi - lo) < 0):
-            return ()
-        limits.append((var, lo, hi))
-    return tuple(limits)
-
-
-def _reduce_box(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    variables: Sequence[sp.Symbol],
-    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
-) -> tuple[RegionIntegralPiece, ...] | None:
-    limits = _box_limits_from_condition(condition, variables, bounds)
-    if limits is None:
-        return None
-    if limits == ():
-        return ()
-    return (
-        RegionIntegralPiece(
-            integrand=integrand,
-            limits=limits,
-            method="axis_aligned_box_iterated_integral",
-            diagnostics={"shape": "box"},
-        ),
-    )
-
-
-def _canonical_linear_coefficients(
-    expr: sp.Expr, variables: Sequence[sp.Symbol]
-) -> tuple[tuple[sp.Expr, ...], sp.Expr] | None:
-    try:
-        poly = sp.Poly(expr, *variables)
-    except _RECOVERABLE_ERRORS:
-        return None
-    if poly.total_degree() > 1:
-        return None
-    coeffs = tuple(sp.simplify(poly.coeff_monomial(var)) for var in variables)
-    constant = sp.simplify(poly.coeff_monomial(1))
-    return coeffs, constant
-
-
-def _reduce_standard_simplex_2d(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-) -> tuple[RegionIntegralPiece, ...] | None:
-    """Recognize the 2D unit simplex x >= 0, y >= 0, x + y <= 1."""
-
-    try:
-        atoms = _atoms(condition)
-    except NotImplementedError:
-        return None
-    needed = {"x_nonnegative": False, "y_nonnegative": False, "sum_le_one": False}
-    for atom in atoms:
-        if not getattr(atom, "is_Relational", False) or isinstance(atom, (Equality, Unequality)):
-            return None
-        expr, op = _relation_parts(atom)
-        if _canonical_linear_coefficients(expr, (x, y)) is None:
-            return None
-        if sp.simplify(expr - x) == 0 and op in (">", ">="):
-            needed["x_nonnegative"] = True
-        elif sp.simplify(expr + x) == 0 and op in ("<", "<="):
-            needed["x_nonnegative"] = True
-        elif sp.simplify(expr - y) == 0 and op in (">", ">="):
-            needed["y_nonnegative"] = True
-        elif sp.simplify(expr + y) == 0 and op in ("<", "<="):
-            needed["y_nonnegative"] = True
-        elif sp.simplify(expr - (x + y - 1)) == 0 and op in ("<", "<="):
-            needed["sum_le_one"] = True
-        elif sp.simplify(expr + (x + y - 1)) == 0 and op in (">", ">="):
-            needed["sum_le_one"] = True
-        else:
-            return None
-    if not all(needed.values()):
-        return None
-    return (
-        RegionIntegralPiece(
-            integrand=integrand,
-            limits=((y, sp.Integer(0), 1 - x), (x, sp.Integer(0), sp.Integer(1))),
-            method="unit_simplex_iterated_integral",
-            diagnostics={"shape": "unit_simplex_2d"},
-        ),
-    )
-
-
-def _axis_aligned_ellipse_data(
-    condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
-) -> tuple[sp.Expr, sp.Expr, sp.Expr, sp.Expr] | None:
-    """Recognize a filled axis-aligned ellipse from one quadratic inequality."""
-
-    try:
-        atoms = _atoms(condition)
-    except NotImplementedError:
-        return None
-    if len(atoms) != 1 or not getattr(atoms[0], "is_Relational", False):
-        return None
-    atom = atoms[0]
-    if isinstance(atom, (Equality, Unequality)):
-        return None
-    expr, op = _relation_parts(atom)
-    if op not in ("<", "<=", ">", ">="):
-        return None
-    try:
-        poly = sp.Poly(expr, x, y)
-    except _RECOVERABLE_ERRORS:
-        return None
-    if poly.total_degree() != 2 or poly.coeff_monomial(x * y) != 0:
-        return None
-    ax = sp.simplify(poly.coeff_monomial(x**2))
-    ay = sp.simplify(poly.coeff_monomial(y**2))
-    bx = sp.simplify(poly.coeff_monomial(x))
-    by = sp.simplify(poly.coeff_monomial(y))
-    c0 = sp.simplify(poly.coeff_monomial(1))
-    if ax == 0 or ay == 0:
-        return None
-    if op in (">", ">="):
-        ax, ay, bx, by, c0 = (-ax, -ay, -bx, -by, -c0)
-    if not (ax.is_positive and ay.is_positive):
-        return None
-    cx = sp.simplify(-bx / (2 * ax))
-    cy = sp.simplify(-by / (2 * ay))
-    completed_constant = sp.simplify(c0 - ax * cx**2 - ay * cy**2)
-    if not completed_constant.is_negative:
-        return None
-    level = sp.simplify(-completed_constant)
-    rx2 = sp.simplify(level / ax)
-    ry2 = sp.simplify(level / ay)
-    if bool(rx2 <= 0) or bool(ry2 <= 0):
-        return None
-    return cx, cy, rx2, ry2
-
-
-def _reduce_axis_aligned_ellipse(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-) -> tuple[RegionIntegralPiece, ...] | None:
-    data = _axis_aligned_ellipse_data(condition, x, y)
-    if data is None:
-        return None
-    cx, cy, rx2, ry2 = data
-    u = sp.Symbol(f"_{x.name}_unit", real=True)
-    v = sp.Symbol(f"_{y.name}_unit", real=True)
-    rx = sp.sqrt(rx2)
-    ry = sp.sqrt(ry2)
-    transformed = sp.simplify(rx * ry * integrand.subs({x: cx + rx * u, y: cy + ry * v}))
-    height = sp.sqrt(1 - u**2)
-    return (
-        RegionIntegralPiece(
-            integrand=transformed,
-            limits=((v, -height, height), (u, -1, 1)),
-            method="axis_aligned_ellipse_affine_unit_disk",
-            diagnostics={
-                "shape": "axis_aligned_ellipse",
-                "center": (cx, cy),
-                "radii_squared": (rx2, ry2),
-            },
-        ),
-    )
-
-
-def _integrate_axis_aligned_ellipse_polynomial(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-) -> sp.Expr | None:
-    """Fast exact polynomial moments over a recognized axis-aligned ellipse."""
-
-    data = _axis_aligned_ellipse_data(condition, x, y)
-    if data is None:
-        return None
-    cx, cy, rx2, ry2 = data
-    u = sp.Symbol(f"_{x.name}_unit", real=True)
-    v = sp.Symbol(f"_{y.name}_unit", real=True)
-    rx = sp.sqrt(rx2)
-    ry = sp.sqrt(ry2)
-    transformed = sp.expand(rx * ry * integrand.subs({x: cx + rx * u, y: cy + ry * v}))
-    return _integrate_radial_polynomial(transformed, u**2 + v**2 <= 1, u, v)
+from ._region_integrate_geometry import (
+    _integrate_axis_aligned_ellipse_polynomial,
+    _integrate_radial_polynomial,
+    _reduce_axis_aligned_ellipse,
+    _reduce_box,
+    _reduce_standard_simplex_2d,
+)
 
 
 def _integral_piece_value(piece: RegionIntegralPiece) -> sp.Expr:
@@ -671,503 +140,163 @@ def _reduce_1d(
     return tuple(pieces)
 
 
-def _reduce_radial_vertical_pieces(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-) -> tuple[RegionIntegralPiece, ...] | None:
-    radii = _radial_radii_squared(condition, x, y)
-    if radii is None:
-        return None
-    lower_sq, upper_sq = radii
-    if lower_sq == upper_sq:
-        return ()
-    if upper_sq == sp.oo:
-        raise NotImplementedError(
-            "unbounded radial regions cannot yet be reduced to finite iterated pieces"
-        )
-
-    pieces: list[RegionIntegralPiece] = []
-
-    def add_disk_piece(radius_sq: sp.Expr, signed_integrand: sp.Expr, label: str) -> None:
-        if sp.simplify(radius_sq) == 0:
-            return
-        radius = sp.sqrt(radius_sq)
-        height = sp.sqrt(radius_sq - x**2)
-        pieces.append(
-            RegionIntegralPiece(
-                integrand=signed_integrand,
-                limits=((y, -height, height), (x, -radius, radius)),
-                method=label,
-                diagnostics={"radius_squared": radius_sq},
-            )
-        )
-
-    add_disk_piece(upper_sq, integrand, "radial_region_outer_disk_vertical_slice")
-    if sp.simplify(lower_sq) != 0:
-        add_disk_piece(lower_sq, -integrand, "radial_region_inner_disk_subtraction")
-    return tuple(pieces)
+from ._region_integrate_cad import (
+    _cad_integration_orders,
+    _integration_piece_score,
+    _reduce_cad_extracted_vertical_bounds_2d,
+    _reduce_cylindrical_solution_cells_nd,
+    _reduce_cylindrical_vertical_bounds_2d,
+    _reduce_radial_vertical_pieces,
+    _reduce_vertical_slice,
+    _reduce_with_best_cad_order,
+    _reduce_with_best_explicit_cylindrical_order,
+)
+from ._region_integrate_intrinsic import (
+    _integrate_intrinsic_dimension,
+    _normalize_measure_dimension,
+)
 
 
-def _reduce_vertical_slice(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
-) -> tuple[RegionIntegralPiece, ...] | None:
-    data = _vertical_slice_data(condition, x, y, bounds)
-    if data is None:
-        return None
-    lower, upper, intervals = data
-    return tuple(
-        RegionIntegralPiece(
-            integrand=integrand,
-            limits=((y, lower, upper), (x, lo, hi)),
-            method="vertical_slice_iterated_integral",
-            diagnostics={"lower": lower, "upper": upper},
-        )
-        for lo, hi in intervals
-    )
+def _reduce_region_integral_1d(
+    expr: sp.Expr,
+    formula: sp.Expr,
+    vars_: tuple[sp.Symbol, ...],
+    bound_map: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
+    params: tuple[sp.Symbol, ...],
+) -> tuple[tuple[RegionIntegralPiece, ...], str]:
+    """Dispatch exact one-dimensional region integration reductions."""
+    pieces = None
+    if params:
+        pieces = _reduce_box(expr, formula, vars_, bound_map, parameter_symbols=params)
+        if pieces is not None:
+            return tuple(pieces), "parametric_axis_aligned_interval_integral"
+    pieces = _reduce_1d(expr, formula, vars_[0], bound_map.get(vars_[0]))
+    return tuple(pieces), "one_dimensional_cell_integration"
 
 
-def _reduce_cylindrical_vertical_bounds_2d(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-) -> tuple[RegionIntegralPiece, ...] | None:
-    """Reduce supported CAD-like 2D cylindrical formulas to vertical pieces."""
+def _reduce_region_integral_2d(
+    expr: sp.Expr,
+    formula: sp.Expr,
+    vars_: tuple[sp.Symbol, ...],
+    bound_map: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
+    params: tuple[sp.Symbol, ...],
+) -> tuple[tuple[RegionIntegralPiece, ...], str]:
+    """Dispatch two-dimensional exact reductions in established priority order."""
+    x, y = vars_
+    pieces = _reduce_box(expr, formula, vars_, bound_map, parameter_symbols=params)
+    if pieces is not None:
+        return tuple(pieces), "axis_aligned_box_iterated_integral"
+    cad_formula = _formula_with_explicit_bounds(formula, bound_map)
+    ordered = _reduce_with_best_explicit_cylindrical_order(expr, cad_formula, vars_)
+    if ordered is not None and ordered[1] != vars_:
+        return ordered[0], "coordinate_permuted_cylindrical_integration"
+    if _has_boolean_branching(formula):
+        cad_formula = _formula_with_explicit_bounds(formula, bound_map)
+        pieces = _reduce_cylindrical_solution_cells_nd(expr, cad_formula, vars_)
+        if pieces is not None:
+            return tuple(pieces), "complete_cad_boolean_cell_integration"
+    if not bound_map:
+        for reducer, method in (
+            (_reduce_standard_simplex_2d, "unit_simplex_iterated_integral"),
+            (_reduce_radial_vertical_pieces, "radial_region_as_signed_vertical_slices"),
+            (_reduce_axis_aligned_ellipse, "axis_aligned_ellipse_affine_unit_disk"),
+        ):
+            pieces = reducer(expr, formula, x, y)
+            if pieces is not None:
+                return tuple(pieces), method
 
-    try:
-        cells = decompose_cylindrical_formula_to_vertical_bounds_2d(condition, (x, y))
-    except NotImplementedError:
-        return None
-    pieces: list[RegionIntegralPiece] = []
-    for cell in cells:
-        lo, hi = cell.x_interval
-        if lo == hi:
-            continue
-        if lo == -sp.oo or hi == sp.oo:
-            return None
-        for lower, upper in cell.y_bounds:
-            if lower == upper:
-                continue
-            if lower == -sp.oo or upper == sp.oo:
-                return None
-            pieces.append(
-                RegionIntegralPiece(
-                    integrand=integrand,
-                    limits=((y, lower, upper), (x, lo, hi)),
-                    method="cylindrical_formula_vertical_bounds_2d",
-                    diagnostics={
-                        "x_interval": (lo, hi),
-                        "y_bounds": (lower, upper),
-                        "source_formula": cell.source_formula,
-                    },
-                )
-            )
-    return tuple(pieces)
-
-
-def _reduce_cad_extracted_vertical_bounds_2d(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    x: sp.Symbol,
-    y: sp.Symbol,
-) -> tuple[RegionIntegralPiece, ...] | None:
-    """Reduce arbitrary complete-CAD 2D cells to vertical integral pieces."""
-
-    try:
-        from .cad.cells import extract_vertical_bounds_from_cad_2d
-
-        cells = extract_vertical_bounds_from_cad_2d(condition, (x, y), full_dimensional_only=True)
-    except _RECOVERABLE_ERRORS:
-        return None
-    pieces: list[RegionIntegralPiece] = []
-    for cell in cells:
-        lo, hi = cell.x_interval
-        if lo == hi or lo == -sp.oo or hi == sp.oo:
-            continue
-        for lower, upper in cell.y_bounds:
-            if lower == upper or lower == -sp.oo or upper == sp.oo:
-                continue
-            pieces.append(
-                RegionIntegralPiece(
-                    integrand=integrand,
-                    limits=((y, lower, upper), (x, lo, hi)),
-                    method="complete_cad_vertical_bounds_2d",
-                    diagnostics={
-                        "x_interval": (lo, hi),
-                        "y_bounds": (lower, upper),
-                        "source_formula": cell.source_formula,
-                    },
-                )
-            )
-    return tuple(pieces) if pieces else None
-
-
-def _normalize_measure_dimension(
-    measure_dimension: object, ambient_dimension: int, condition: sp.Expr
-) -> int | str:
-    """Normalize measure-dimension options for the first intrinsic layer."""
-
-    if measure_dimension in (None, "ambient"):
-        return ambient_dimension
-    if measure_dimension == "top":
-        return _infer_region_dimension(condition, ambient_dimension)
-    if measure_dimension == "intrinsic":
-        return _infer_region_dimension(condition, ambient_dimension)
-    if isinstance(measure_dimension, int):
-        if measure_dimension < 0 or measure_dimension > ambient_dimension:
-            raise ValueError("measure_dimension must be between 0 and the ambient dimension")
-        return measure_dimension
-    raise ValueError('measure_dimension must be None, "ambient", "intrinsic", "top", or an integer')
-
-
-def _infer_region_dimension(condition: sp.Expr, ambient_dimension: int) -> int:
-    """Infer a useful dimension for common semialgebraic regions.
-
-    This intentionally small heuristic recognizes full-dimensional inequality
-    regions, univariate finite point sets, two-dimensional finite point sets,
-    and plane algebraic curves. It is not a replacement for CAD-based cell
-    dimension computation; unsupported cases default to the ambient dimension.
-    """
-
-    try:
-        atoms = _atoms(condition)
-    except _RECOVERABLE_ERRORS:
-        return ambient_dimension
-    nontrivial_equalities: list[sp.Expr] = []
-    for atom in atoms:
-        if isinstance(atom, Equality):
-            expr, _ = _relation_parts(atom)
-            if sp.simplify(expr) != 0:
-                nontrivial_equalities.append(expr)
-    if not nontrivial_equalities:
-        return ambient_dimension
-    if ambient_dimension == 1:
-        return 0
-    if ambient_dimension == 2:
-        if len(nontrivial_equalities) >= 2:
-            return 0
-        return 1
-    return max(0, ambient_dimension - len(nontrivial_equalities))
-
-
-def _zero_dimensional_points(
-    condition: sp.Expr, variables: Sequence[sp.Symbol]
-) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
-    """Return finite real points for common zero-dimensional formulas."""
-
-    try:
-        atoms = _atoms(condition)
-    except _RECOVERABLE_ERRORS as exc:
-        raise NotImplementedError(
-            "zero-dimensional integration currently supports conjunctions of relations"
-        ) from exc
-
-    equalities: list[sp.Expr] = []
-    for atom in atoms:
-        if isinstance(atom, Equality):
-            expr, _ = _relation_parts(atom)
-            if sp.simplify(expr) != 0:
-                equalities.append(expr)
-    if not equalities:
-        raise NotImplementedError(
-            "zero-dimensional integration requires at least one nontrivial equality"
-        )
-
-    if len(variables) == 1:
-        var = variables[0]
-        roots: set[str] = set()
-        points: list[dict[sp.Symbol, sp.Expr]] = []
-        for eq in equalities:
-            if not eq.free_symbols <= {var}:
-                raise NotImplementedError(
-                    "zero-dimensional univariate formulas must only use the integration variable"
-                )
-            for root in _finite_real_roots(eq, var):
-                subs = {var: root}
-                if _truth_at(condition, subs):
-                    key = sp.sstr(sp.simplify(root))
-                    if key not in roots:
-                        roots.add(key)
-                        points.append(subs)
-        return tuple(points)
-
-    if len(variables) == 2:
-        x, y = variables
-        if len(equalities) == 1:
-            raise NotImplementedError(
-                "a single plane equation is generally one-dimensional, not zero-dimensional"
-            )
-        try:
-            raw = sp.solve(equalities, tuple(variables), dict=True)
-        except _RECOVERABLE_ERRORS as exc:
-            raise NotImplementedError(
-                "could not solve the zero-dimensional equality system"
-            ) from exc
-        points = []
-        seen: set[str] = set()
-        for sol in raw:
-            if not all(var in sol for var in variables):
-                continue
-            subs = {var: sp.simplify(sol[var]) for var in variables}
-            if any(bool(sp.im(sp.N(val, 50)) != 0) for val in subs.values()):
-                continue
-            if _truth_at(condition, subs):
-                key = tuple(sp.sstr(subs[var]) for var in variables)
-                if str(key) not in seen:
-                    seen.add(str(key))
-                    points.append(subs)
-        return tuple(points)
-
-    raise NotImplementedError(
-        "zero-dimensional integration currently supports one or two ambient variables"
-    )
-
-
-def _integrate_zero_dimensional(
-    integrand: sp.Expr, condition: sp.Expr, variables: Sequence[sp.Symbol]
-) -> sp.Expr:
-    total = sp.Integer(0)
-    for point in _zero_dimensional_points(condition, variables):
-        total += sp.simplify(integrand.subs(point))
-    return sp.simplify(total)
-
-
-def _circle_radius_squared(condition: sp.Expr, x: sp.Symbol, y: sp.Symbol) -> sp.Expr | None:
-    """Recognize x**2 + y**2 == r**2 centered at the origin."""
-
-    try:
-        atoms = _atoms(condition)
-    except _RECOVERABLE_ERRORS:
-        return None
-    radius_sq: sp.Expr | None = None
-    other_atoms: list[sp.Expr] = []
-    for atom in atoms:
-        if isinstance(atom, Equality):
-            expr, _ = _relation_parts(atom)
-            try:
-                poly = sp.Poly(expr, x, y)
-            except _RECOVERABLE_ERRORS:
-                return None
-            coeff_x2 = poly.coeff_monomial(x**2)
-            coeff_y2 = poly.coeff_monomial(y**2)
-            if (
-                coeff_x2 != 0
-                and sp.simplify(coeff_x2 - coeff_y2) == 0
-                and all(monom in {(2, 0), (0, 2), (0, 0)} for monom in poly.monoms())
-            ):
-                candidate = sp.simplify(-poly.coeff_monomial(1) / coeff_x2)
-                radius_sq = candidate if radius_sq is None else radius_sq
-            else:
-                other_atoms.append(atom)
-        else:
-            other_atoms.append(atom)
-    if radius_sq is None or other_atoms:
-        return None
-    if bool(radius_sq < 0):
-        return sp.Integer(0)
-    return sp.simplify(radius_sq)
-
-
-def _integrate_circle_intrinsic(
-    integrand: sp.Expr, condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
-) -> sp.Expr | None:
-    radius_sq = _circle_radius_squared(condition, x, y)
-    if radius_sq is None:
-        return None
-    if radius_sq == 0:
-        return sp.simplify(integrand.subs({x: 0, y: 0}))
-    radius = sp.sqrt(radius_sq)
-    theta = sp.Symbol("theta", real=True)
-    expr = sp.simplify(
-        radius * integrand.subs({x: radius * sp.cos(theta), y: radius * sp.sin(theta)})
-    )
-    value = sp.integrate(expr, (theta, 0, 2 * sp.pi))
-    if isinstance(value, sp.Integral) or value.has(sp.Integral):
-        raise NotImplementedError("SymPy could not evaluate the circle intrinsic integral")
-    return sp.simplify(value)
-
-
-def _graph_curve_data(
-    condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
-) -> tuple[sp.Expr, tuple[tuple[sp.Expr, sp.Expr], ...]] | None:
-    """Recognize a plane graph y = g(x) together with x-conditions."""
-
-    try:
-        atoms = _atoms(condition)
-    except _RECOVERABLE_ERRORS:
-        return None
-    graph: sp.Expr | None = None
-    x_conditions: list[sp.Expr] = []
-    for atom in atoms:
-        if isinstance(atom, Equality):
-            expr, _ = _relation_parts(atom)
-            if y not in expr.free_symbols:
-                x_conditions.append(sp.Eq(expr, 0))
-                continue
-            try:
-                poly_y = sp.Poly(expr, y)
-            except _RECOVERABLE_ERRORS:
-                return None
-            if poly_y.degree() != 1:
-                return None
-            coeff = sp.simplify(poly_y.coeff_monomial(y))
-            rest = sp.simplify(poly_y.as_expr() - coeff * y)
-            candidate = sp.simplify(-rest / coeff)
-            if candidate.free_symbols - {x}:
-                return None
-            graph = candidate if graph is None else graph
-            if sp.simplify(graph - candidate) != 0:
-                return None
-        elif getattr(atom, "is_Relational", False):
-            expr, op = _relation_parts(atom)
-            if y in expr.free_symbols:
-                # A first implementation avoids inequalities along graph curves.
-                return None
-            x_conditions.append(make_zero_relation(expr, op))
-        else:
-            return None
-    if graph is None:
-        return None
-    x_condition = sp.And(*x_conditions) if x_conditions else sp.true
-    intervals = _one_dimensional_intervals(x_condition, x, None)
-    return graph, intervals
-
-
-def _integrate_graph_curve_intrinsic(
-    integrand: sp.Expr, condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
-) -> sp.Expr | None:
-    data = _graph_curve_data(condition, x, y)
-    if data is None:
-        return None
-    graph, intervals = data
-    if not intervals:
-        return sp.Integer(0)
-    speed = sp.sqrt(1 + sp.diff(graph, x) ** 2)
-    expr = sp.simplify(integrand.subs(y, graph) * speed)
-    total = sp.Integer(0)
-    for lo, hi in intervals:
-        if lo == -sp.oo or hi == sp.oo:
-            raise NotImplementedError("unbounded intrinsic graph integrals are not yet supported")
-        value = sp.integrate(expr, (x, lo, hi))
-        if isinstance(value, sp.Integral) or value.has(sp.Integral):
-            raise NotImplementedError("SymPy could not evaluate the intrinsic graph integral")
-        total += value
-    return sp.simplify(total)
-
-
-def _integrate_intrinsic_dimension(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    variables: Sequence[sp.Symbol],
-    measure_dimension: int,
-    *,
-    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
-) -> tuple[sp.Expr, str]:
-    """Evaluate an intrinsic-dimensional integral with certified geometry."""
-
-    ambient = len(variables)
-    if measure_dimension == ambient:
-        reduced = reduce_region_integral(integrand, condition, variables, bounds=bounds)
-        assert isinstance(reduced, ReducedRegionIntegral)
-        value, _, _ = _evaluate_reduced_integral(reduced, method="symbolic", precision=50)
-        return value, reduced.method
-    if measure_dimension == 0:
-        return _integrate_zero_dimensional(
-            integrand, condition, variables
-        ), "zero_dimensional_counting_measure"
-    if ambient == 2 and measure_dimension == 1:
-        x, y = variables
-        circle = _integrate_circle_intrinsic(integrand, condition, x, y)
-        if circle is not None:
-            return circle, "circle_intrinsic_length_measure"
-        graph = _integrate_graph_curve_intrinsic(integrand, condition, x, y)
-        if graph is not None:
-            return graph, "graph_curve_intrinsic_length_measure"
-    # Section cells use the induced Hausdorff metric, so they cannot be treated
-    # as zero-width limits of ambient Lebesgue integrals.
-    try:
-        from .cad.cells import extract_cylindrical_solution
-        from .cad.integration import intrinsic_solution_integrals
-
-        solution = extract_cylindrical_solution(condition, variables, selected_only=True)
-        pieces = intrinsic_solution_integrals(
-            solution, integrand, dimension=measure_dimension, evaluate=False, require_verified=True
-        )
-        if pieces:
-            values = []
-            for piece in pieces:
-                value = piece.doit()
-                if isinstance(value, sp.Integral) or getattr(value, "has", lambda *_: False)(
-                    sp.Integral
-                ):
-                    raise NotImplementedError(
-                        "SymPy could not evaluate an intrinsic CAD-cell integral"
+    # Brown's projection heuristic can expose polynomial slice bounds that are
+    # simpler to integrate than the caller-order radical bounds. Use a certified
+    # alternative order before constructing the caller-order decomposition.
+    cad_formula = _formula_with_explicit_bounds(formula, bound_map)
+    candidate_orders = _cad_integration_orders(cad_formula, vars_)
+    suggested_orders = tuple(order for order in candidate_orders if order != vars_)
+    if suggested_orders:
+        suggested = suggested_orders[-1]
+        suggested_pieces = _reduce_cylindrical_solution_cells_nd(expr, cad_formula, suggested)
+        if suggested_pieces is not None:
+            current_vertical = _reduce_vertical_slice(expr, formula, x, y, bound_map)
+            if current_vertical is None or _integration_piece_score(
+                suggested_pieces, suggested
+            ) < _integration_piece_score(current_vertical, vars_):
+                annotated = tuple(
+                    RegionIntegralPiece(
+                        integrand=piece.integrand,
+                        limits=piece.limits,
+                        method="cad_variable_order_cell_integral",
+                        diagnostics={
+                            **(piece.diagnostics or {}),
+                            "integration_variable_order": suggested,
+                            "order_source": "cad_order_heuristic",
+                        },
                     )
-                values.append(value)
-            return sp.simplify(sum(values, sp.Integer(0))), "cylindrical_solution_intrinsic_measure"
-    except NotImplementedError:
-        raise
-    except _RECOVERABLE_ERRORS:
-        pass
+                    for piece in suggested_pieces
+                )
+                return annotated, "cad_variable_order_cell_integration"
+    pieces = _reduce_vertical_slice(expr, formula, x, y, bound_map)
+    if pieces is not None:
+        return tuple(pieces), "vertical_slice_iterated_integral"
+    if not bound_map:
+        pieces = _reduce_cylindrical_vertical_bounds_2d(expr, formula, x, y)
+        if pieces is not None:
+            has_nonlinear_stack = any(
+                sp.Poly(atom.lhs - atom.rhs, y).degree() > 1
+                for atom in getattr(formula, "args", (formula,))
+                if getattr(atom, "is_Relational", False)
+            )
+            return tuple(pieces), (
+                "complete_cad_vertical_bounds_2d"
+                if has_nonlinear_stack
+                else "cylindrical_formula_vertical_bounds_2d"
+            )
+        pieces = _reduce_cad_extracted_vertical_bounds_2d(expr, formula, x, y)
+        if pieces is not None:
+            return tuple(pieces), "complete_cad_vertical_bounds_2d"
+    cad_formula = _formula_with_explicit_bounds(formula, bound_map)
+    ordered_cad = _reduce_with_best_cad_order(expr, cad_formula, vars_)
+    if ordered_cad is not None:
+        return ordered_cad[0], (
+            "complete_cad_boolean_cell_integration"
+            if _has_boolean_branching(formula)
+            else "cad_variable_order_cell_integration"
+        )
     raise NotImplementedError(
-        "intrinsic integration supports finite point sets and verified cylindrical CAD graph cells; "
-        "unsupported singular/non-graph strata fail conservatively"
+        "reduce_region_integral supports exact 1D sets, axis-aligned boxes, the 2D unit simplex, "
+        "2D axis-aligned ellipses, 2D origin-centered radial regions, simple 2D vertical-slice regions, "
+        "and supported 2D cylindrical formulas"
     )
 
 
-def _reduce_cylindrical_solution_cells_nd(
-    integrand: sp.Expr,
-    condition: sp.Expr,
-    variables: Sequence[sp.Symbol],
-) -> tuple[RegionIntegralPiece, ...] | None:
-    """Reduce arbitrary-dimensional full CAD cells to nested iterated integrals.
-
-    This exploits the public cylindrical-solution representation. It is exact
-    for full-dimensional cells whose coordinate bounds can be expressed by the
-    current CAD extractor. Lower-dimensional cells are ignored for ambient
-    Lebesgue integration.
-    """
-
-    try:
-        from .cad.cells import extract_cylindrical_solution, extract_explicit_cylindrical_solution
-        from .cad.integration import full_dimensional_cell_integral
-
-        cyl = extract_explicit_cylindrical_solution(condition, variables)
-        if cyl is None:
-            cyl = extract_cylindrical_solution(condition, variables, selected_only=True)
-    except _RECOVERABLE_ERRORS:
-        return None
-    pieces: list[RegionIntegralPiece] = []
-    n = len(tuple(variables))
-    for cell in getattr(cyl, "cells", ()):
-        if getattr(cell, "dimension", None) != n:
-            continue
-        try:
-            adapted = full_dimensional_cell_integral(cell, integrand, require_verified=True)
-        except _RECOVERABLE_ERRORS:
-            continue
-        limits = adapted.limits
-        if len(limits) != n:
-            continue
-        pieces.append(
-            RegionIntegralPiece(
-                integrand=integrand,
-                limits=limits,
-                method="cylindrical_solution_cell_iterated_integral",
-                diagnostics={
-                    "cell_index": getattr(cell, "index", None),
-                    "cell_dimension": getattr(cell, "dimension", None),
-                    "typed_bounds_verified": adapted.certified_bounds,
-                },
-            )
+def _reduce_region_integral_nd(
+    expr: sp.Expr,
+    formula: sp.Expr,
+    vars_: tuple[sp.Symbol, ...],
+    bound_map: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
+    params: tuple[sp.Symbol, ...],
+) -> tuple[tuple[RegionIntegralPiece, ...], str]:
+    """Dispatch higher-dimensional box and cylindrical-cell reductions."""
+    pieces = _reduce_box(expr, formula, vars_, bound_map, parameter_symbols=params)
+    if pieces is not None:
+        return tuple(pieces), "axis_aligned_box_iterated_integral"
+    cad_formula = _formula_with_explicit_bounds(formula, bound_map)
+    ordered = _reduce_with_best_explicit_cylindrical_order(expr, cad_formula, vars_)
+    if ordered is not None:
+        return ordered[0], (
+            "coordinate_permuted_cylindrical_integration"
+            if ordered[1] != vars_
+            else "cylindrical_solution_cell_iterated_integral_nd"
         )
-    return tuple(pieces) if pieces else None
+    ordered_cad = _reduce_with_best_cad_order(expr, cad_formula, vars_)
+    if ordered_cad is not None:
+        return ordered_cad[0], (
+            "complete_cad_boolean_cell_integration"
+            if _has_boolean_branching(formula)
+            else "cad_variable_order_cell_integration"
+        )
+    raise NotImplementedError(
+        "reduce_region_integral supports higher-dimensional axis-aligned boxes and "
+        "full-dimensional cells exposed by the cylindrical CAD solution extractor"
+    )
 
 
 def reduce_region_integral(
@@ -1179,6 +308,7 @@ def reduce_region_integral(
     | Mapping[sp.Symbol | str, tuple[object, object]]
     | None = None,
     return_integrals: bool = False,
+    parameters: Sequence[sp.Symbol | str] | None = None,
 ) -> ReducedRegionIntegral | tuple[sp.Integral, ...]:
     """Reduce a supported region integral to explicit iterated integrals.
 
@@ -1190,81 +320,37 @@ def reduce_region_integral(
     available. Unsupported or uncertified reductions are declined.
     """
 
-    formula = _normalize_formula(condition)
+    formula = normalize_formula(condition)
     expr = sp.sympify(integrand)
-    vars_ = _normalize_variables(variables, formula, expr)
-    bound_map = _normalize_bounds(bounds, vars_)
+    params = normalize_variables(
+        parameters or (), formula, expr, append_context_symbols=False, exclude=()
+    )
+    vars_ = normalize_variables(variables, formula, expr, exclude=params)
+    bound_map = normalize_bounds(bounds, vars_)
 
-    method = ""
     if len(vars_) == 1:
-        pieces = _reduce_1d(expr, formula, vars_[0], bound_map.get(vars_[0]))
-        method = "one_dimensional_cell_integration"
+        pieces, method = _reduce_region_integral_1d(expr, formula, vars_, bound_map, params)
     elif len(vars_) == 2:
-        x, y = vars_
-        pieces = _reduce_box(expr, formula, vars_, bound_map)
-        if pieces is not None:
-            method = "axis_aligned_box_iterated_integral"
-        if pieces is None and not bound_map:
-            pieces = _reduce_standard_simplex_2d(expr, formula, x, y)
-            if pieces is not None:
-                method = "unit_simplex_iterated_integral"
-        if pieces is None and not bound_map:
-            pieces = _reduce_radial_vertical_pieces(expr, formula, x, y)
-            if pieces is not None:
-                method = "radial_region_as_signed_vertical_slices"
-        if pieces is None and not bound_map:
-            pieces = _reduce_axis_aligned_ellipse(expr, formula, x, y)
-            if pieces is not None:
-                method = "axis_aligned_ellipse_affine_unit_disk"
-        if pieces is None:
-            pieces = _reduce_vertical_slice(expr, formula, x, y, bound_map)
-            if pieces is not None:
-                method = "vertical_slice_iterated_integral"
-        if pieces is None and not bound_map:
-            pieces = _reduce_cylindrical_vertical_bounds_2d(expr, formula, x, y)
-            if pieces is not None:
-                has_nonlinear_stack = any(
-                    sp.Poly(atom.lhs - atom.rhs, y).degree() > 1
-                    for atom in getattr(formula, "args", (formula,))
-                    if getattr(atom, "is_Relational", False)
-                )
-                method = (
-                    "complete_cad_vertical_bounds_2d"
-                    if has_nonlinear_stack
-                    else "cylindrical_formula_vertical_bounds_2d"
-                )
-        if pieces is None and not bound_map:
-            pieces = _reduce_cad_extracted_vertical_bounds_2d(expr, formula, x, y)
-            if pieces is not None:
-                method = "complete_cad_vertical_bounds_2d"
-        if pieces is None:
-            raise NotImplementedError(
-                "reduce_region_integral currently supports exact 1D sets, axis-aligned boxes, the 2D unit simplex, "
-                "2D axis-aligned ellipses, 2D origin-centered radial regions, simple 2D vertical-slice regions, "
-                "and supported 2D cylindrical formulas"
-            )
+        pieces, method = _reduce_region_integral_2d(expr, formula, vars_, bound_map, params)
     else:
-        pieces = _reduce_box(expr, formula, vars_, bound_map)
-        if pieces is not None:
-            method = "axis_aligned_box_iterated_integral"
-        if pieces is None and not bound_map:
-            pieces = _reduce_cylindrical_solution_cells_nd(expr, formula, vars_)
-            if pieces is not None:
-                method = "cylindrical_solution_cell_iterated_integral_nd"
-        if pieces is None:
-            raise NotImplementedError(
-                "reduce_region_integral currently supports higher-dimensional axis-aligned boxes and "
-                "full-dimensional cells exposed by the cylindrical CAD solution extractor"
-            )
+        pieces, method = _reduce_region_integral_nd(expr, formula, vars_, bound_map, params)
     reduced = ReducedRegionIntegral(
         integrand=expr,
         condition=formula,
         variables=vars_,
         pieces=tuple(pieces),
         method=method,
-        diagnostics={"bounds": bound_map},
+        diagnostics={
+            "bounds": bound_map,
+            "boolean_cell_decomposition": method == "complete_cad_boolean_cell_integration",
+            "piece_count": len(tuple(pieces)),
+            "parameters": params,
+        },
     )
     return reduced.as_integrals() if return_integrals else reduced
+
+
+from ._region_integrate_parametric import _stratified_region_integral
 
 
 def integrate_over_region(
@@ -1279,7 +365,9 @@ def integrate_over_region(
     precision: int = 50,
     measure_dimension: object = "ambient",
     return_result: bool = False,
-) -> sp.Expr | RegionIntegralResult:
+    parameters: Sequence[sp.Symbol | str] | None = None,
+    return_stratified: bool = False,
+) -> sp.Expr | RegionIntegralResult | object:
     """Integrate ``integrand`` over a supported semialgebraic region.
 
     The region is first reduced to explicit iterated-integral pieces using
@@ -1305,11 +393,31 @@ def integrate_over_region(
     """
 
     expr = sp.sympify(integrand)
+    if return_stratified:
+        if isinstance(condition, StandardRegion):
+            raise ValueError("return_stratified=True requires a semialgebraic formula region")
+        formula = normalize_formula(condition)
+        params = normalize_variables(parameters or (), formula, expr, append_context_symbols=False)
+        if not params:
+            raise ValueError("return_stratified=True requires at least one parameter")
+        vars_ = normalize_variables(variables, formula, expr, exclude=params)
+        return _stratified_region_integral(
+            expr,
+            formula,
+            vars_,
+            params,
+            bounds=bounds,
+            method=method,
+            precision=precision,
+            measure_dimension=measure_dimension,
+        )
+    if parameters:
+        raise ValueError("parameters=... requires return_stratified=True")
     if isinstance(condition, StandardRegion):
-        vars_ = _normalize_variables(variables, expr)
+        vars_ = normalize_variables(variables, expr)
         if bounds is not None:
             raise NotImplementedError(
-                "extra bounds are not yet supported for explicit StandardRegion objects"
+                "extra bounds are unsupported for explicit StandardRegion objects"
             )
         if measure_dimension not in (None, "ambient", "intrinsic", "top", condition.dimension()):
             raise NotImplementedError(
@@ -1331,10 +439,10 @@ def integrate_over_region(
         )
         return result if return_result else result.value
 
-    formula = _normalize_formula(condition)
-    vars_ = _normalize_variables(variables, formula, expr)
-    bound_map = _normalize_bounds(bounds, vars_)
-    dim = _normalize_measure_dimension(measure_dimension, len(vars_), formula)
+    formula = normalize_formula(condition)
+    vars_ = normalize_variables(variables, formula, expr)
+    bound_map = normalize_bounds(bounds, vars_)
+    dim = _normalize_measure_dimension(measure_dimension, vars_, formula)
 
     if dim != len(vars_):
         if method == "numeric":
@@ -1374,7 +482,8 @@ def integrate_over_region(
         for fast_value, fast_method in fast_cases:
             if fast_value is not None:
                 reduced = reduce_region_integral(expr, formula, vars_, bounds=bound_map)
-                assert isinstance(reduced, ReducedRegionIntegral)
+                if not isinstance(reduced, ReducedRegionIntegral):
+                    raise TypeError("region reduction returned an unexpected result type")
                 result = RegionIntegralResult(
                     value=fast_value,
                     integrand=expr,
@@ -1398,7 +507,8 @@ def integrate_over_region(
                 return result if return_result else result.value
 
     reduced = reduce_region_integral(expr, formula, vars_, bounds=bound_map)
-    assert isinstance(reduced, ReducedRegionIntegral)
+    if not isinstance(reduced, ReducedRegionIntegral):
+        raise TypeError("region reduction returned an unexpected result type")
     value, exact, evaluation_method = _evaluate_reduced_integral(
         reduced, method=method, precision=precision
     )

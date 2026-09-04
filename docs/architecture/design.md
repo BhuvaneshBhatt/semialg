@@ -23,6 +23,12 @@ CAD cells carry explicit rational or algebraic sample objects. Root isolation,
 sample comparison, sign evaluation, and approximate display remain separate so
 numerical presentation cannot leak into certification.
 
+## Structural presolve and variable ordering
+
+Before complete CAD/QE, `presolve.py` performs only equivalence-preserving structural reductions whose exceptional cases are explicit. It can substitute an innermost existential variable from an affine equality when the divisor is a nonzero symbol-free constant, eliminate constant-coefficient linear existential inequalities by Fourier-Motzkin, and report independent variable-incidence blocks. It never divides by a parameter-dependent expression.
+
+CAD ordering is also quantifier-aware: free variables and variables within one homogeneous quantifier block may be reordered, but an ordering heuristic never crosses an `exists`/`forall` boundary. Brown-style scoring is the automatic low-overhead choice; exhaustive projection-set scoring is an explicit diagnostic option for small systems.
+
 ## CAD backends
 
 A conservative Collins-style CAD is the complete baseline. Reduced McCallum,
@@ -88,10 +94,21 @@ reimplemented by each high-level subsystem:
 
 Optimization is organized by responsibility. `optimization_results.py` contains
 result and policy models, `optimization_geometry.py` contains polynomial-locus
-and geometric helpers, `optimization_active_sets.py` contains active-set and KKT
-construction, and `optimization.py` coordinates the public solver and exact
-certification paths. The split is intentionally procedural: algebraic and CAD
-inner loops do not gain strategy-object or method-dispatch layers.
+and geometric helpers, and `optimization_active_sets.py` contains active-set and
+KKT construction. Shared projected positive-dimensional critical loci live in
+`_critical_loci.py` so optimization and geometry queries use one KKT/singular-locus
+implementation. `optimization.py` remains the stable public facade and core
+optimizer, while `_optimization_parametric.py` owns parameter-stratified optimum
+relations. Function-range orchestration remains in `_optimization_range.py`, with
+fast special cases in `_range_special_cases.py` and graph/image QE in
+`_function_graph_image.py`. The split is intentionally procedural: algebraic and
+CAD inner loops do not gain strategy-object or method-dispatch layers.
+
+Region integration separates the public integration surface from focused
+implementation modules. `region_integrate.py` owns ambient reduction and public
+entry points; `region_integral_results.py` owns result records,
+`_region_integrate_intrinsic.py` owns intrinsic/Hausdorff-dimension handling,
+and `_region_integrate_parametric.py` owns parameter-stratified integration.
 
 `solve_semialgebraic` follows the same principle. Input normalization, parameter
 analysis, and trivial-result construction are pure helpers, while the public
@@ -100,17 +117,21 @@ assembly.
 
 ## Public import surface
 
-The package root uses cached lazy exports. Accessing a public name imports its
-owning module on first use and stores the resolved object in the package module.
-This preserves a convenient flat API without maintaining forwarding wrappers or
-adding an extra wrapper call to every invocation.
+The package root uses a single declarative lazy-export registry. Accessing a
+public name imports its owning module on first use and stores the resolved object
+in the package module. The registry is the sole routing table for the flat API,
+so `__all__` and lazy imports share one source of truth.
 
-## Performance-sensitive refactoring
+## Structural facades
+
+The large public workflow modules are facades rather than monolithic implementation files. Function-property partition/property logic, optimization certification/specializations, decision predicates/solving, and region-integration geometry/CAD reduction live in focused private modules behind the documented public facade paths.
+
+## Performance-sensitive organization
 
 Code-sharing abstractions are kept outside root-isolation, CAD lifting,
 algebraic comparison, projection, and RUR inner loops unless profiling shows
-that an abstraction is neutral. Refactors should be benchmarked with warmed
-exact operations as well as fresh-process import/API access. Shared helpers are
+that an abstraction is neutral. Structural changes should be benchmarked with
+warmed exact operations as well as fresh-process import/API access. Shared helpers are
 preferred when they remove duplicate exact work or centralize correctness rules;
 object-oriented indirection is not introduced solely for organizational
 uniformity.
@@ -120,3 +141,43 @@ uniformity.
 Tests prefer semantic equivalence and exact mathematical invariants over string
 comparisons. Public APIs are tested directly, while expensive CAD examples are
 marked separately so routine feedback remains fast.
+
+## Region module layering
+
+The symbolic and CAD region APIs separate exact symbolic state from numerical
+geometry while exposing a compact public namespace. See
+[Code quality](code_quality.md#focused-implementation-modules) for the module map
+and exception-boundary rules.
+
+## Shared function graph and exact algebraization
+
+Function-domain and function-range analysis share `semialg.function_graph`,
+which constructs exact real semialgebraic graphs for supported algebraic heads.
+This keeps domain and image semantics aligned, especially for branch-sensitive
+rational powers.  Ordinary SymPy `Pow` keeps principal-branch semantics, while
+canonical forms produced by `sympy.real_root` are recognized as explicit real
+roots. The shared graph layer also supports `Abs`, `sign`, `Heaviside`, finite
+`Min`/`Max`, finite `Piecewise`, and semialgebraic Boolean composition.
+
+A preprocessing layer may uniquely back-substitute algebraic equalities before
+range analysis.  A separate exact algebraization layer can then convert supported
+commensurate trigonometric or exponential/hyperbolic one-variable problems into
+finite semialgebraic problems.  Each accepted transformation carries its side
+conditions (unit-circle or positive-exponential constraints); transformations
+that would lose dependence information are rejected instead of used as
+relaxations.
+
+### Structural parametric geometry
+
+Bounded structured regions expose `ParametricCover` objects made of
+`ParametricChart` values. These charts are reusable geometry metadata: they
+carry the parameter domain and mapping independently of CAD. Region dimension
+uses a chart only when domain dimension and map rank are certified; otherwise
+it delegates to the complete CAD implementation. Rich boundary queries follow
+the same reuse principle by returning the boundary CAD together with exact
+cell-level inclusion and active-constraint metadata.
+
+Affine analysis and generic map degree are separate structural layers. Affine
+properties are decided by exact linear algebra, while map degree is the generic
+algebraic fiber degree of a rational parametrization. Neither abstraction folds
+semialgebraic domain restrictions into a generic algebraic statement.

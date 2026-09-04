@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from ._linear_candidates import linear_equality_candidate
 from .formula_utils import conjuncts as _conjuncts
 
 
@@ -26,16 +27,10 @@ def detect_lin_reduction(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> LinDi
             continue
         diff = sp.expand(atom.lhs - atom.rhs)
         for var in reversed(variables):
-            poly = sp.Poly(diff, var)
-            if poly.degree() != 1:
+            data = linear_equality_candidate(diff, var)
+            if data is None:
                 continue
-            coeff = sp.expand(poly.coeff_monomial(var))
-            const = sp.expand(poly.coeff_monomial(1))
-            if coeff == 0 or coeff.has(var) or const.has(var):
-                continue
-            numerator = sp.expand(-const)
-            denominator = sp.expand(coeff)
-            replacement = sp.simplify(numerator / denominator)
+            _coeff, numerator, denominator, replacement = data
             divisibility = sp.Eq(sp.Mod(numerator, denominator), 0)
             rest = [a for a in conjuncts if a is not atom]
             substituted = [sp.simplify(a.subs(var, replacement)) for a in rest]

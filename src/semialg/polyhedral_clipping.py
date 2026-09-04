@@ -1,0 +1,91 @@
+"""Small exact affine/polyhedral clipping specializations."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from itertools import combinations
+
+import sympy as sp
+
+from .exact_arithmetic import compare_exact_reals
+
+
+@dataclass(frozen=True)
+class AffineBoxClip:
+    """Exact vertices of an affine subspace clipped by an axis-aligned box."""
+
+    vertices: tuple[tuple[sp.Expr, ...], ...]
+    dimension: int
+    parameter_dimension: int
+
+
+def clip_affine_subspace_to_box(
+    point: Sequence[object],
+    directions: Sequence[Sequence[object]],
+    bounds: Sequence[Sequence[object]],
+) -> AffineBoxClip:
+    """Clip a low-dimensional affine subspace to a box without CAD.
+
+    The specialization is intentionally limited to parameter dimension one or
+    two, where enumerating active box facets is cheaper and simpler than a CAD.
+    It is used as an explicit fast geometry primitive rather than as a generic
+    intersection replacement.
+    """
+
+    origin = sp.Matrix(tuple(map(sp.sympify, point)))
+    dirs = tuple(sp.Matrix(tuple(map(sp.sympify, direction))) for direction in directions)
+    ambient = len(origin)
+    if any(len(direction) != ambient for direction in dirs):
+        raise ValueError("all directions must have the same ambient dimension as point")
+    if len(bounds) != ambient:
+        raise ValueError("bounds must contain one pair per ambient coordinate")
+    if len(dirs) not in (1, 2):
+        raise NotImplementedError(
+            "the exact clipping specialization supports one- and two-dimensional affine subspaces"
+        )
+    matrix = sp.Matrix.hstack(*dirs)
+    if int(matrix.rank()) != len(dirs):
+        raise ValueError("directions must be linearly independent")
+    box = tuple((sp.sympify(pair[0]), sp.sympify(pair[1])) for pair in bounds)
+    if any(compare_exact_reals(lo, hi) > 0 for lo, hi in box):
+        raise ValueError("box lower bounds must not exceed upper bounds")
+
+    params = tuple(sp.Dummy(f"t{i + 1}", real=True) for i in range(len(dirs)))
+    mapped = origin + matrix * sp.Matrix(params)
+    facets: list[sp.Expr] = []
+    for coordinate, (lo, hi) in zip(mapped, box, strict=True):
+        facets.extend((sp.expand(coordinate - lo), sp.expand(coordinate - hi)))
+
+    candidates: list[tuple[sp.Expr, ...]] = []
+    for active in combinations(facets, len(params)):
+        solution = sp.solve(active, params, dict=True)
+        for sol in solution:
+            if any(param not in sol for param in params):
+                continue
+            coords = tuple(sp.simplify(value.subs(sol)) for value in mapped)
+            inside = True
+            for value, (lo, hi) in zip(coords, box, strict=True):
+                try:
+                    if compare_exact_reals(value, lo) < 0 or compare_exact_reals(value, hi) > 0:
+                        inside = False
+                        break
+                except (TypeError, ValueError, NotImplementedError):
+                    inside = False
+                    break
+            if inside and coords not in candidates:
+                candidates.append(coords)
+
+    if len(dirs) == 1 and not candidates:
+        # A line may cross the box with its endpoints determined by a single
+        # facet; the combinations loop above already covers this. No vertices
+        # therefore means the clipped set is empty.
+        return AffineBoxClip((), -1, 1)
+    if not candidates:
+        return AffineBoxClip((), -1, len(dirs))
+    candidates.sort(key=lambda point_: tuple(sp.default_sort_key(value) for value in point_))
+    dimension = min(len(dirs), max(0, len(candidates) - 1))
+    return AffineBoxClip(tuple(candidates), dimension, len(dirs))
+
+
+__all__ = ["AffineBoxClip", "clip_affine_subspace_to_box"]

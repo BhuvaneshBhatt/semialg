@@ -8,10 +8,12 @@ from sympy.core.sympify import SympifyError
 from sympy.logic.boolalg import Boolean
 from sympy.polys.polyerrors import PolynomialError
 
-from ..exact_arithmetic import compare_exact_reals
+from ..exact_arithmetic import compare_extended_reals
+from ..formulas.boolean import is_false_expr, is_true_expr
 from ..implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
-from ..normalization import normalize_formula as _normalize_formula
-from ..normalization import normalize_variables as _normalize_variables
+from ..normalization import normalize_formula, normalize_variables
+from ..presolve import fourier_motzkin_eliminate
+from ..simplify.boolean import simplify_boolean
 
 FormulaLike = sp.Expr | Boolean | bool
 _EXPECTED_ERRORS = (
@@ -24,40 +26,83 @@ _EXPECTED_ERRORS = (
 )
 
 
+def _as_region_object(value, variables=None):
+    """Return a unified symbolic region for region-object inputs only."""
+
+    from ..standard_regions import StandardRegion
+    from ..symbolic_regions import SemialgebraicRegion, as_semialgebraic_region
+
+    if isinstance(value, (SemialgebraicRegion, StandardRegion)):
+        return as_semialgebraic_region(value, variables)
+    return None
+
+
 def _simplify_region(expr: sp.Expr) -> sp.Expr:
     if isinstance(expr, sp.core.relational.Relational):
         return expr
     try:
         if isinstance(expr, (sp.And, sp.Or, sp.Not)):
-            return sp.simplify_logic(expr, form="dnf")
+            return simplify_boolean(expr)
         return sp.simplify(expr)
     except _EXPECTED_ERRORS:
         return expr
 
 
-def region_union(*regions: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    """Return the union of implicit semialgebraic regions."""
-    pieces = [_normalize_formula(region) for region in regions]
+def region_union(*regions: FormulaLike | Iterable[FormulaLike]):
+    """Return the union of implicit or unified semialgebraic regions."""
+    objects = [_as_region_object(region) for region in regions]
+    if any(region is not None for region in objects):
+        from ..symbolic_regions import as_semialgebraic_region
+
+        first = next(region for region in objects if region is not None)
+        unified = [
+            region if region is not None else as_semialgebraic_region(raw, first.variables)
+            for raw, region in zip(regions, objects, strict=True)
+        ]
+        return first.union(*(region for region in unified if region is not first))
+    pieces = [normalize_formula(region) for region in regions]
     return _simplify_region(sp.Or(*pieces) if pieces else sp.false)
 
 
-def region_intersection(*regions: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    """Return the intersection of implicit semialgebraic regions."""
-    pieces = [_normalize_formula(region) for region in regions]
+def region_intersection(*regions: FormulaLike | Iterable[FormulaLike]):
+    """Return the intersection of implicit or unified semialgebraic regions."""
+    objects = [_as_region_object(region) for region in regions]
+    if any(region is not None for region in objects):
+        from ..symbolic_regions import as_semialgebraic_region
+
+        first = next(region for region in objects if region is not None)
+        unified = [
+            region if region is not None else as_semialgebraic_region(raw, first.variables)
+            for raw, region in zip(regions, objects, strict=True)
+        ]
+        return first.intersection(*(region for region in unified if region is not first))
+    pieces = [normalize_formula(region) for region in regions]
     return _simplify_region(sp.And(*pieces) if pieces else sp.true)
 
 
-def region_complement(region: FormulaLike | Iterable[FormulaLike]) -> sp.Expr:
-    """Return the complement of an implicit semialgebraic region."""
-    return _simplify_region(sp.Not(_normalize_formula(region)))
+def region_complement(region: FormulaLike | Iterable[FormulaLike]):
+    """Return the complement of an implicit or unified semialgebraic region."""
+    region_object = _as_region_object(region)
+    if region_object is not None:
+        return region_object.complement()
+    return _simplify_region(sp.Not(normalize_formula(region)))
 
 
 def region_difference(
     lhs: FormulaLike | Iterable[FormulaLike],
     rhs: FormulaLike | Iterable[FormulaLike],
 ) -> sp.Expr:
-    """Return ``lhs`` minus ``rhs`` for implicit semialgebraic regions."""
-    return _simplify_region(sp.And(_normalize_formula(lhs), sp.Not(_normalize_formula(rhs))))
+    """Return ``lhs`` minus ``rhs`` for implicit or unified regions."""
+    left_object = _as_region_object(lhs)
+    right_object = _as_region_object(rhs)
+    if left_object is not None or right_object is not None:
+        from ..symbolic_regions import as_semialgebraic_region
+
+        base = left_object or right_object
+        left = left_object or as_semialgebraic_region(lhs, base.variables)
+        right = right_object or as_semialgebraic_region(rhs, base.variables)
+        return left.difference(right)
+    return _simplify_region(sp.And(normalize_formula(lhs), sp.Not(normalize_formula(rhs))))
 
 
 def _is_relational(expr: sp.Expr) -> bool:
@@ -87,9 +132,9 @@ def _interior_atom(atom: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Expr:
 
 
 def _map_boolean(expr: sp.Expr, atom_fn) -> sp.Expr:
-    if expr is sp.true or expr == sp.true:
+    if is_true_expr(expr):
         return sp.true
-    if expr is sp.false or expr == sp.false:
+    if is_false_expr(expr):
         return sp.false
     if isinstance(expr, sp.And):
         return _simplify_region(sp.And(*[_map_boolean(arg, atom_fn) for arg in expr.args]))
@@ -104,7 +149,58 @@ def _map_boolean(expr: sp.Expr, atom_fn) -> sp.Expr:
 
 def _syntactically_empty(expr: sp.Expr) -> bool:
     simplified = _simplify_region(expr)
-    return simplified is sp.false or simplified == sp.false
+    return is_false_expr(simplified)
+
+
+def _cad_topology_formula(
+    expr: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    operation: str,
+    *,
+    compact_candidate: sp.Expr | None = None,
+) -> sp.Expr:
+    """Compute a topological operation from an adapted complete CAD.
+
+    ``compact_candidate`` is returned only after its truth set is verified
+    against the semantic CAD cell set.  This preserves compact formulas such
+    as ``x**2 + y**2 <= 1`` without reintroducing unsafe atom-wise topology
+    rewrites.
+    """
+
+    from ..decomposition.cylindrical import cad
+
+    result = cad(expr, variables, operation=operation, output="formula", return_result=True)
+    if compact_candidate is not None:
+        try:
+            from ..formula import parse_formula
+            from ..qe.complete import evaluate_formula_on_cell
+
+            parsed = parse_formula(compact_candidate)
+            level = len(tuple(variables))
+            candidate_indices = {
+                cell.index
+                for cell in result.cad.cells_by_level.get(level, ())
+                if evaluate_formula_on_cell(parsed, cell, variables)
+            }
+            semantic_indices = {cell.index for cell in result.cells}
+            if candidate_indices == semantic_indices:
+                return _simplify_region(compact_candidate)
+        except _EXPECTED_ERRORS:
+            pass
+    return _simplify_region(result.formula)
+
+
+def _use_syntactic_topology(strategy: str | None) -> bool:
+    return strategy == "syntactic"
+
+
+def _cad_region_dimension(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> int:
+    """Return exact semialgebraic dimension from selected CAD cells."""
+    from ..cad_algorithms.cells import extract_cylindrical_solution
+
+    solution = extract_cylindrical_solution(expr, variables, selected_only=True)
+    dims = [cell.dimension for cell in solution.cells if cell.selected]
+    return max(dims) if dims else -1
 
 
 def region_closure(
@@ -113,18 +209,38 @@ def region_closure(
     *,
     strategy: str | None = None,
 ) -> sp.Expr:
-    """Return a formula for the closure in common implicit cases.
+    """Return the Euclidean closure of a semialgebraic region.
 
-    This first public wrapper relaxes strict inequalities to weak inequalities.
-    That is exact for ordinary conjunctions/disjunctions of polynomial
-    inequalities whose boundary is obtained by replacing strict comparisons by
-    non-strict comparisons. Future improvements can replace this with CAD-cell
-    adjacency closure for arbitrary Boolean formulas.
+    The default path is CAD-semantic: the input formula is evaluated on an
+    adapted complete CAD and closure is computed from cell incidence.  The
+    atom-wise inequality relaxation remains available explicitly with
+    ``strategy="syntactic"``.
     """
-    expr = _normalize_formula(region)
+    region_object = _as_region_object(region, variables)
+    if region_object is not None:
+        from ..symbolic_regions import SemialgebraicRegion
+
+        formula = region_closure(
+            region_object.quantifier_free_formula(),
+            region_object.variables,
+            strategy=strategy,
+        )
+        return SemialgebraicRegion(formula, region_object.variables)
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return sp.false
-    return _simplify_region(_map_boolean(expr, _closure_atom))
+    if _use_syntactic_topology(strategy):
+        return _simplify_region(_map_boolean(expr, _closure_atom))
+    try:
+        candidate = _closure_atom(expr) if _is_relational(expr) else None
+        return _cad_topology_formula(expr, vars_, "closure", compact_candidate=candidate)
+    except _EXPECTED_ERRORS:
+        if strategy in {"cad", "qe"}:
+            raise
+        # If compact-form verification fails, reconstruct the exact closure
+        # directly from the complete CAD result.
+        return _cad_topology_formula(expr, vars_, "closure")
 
 
 def region_interior(
@@ -133,12 +249,40 @@ def region_interior(
     *,
     strategy: str | None = None,
 ) -> sp.Expr:
-    """Return a formula for the ambient interior in common implicit cases."""
-    expr = _normalize_formula(region)
-    vars_ = _normalize_variables(variables, expr)
+    """Return the Euclidean interior of a semialgebraic region.
+
+    By default this is computed as the CAD-semantic complement of the closure
+    of the complement, so internal CAD sections are retained when their entire
+    neighborhood belongs to the region.
+    """
+    region_object = _as_region_object(region, variables)
+    if region_object is not None:
+        from ..symbolic_regions import SemialgebraicRegion
+
+        formula = region_interior(
+            region_object.quantifier_free_formula(),
+            region_object.variables,
+            strategy=strategy,
+        )
+        return SemialgebraicRegion(formula, region_object.variables)
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return sp.false
-    return _simplify_region(_map_boolean(expr, lambda atom: _interior_atom(atom, vars_)))
+    if _use_syntactic_topology(strategy):
+        return _simplify_region(_map_boolean(expr, lambda atom: _interior_atom(atom, vars_)))
+    try:
+        # A lower-dimensional semialgebraic set has empty ambient interior.
+        # This exact CAD-dimension guard also avoids incidence ambiguities at
+        # singular lower-dimensional fibres.
+        if _cad_region_dimension(expr, vars_) < len(vars_):
+            return sp.false
+        candidate = _interior_atom(expr, vars_) if _is_relational(expr) else None
+        return _cad_topology_formula(expr, vars_, "interior", compact_candidate=candidate)
+    except _EXPECTED_ERRORS:
+        if strategy in {"cad", "qe"}:
+            raise
+        return _cad_topology_formula(expr, vars_, "interior")
 
 
 def _boundary_from_conjunction(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Expr | None:
@@ -211,7 +355,7 @@ def _boundary_from_structured_cad_cells_2d(
         return None
     x, y = variables
     try:
-        from ..cad.cells import extract_vertical_bounds_from_cad_2d
+        from ..cad_algorithms.cells import extract_vertical_bounds_from_cad_2d
 
         cells = extract_vertical_bounds_from_cad_2d(expr, (x, y), full_dimensional_only=True)
     except _EXPECTED_ERRORS:
@@ -260,7 +404,10 @@ def _boundary_from_cylindrical_solution_nd(
     """
 
     try:
-        from ..cad.cells import extract_cylindrical_solution, extract_explicit_cylindrical_solution
+        from ..cad_algorithms.cells import (
+            extract_cylindrical_solution,
+            extract_explicit_cylindrical_solution,
+        )
 
         cyl = extract_explicit_cylindrical_solution(expr, variables)
         if cyl is None:
@@ -309,21 +456,49 @@ def region_boundary(
     *,
     strategy: str | None = None,
 ) -> sp.Expr:
-    """Return a formula for the boundary: closure(region) minus interior(region)."""
-    expr = _normalize_formula(region)
-    vars_ = _normalize_variables(variables, expr)
+    """Return the Euclidean boundary of a semialgebraic region.
+
+    The default implementation is the CAD-semantic intersection
+    ``closure(S) ∩ closure(complement(S))``.  This removes false boundaries at
+    Boolean seams such as the shared endpoint in ``[0, 1] ∪ [1, 2]``.
+    """
+    region_object = _as_region_object(region, variables)
+    if region_object is not None:
+        from ..symbolic_regions import SemialgebraicRegion
+
+        formula = region_boundary(
+            region_object.quantifier_free_formula(),
+            region_object.variables,
+            strategy=strategy,
+        )
+        return SemialgebraicRegion(formula, region_object.variables)
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return sp.false
+    if _is_relational(expr):
+        explicit = _boundary_from_conjunction(expr, vars_)
+        if explicit is not None:
+            return explicit
+    if not _use_syntactic_topology(strategy):
+        try:
+            return _cad_topology_formula(expr, vars_, "boundary")
+        except _EXPECTED_ERRORS:
+            if strategy == "cad":
+                raise
+
     if isinstance(expr, sp.Or):
-        return _simplify_region(sp.Or(*[region_boundary(arg, vars_) for arg in expr.args]))
+        return _simplify_region(
+            sp.Or(*[region_boundary(arg, vars_, strategy="syntactic") for arg in expr.args])
+        )
     if len(vars_) == 1:
         interval = _interval_from_piece(expr, vars_[0])
         if interval is not None:
             low, high, _, _ = interval
             endpoints = []
-            if low is not -sp.oo:
+            if low != -sp.oo:
                 endpoints.append(sp.Eq(vars_[0], low))
-            if high is not sp.oo and high != low:
+            if high != sp.oo and high != low:
                 endpoints.append(sp.Eq(vars_[0], high))
             return _simplify_region(sp.Or(*endpoints) if endpoints else sp.false)
     explicit = _boundary_from_conjunction(expr, vars_)
@@ -340,62 +515,81 @@ def region_boundary(
     cad_nd = _boundary_from_cylindrical_solution_nd(expr, vars_)
     if cad_nd is not None:
         return cad_nd
-    closure = region_closure(expr, vars_, strategy=strategy)
-    interior = region_interior(expr, vars_, strategy=strategy)
+    closure = region_closure(expr, vars_, strategy="syntactic")
+    interior = region_interior(expr, vars_, strategy="syntactic")
     return _simplify_region(sp.And(closure, sp.Not(interior)))
 
 
-def _atomic_equalities(expr: sp.Expr) -> list[sp.Expr]:
-    if isinstance(expr, sp.And):
-        out: list[sp.Expr] = []
-        for arg in expr.args:
-            out.extend(_atomic_equalities(arg))
-        return out
-    if isinstance(expr, sp.Equality):
-        return [sp.simplify(expr.lhs - expr.rhs)]
-    return []
+def _has_affine_interior(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> bool | None:
+    """Return whether an affine inequality conjunction has nonempty interior.
 
+    Weak affine inequalities are made strict and all variables are eliminated by
+    exact Fourier-Motzkin elimination. ``None`` means the formula is outside
+    this inexpensive fragment.
+    """
 
-def _dimension_from_equalities(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> int | None:
-    eqs = _atomic_equalities(expr)
-    if not eqs:
-        return None
-    linear_rows: list[list[sp.Expr]] = []
-    nonlinear_count = 0
-    for poly in eqs:
+    atoms = expr.args if isinstance(expr, sp.And) else (expr,)
+    strict_atoms: list[sp.Expr] = []
+    for atom in atoms:
+        if not getattr(atom, "is_Relational", False):
+            return None
+        if isinstance(atom, (sp.Equality, sp.Unequality)):
+            return None
+        residual = sp.expand(atom.lhs - atom.rhs)
         try:
-            p = sp.Poly(poly, *variables)
+            poly = sp.Poly(residual, *variables)
         except _EXPECTED_ERRORS:
             return None
-        if p.total_degree() <= 1:
-            linear_rows.append([p.coeff_monomial(var) for var in variables])
+        if poly.total_degree() > 1:
+            return None
+        if isinstance(atom, (sp.LessThan, sp.StrictLessThan)):
+            strict_atoms.append(residual < 0)
+        elif isinstance(atom, (sp.GreaterThan, sp.StrictGreaterThan)):
+            strict_atoms.append(residual > 0)
         else:
-            nonlinear_count += 1
-    if linear_rows and nonlinear_count == 0:
-        return max(0, len(variables) - int(sp.Matrix(linear_rows).rank()))
-    return max(0, len(variables) - nonlinear_count - (1 if linear_rows else 0))
+            return None
+    eliminated = fourier_motzkin_eliminate(sp.And(*strict_atoms), variables)
+    if eliminated is None:
+        return None
+    condition, removed = eliminated
+    if len(removed) != len(variables):
+        return None
+    if is_true_expr(condition):
+        return True
+    if is_false_expr(condition):
+        return False
+    return None
 
 
 def region_dimension(
     region: FormulaLike | Iterable[FormulaLike],
     variables: Sequence[sp.Symbol | str] | None = None,
-    *,
-    strategy: str | None = None,
 ) -> int:
-    """Return a dimension estimate for common implicit semialgebraic regions."""
-    expr = _normalize_formula(region)
-    vars_ = _normalize_variables(variables, expr)
+    """Return the exact semialgebraic dimension from a complete adapted CAD.
+
+    The dimension is the maximum Euclidean dimension of a selected final CAD
+    cell. The function returns only an exact CAD-derived dimension; it does
+    not expose a heuristic strategy selector.
+    """
+    from ..standard_regions import StandardRegion
+
+    if isinstance(region, StandardRegion):
+        from ..parametric_geometry import certify_parametric_dimension
+
+        chart_dimension = certify_parametric_dimension(region, variables)
+        if chart_dimension is not None:
+            return chart_dimension
+    region_object = _as_region_object(region, variables)
+    if region_object is not None:
+        return region_dimension(region_object.quantifier_free_formula(), region_object.variables)
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return -1
-    interior = region_interior(expr, vars_, strategy=strategy)
-    if not _syntactically_empty(interior):
+    affine_interior = _has_affine_interior(expr, vars_)
+    if affine_interior is True:
         return len(vars_)
-    estimate = _dimension_from_equalities(expr, vars_)
-    if estimate is not None:
-        return estimate
-    if _is_relational(expr):
-        return max(0, len(vars_) - 1)
-    return 0
+    return _cad_region_dimension(expr, vars_)
 
 
 def _as_disjuncts(expr: sp.Expr) -> list[sp.Expr]:
@@ -406,13 +600,7 @@ def _as_disjuncts(expr: sp.Expr) -> list[sp.Expr]:
 def _compare_endpoints(left: sp.Expr, right: sp.Expr) -> int:
     """Compare finite or infinite real interval endpoints exactly."""
 
-    if left == right:
-        return 0
-    if left is -sp.oo or right is sp.oo:
-        return -1
-    if left is sp.oo or right is -sp.oo:
-        return 1
-    return compare_exact_reals(left, right)
+    return compare_extended_reals(left, right)
 
 
 def _interval_from_piece(piece: sp.Expr, variable: sp.Symbol):
@@ -428,7 +616,7 @@ def _interval_from_piece(piece: sp.Expr, variable: sp.Symbol):
                 reduced = sp.reduce_inequalities([original], variable)
             except _EXPECTED_ERRORS:
                 return None
-            if reduced is sp.false or reduced == sp.false:
+            if is_false_expr(reduced):
                 return None
             if reduced != original:
                 nested = _interval_from_piece(reduced, variable)
@@ -462,7 +650,27 @@ def _interval_from_piece(piece: sp.Expr, variable: sp.Symbol):
             else:
                 atom = sp.Eq(lhs, rhs)
         if lhs != variable:
-            return None
+            try:
+                reduced = sp.reduce_inequalities([atom], variable)
+            except _EXPECTED_ERRORS:
+                return None
+            if is_false_expr(reduced) or reduced == atom:
+                return None
+            nested = _interval_from_piece(reduced, variable)
+            if nested is None:
+                return None
+            n_low, n_high, n_low_closed, n_high_closed = nested
+            low_cmp = _compare_endpoints(n_low, low)
+            if low_cmp > 0:
+                low, low_closed = n_low, n_low_closed
+            elif low_cmp == 0:
+                low_closed = low_closed and n_low_closed
+            high_cmp = _compare_endpoints(n_high, high)
+            if high_cmp < 0:
+                high, high_closed = n_high, n_high_closed
+            elif high_cmp == 0:
+                high_closed = high_closed and n_high_closed
+            continue
         if isinstance(atom, (sp.StrictGreaterThan, sp.GreaterThan)):
             cmp = _compare_endpoints(rhs, low)
             closed = isinstance(atom, sp.GreaterThan)
@@ -511,9 +719,9 @@ def _merge_intervals(left, right):
 def _piece_from_interval(interval, variable: sp.Symbol) -> sp.Expr:
     low, high, low_closed, high_closed = interval
     clauses: list[sp.Expr] = []
-    if low is not -sp.oo:
+    if low != -sp.oo:
         clauses.append(variable >= low if low_closed else variable > low)
-    if high is not sp.oo:
+    if high != sp.oo:
         clauses.append(variable <= high if high_closed else variable < high)
     return _simplify_region(sp.And(*clauses) if clauses else sp.true)
 
@@ -547,13 +755,23 @@ def region_components(
 ) -> tuple[sp.Expr, ...]:
     """Return connected-component formulas for simple explicit cases.
 
-    The first implementation is exact for one-dimensional semialgebraic sets
+    This implementation is exact for one-dimensional semialgebraic sets
     reducible by SymPy's inequality reducer. For higher-dimensional explicit
     disjunctions it returns the top-level nonempty pieces without claiming a
     full CAD adjacency computation.
     """
-    expr = _normalize_formula(region)
-    vars_ = _normalize_variables(variables, expr)
+    region_object = _as_region_object(region, variables)
+    if region_object is not None:
+        from ..symbolic_regions import SemialgebraicRegion
+
+        formulas = region_components(
+            region_object.quantifier_free_formula(),
+            region_object.variables,
+            strategy=strategy,
+        )
+        return tuple(SemialgebraicRegion(formula, region_object.variables) for formula in formulas)
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return ()
     if len(vars_) == 1:

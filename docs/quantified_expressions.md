@@ -51,7 +51,8 @@ internal normalized representation used by the QE engines.
 
 ```python
 import sympy as sp
-from semialg import Exists, ForAll, apply_quantifiers, split_quantifiers
+from semialg import Exists, ForAll, apply_quantifiers
+from semialg.quantifiers import split_quantifiers
 from semialg.solve import reduce_complete_expr
 
 x, y = sp.symbols("x y", real=True)

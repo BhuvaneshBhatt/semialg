@@ -1,6 +1,6 @@
 """Small symbolic quantifier nodes used by semialg.
 
-SymPy does not currently expose public ``Exists``/``ForAll`` expression
+SymPy does not expose public ``Exists``/``ForAll`` expression
 classes.  semialg needs quantified formulas in a few reconstruction paths, so
 this module provides deliberately small, SymPy-compatible Boolean nodes.
 
@@ -18,6 +18,8 @@ from collections.abc import Iterable
 import sympy as sp
 from sympy.core.basic import Basic
 from sympy.logic.boolalg import Boolean, as_Boolean
+
+from .internal_symbols import fresh_dummy
 
 
 def _normalize_variables(variables: sp.Symbol | Iterable[sp.Symbol]) -> tuple[sp.Symbol, ...]:
@@ -43,7 +45,7 @@ def _fresh_bound_symbol(variable: sp.Symbol) -> sp.Dummy:
 
     assumptions = dict(variable.assumptions0)
     assumptions.pop("commutative", None)
-    return sp.Dummy(variable.name, **assumptions)
+    return fresh_dummy(variable.name, **assumptions)
 
 
 class _Quantifier(Boolean):

@@ -2,23 +2,33 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Literal
 
 import sympy as sp
 
 from ..algebraic.comparison import compare_samples
 from ..algebraic.samples import sample_to_expr
-from ..cad.decomposition import CompleteCAD, decomp_collins_complete
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.decomposition import (
+    CompleteCAD,
+    decomp_collins_complete,
+    try_decomp_groebner_variety,
+)
+from ..cad_algorithms.lifting.stack import CADCell
+from ..cad_algorithms.projection.groebner import build_groebner_variety_projection
 from ..context import with_computation_context
 from ..domains import apply_assumptions, normalize_assumptions, normalize_domain
+from ..errors import ResourceLimitError
 from ..exact_arithmetic import compare_exact_reals
 from ..formula import Formula, formula_polynomials, parse_formula, parse_formula_text, to_sympy
 from ..normalization import normalize_symbol_sequence
 from ..preprocess.semialgebraicize import semialgebraicize
 from ..qe.complete import CellUnion, cells_to_formula, evaluate_formula_on_cell, qe_by_complete_cad
 from ..reconstruct.cylindrical import path_condition
-from ..simplify.result import simplify_qe_formula
+from ..simplify.boolean import simplify_boolean
+from ..simplify.formula import simplify_qe_formula
+from ..structural_keys import symbol_identity_key
+from ..symbol_resolution import build_symbol_table
 from ..topology.operations import apply_topological_operation
 
 CADOutput = Literal["formula", "cells", "function", "tree"]
@@ -41,6 +51,7 @@ class CADOptions:
     strict: bool = False
     formula_form: FormulaForm = "nested"
     max_formula_terms: int = 512
+    max_preprocess_aux_vars: int | None = 3
 
 
 @dataclass(frozen=True)
@@ -113,10 +124,23 @@ class CADFunction:
     cell_set: CellSet
     operation: str | None = None
     tree: tuple[CADTreeNode, ...] = ()
+    _tree_by_index: Mapping[tuple[int, ...], CADTreeNode] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         if not self.tree:
             object.__setattr__(self, "tree", build_cad_tree(self.cad, self.cell_set))
+        nodes: dict[tuple[int, ...], CADTreeNode] = {}
+
+        def visit(node: CADTreeNode) -> None:
+            nodes[node.index] = node
+            for child in node.children:
+                visit(child)
+
+        for root in self.tree:
+            visit(root)
+        object.__setattr__(self, "_tree_by_index", MappingProxyType(nodes))
 
     def __call__(self, *values) -> bool:
         return self.contains(values)
@@ -127,10 +151,7 @@ class CADFunction:
         subs = self._point_subs(point)
         leaf = self.locate_cell(subs)
         if leaf is not None:
-            selected = {cell.index for cell in self.cell_set.cells}
-            if leaf.index in selected:
-                return True
-            node = self.tree_by_index().get(leaf.index)
+            node = self._tree_by_index.get(leaf.index)
             if node is not None and node.truth is not None:
                 return node.truth
         value = self.formula.subs(subs)
@@ -174,9 +195,7 @@ class CADFunction:
     def project_cell_set(self, variables: Sequence[sp.Symbol]) -> CellSet:
         level = len(tuple(variables))
         if tuple(variables) != self.variables[:level]:
-            raise NotImplementedError(
-                "projection currently requires a prefix of the decomposition variables"
-            )
+            raise NotImplementedError("projection requires a prefix of the decomposition variables")
         projected: dict[tuple[int, ...], CADCell] = {}
         for cell in self.cell_set.cells:
             key = cell.index[:level]
@@ -207,16 +226,8 @@ class CADFunction:
         return cad(cell_set.formula, tuple(variables), output="function").as_function()
 
     def tree_by_index(self) -> Mapping[tuple[int, ...], CADTreeNode]:
-        nodes: dict[tuple[int, ...], CADTreeNode] = {}
-
-        def visit(node: CADTreeNode) -> None:
-            nodes[node.index] = node
-            for child in node.children:
-                visit(child)
-
-        for root in self.tree:
-            visit(root)
-        return nodes
+        """Return the pre-indexed CAD tree without rebuilding a lookup mapping."""
+        return self._tree_by_index
 
     def _point_subs(
         self, point: Sequence[sp.Expr | int | float] | Mapping[sp.Symbol, sp.Expr | int | float]
@@ -271,9 +282,13 @@ class CADResult:
         return self.formula
 
     def to_dnf(self) -> sp.Expr:
-        return sp.simplify_logic(self.formula, form="dnf")
+        return simplify_boolean(self.formula)
 
     def as_function(self) -> CADFunction:
+        if self.function is None and self.status != "complete":
+            raise ResourceLimitError(
+                "CAD function output is unavailable because the decomposition is incomplete"
+            )
         return self.function or CADFunction(
             self.variables, self.formula, self.cad, self.cell_set, self.operation
         )
@@ -321,11 +336,33 @@ def _open_cell_condition(
     return path_condition(cell, variables, cells_by_level, closed=False)
 
 
+def _variety_cells_formula(cells: Sequence[CADCell], variables: Sequence[sp.Symbol]) -> sp.Expr:
+    """Reconstruct a finite variety sub-CAD without assuming sector coverage."""
+
+    if not cells:
+        return sp.false
+    points = []
+    for cell in cells:
+        if len(cell.sample) != len(variables):
+            continue
+        points.append(
+            sp.And(
+                *(
+                    sp.Eq(variable, sample_to_expr(sample))
+                    for variable, sample in zip(variables, cell.sample, strict=True)
+                )
+            )
+        )
+    if not points:
+        return sp.false
+    return sp.Or(*points)
+
+
 def _formula_from_conditions(conditions: Iterable[sp.Expr]) -> sp.Expr:
     kept = [cond for cond in conditions if cond is not sp.false and cond != sp.false]
     if not kept:
         return sp.false
-    return simplify_qe_formula(sp.simplify_logic(sp.Or(*kept), form="dnf"))
+    return simplify_qe_formula(simplify_boolean(sp.Or(*kept)))
 
 
 def _operation_formula(
@@ -350,7 +387,7 @@ def _operation_formula(
     if operation == "boundary":
         closure = _operation_formula(selected_cells, variables, cells_by_level, "closure")
         interior = _operation_formula(selected_cells, variables, cells_by_level, "interior")
-        return simplify_qe_formula(sp.simplify_logic(sp.And(closure, sp.Not(interior)), form="dnf"))
+        return simplify_qe_formula(simplify_boolean(sp.And(closure, sp.Not(interior))))
     raise ValueError(f"unsupported topological operation: {operation!r}")
 
 
@@ -364,7 +401,22 @@ def _select_formula_cells(
     )
 
 
-def _build_cad_for_formula(formula: Formula, variables: Sequence[sp.Symbol]) -> CompleteCAD:
+def _build_cad_for_formula(
+    formula: Formula,
+    variables: Sequence[sp.Symbol],
+    *,
+    strategy: str = "auto",
+    allow_variety_cad: bool = True,
+) -> CompleteCAD:
+    """Build a formula CAD, using finite Groebner variety lifting when sound."""
+
+    normalized_strategy = str(strategy).lower().replace("_", "-")
+    if allow_variety_cad and normalized_strategy not in {"collins", "collins-complete", "full"}:
+        projection = build_groebner_variety_projection(formula, variables)
+        if projection is not None:
+            variety_cad = try_decomp_groebner_variety(projection)
+            if variety_cad is not None:
+                return variety_cad
     polys = formula_polynomials(formula)
     if not polys:
         polys = [sp.Integer(1)]
@@ -431,26 +483,26 @@ def _make_result(
     variables: tuple[sp.Symbol, ...],
     options: CADOptions,
 ) -> CADResult:
-    cad_obj = _build_cad_for_formula(formula, variables)
+    """Assemble the public cylindrical decomposition result and its certified metadata."""
+    cad_obj = _build_cad_for_formula(
+        formula,
+        variables,
+        strategy=options.strategy,
+        allow_variety_cad=options.operation in {None, "components"},
+    )
     base_cells = _select_formula_cells(cad_obj, formula, variables)
-    if options.operation == "components":
+    if options.operation == "components" or options.operation is None:
         topo_cells = tuple(sorted(base_cells, key=lambda cell: cell.index))
-        raw_formula = cells_to_formula(
-            topo_cells,
-            variables,
-            cad_obj.cells_by_level,
-            form=options.formula_form,
-            max_terms=options.max_formula_terms,
-        )
-    elif options.operation is None:
-        topo_cells = tuple(sorted(base_cells, key=lambda cell: cell.index))
-        raw_formula = cells_to_formula(
-            topo_cells,
-            variables,
-            cad_obj.cells_by_level,
-            form=options.formula_form,
-            max_terms=options.max_formula_terms,
-        )
+        if cad_obj.tower.metadata.get("variety_only", False):
+            raw_formula = _variety_cells_formula(topo_cells, variables)
+        else:
+            raw_formula = cells_to_formula(
+                topo_cells,
+                variables,
+                cad_obj.cells_by_level,
+                form=options.formula_form,
+                max_terms=options.max_formula_terms,
+            )
     else:
         topo = apply_topological_operation(base_cells, cad_obj, variables, options.operation)
         topo_cells = topo.cells
@@ -458,15 +510,18 @@ def _make_result(
     public_formula = simplify_qe_formula(raw_formula, implication_minimize=False)
     output_formula = public_formula
     if options.operation is None:
-        cell_union = CellUnion(
-            variables=variables,
-            cells=base_cells,
-            formula=raw_formula,
-            cells_by_level=cad_obj.cells_by_level,
-        )
-        output_formula = simplify_qe_formula(
-            raw_formula, cell_union=cell_union, implication_minimize=False
-        )
+        if cad_obj.tower.metadata.get("variety_only", False):
+            output_formula = simplify_qe_formula(raw_formula, implication_minimize=False)
+        else:
+            cell_union = CellUnion(
+                variables=variables,
+                cells=base_cells,
+                formula=raw_formula,
+                cells_by_level=cad_obj.cells_by_level,
+            )
+            output_formula = simplify_qe_formula(
+                raw_formula, cell_union=cell_union, implication_minimize=False
+            )
     selected_cells = topo_cells
     cell_set = CellSet(variables, selected_cells, cad_obj.cells_by_level, output_formula)
     function = CADFunction(variables, output_formula, cad_obj, cell_set, options.operation)
@@ -475,11 +530,16 @@ def _make_result(
         "domain": options.domain,
         "cell_count_by_level": cad_obj.cell_count_by_level(),
         "projection_poly_count_by_level": cad_obj.proj_poly_count_by_level(),
+        "effective_backend": cad_obj.backend,
+        "variety_only": bool(cad_obj.tower.metadata.get("variety_only", False)),
+        "equality_dimension": cad_obj.tower.metadata.get("equality_dimension"),
+        "quotient_dimension": cad_obj.tower.metadata.get("quotient_dimension"),
         "operation": options.operation,
         "assumptions": tuple(map(sp.sstr, options.assumptions)),
         "input_formula": expr,
         "formula_form": options.formula_form,
         "max_formula_terms": options.max_formula_terms,
+        "max_preprocess_aux_vars": options.max_preprocess_aux_vars,
     }
     return CADResult(
         formula=output_formula,
@@ -491,6 +551,49 @@ def _make_result(
         status="complete",
         diagnostics=diagnostics,
         function=function,
+    )
+
+
+def _unknown_preprocess_limit_result(
+    expr: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    options: CADOptions,
+    *,
+    prep,
+) -> CADResult:
+    """Return a structured unknown result without fabricating CAD semantics."""
+
+    trivial_cad = decomp_collins_complete([sp.Integer(1)], variables)
+    empty_set = CellSet(variables, tuple(), trivial_cad.cells_by_level, expr)
+    limit = options.max_preprocess_aux_vars
+    diagnostics = {
+        "strategy": options.strategy,
+        "domain": options.domain,
+        "operation": options.operation,
+        "assumptions": tuple(map(sp.sstr, options.assumptions)),
+        "input_formula": expr,
+        "preprocessed": True,
+        "preprocess_aux_vars": tuple(map(sp.sstr, prep.aux_vars)),
+        "preprocess_notes": prep.notes,
+        "preprocessed_formula": prep.sympy_expr,
+        "qe_formula": None,
+        "preprocess_elimination_limited": True,
+        "max_preprocess_aux_vars": limit,
+        "reason": (
+            f"semialgebraic preprocessing introduced {len(prep.aux_vars)} auxiliary "
+            f"variables, exceeding max_preprocess_aux_vars={limit}"
+        ),
+    }
+    return CADResult(
+        formula=expr,
+        variables=variables,
+        cad=trivial_cad,
+        cell_set=empty_set,
+        output=options.output,
+        operation=options.operation,
+        status="unknown",
+        diagnostics=diagnostics,
+        function=None,
     )
 
 
@@ -508,36 +611,57 @@ def cad(
     timeout: float | None = None,
     diagnostics: bool = True,
     strict: bool = False,
-    return_result: bool = True,
+    return_result: bool = False,
     formula_form: FormulaForm = "nested",
     max_formula_terms: int = 512,
+    max_preprocess_aux_vars: int | None = 3,
 ):
-    """Compute a cylindrical algebraic decomposition for a real formula."""
+    """Compute a cylindrical algebraic decomposition for a real formula.
 
+    By default the representation selected by ``output`` is returned directly:
+    a formula, :class:`CellSet`, :class:`CADFunction`, or CAD tree.  Set
+    ``return_result=True`` to receive a :class:`CADResult` with the decomposition,
+    status, diagnostics, and all derived representations.
+    """
+
+    if output not in {"formula", "cells", "function", "tree"}:
+        raise ValueError(f"unsupported CAD output: {output!r}")
+    if operation not in {None, "closure", "interior", "boundary", "exterior", "components"}:
+        raise ValueError(f"unsupported CAD operation: {operation!r}")
+    if formula_form not in {"nested", "dnf"}:
+        raise ValueError(f"unsupported CAD formula_form: {formula_form!r}")
+    if max_formula_terms < 1:
+        raise ValueError("max_formula_terms must be positive")
+    if max_cells is not None and max_cells < 1:
+        raise ValueError("max_cells must be positive or None")
+    if timeout is not None and timeout <= 0:
+        raise ValueError("timeout must be positive or None")
     dom = normalize_domain(domain)
     variables = _normalize_variables(variables)
-    if dom.value != "reals":
-        if strict:
-            raise NotImplementedError("CAD currently supports only the real domain")
-        empty_cad = decomp_collins_complete([sp.Integer(1)], variables)
-        empty_set = CellSet(variables, tuple(), empty_cad.cells_by_level, sp.false)
-        result = CADResult(
-            sp.false,
-            variables,
-            empty_cad,
-            empty_set,
-            output,
-            operation,
-            "unknown",
-            {"reason": f"unsupported CAD domain {dom.value}"},
-        )
-        return result if return_result else result.formula
+    if max_preprocess_aux_vars is not None and max_preprocess_aux_vars < 0:
+        raise ValueError("max_preprocess_aux_vars must be nonnegative or None")
     base_expr = (
         to_sympy(formula)
         if not isinstance(formula, (sp.Basic, sp.logic.boolalg.Boolean))
         else formula
     )
     expr, normalized = _normalize_formula(apply_assumptions(base_expr, assumptions))
+    if dom.value != "reals":
+        message = f"CAD supports only the real domain, not {dom.value!r}"
+        if strict or not return_result:
+            raise NotImplementedError(message)
+        empty_cad = decomp_collins_complete([sp.Integer(1)], variables)
+        empty_set = CellSet(variables, tuple(), empty_cad.cells_by_level, expr)
+        return CADResult(
+            expr,
+            variables,
+            empty_cad,
+            empty_set,
+            output,
+            operation,
+            "unknown",
+            {"reason": message, "input_formula": expr},
+        )
     options = CADOptions(
         output=output,
         operation=operation,
@@ -550,12 +674,22 @@ def cad(
         strict=strict,
         formula_form=formula_form,
         max_formula_terms=max_formula_terms,
+        max_preprocess_aux_vars=max_preprocess_aux_vars,
     )
     prep = semialgebraicize(expr, variables=variables)
     if prep.changed and prep.aux_vars:
-        if len(prep.aux_vars) > 3:
-            result = _make_result(sp.true, parse_formula(sp.true), variables, options)
-            qe_formula = sp.true
+        over_aux_limit = (
+            options.max_preprocess_aux_vars is not None
+            and len(prep.aux_vars) > options.max_preprocess_aux_vars
+        )
+        if over_aux_limit:
+            message = (
+                f"semialgebraic preprocessing introduced {len(prep.aux_vars)} auxiliary "
+                f"variables, exceeding max_preprocess_aux_vars={options.max_preprocess_aux_vars}"
+            )
+            if strict or not return_result:
+                raise ResourceLimitError(message)
+            result = _unknown_preprocess_limit_result(expr, variables, options, prep=prep)
         else:
             internal_vars = tuple(variables) + tuple(prep.aux_vars)
             qe_result = qe_by_complete_cad(
@@ -563,31 +697,33 @@ def cad(
                 tuple(("exists", aux) for aux in prep.aux_vars),
                 prep.formula,
                 free_variables=variables,
+                return_result=True,
             )
             qe_formula = qe_result.formula
             result = _make_result(qe_formula, parse_formula(qe_formula), variables, options)
-        diag = dict(result.diagnostics)
-        diag.update(
-            {
-                "preprocessed": True,
-                "preprocess_aux_vars": tuple(map(sp.sstr, prep.aux_vars)),
-                "preprocess_notes": prep.notes,
-                "preprocessed_formula": prep.sympy_expr,
-                "qe_formula": qe_formula,
-                "preprocess_elimination_limited": len(prep.aux_vars) > 3,
-            }
-        )
-        result = CADResult(
-            result.formula,
-            result.variables,
-            result.cad,
-            result.cell_set,
-            result.output,
-            result.operation,
-            result.status,
-            diag,
-            result.function,
-        )
+            diag = dict(result.diagnostics)
+            diag.update(
+                {
+                    "preprocessed": True,
+                    "preprocess_aux_vars": tuple(map(sp.sstr, prep.aux_vars)),
+                    "preprocess_notes": prep.notes,
+                    "preprocessed_formula": prep.sympy_expr,
+                    "qe_formula": qe_formula,
+                    "preprocess_elimination_limited": False,
+                    "max_preprocess_aux_vars": options.max_preprocess_aux_vars,
+                }
+            )
+            result = CADResult(
+                result.formula,
+                result.variables,
+                result.cad,
+                result.cell_set,
+                result.output,
+                result.operation,
+                result.status,
+                diag,
+                result.function,
+            )
     elif prep.changed:
         result = _make_result(prep.sympy_expr, prep.formula, variables, options)
     else:
@@ -620,20 +756,20 @@ def cad_text(
     timeout: float | None = None,
     diagnostics: bool = True,
     strict: bool = False,
-    return_result: bool = True,
+    return_result: bool = False,
     formula_form: FormulaForm = "nested",
     max_formula_terms: int = 512,
+    max_preprocess_aux_vars: int | None = 3,
 ):
-    local_symbols = dict(symbols or {})
-    if variables is not None:
-        for var in variables:
-            if isinstance(var, str):
-                local_symbols.setdefault(var, sp.Symbol(var, real=True))
-            else:
-                local_symbols.setdefault(var.name, var)
+    """Build a cylindrical algebraic decomposition from a textual formula.
+
+    The direct return follows ``output`` by default; set ``return_result=True``
+    for the structured :class:`CADResult`.
+    """
+    local_symbols = build_symbol_table(symbols, variables or ())
     expr, formula = parse_formula_text(text, symbols=local_symbols)
     if variables is None:
-        variables = tuple(sorted(expr.free_symbols, key=lambda s: s.name))
+        variables = tuple(sorted(expr.free_symbols, key=symbol_identity_key))
     return cad(
         formula,
         variables,
@@ -649,6 +785,7 @@ def cad_text(
         return_result=return_result,
         formula_form=formula_form,
         max_formula_terms=max_formula_terms,
+        max_preprocess_aux_vars=max_preprocess_aux_vars,
     )
 
 

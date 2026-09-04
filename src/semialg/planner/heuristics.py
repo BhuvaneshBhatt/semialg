@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from itertools import permutations
 
 import sympy as sp
 
 from ..formula import Formula, equational_constraints, formula_polynomials
+from ..incidence import sparse_variable_order
+from ..structural_keys import symbol_identity_key
 from .features import ProblemFeatures
 
 
@@ -60,7 +63,7 @@ def brown_variable_order(
         max_degree = max((_degree_in(poly, sym) for poly in polys), default=0)
         degree_sum = sum(_degree_in(poly, sym) for poly in polys)
         occurrence = sum(1 for poly in polys if sym in poly.free_symbols)
-        return (max_degree, degree_sum, occurrence, sym.name)
+        return (max_degree, degree_sum, occurrence, symbol_identity_key(sym))
 
     return tuple(sorted(vars_tuple, key=key))
 
@@ -88,7 +91,7 @@ def ndrr_score(order: Sequence[sp.Symbol], polys: Sequence[sp.Expr]) -> int:
         return 0
     first = order[0]
     count = 0
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     for poly in polys:
         if poly.free_symbols and poly.free_symbols <= {first}:
             try:
@@ -96,7 +99,7 @@ def ndrr_score(order: Sequence[sp.Symbol], polys: Sequence[sp.Expr]) -> int:
             except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
                 roots = ()
             for root in roots:
-                key = sp.sstr(root)
+                key = root
                 if key not in seen:
                     seen.add(key)
                     count += 1
@@ -114,7 +117,7 @@ def _projection_complexity(
     if not order or len(order) > 4:
         return None
     try:
-        from ..cad.projection.collins import build_collins_proj_set
+        from ..cad_algorithms.projection.collins import build_collins_proj_set
 
         tower = build_collins_proj_set(polys, order)
     except (sp.PolynomialError, TypeError, ValueError, NotImplementedError, ArithmeticError):
@@ -126,17 +129,58 @@ def _projection_complexity(
         for poly in level.polynomials:
             try:
                 total_degree += int(poly.total_degree())
-            except (TypeError, ValueError, AttributeError):
+            except (TypeError, ValueError):
                 total_degree += 1
     return count, total_degree
+
+
+def _probe_univariate_poly(expr: sp.Expr, var: sp.Symbol) -> sp.Poly | None:
+    """Build an exact univariate probe polynomial using the cheapest domain available."""
+
+    try:
+        from ..cad_algorithms.polynomial_utils import exact_univariate_poly
+
+        return exact_univariate_poly(expr, var)
+    except (sp.PolynomialError, TypeError, ValueError):
+        return None
+
+
+def _count_distinct_real_roots(polys: Sequence[sp.Poly], var: sp.Symbol) -> int | None:
+    """Count the union of real roots without constructing algebraic root objects.
+
+    The roots of the square-free product are exactly the distinct roots of the
+    input family.  SymPy's exact Sturm/root-count implementations are used for
+    ground exact coefficient domains; unsupported domains return ``None`` so
+    the planner can fall back to explicit isolation.
+    """
+
+    expressions = [poly.as_expr() for poly in polys if poly.degree() > 0]
+    if not expressions:
+        return 0
+    try:
+        from ..cad_algorithms.polynomial_utils import exact_univariate_poly
+
+        combined = exact_univariate_poly(sp.prod(expressions), var)
+        if combined.domain == sp.EX or combined.as_expr().free_symbols - {var}:
+            return None
+        squarefree = combined.sqf_part()
+        return int(squarefree.count_roots(-sp.oo, sp.oo))
+    except (
+        sp.PolynomialError,
+        TypeError,
+        ValueError,
+        NotImplementedError,
+        ArithmeticError,
+    ):
+        return None
 
 
 def _probe_root_count(polys: Sequence[sp.Poly], order: Sequence[sp.Symbol], level: int) -> int:
     """Estimate distinct fiber roots at a few cheap exact rational probes.
 
-    This is intentionally only an ordering heuristic.  It never participates in
-    CAD correctness and is restricted to the shortlist already paying projection
-    cost.
+    Exact root *counting* is preferred over algebraic root construction whenever
+    the specialization lands in a ground exact coefficient domain.  Explicit
+    isolation remains the conservative fallback for unusual exact domains.
     """
     if level < 1 or level > len(order):
         return 0
@@ -146,23 +190,28 @@ def _probe_root_count(polys: Sequence[sp.Poly], order: Sequence[sp.Symbol], leve
     best = 0
     for probe in probes:
         subs = {sym: probe for sym in lower}
-        roots: list[object] = []
+        specialized: list[sp.Poly] = []
         for poly in polys:
             expr = sp.expand(poly.as_expr().subs(subs))
             if expr == 0:
                 continue
-            try:
-                univar = sp.Poly(expr, var, domain="EX")
-            except (sp.PolynomialError, TypeError, ValueError):
+            univar = _probe_univariate_poly(expr, var)
+            if univar is None or univar.degree() <= 0:
                 continue
-            if univar.degree() <= 0:
-                continue
+            specialized.append(univar)
+
+        counted = _count_distinct_real_roots(specialized, var)
+        if counted is not None:
+            best = max(best, counted)
+            continue
+
+        roots: list[object] = []
+        for univar in specialized:
             try:
                 from ..algebraic.roots import isolate_real_roots
 
                 roots.extend(isolate_real_roots(univar))
             except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
-                # Degree remains a safe cheap proxy if exact probing fails.
                 best = max(best, int(univar.degree()))
         if roots:
             from ..algebraic.comparison import sort_samples
@@ -181,7 +230,7 @@ def _lifting_complexity(
     if not order or len(order) > 4:
         return None
     try:
-        from ..cad.projection.collins import build_collins_proj_set
+        from ..cad_algorithms.projection.collins import build_collins_proj_set
 
         tower = build_collins_proj_set(polys, order)
     except (sp.PolynomialError, TypeError, ValueError, NotImplementedError, ArithmeticError):
@@ -219,7 +268,7 @@ def _projection_arithmetic_complexity(
     if not order or len(order) > 4:
         return None
     try:
-        from ..cad.projection.collins import build_collins_proj_set
+        from ..cad_algorithms.projection.collins import build_collins_proj_set
 
         tower = build_collins_proj_set(polys, order)
     except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
@@ -232,7 +281,7 @@ def _projection_arithmetic_complexity(
                 max_degree = max(max_degree, int(poly.total_degree()))
                 for coeff in poly.coeffs():
                     max_height = max(max_height, _integer_height_bits(coeff))
-            except (TypeError, ValueError, AttributeError):
+            except (TypeError, ValueError):
                 continue
     return max_degree, max_height
 
@@ -243,7 +292,7 @@ def _sample_algebraic_degree(sample: object) -> int:
 
         if isinstance(sample, AlgebraicRoot):
             return max(1, int(sample.polynomial.degree()))
-    except (TypeError, ValueError, AttributeError):
+    except (TypeError, ValueError):
         pass
     return 1
 
@@ -262,31 +311,39 @@ def _pilot_lifting_complexity(
     try:
         from ..algebraic.comparison import sort_samples
         from ..algebraic.roots import isolate_real_roots
-        from ..cad.decomposition import _build_stack, _stack_roots_over_point
-        from ..cad.projection.collins import build_collins_proj_set
+        from ..algebraic.sample_points import choose_sector_sample
+        from ..algebraic.samples import RationalSample
+        from ..cad_algorithms.decomposition import _stack_roots_over_point
+        from ..cad_algorithms.projection.collins import build_collins_proj_set
 
         tower = build_collins_proj_set(polys, order)
         roots = []
         for poly in tower.level(1).polynomials:
             roots.extend(isolate_real_roots(poly))
         roots = list(sort_samples(tuple(roots)))
-        cells = list(_build_stack(None, roots, 1, tower))
+
+        def pilot_stack(prefix, stack_roots):
+            """Return representative sample paths without CAD sign/provenance work."""
+
+            bounds = [None, *stack_roots, None]
+            paths = []
+            for pos in range(len(bounds) - 1):
+                sector = choose_sector_sample(bounds[pos], bounds[pos + 1])
+                paths.append((*prefix, sector))
+                if bounds[pos + 1] is not None:
+                    paths.append((*prefix, bounds[pos + 1]))
+            return paths
+
+        paths = pilot_stack((), roots)
         root_total = len(roots)
-        cell_total = len(cells)
+        cell_total = len(paths)
         algebraic_degree = max((_sample_algebraic_degree(root) for root in roots), default=1)
 
         def choose_parents(candidates):
-            # Prefer rational sample paths for the bounded pilot.  They still
-            # exercise the real lifting/root machinery but avoid turning a
-            # cheap cost probe into a full algebraic-coefficient root-isolation
-            # problem.  If no rational path exists, retain representative
-            # candidates and let the exact pilot decline conservatively.
-            from ..algebraic.samples import RationalSample
-
             rational = [
-                cell
-                for cell in candidates
-                if all(isinstance(sample, RationalSample) for sample in cell.sample)
+                path
+                for path in candidates
+                if all(isinstance(sample, RationalSample) for sample in path)
             ]
             pool = rational or list(candidates)
             if len(pool) <= max_parents:
@@ -294,14 +351,14 @@ def _pilot_lifting_complexity(
             indexes = {0, len(pool) // 2, len(pool) - 1}
             return [pool[i] for i in sorted(indexes)[:max_parents]]
 
-        parents = choose_parents(cells)
+        parents = choose_parents(paths)
         for level in range(2, len(order) + 1):
             next_parents = []
-            for parent in parents:
+            for prefix in parents:
                 stack_roots = _stack_roots_over_point(
                     tower.level(level).polynomials,
                     order,
-                    parent.sample,
+                    prefix,
                     order[level - 1],
                 )
                 root_total += len(stack_roots)
@@ -309,7 +366,7 @@ def _pilot_lifting_complexity(
                     algebraic_degree,
                     max((_sample_algebraic_degree(root) for root in stack_roots), default=1),
                 )
-                stack = list(_build_stack(parent, stack_roots, level, tower))
+                stack = pilot_stack(prefix, stack_roots)
                 cell_total += len(stack)
                 next_parents.extend(stack)
             if not next_parents:
@@ -421,12 +478,44 @@ def score_variable_order(
     )
 
 
-def candidate_variable_orders(
+def _add_pilot_metrics(item: OrderScore, polys: Sequence[sp.Expr]) -> OrderScore:
+    """Refine an already-scored order without recomputing projection/lifting metrics."""
+
+    pilot = _pilot_lifting_complexity(item.order, polys)
+    if pilot is None:
+        return item
+    pilot_roots, pilot_cells, pilot_degree = pilot
+    baseline_roots = item.estimated_lifting_roots or 0
+    baseline_cell_bits = int(max(1, item.estimated_cell_count or 1).bit_length())
+    pilot_cell_bits = int(max(1, pilot_cells).bit_length())
+    baseline_degree = item.estimated_alg_degree or 1
+    adjustment = 20 * (pilot_roots - baseline_roots)
+    adjustment += 8 * (pilot_cell_bits - baseline_cell_bits)
+    adjustment += 12 * (pilot_degree - baseline_degree)
+    return OrderScore(
+        order=item.order,
+        score=item.score + adjustment,
+        reason=item.reason,
+        projection_poly_count=item.projection_poly_count,
+        projection_sotd=item.projection_sotd,
+        estimated_lifting_roots=item.estimated_lifting_roots,
+        estimated_cell_count=item.estimated_cell_count,
+        estimated_alg_degree=max(baseline_degree, pilot_degree),
+        coefficient_height_bits=item.coefficient_height_bits,
+        pilot_lifting_roots=pilot_roots,
+        pilot_cell_count=pilot_cells,
+    )
+
+
+def _candidate_variable_orders_impl(
     features: ProblemFeatures,
-    polys: Sequence[sp.Expr],
+    polys: tuple[sp.Expr, ...],
     *,
-    equational_constraints: Sequence[sp.Expr] = (),
+    equational_constraints: tuple[sp.Expr, ...] = (),
     limit: int = 12,
+    exhaustive_var_limit: int = 5,
+    projection_var_limit: int = 4,
+    projection_shortlist: int = 6,
 ) -> tuple[OrderScore, ...]:
     """Return the best candidate CAD orders under a staged cost model.
 
@@ -439,7 +528,7 @@ def candidate_variable_orders(
     if len(vars_) <= 1:
         return (OrderScore(order=vars_, score=0, reason="single variable"),)
     ecs = tuple(sp.expand(ec) for ec in equational_constraints)
-    sorted_vars = tuple(sorted(vars_, key=lambda s: s.name))
+    sorted_vars = tuple(sorted(vars_, key=symbol_identity_key))
     brown = brown_variable_order(polys, vars_)
     candidates: set[tuple[sp.Symbol, ...]] = {
         tuple(vars_),
@@ -447,14 +536,24 @@ def candidate_variable_orders(
         tuple(reversed(sorted_vars)),
         brown,
         tuple(reversed(brown)),
+        sparse_variable_order(polys, vars_),
+        tuple(reversed(sparse_variable_order(polys, vars_))),
         tuple(
             sorted(
-                vars_, key=lambda sym: (sum(sym in poly.free_symbols for poly in polys), sym.name)
+                vars_,
+                key=lambda sym: (
+                    sum(sym in poly.free_symbols for poly in polys),
+                    symbol_identity_key(sym),
+                ),
             )
         ),
         tuple(
             sorted(
-                vars_, key=lambda sym: (-sum(sym in poly.free_symbols for poly in polys), sym.name)
+                vars_,
+                key=lambda sym: (
+                    -sum(sym in poly.free_symbols for poly in polys),
+                    symbol_identity_key(sym),
+                ),
             )
         ),
     }
@@ -462,9 +561,13 @@ def candidate_variable_orders(
     # toward the high end of the CAD order.
     if ecs:
         ec_occurrence = {sym: sum(sym in ec.free_symbols for ec in ecs) for sym in vars_}
-        candidates.add(tuple(sorted(vars_, key=lambda sym: (ec_occurrence[sym], sym.name))))
-        candidates.add(tuple(sorted(vars_, key=lambda sym: (-ec_occurrence[sym], sym.name))))
-    if len(vars_) <= 5:
+        candidates.add(
+            tuple(sorted(vars_, key=lambda sym: (ec_occurrence[sym], symbol_identity_key(sym))))
+        )
+        candidates.add(
+            tuple(sorted(vars_, key=lambda sym: (-ec_occurrence[sym], symbol_identity_key(sym))))
+        )
+    if len(vars_) <= exhaustive_var_limit:
         all_orders = list(permutations(vars_))
         prelim = sorted(
             (score_variable_order(order, polys, ec_exprs=ecs) for order in all_orders),
@@ -475,15 +578,14 @@ def candidate_variable_orders(
 
     prelim_scores = sorted(
         (score_variable_order(cand, polys, ec_exprs=ecs) for cand in candidates),
-        key=lambda item: (item.score, tuple(sym.name for sym in item.order)),
+        key=lambda item: (item.score, tuple(symbol_identity_key(sym) for sym in item.order)),
     )
     # Exact projection/lifting scoring is deliberately limited to a shortlist
-    # and at most four variables.  Pilot lifting is a second stage over the two
-    # best projection-scored orders, so its measured adjustment is comparable
-    # with the remaining estimated candidates.
+    # and at most four variables.  Pilot lifting is then applied adaptively
+    # to the strongest projection-scored candidates.
     shortlist = (
-        {item.order for item in prelim_scores[: min(6, len(prelim_scores))]}
-        if len(vars_) <= 4
+        {item.order for item in prelim_scores[: min(projection_shortlist, len(prelim_scores))]}
+        if len(vars_) <= projection_var_limit
         else set()
     )
     baseline_scores = [
@@ -496,27 +598,126 @@ def candidate_variable_orders(
         )
         for item in prelim_scores
     ]
-    baseline_scores.sort(key=lambda item: (item.score, tuple(sym.name for sym in item.order)))
-    pilot_shortlist = (
-        {item.order for item in baseline_scores[: min(2, len(baseline_scores))]}
-        if len(vars_) <= 4
-        else set()
+    baseline_scores.sort(
+        key=lambda item: (item.score, tuple(symbol_identity_key(sym) for sym in item.order))
     )
-    scores = [
-        score_variable_order(
-            item.order,
-            polys,
-            ec_exprs=ecs,
-            include_projection=item.order in shortlist,
-            include_lifting=item.order in shortlist,
-            include_pilot=item.order in pilot_shortlist,
-        )
-        if item.order in pilot_shortlist
-        else item
-        for item in baseline_scores
-    ]
-    scores.sort(key=lambda item: (item.score, tuple(sym.name for sym in item.order)))
+    # Pilot lifting is expensive and heuristic-only.  Refine the current best
+    # order first, then measure the runner-up only when its baseline score is
+    # genuinely competitive or the first pilot adjustment makes it competitive.
+    # This preserves a real-lift sanity check without paying for two pilots on
+    # problems whose projection/lifting estimates already separate the orders.
+    scores = list(baseline_scores)
+    if len(vars_) <= projection_var_limit and scores:
+        original_best = scores[0]
+        piloted_best = _add_pilot_metrics(original_best, polys)
+        scores[0] = piloted_best
+        if len(scores) > 1:
+            runner_up = scores[1]
+            baseline_gap = runner_up.score - original_best.score
+            closeness = max(100, int(0.08 * max(1, abs(original_best.score))))
+            best_adjustment = abs(piloted_best.score - original_best.score)
+            should_pilot_runner_up = (
+                baseline_gap <= closeness
+                or piloted_best.score >= runner_up.score
+                or baseline_gap <= best_adjustment
+            )
+            if should_pilot_runner_up:
+                scores[1] = _add_pilot_metrics(runner_up, polys)
+    scores.sort(
+        key=lambda item: (item.score, tuple(symbol_identity_key(sym) for sym in item.order))
+    )
     return tuple(scores[:limit])
+
+
+@lru_cache(maxsize=64)
+def _candidate_variable_orders_cached(
+    features: ProblemFeatures,
+    polys: tuple[sp.Expr, ...],
+    equational_constraints: tuple[sp.Expr, ...],
+    limit: int,
+    exhaustive_var_limit: int,
+    projection_var_limit: int,
+    projection_shortlist: int,
+) -> tuple[OrderScore, ...]:
+    return _candidate_variable_orders_impl(
+        features,
+        polys,
+        equational_constraints=equational_constraints,
+        limit=limit,
+        exhaustive_var_limit=exhaustive_var_limit,
+        projection_var_limit=projection_var_limit,
+        projection_shortlist=projection_shortlist,
+    )
+
+
+def candidate_variable_orders(
+    features: ProblemFeatures,
+    polys: Sequence[sp.Expr],
+    *,
+    equational_constraints: Sequence[sp.Expr] = (),
+    limit: int = 12,
+    exhaustive_var_limit: int = 5,
+    projection_var_limit: int = 4,
+    projection_shortlist: int = 6,
+) -> tuple[OrderScore, ...]:
+    """Return cached candidate CAD orders under the staged cost model.
+
+    The complete immutable score tuple is cached because planner callers often
+    request the same normalized problem more than once while selecting and then
+    executing a strategy.  Sequence inputs are tuple-normalized at the boundary
+    so list-based public calls retain their existing behavior.
+    """
+
+    if limit < 1:
+        raise ValueError("limit must be positive")
+    if min(exhaustive_var_limit, projection_var_limit, projection_shortlist) < 0:
+        raise ValueError("variable-order planner limits must be nonnegative")
+    poly_tuple = tuple(sp.sympify(poly) for poly in polys)
+    ec_tuple = tuple(sp.sympify(ec) for ec in equational_constraints)
+    cache_key = (
+        features,
+        poly_tuple,
+        ec_tuple,
+        int(limit),
+        int(exhaustive_var_limit),
+        int(projection_var_limit),
+        int(projection_shortlist),
+    )
+    try:
+        hash(cache_key)
+    except TypeError:
+        # Preserve support for unusual unhashable feature payloads without
+        # letting a performance cache narrow the public contract.
+        return _candidate_variable_orders_impl(
+            features,
+            poly_tuple,
+            equational_constraints=ec_tuple,
+            limit=int(limit),
+            exhaustive_var_limit=int(exhaustive_var_limit),
+            projection_var_limit=int(projection_var_limit),
+            projection_shortlist=int(projection_shortlist),
+        )
+    return _candidate_variable_orders_cached(
+        features,
+        poly_tuple,
+        ec_tuple,
+        int(limit),
+        int(exhaustive_var_limit),
+        int(projection_var_limit),
+        int(projection_shortlist),
+    )
+
+
+def clear_variable_order_cache() -> None:
+    """Clear cached complete planner order rankings."""
+
+    _candidate_variable_orders_cached.cache_clear()
+
+
+def variable_order_cache_info():
+    """Return ``functools`` cache statistics for planner order rankings."""
+
+    return _candidate_variable_orders_cached.cache_info()
 
 
 def choose_best_variable_order(
@@ -544,9 +745,11 @@ __all__ = [
     "OrderScore",
     "brown_variable_order",
     "candidate_variable_orders",
+    "clear_variable_order_cache",
     "choose_formula_variable_order",
     "choose_best_variable_order",
     "ndrr_score",
     "score_variable_order",
     "sotd_score",
+    "variable_order_cache_info",
 ]

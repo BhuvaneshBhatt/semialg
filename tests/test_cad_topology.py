@@ -9,10 +9,10 @@ from semialg.decomposition.cylindrical import cad
 
 def test_interval_boundary_closure_interior_exterior():
     x = sp.Symbol("x", real=True)
-    interior = cad(x**2 <= 1, [x], operation="interior")
-    closure = cad(x**2 < 1, [x], operation="closure")
-    boundary = cad(x**2 <= 1, [x], operation="boundary")
-    exterior = cad(x**2 <= 1, [x], operation="exterior")
+    interior = cad(x**2 <= 1, [x], operation="interior", return_result=True)
+    closure = cad(x**2 < 1, [x], operation="closure", return_result=True)
+    boundary = cad(x**2 <= 1, [x], operation="boundary", return_result=True)
+    exterior = cad(x**2 <= 1, [x], operation="exterior", return_result=True)
 
     assert bool(interior.formula.subs({x: 0}))
     assert not bool(interior.formula.subs({x: 1}))
@@ -30,9 +30,9 @@ def test_interval_boundary_closure_interior_exterior():
 def test_disk_topological_operations():
     x, y = sp.symbols("x y", real=True)
     disk = x**2 + y**2 <= 1
-    interior = cad(disk, [x, y], operation="interior")
-    boundary = cad(disk, [x, y], operation="boundary")
-    exterior = cad(disk, [x, y], operation="exterior")
+    interior = cad(disk, [x, y], operation="interior", return_result=True)
+    boundary = cad(disk, [x, y], operation="boundary", return_result=True)
+    exterior = cad(disk, [x, y], operation="exterior", return_result=True)
 
     assert bool(interior.formula.subs({x: 0, y: 0}))
     assert not bool(interior.formula.subs({x: 1, y: 0}))
@@ -45,8 +45,10 @@ def test_disk_topological_operations():
 
 def test_components_from_cell_set_uses_closure_connected_cells():
     x = sp.Symbol("x", real=True)
-    connected = cad(sp.Or((x >= -1) & (x <= 0), (x >= 0) & (x <= 1)), [x], output="cells")
-    disconnected = cad(sp.Or(x < -1, x > 1), [x], output="cells")
+    connected = cad(
+        sp.Or((x >= -1) & (x <= 0), (x >= 0) & (x <= 1)), [x], output="cells", return_result=True
+    )
+    disconnected = cad(sp.Or(x < -1, x > 1), [x], output="cells", return_result=True)
 
     assert len(components_from_cell_set(connected.as_cell_set()).components) == 1
     assert len(components_from_cell_set(disconnected.as_cell_set()).components) == 2

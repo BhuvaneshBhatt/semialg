@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 import sympy as sp
 
 from ..normalization import normalize_variables
+from ..simplify.boolean import simplify_boolean
+from ..structural_keys import symbol_identity_key
 from ..symbol_resolution import resolve_symbol
 
 
@@ -86,7 +88,7 @@ def polynomial_stability_analysis(
     if any(item.is_real is False for item in coeffs):
         raise ValueError("Hurwitz stability requires real polynomial coefficients")
 
-    free = tuple(sorted(expr.free_symbols - {var}, key=lambda sym: (sym.name, sp.srepr(sym))))
+    free = tuple(sorted(expr.free_symbols - {var}, key=symbol_identity_key))
     if parameters is None:
         params = free
     else:
@@ -110,7 +112,7 @@ def polynomial_stability_analysis(
         condition = sp.And(*(det > 0 for det in neg_dets))
     else:
         condition = sp.Or(pos_condition, neg_condition)
-    condition = sp.simplify_logic(condition)
+    condition = simplify_boolean(condition)
 
     return PolynomialStabilityResult(
         polynomial=expr,

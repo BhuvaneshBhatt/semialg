@@ -1,0 +1,170 @@
+"""Exact graph/image QE backends for function-range computation."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+
+import sympy as sp
+from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+
+from ._optimization_backends import optimization_is_feasible as _optimization_is_feasible
+from ._optimization_backends import qe_by_complete_cad
+from ._optimization_range import _EXPECTED_ERRORS
+from ._range_special_cases import _has_semialgebraic_special, _relation_for_function_graph
+from .formula import parse_formula
+from .function_graph import (
+    UnsupportedFunctionGraph,
+    semialgebraic_formula_graph,
+    semialgebraic_function_graph,
+)
+
+
+def _try_exact_graph_image(
+    expr: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+) -> sp.Expr | None:
+    """Project a supported exact function graph onto its output coordinate."""
+
+    try:
+        graph = semialgebraic_function_graph(expr, value_symbol)
+        condition_graph = semialgebraic_formula_graph(condition)
+        image_formula = sp.And(condition_graph.formula, graph.formula)
+        elimination_variables = tuple(
+            dict.fromkeys(
+                (*variables, *condition_graph.auxiliary_variables, *graph.auxiliary_variables)
+            )
+        )
+        parsed = parse_formula(image_formula)
+        result = qe_by_complete_cad(
+            (value_symbol, *elimination_variables),
+            tuple(("exists", variable) for variable in elimination_variables),
+            parsed,
+            free_variables=(value_symbol,),
+            return_result=True,
+        )
+    except (UnsupportedFunctionGraph, *_EXPECTED_ERRORS):
+        return None
+    return sp.simplify(result.formula)
+
+
+def _try_semialgebraic_graph_image(
+    expr: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+) -> sp.Expr | None:
+    """Use CAD/QE on the shared graph for non-rational semialgebraic heads."""
+
+    if not (_has_semialgebraic_special(expr) or _has_semialgebraic_special(condition)):
+        return None
+    return _try_exact_graph_image(expr, condition, variables, value_symbol)
+
+
+def _substitute_formula(expr: sp.Expr, substitution: Mapping[sp.Symbol, sp.Expr]) -> sp.Expr:
+    if expr is sp.true or isinstance(expr, BooleanTrue):
+        return sp.true
+    if expr is sp.false or isinstance(expr, BooleanFalse):
+        return sp.false
+    return sp.simplify(expr.subs(substitution))
+
+
+def _try_affine_univariate_image(
+    expr: sp.Expr,
+    condition: sp.Expr,
+    variable: sp.Symbol,
+    value_symbol: sp.Symbol,
+) -> sp.Expr | None:
+    """Fast exact image for an affine one-variable map.
+
+    This covers important disconnected ranges without needing a full CAD run,
+    e.g. the image of ``x`` over ``x <= -1 or x >= 1``.
+    """
+
+    try:
+        poly = sp.Poly(sp.expand(expr), variable)
+    except _EXPECTED_ERRORS:
+        return None
+    if poly.degree() != 1:
+        return None
+    coefficient = poly.coeff_monomial(variable)
+    constant = poly.eval(0)
+    if sp.simplify(coefficient) == 0:
+        sample = {variable: sp.Integer(0)}
+        return (
+            sp.Eq(value_symbol, sp.simplify(constant))
+            if _optimization_is_feasible(condition, sample)
+            else sp.false
+        )
+    inverse = sp.simplify((value_symbol - constant) / coefficient)
+    return _substitute_formula(condition, {variable: inverse})
+
+
+def _try_solved_graph_image(
+    expr: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+) -> sp.Expr | None:
+    """Try exact image computation by solving the graph equation.
+
+    This conservative helper supports univariate polynomial/rational maps when
+    SymPy can solve the graph equation explicitly enough to substitute branches
+    back into the domain condition.
+    """
+
+    if len(variables) != 1:
+        return None
+    variable = variables[0]
+    affine = _try_affine_univariate_image(expr, condition, variable, value_symbol)
+    if affine is not None:
+        return sp.simplify(affine)
+    numerator, denominator = sp.fraction(sp.together(expr))
+    equation = sp.expand(value_symbol * denominator - numerator)
+    try:
+        solutions = sp.solve(equation, variable)
+    except _EXPECTED_ERRORS:
+        return None
+    if not solutions:
+        return None
+    branches: list[sp.Expr] = []
+    for solution in solutions:
+        if variable in solution.free_symbols or solution.has(sp.I):
+            return None
+        if any(
+            isinstance(pow_expr, sp.Pow) and pow_expr.exp.is_integer is False
+            for pow_expr in solution.atoms(sp.Pow)
+        ):
+            return None
+        branch_condition = _substitute_formula(condition, {variable: solution})
+        branch_domain = _substitute_formula(sp.Ne(denominator, 0), {variable: solution})
+        branches.append(sp.And(branch_condition, branch_domain))
+    return sp.simplify(sp.Or(*branches))
+
+
+def _try_complete_cad_image(
+    expr: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    value_symbol: sp.Symbol,
+) -> sp.Expr | None:
+    """Run the CAD/QE image formulation for polynomial/rational expressions."""
+
+    relation, domain_constraint = _relation_for_function_graph(expr, value_symbol)
+    image_formula = sp.And(condition, domain_constraint, relation)
+    try:
+        parsed = parse_formula(image_formula)
+        result = qe_by_complete_cad(
+            (value_symbol, *variables),
+            tuple(("exists", variable) for variable in variables),
+            parsed,
+            free_variables=(value_symbol,),
+            return_result=True,
+        )
+    except _EXPECTED_ERRORS:
+        return None
+    return sp.simplify(result.formula)
+
+
+__all__ = []

@@ -113,12 +113,18 @@ def build_trans_state(
     notes: Sequence[str] = (),
     metadata: Mapping | None = None,
 ) -> TransProblemState:
+    """Normalize a transcendental solver request into immutable problem state.
+
+    Explicit quantifier blocks take precedence over quantifiers embedded in the
+    formula. Variable order is normalized once so every downstream handler sees
+    the same free, quantified, parameter, and domain metadata.
+    """
     free_variables = tuple(free_variables)
     quantified_variables = tuple(quantified_variables)
     parameter_variables = tuple(parameter_variables)
 
     # Expression-facing callers may provide a semialg Exists/ForAll prefix
-    # directly.  Explicit block/variable arguments take precedence so legacy
+    # directly. Explicit block/variable arguments take precedence so inferred
     # internal callers remain unambiguous.
     if quantifier_blocks is None and not quantified_variables:
         prefix, matrix = split_quantifiers(formula)

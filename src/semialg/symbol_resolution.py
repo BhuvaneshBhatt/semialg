@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 import sympy as sp
+
+from .structural_keys import symbol_identity_key
 
 
 def _symbols_from(objects: Iterable[object]) -> tuple[sp.Symbol, ...]:
@@ -26,6 +28,38 @@ def _symbols_from(objects: Iterable[object]) -> tuple[sp.Symbol, ...]:
                 out.append(symbol)
                 seen.add(symbol)
     return tuple(out)
+
+
+def build_symbol_table(
+    symbols: Mapping[str, sp.Symbol] | None = None,
+    values: Iterable[sp.Symbol | str] = (),
+    *,
+    create_real: bool = True,
+) -> dict[str, sp.Symbol]:
+    """Return a parser symbol table that rejects ambiguous same-name symbols.
+
+    Text formulas can identify symbols only by name. If two supplied Symbol
+    objects share a name but differ in assumptions, silently choosing one would
+    make the parsed formula inconsistent with the requested variable objects.
+    This helper preserves an explicit mapping when compatible and raises on
+    ambiguous name collisions.
+    """
+
+    table = dict(symbols or {})
+    for value in values:
+        if isinstance(value, str):
+            symbol = table.get(value)
+            if symbol is None:
+                symbol = sp.Symbol(value, real=True) if create_real else sp.Symbol(value)
+        elif isinstance(value, sp.Symbol):
+            symbol = value
+        else:
+            raise TypeError(f"expected a Symbol or string name, got {type(value).__name__}")
+        existing = table.get(symbol.name)
+        if existing is not None and existing != symbol:
+            raise ValueError(f"symbol name {symbol.name!r} maps to incompatible Symbol objects")
+        table[symbol.name] = symbol
+    return table
 
 
 def resolve_symbol(
@@ -94,11 +128,11 @@ def normalize_variables(
             out.append(symbol)
             seen.add(symbol)
     if append_context_symbols:
-        for symbol in sorted(context_symbols, key=lambda item: (item.name, sp.srepr(item))):
+        for symbol in sorted(context_symbols, key=symbol_identity_key):
             if symbol not in excluded and symbol not in seen:
                 out.append(symbol)
                 seen.add(symbol)
     return tuple(out)
 
 
-__all__ = ["normalize_variables", "resolve_symbol"]
+__all__ = ["build_symbol_table", "normalize_variables", "resolve_symbol"]

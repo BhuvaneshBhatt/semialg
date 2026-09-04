@@ -6,7 +6,7 @@ import sympy as sp
 
 from ..cache_utils import BoundedLRU
 
-CACHE_VERSION = 5
+CACHE_FORMAT = 6
 
 
 @dataclass
@@ -55,20 +55,77 @@ class RootIsolationCache:
 CACHE = RootIsolationCache()
 
 
-def expr_key(expr: sp.Expr) -> str:
-    return sp.srepr(sp.factor(sp.expand(expr)))
+@dataclass(frozen=True)
+class AlgebraicCacheLimits:
+    """Capacities for process-local exact-algebraic performance caches."""
+
+    roots: int = 1024
+    signs: int = 4096
+    comparisons: int = 4096
+    specializations: int = 2048
+    rur: int = 128
 
 
-def poly_key(poly: sp.Poly) -> str:
-    return f"{tuple(str(g) for g in poly.gens)}::{expr_key(poly.as_expr())}"
+def configure_algebraic_cache_limits(
+    *,
+    roots: int | None = None,
+    signs: int | None = None,
+    comparisons: int | None = None,
+    specializations: int | None = None,
+    rur: int | None = None,
+) -> AlgebraicCacheLimits:
+    """Resize process-local algebraic caches and return the resulting limits.
+
+    Existing newest entries are retained up to each new capacity.  This is an
+    expert performance-control API; it does not change mathematical results.
+    """
+
+    updates = {
+        "roots": roots,
+        "signs": signs,
+        "comparisons": comparisons,
+        "specializations": specializations,
+        "rur": rur,
+    }
+    for name, value in updates.items():
+        if value is not None:
+            getattr(CACHE, name).resize(value)
+    return AlgebraicCacheLimits(
+        roots=CACHE.roots.maxsize,
+        signs=CACHE.signs.maxsize,
+        comparisons=CACHE.comparisons.maxsize,
+        specializations=CACHE.specializations.maxsize,
+        rur=CACHE.rur.maxsize,
+    )
 
 
-def sample_expr_key(value: object) -> str:
+def expr_key(expr: sp.Expr) -> sp.Expr:
+    """Return a cheap structural expression key without algebraic rewriting.
+
+    Cache lookup must not trigger factorization, rational-function combination,
+    or other symbolic normalization. Callers may therefore miss reuse when two
+    algebraically equivalent expressions have different trees, but a cache miss
+    is preferable to making key construction asymptotically more expensive than
+    the exact operation being cached.
+    """
+
+    return sp.sympify(expr)
+
+
+def poly_key(
+    poly: sp.Poly,
+) -> tuple[tuple[sp.Symbol, ...], object, tuple[tuple[tuple[int, ...], sp.Expr], ...]]:
+    """Return an exact structural polynomial key preserving symbol identity."""
+
+    return (tuple(poly.gens), poly.domain, tuple(poly.terms()))
+
+
+def sample_expr_key(value: object) -> sp.Expr:
     from .samples import AlgebraicRoot, RationalSample, sample_to_expr
 
     if isinstance(value, (RationalSample, AlgebraicRoot)):
         value = sample_to_expr(value)
-    return sp.srepr(sp.sympify(value))
+    return sp.sympify(value)
 
 
 def root_isolation_costs() -> RootIsolationStats:
@@ -86,12 +143,14 @@ def clear_algebraic_caches() -> None:
 
 
 __all__ = [
-    "CACHE_VERSION",
+    "CACHE_FORMAT",
     "CACHE",
+    "AlgebraicCacheLimits",
     "BoundedLRU",
     "RootIsolationStats",
     "algebraic_cache_stats",
     "clear_algebraic_caches",
+    "configure_algebraic_cache_limits",
     "expr_key",
     "poly_key",
     "root_isolation_costs",

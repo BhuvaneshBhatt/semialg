@@ -1,12 +1,12 @@
 import pytest
 import sympy as sp
 
-from semialg import (
+from semialg import optimization as optimization_module
+from semialg import semialgebraic_minimize
+from semialg.optimization import (
     OptimizationCertificationPolicy,
     polynomial_locus_dimension,
-    semialgebraic_minimize,
 )
-from semialg import optimization as optimization_module
 
 
 @pytest.mark.slow
@@ -18,6 +18,7 @@ def test_cost_controlled_range_certifies_three_variable_open_ball():
         [x, y, z],
         certification="auto",
         range_cost_limit=2500,
+        return_result=True,
     )
     assert result.value == -1
     assert result.attained is False
@@ -34,6 +35,7 @@ def test_cost_policy_can_decline_expensive_range_fallback():
             [x, y, z],
             certification="auto",
             range_cost_limit=1,
+            return_result=True,
         )
     with pytest.raises(NotImplementedError):
         semialgebraic_minimize(
@@ -41,6 +43,7 @@ def test_cost_policy_can_decline_expensive_range_fallback():
             [x**2 + y**2 + z**2 < 1],
             [x, y, z],
             certification="candidate",
+            return_result=True,
         )
 
 
@@ -53,6 +56,7 @@ def test_complete_policy_ignores_auto_cost_limit():
         [x, y, z],
         certification="complete",
         range_cost_limit=0,
+        return_result=True,
     )
     assert result.value == -1
     assert result.certified
@@ -86,6 +90,7 @@ def test_positive_dimensional_kkt_locus_is_optimized_exactly():
         x**2 + y**2,
         [sp.Eq(x**2 + y**2, 1)],
         [x, y],
+        return_result=True,
     )
     assert result.value == 1
     assert result.attained
@@ -111,6 +116,7 @@ def test_equality_reduction_precedes_kkt_and_lifts_optimizer():
         x**2 + y**2 + z**2,
         [sp.Eq(x + y + z, 1)],
         [x, y, z],
+        return_result=True,
     )
     assert result.value == sp.Rational(1, 3)
     assert result.point == {x: sp.Rational(1, 3), y: sp.Rational(1, 3), z: sp.Rational(1, 3)}
@@ -129,3 +135,34 @@ def test_equality_reduction_does_not_divide_by_variable_coefficient():
     assert substitutions == {}
     assert objective == x**2 + y**2
     assert condition == sp.Eq(x * y + 1, 0)
+
+
+def test_range_endpoint_witness_on_positive_dimensional_locus():
+    x, y = sp.symbols("x y", real=True)
+    condition = sp.Eq(x**2 + y**2, 1)
+    policy = optimization_module.OptimizationCertificationPolicy("complete")
+    cert = optimization_module._certify_optimum_by_range(
+        x, condition, (x, y), kind="min", policy=policy
+    )
+    assert cert == (-1, True)
+    point = optimization_module._attained_point_on_value_locus(x, condition, (x, y), -1)
+    assert point is not None
+    assert point[x] == -1
+    assert sp.simplify(point[y]) == 0
+
+
+def test_positive_dimensional_singular_locus_uses_range_image_and_recovers_witness():
+    x, y = sp.symbols("x y", real=True)
+    result = semialgebraic_minimize(
+        y,
+        [sp.Eq(x**2, 0), y >= -1, y <= 1],
+        [x, y],
+        return_result=True,
+        certification="complete",
+    )
+    assert result.value == -1
+    assert result.attained
+    assert result.point is not None
+    assert sp.simplify(result.point[x]) == 0
+    assert sp.simplify(result.point[y]) == -1
+    assert result.certified

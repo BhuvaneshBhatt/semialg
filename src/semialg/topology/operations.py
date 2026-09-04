@@ -5,10 +5,11 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from ..cad.decomposition import CompleteCAD
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.decomposition import CompleteCAD
+from ..cad_algorithms.lifting.stack import CADCell
 from ..reconstruct.merge import compressed_formula_from_cells
-from ..simplify.result import simplify_qe_formula
+from ..simplify.boolean import simplify_boolean
+from ..simplify.formula import simplify_qe_formula
 from .incidence import cell_dimension, final_cells, is_cell_in_closure
 
 
@@ -59,13 +60,24 @@ def interior_cells(
     cad: CompleteCAD,
     variables: Sequence[sp.Symbol],
 ) -> tuple[CADCell, ...]:
-    """Return selected full-dimensional cells, i.e. the Euclidean interior."""
+    """Return final CAD cells contained in the Euclidean interior.
 
-    dim = len(tuple(variables))
-    cells_by_level = cad.cells_by_level
+    Interior is computed semantically as ``ambient - closure(ambient - S)``.
+    This is deliberately *not* the same as keeping only selected
+    full-dimensional CAD cells: an adapted CAD may split an open region by a
+    lower-dimensional section that is itself contained in the interior.  For
+    example, ``[0, 1] | [1, 2]`` contains the section ``x = 1`` as an interior
+    point of the union even though that section is zero-dimensional.
+    """
+
+    selected_tuple = tuple(selected)
+    selected_indices = {cell.index for cell in selected_tuple}
+    ambient = final_cells(cad)
+    complement = tuple(cell for cell in ambient if cell.index not in selected_indices)
+    complement_closure = {cell.index for cell in closure_cells(complement, cad, variables)}
     return tuple(
         sorted(
-            (cell for cell in selected if cell_dimension(cell, cells_by_level) == dim),
+            (cell for cell in selected_tuple if cell.index not in complement_closure),
             key=lambda cell: cell.index,
         )
     )
@@ -76,11 +88,24 @@ def boundary_cells(
     cad: CompleteCAD,
     variables: Sequence[sp.Symbol],
 ) -> tuple[CADCell, ...]:
-    """Return closure(region) minus interior(region)."""
+    """Return the Euclidean boundary using CAD closure semantics.
 
-    interior = {cell.index for cell in interior_cells(selected, cad, variables)}
+    The boundary is ``closure(S) ∩ closure(complement(S))``.  Expressing it
+    this way avoids syntactic boundary artifacts at internal CAD sections.
+    """
+
+    selected_tuple = tuple(selected)
+    selected_indices = {cell.index for cell in selected_tuple}
+    ambient = final_cells(cad)
+    complement = tuple(cell for cell in ambient if cell.index not in selected_indices)
+    closed_selected = {cell.index for cell in closure_cells(selected_tuple, cad, variables)}
+    closed_complement = {cell.index for cell in closure_cells(complement, cad, variables)}
+    boundary_indices = closed_selected & closed_complement
     return tuple(
-        cell for cell in closure_cells(selected, cad, variables) if cell.index not in interior
+        sorted(
+            (cell for cell in ambient if cell.index in boundary_indices),
+            key=lambda cell: cell.index,
+        )
     )
 
 
@@ -121,7 +146,7 @@ def cells_formula(
     )
     formula = result.formula
     if result.stats.fallback_used:
-        formula = sp.simplify_logic(formula, form="dnf")
+        formula = simplify_boolean(formula)
     return simplify_qe_formula(formula, implication_minimize=False)
 
 

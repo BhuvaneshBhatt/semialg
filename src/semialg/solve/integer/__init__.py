@@ -1,7 +1,7 @@
-"""Experimental integer and modular solving helpers.
+"""Integer and modular solving helpers for exact, explicitly supported fragments.
 
-These routines are not part of the certified real-CAD core and may return
-experimental or fragment-specific results.
+These routines are separate from the real-CAD core and report completeness in
+their result objects when a solver covers only part of an integer fragment.
 """
 
 from .congruence import (
@@ -17,7 +17,7 @@ from .congruence import (
     solve_mod_poly_sys,
     solve_modular_system,
     solve_quant_free_mod_sys,
-    solve_quant_mod_sys,
+    solve_quantified_modular_system,
 )
 from .diophantine import (
     IntEqnSolveResult,
@@ -30,9 +30,9 @@ from .diophantine import (
     solve_int_divis,
     solve_int_fams2,
     solve_int_methods,
-    solve_int_pruning,
-    solve_int_recursion2,
     solve_int_sys_via_factor,
+    solve_integer_with_modular_pruning,
+    solve_recursive_diophantine,
     solve_sum_of_two_squares,
 )
 from .engine import (
@@ -47,7 +47,7 @@ from .factorization import (
     enum_factor_branches,
     factor_thread_eqn,
     norm_factor_int_eqn,
-    solve_int_recursion,
+    solve_factorized_integer_equation,
 )
 from .families import (
     IntegerFamilyTag,
@@ -110,8 +110,6 @@ from .special_families import (
 )
 from .thue import ThueFamilyDescriptor, detect_binary_fam, solve_binary_bounded, solve_binary_lll
 
-EXPERIMENTAL = True
-
 __all__ = [
     "ModularSolveResult",
     "norm_mod_form",
@@ -123,7 +121,7 @@ __all__ = [
     "solve_quant_free_mod_sys",
     "find_quant_free_mod_inst",
     "eliminate_one_var",
-    "solve_quant_mod_sys",
+    "solve_quantified_modular_system",
     "solve_modular_system",
     "find_modular_instance",
     "LinDivisReduction",
@@ -135,8 +133,8 @@ __all__ = [
     "solve_int_divis",
     "solve_int_branches",
     "solve_int_sys_via_factor",
-    "solve_int_recursion2",
-    "solve_int_pruning",
+    "solve_recursive_diophantine",
+    "solve_integer_with_modular_pruning",
     "detect_sum_eqn",
     "solve_sum_of_two_squares",
     "detect_binary_homog_eqn",
@@ -168,7 +166,7 @@ __all__ = [
     "norm_factor_int_eqn",
     "enum_factor_branches",
     "factor_thread_eqn",
-    "solve_int_recursion",
+    "solve_factorized_integer_equation",
     "GroebnerRecursiveStep",
     "GroebnerTriangAnalysis",
     "compute_groebner_basis",

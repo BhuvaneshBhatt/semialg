@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING
 import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
+from ..cad_algorithms.polynomial_utils import polynomial_key
 from ..reconstruct.cylindrical import path_condition
+from .boolean import simplify_boolean
 from .intervals import Interval1D, intervals_to_formula, merge_intervals
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -86,10 +88,99 @@ def _multivariate_cell_form(cell_union: CellUnion) -> sp.Expr:
         pieces.append(path_condition(cell, cell_union.variables, cells_by_level))
     if not pieces:
         return sp.false
-    return sp.simplify_logic(sp.Or(*pieces), form="dnf")
+    return simplify_boolean(sp.Or(*pieces))
+
+
+def _sign_relation(poly: sp.Expr, signs: frozenset[int]) -> sp.Expr | None:
+    """Return the canonical polynomial relation for a selected sign subset."""
+
+    if signs == frozenset({-1}):
+        return poly < 0
+    if signs == frozenset({0}):
+        return sp.Eq(poly, 0)
+    if signs == frozenset({1}):
+        return poly > 0
+    if signs == frozenset({-1, 0}):
+        return poly <= 0
+    if signs == frozenset({0, 1}):
+        return poly >= 0
+    if signs == frozenset({-1, 1}):
+        return sp.Ne(poly, 0)
+    if signs == frozenset({-1, 0, 1}):
+        return sp.true
+    if not signs:
+        return sp.false
+    return None
+
+
+def polynomial_relation_from_cell_union(cell_union: CellUnion) -> sp.Expr | None:
+    """Recover a single polynomial sign relation when it exactly selects the cells.
+
+    This is an exact reconstruction shortcut, not a heuristic.  Every
+    full-dimensional free-variable CAD cell has a certified sign for each
+    projection polynomial active on its ancestor level.  A candidate relation
+    is returned only when membership in the selected cell union is completely
+    determined by one polynomial's sign over *all* free-variable cells.
+
+    The result is therefore directly reusable by polynomial CAD/QE and avoids
+    opaque root-function/``Abs`` boundary formulas when a simpler sign
+    description exists.
+    """
+
+    free_level = len(cell_union.variables)
+    cells_by_level = cell_union.cells_by_level
+    projection_polynomials = getattr(cell_union, "projection_polynomials", None) or {}
+    all_cells = tuple(cells_by_level.get(free_level, ()))
+    if free_level == 0 or not all_cells or not projection_polynomials:
+        return None
+
+    selected = {cell.index for cell in cell_union.cells}
+    if not selected:
+        return sp.false
+    if selected == {cell.index for cell in all_cells}:
+        return sp.true
+
+    candidates: list[sp.Expr] = []
+    for level in range(free_level, 0, -1):
+        for expr in projection_polynomials.get(level, ()):
+            key = polynomial_key(sp.Poly(expr, *cell_union.variables[:level], domain="EX"))
+            by_sign: dict[int, set[bool]] = {}
+            usable = True
+            for leaf in all_cells:
+                ancestor_index = leaf.index[:level]
+                try:
+                    ancestor = next(
+                        cell
+                        for cell in cells_by_level.get(level, ())
+                        if cell.index == ancestor_index
+                    )
+                except StopIteration:
+                    usable = False
+                    break
+                sign = ancestor.signs.get(key)
+                if sign not in (-1, 0, 1):
+                    usable = False
+                    break
+                by_sign.setdefault(int(sign), set()).add(leaf.index in selected)
+            if not usable or any(len(values) != 1 for values in by_sign.values()):
+                continue
+            selected_signs = frozenset(sign for sign, values in by_sign.items() if True in values)
+            relation = _sign_relation(sp.expand(expr), selected_signs)
+            if relation is not None:
+                candidates.append(relation)
+
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda expr: (sp.count_ops(expr), len(sp.sstr(expr)), sp.default_sort_key(expr)),
+    )
 
 
 def cell_union_to_formula(cell_union: CellUnion) -> sp.Expr:
+    polynomial = polynomial_relation_from_cell_union(cell_union)
+    if polynomial is not None:
+        return polynomial
     if len(cell_union.variables) == 0:
         return sp.true if cell_union.cells else sp.false
     if len(cell_union.variables) == 1:
@@ -97,4 +188,9 @@ def cell_union_to_formula(cell_union: CellUnion) -> sp.Expr:
     return _multivariate_cell_form(cell_union)
 
 
-__all__ = ["cell_to_interval_1d", "cell_union_to_intervals", "cell_union_to_formula"]
+__all__ = [
+    "cell_to_interval_1d",
+    "cell_union_to_intervals",
+    "cell_union_to_formula",
+    "polynomial_relation_from_cell_union",
+]

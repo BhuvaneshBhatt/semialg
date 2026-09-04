@@ -24,26 +24,25 @@ def test_exact_symbolic_residual_is_certified():
     assert point.certified
 
 
-def test_polynomial_real_root_fallback_does_not_return_complex_roots(monkeypatch):
+def test_polynomial_real_root_fallback_does_not_return_complex_roots():
     x = sp.Symbol("x", real=True)
 
-    def unavailable(*args, **kwargs):
-        raise NotImplementedError
+    from semialg.solve.transcendental.roots import _polynomial_root_result
 
-    monkeypatch.setattr(sp, "solveset", unavailable)
-    result = isolate_univar_roots(x**2 + 1, x, domain=sp.S.Reals)
+    result = _polynomial_root_result(x**2 + 1, x, sp.S.Reals)
 
     assert result.complete
     assert result.roots == ()
 
 
-def test_finite_transcendental_nonlinsolve_result_is_not_assumed_complete(monkeypatch):
+def test_finite_transcendental_nonlinsolve_result_is_not_assumed_complete():
     x, y = sp.symbols("x y", real=True)
 
-    monkeypatch.setattr(
-        sp, "nonlinsolve", lambda eqs, vars_: sp.FiniteSet((sp.Integer(0), sp.Integer(0)))
-    )
-    result = orchestrate_trans_search(sp.And(sp.Eq(sp.sin(x), 0), sp.Eq(y, 0)), (x, y))
+    from semialg.solve.transcendental.system_roots import _direct_solution_result
+
+    equations = (sp.sin(x), y)
+    direct = sp.FiniteSet((sp.Integer(0), sp.Integer(0)))
+    result = _direct_solution_result(equations, (x, y), direct)
 
     assert result.points
     assert not result.complete
@@ -67,7 +66,7 @@ def test_periodic_inequality_reconstruction_precedes_algebraization():
     assert result.result_semantics == "periodic_window_approximation"
     assert result.validity_window is not None
     assert not result.complete
-    # Regression: the old bug returned a finite set of fake point roots.
+    # Periodic interval reconstruction must not masquerade as a finite point equation.
     assert not isinstance(result.formula, sp.Equality)
 
 

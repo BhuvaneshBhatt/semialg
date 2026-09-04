@@ -16,8 +16,11 @@ def compare_samples(left: Sample, right: Sample) -> int:
         raise TypeError("compare_samples requires explicit semialg Sample objects")
     left_key = sample_expr_key(left)
     right_key = sample_expr_key(right)
-    canonical = (left_key, right_key) if left_key <= right_key else (right_key, left_key)
-    orientation = 1 if left_key <= right_key else -1
+    left_sort = sp.default_sort_key(left_key)
+    right_sort = sp.default_sort_key(right_key)
+    left_first = left_sort <= right_sort
+    canonical = (left_key, right_key) if left_first else (right_key, left_key)
+    orientation = 1 if left_first else -1
     cached = CACHE.comparisons.get(canonical)
     if cached is not None:
         CACHE.stats.comparison_hits += 1

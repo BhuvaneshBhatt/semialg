@@ -27,12 +27,13 @@ def test_prenex_blocks_01():
 def test_prenex_blocks_02():
     y = sp.symbols("y", real=True)
     text = "exists y. y^2 < 1"
-    res_text = qe_text(text)
+    res_text = qe_text(text, return_result=True)
     matrix = parse_quantified_formula(text).matrix
     res_blocks = qe_blocks(
         vars_=(y,),
         quantifier_blocks=(QuantifierBlock("exists", (y,)),),
         matrix=matrix,
+        return_result=True,
     )
     assert res_text.is_sentence and res_blocks.is_sentence
     assert bool(res_text.truth_value) is True
@@ -40,7 +41,7 @@ def test_prenex_blocks_02():
 
 
 def test_prenex_blocks_03():
-    res = qe_text("exists y. y^2 < 1")
+    res = qe_text("exists y. y^2 < 1", return_result=True)
     witness = witness_from_qe_result(res, {})
     assert witness is not None
     assert witness.assignment == {}

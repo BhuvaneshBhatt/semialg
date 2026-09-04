@@ -1,0 +1,535 @@
+"""Exact smoothness and mapping properties of semialgebraic functions."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
+
+import sympy as sp
+from sympy.core.relational import Relational
+
+from .decision import is_satisfiable
+from .domain_solve import function_domain
+from .formula import parse_formula
+from .function_graph import UnsupportedFunctionGraph, semialgebraic_function_graph
+from .geometry_queries import semialgebraic_image
+from .internal_symbols import fresh_real_dummy
+from .normalization import normalize_formula, normalize_variables
+from .qe import qe_by_complete_cad
+
+
+@dataclass(frozen=True)
+class FunctionSmoothnessResult:
+    """Certified smoothness information on a real semialgebraic domain."""
+
+    expression: sp.Expr
+    variables: tuple[sp.Symbol, ...]
+    domain: sp.Expr
+    natural_domain: sp.Expr
+    continuous: bool | None
+    differentiability_order: int | sp.Expr | None
+    smooth: bool | None
+    continuity_exceptions: sp.Expr
+    derivative_exceptions: Mapping[int, sp.Expr] = field(default_factory=dict)
+    method: str = "inconclusive"
+    details: Mapping[str, object] = field(default_factory=dict)
+
+    @property
+    def certified(self) -> bool:
+        return self.continuous is not None and self.smooth is not None
+
+
+@dataclass(frozen=True)
+class FunctionMappingPropertiesResult:
+    """Exact injectivity/surjectivity properties of a semialgebraic map."""
+
+    mapping: tuple[sp.Expr, ...]
+    variables: tuple[sp.Symbol, ...]
+    domain: sp.Expr
+    codomain: sp.Expr
+    image_variables: tuple[sp.Symbol, ...]
+    image: sp.Expr | None
+    injective: bool | None
+    surjective: bool | None
+    bijective: bool | None
+    collision_witness: Mapping[str, object] | None = None
+    missing_value_witness: Mapping[sp.Symbol, object] | None = None
+    method: str = "inconclusive"
+    details: Mapping[str, object] = field(default_factory=dict)
+
+    @property
+    def certified(self) -> bool:
+        return self.injective is not None and self.surjective is not None
+
+
+def _piecewise_breakpoints(expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr, ...]:
+    points: set[sp.Expr] = set()
+    for piecewise in expr.atoms(sp.Piecewise):
+        for _value, condition in piecewise.args:
+            for relation in condition.atoms(Relational):
+                try:
+                    polynomial = sp.Poly(relation.lhs - relation.rhs, variable)
+                except (sp.PolynomialError, TypeError, ValueError):
+                    continue
+                if polynomial.degree() <= 0:
+                    continue
+                try:
+                    points.update(sp.real_roots(polynomial.as_expr()))
+                except (NotImplementedError, sp.PolynomialError):
+                    pass
+    return tuple(sorted(points, key=sp.default_sort_key))
+
+
+def _side_sample(point: sp.Expr, breakpoints: Sequence[sp.Expr], *, side: str) -> sp.Expr:
+    ordered = list(sorted(set(breakpoints), key=sp.default_sort_key))
+    index = ordered.index(point)
+    if side == "-":
+        return sp.simplify((ordered[index - 1] + point) / 2) if index else sp.simplify(point - 1)
+    return (
+        sp.simplify((point + ordered[index + 1]) / 2)
+        if index + 1 < len(ordered)
+        else sp.simplify(point + 1)
+    )
+
+
+def _select_piecewise_branches(
+    expression: sp.Expr, variable: sp.Symbol, sample: sp.Expr
+) -> sp.Expr:
+    replacements = {}
+    for piecewise in expression.atoms(sp.Piecewise):
+        selected = None
+        for value, condition in piecewise.args:
+            if condition is True or condition == sp.true:
+                selected = value
+                break
+            try:
+                truth = sp.simplify(condition.subs(variable, sample))
+                if truth is sp.true or truth == sp.true:
+                    selected = value
+                    break
+            except (TypeError, ValueError):
+                continue
+        if selected is None:
+            selected = piecewise
+        replacements[piecewise] = selected
+    return expression.xreplace(replacements)
+
+
+def _univariate_break_candidates(expression: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr, ...]:
+    """Compute finite semialgebraic join/singularity candidates once per query."""
+    candidates: set[sp.Expr] = set(_piecewise_breakpoints(expression, variable))
+    try:
+        from sympy.calculus.singularities import singularities
+
+        singular = singularities(expression, variable)
+        if isinstance(singular, sp.FiniteSet):
+            candidates.update(singular)
+    except (NotImplementedError, ValueError, TypeError):
+        pass
+    for atom in expression.atoms(sp.Abs, sp.sign):
+        arg = atom.args[0]
+        try:
+            candidates.update(sp.real_roots(sp.Poly(arg, variable).as_expr()))
+        except (sp.PolynomialError, NotImplementedError, TypeError, ValueError):
+            pass
+    return tuple(sorted(candidates, key=sp.default_sort_key))
+
+
+def _univariate_exceptional_locus(
+    expression: sp.Expr,
+    variable: sp.Symbol,
+    domain: sp.Expr,
+    order: int,
+    *,
+    candidates: Sequence[sp.Expr] | None = None,
+) -> tuple[sp.Expr, str]:
+    """Find exact finite C^order failure points for common semialgebraic expressions."""
+    # Polynomials and rational functions are C-infinity on their real function domain.
+    try:
+        sp.Poly(expression, variable, domain="EX")
+        return sp.false, "polynomial_smooth"
+    except (sp.PolynomialError, TypeError, ValueError):
+        pass
+    if expression.is_rational_function(variable):
+        return sp.false, "rational_smooth_on_natural_domain"
+
+    failures: list[sp.Expr] = []
+    ordered_candidates = (
+        tuple(candidates)
+        if candidates is not None
+        else _univariate_break_candidates(expression, variable)
+    )
+    for point in ordered_candidates:
+        # Ignore candidates outside the effective domain.
+        try:
+            if not bool(is_satisfiable(sp.And(domain, sp.Eq(variable, point)), (variable,))):
+                continue
+        except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            continue
+        current = expression
+        failed = False
+        for _derivative_order in range(order + 1):
+            try:
+                value = sp.simplify(current.subs(variable, point))
+                if current.has(sp.Piecewise):
+                    left_expr = _select_piecewise_branches(
+                        current, variable, _side_sample(point, ordered_candidates, side="-")
+                    )
+                    right_expr = _select_piecewise_branches(
+                        current, variable, _side_sample(point, ordered_candidates, side="+")
+                    )
+                    left = sp.limit(left_expr, variable, point, dir="-")
+                    right = sp.limit(right_expr, variable, point, dir="+")
+                else:
+                    left = sp.limit(current, variable, point, dir="-")
+                    right = sp.limit(current, variable, point, dir="+")
+                if sp.simplify(left - right) != 0 or sp.simplify(left - value) != 0:
+                    failed = True
+                    break
+                current = sp.diff(current, variable)
+            except (ValueError, TypeError, NotImplementedError, RecursionError):
+                failed = True
+                break
+        if failed:
+            failures.append(point)
+    if not failures:
+        # If all derivatives through order exist symbolically and candidate checks passed,
+        # this is an exact certificate for the supported finite-breakpoint families.
+        try:
+            derivative = expression
+            for _ in range(order):
+                derivative = sp.diff(derivative, variable)
+            if not derivative.has(sp.Derivative, sp.DiracDelta):
+                return sp.false, "finite_breakpoint_limit_analysis"
+        except (TypeError, ValueError, NotImplementedError):
+            pass
+        return sp.false, "finite_breakpoint_limit_analysis"
+    return sp.Or(
+        *(sp.Eq(variable, point) for point in failures)
+    ), "finite_breakpoint_limit_analysis"
+
+
+def function_smoothness(
+    expression,
+    variables: Sequence[sp.Symbol | str] | sp.Symbol | str | None = None,
+    *,
+    domain=sp.true,
+    max_order: int = 3,
+) -> FunctionSmoothnessResult:
+    """Report continuity, C^k order, smoothness, and exact exceptional loci.
+
+    The current exact implementation is strongest for univariate semialgebraic
+    expressions and for polynomial/rational multivariate functions.  ``max_order``
+    controls how far finite differentiability is checked before reporting smoothness.
+    """
+    expression = sp.sympify(expression)
+    explicit_domain = normalize_formula(domain)
+    if isinstance(variables, (sp.Symbol, str)):
+        variables = (variables,)
+    vars_ = normalize_variables(
+        variables, sp.Tuple(expression, explicit_domain), append_context_symbols=variables is None
+    )
+    natural = function_domain(expression, vars_)
+    effective = normalize_formula(sp.And(explicit_domain, natural))
+    if not is_satisfiable(effective, vars_):
+        return FunctionSmoothnessResult(
+            expression,
+            vars_,
+            effective,
+            natural,
+            True,
+            sp.oo,
+            True,
+            sp.false,
+            {},
+            "empty_domain_vacuous",
+        )
+
+    # Cheap exact multivariate smooth families.
+    try:
+        sp.Poly(expression, *vars_, domain="EX")
+        return FunctionSmoothnessResult(
+            expression,
+            vars_,
+            effective,
+            natural,
+            True,
+            sp.oo,
+            True,
+            sp.false,
+            {},
+            "polynomial_smooth",
+        )
+    except (sp.PolynomialError, TypeError, ValueError):
+        pass
+    if vars_ and expression.is_rational_function(*vars_):
+        return FunctionSmoothnessResult(
+            expression,
+            vars_,
+            effective,
+            natural,
+            True,
+            sp.oo,
+            True,
+            sp.false,
+            {},
+            "rational_smooth_on_natural_domain",
+        )
+
+    if len(vars_) != 1:
+        return FunctionSmoothnessResult(
+            expression,
+            vars_,
+            effective,
+            natural,
+            None,
+            None,
+            None,
+            sp.false,
+            {},
+            "unsupported_multivariate_nonsmooth",
+        )
+    variable = vars_[0]
+    loci: dict[int, sp.Expr] = {}
+    candidates = _univariate_break_candidates(expression, variable)
+    continuity_locus, method = _univariate_exceptional_locus(
+        expression, variable, effective, 0, candidates=candidates
+    )
+    loci[0] = continuity_locus
+    continuous = continuity_locus is sp.false or continuity_locus == sp.false
+    if not continuous:
+        return FunctionSmoothnessResult(
+            expression, vars_, effective, natural, False, -1, False, continuity_locus, loci, method
+        )
+
+    differentiability_order: int | sp.Expr = 0
+    for order in range(1, max_order + 1):
+        locus, _ = _univariate_exceptional_locus(
+            expression, variable, effective, order, candidates=candidates
+        )
+        loci[order] = locus
+        if locus is sp.false or locus == sp.false:
+            differentiability_order = order
+            continue
+        return FunctionSmoothnessResult(
+            expression,
+            vars_,
+            effective,
+            natural,
+            True,
+            differentiability_order,
+            False,
+            continuity_locus,
+            loci,
+            method,
+        )
+
+    # For semialgebraic expressions whose finite set of breakpoints survives all
+    # tested derivative orders, certify C-infinity only when no Piecewise/Abs/sign
+    # join remains and symbolic derivatives stay elementary.
+    nonsmooth_heads = bool(expression.has(sp.Piecewise, sp.Abs, sp.sign))
+    smooth = not nonsmooth_heads
+    order_value: int | sp.Expr = sp.oo if smooth else differentiability_order
+    return FunctionSmoothnessResult(
+        expression,
+        vars_,
+        effective,
+        natural,
+        True,
+        order_value,
+        smooth,
+        continuity_locus,
+        loci,
+        method,
+    )
+
+
+def _graph_image(
+    maps: tuple[sp.Expr, ...],
+    domain: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    targets: tuple[sp.Symbol, ...],
+) -> sp.Expr | None:
+    formula = domain
+    auxiliaries: list[sp.Symbol] = []
+    try:
+        for expr, target in zip(maps, targets, strict=True):
+            graph = semialgebraic_function_graph(expr, target)
+            formula = sp.And(formula, graph.formula)
+            auxiliaries.extend(graph.auxiliary_variables)
+    except UnsupportedFunctionGraph:
+        return None
+    quantified = tuple((*variables, *auxiliaries))
+    result = qe_by_complete_cad(
+        (*targets, *quantified),
+        tuple(("exists", v) for v in quantified),
+        parse_formula(formula),
+        free_variables=targets,
+        return_result=True,
+    )
+    return normalize_formula(result.formula)
+
+
+def function_mapping_properties(
+    mapping,
+    variables: Sequence[sp.Symbol | str] | sp.Symbol | str | None = None,
+    *,
+    domain=sp.true,
+    codomain=sp.true,
+    image_variables: Sequence[sp.Symbol | str] | None = None,
+) -> FunctionMappingPropertiesResult:
+    """Certify injectivity, surjectivity, and bijectivity of a semialgebraic map."""
+    maps = tuple(
+        sp.sympify(e)
+        for e in (mapping if isinstance(mapping, (tuple, list, sp.Tuple)) else (mapping,))
+    )
+    explicit_domain = normalize_formula(domain)
+    if isinstance(variables, (sp.Symbol, str)):
+        variables = (variables,)
+    vars_ = normalize_variables(
+        variables, sp.Tuple(*maps, explicit_domain), append_context_symbols=variables is None
+    )
+    natural = sp.And(*(function_domain(expr, vars_) for expr in maps))
+    effective_domain = normalize_formula(sp.And(explicit_domain, natural))
+    if image_variables is None:
+        targets = tuple(sp.Symbol(f"y{i}", real=True) for i in range(len(maps)))
+    else:
+        targets = normalize_variables(
+            image_variables, sp.Tuple(*maps), append_context_symbols=False
+        )
+    if len(targets) != len(maps):
+        raise ValueError("image_variables must have the same length as mapping")
+    target_domain = normalize_formula(codomain)
+
+    # Exact affine full-space fast path: rank completely decides mapping properties.
+    if effective_domain == sp.true and target_domain == sp.true:
+        try:
+            jacobian = sp.ImmutableMatrix([[sp.diff(expr, v) for v in vars_] for expr in maps])
+            affine = all(not entry.free_symbols & set(vars_) for entry in jacobian) and all(
+                sp.simplify(
+                    expr - sum(sp.diff(expr, v) * v for v in vars_)
+                ).free_symbols.isdisjoint(set(vars_))
+                for expr in maps
+            )
+            if affine:
+                rank = int(jacobian.rank())
+                injective = rank == len(vars_)
+                surjective = rank == len(maps)
+                targets_image = sp.true if surjective else None
+                return FunctionMappingPropertiesResult(
+                    maps,
+                    vars_,
+                    effective_domain,
+                    target_domain,
+                    targets,
+                    targets_image,
+                    injective,
+                    surjective,
+                    injective and surjective,
+                    None,
+                    None,
+                    "affine_jacobian_rank",
+                    {"natural_domain": natural, "jacobian": jacobian, "rank": rank},
+                )
+        except (TypeError, ValueError, NotImplementedError):
+            pass
+
+    # Exact image: direct polynomial/rational projection first, graph fallback.
+    image = None
+    method_parts: list[str] = []
+    try:
+        if all(expr.is_rational_function(*vars_) for expr in maps):
+            image = semialgebraic_image(maps, effective_domain, vars_, image_variables=targets)
+            method_parts.append("semialgebraic_image")
+    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        image = None
+    if image is None:
+        image = _graph_image(maps, effective_domain, vars_, targets)
+        if image is not None:
+            method_parts.append("function_graph_image")
+
+    # Scalar univariate strict monotonicity is an exact injectivity certificate
+    # and is far cheaper than a copied-pair QE problem.
+    monotonicity_certificate = None
+    injective_fast: bool | None = None
+    if len(maps) == 1 and len(vars_) == 1:
+        try:
+            from .function_analysis import function_monotonicity
+
+            monotonicity_certificate = function_monotonicity(
+                maps[0], vars_[0], domain=effective_domain
+            )
+            if monotonicity_certificate in {"strictly_increasing", "strictly_decreasing"}:
+                injective_fast = True
+                method_parts.append("strict_monotonicity_injectivity")
+        except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            pass
+
+    # Injectivity via a copied pair and exact collision formula when no cheaper
+    # exact certificate is available.
+    left = tuple(fresh_real_dummy(f"map_left_{v.name}") for v in vars_)
+    right = tuple(fresh_real_dummy(f"map_right_{v.name}") for v in vars_)
+    lsub = dict(zip(vars_, left, strict=True))
+    rsub = dict(zip(vars_, right, strict=True))
+    collision = sp.And(
+        effective_domain.xreplace(lsub),
+        effective_domain.xreplace(rsub),
+        sp.Or(*(sp.Ne(a, b) for a, b in zip(left, right, strict=True))),
+        *(sp.Eq(expr.xreplace(lsub), expr.xreplace(rsub)) for expr in maps),
+    )
+    injective: bool | None = injective_fast
+    collision_witness = None
+    if injective is None:
+        try:
+            collision_result = is_satisfiable(collision, (*left, *right), return_result=True)
+            injective = not bool(collision_result)
+            if not injective:
+                witness = collision_result.witness or {}
+                collision_witness = {
+                    "left": {v: witness.get(c) for v, c in zip(vars_, left, strict=True)},
+                    "right": {v: witness.get(c) for v, c in zip(vars_, right, strict=True)},
+                }
+            method_parts.append("pairwise_collision_qe")
+        except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            injective = None
+
+    # Surjectivity means codomain is a subset of the exact image.
+    surjective: bool | None = None
+    missing_witness = None
+    if image is not None:
+        try:
+            missing = sp.And(target_domain, sp.Not(image))
+            missing_result = is_satisfiable(missing, targets, return_result=True)
+            surjective = not bool(missing_result)
+            if not surjective:
+                witness = missing_result.witness or {}
+                missing_witness = {v: witness.get(v) for v in targets}
+            method_parts.append("codomain_subset_image")
+        except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            surjective = None
+    bijective = (
+        (injective and surjective) if injective is not None and surjective is not None else None
+    )
+    return FunctionMappingPropertiesResult(
+        maps,
+        vars_,
+        effective_domain,
+        target_domain,
+        targets,
+        image,
+        injective,
+        surjective,
+        bijective,
+        collision_witness,
+        missing_witness,
+        "+".join(method_parts) if method_parts else "inconclusive",
+        {"natural_domain": natural, "monotonicity": monotonicity_certificate},
+    )
+
+
+__all__ = [
+    "FunctionMappingPropertiesResult",
+    "FunctionSmoothnessResult",
+    "function_mapping_properties",
+    "function_smoothness",
+]

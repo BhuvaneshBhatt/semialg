@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import GenericSplit, generic_cad
+from semialg.decomposition import generic_cad
+from semialg.generic import GenericSplit
 
 
 def test_generic_cad_nonparametric_disk_splits_interior_and_boundary():
     x, y = sp.symbols("x y", real=True)
-    result = generic_cad(x**2 + y**2 <= 1, [x, y])
+    result = generic_cad(x**2 + y**2 <= 1, [x, y], return_result=True)
 
     assert result.status == "complete"
     assert isinstance(result.generic_split, GenericSplit)
@@ -24,7 +25,7 @@ def test_generic_cad_nonparametric_disk_splits_interior_and_boundary():
 
 def test_generic_cad_nonparametric_strict_region_keeps_deleted_boundary_exceptional():
     x = sp.symbols("x", real=True)
-    result = generic_cad(x**2 < 1, [x])
+    result = generic_cad(x**2 < 1, [x], return_result=True)
 
     assert bool(result.generic_formula.subs({x: 0}))
     assert not bool(result.generic_formula.subs({x: 1}))
@@ -34,7 +35,7 @@ def test_generic_cad_nonparametric_strict_region_keeps_deleted_boundary_exceptio
 
 def test_parameterized_generic_cad_keeps_parameter_exceptional_cases():
     a, x = sp.symbols("a x", real=True)
-    result = generic_cad(sp.Eq(a * x - 1, 0), variables=[x], parameters=[a])
+    result = generic_cad(sp.Eq(a * x - 1, 0), variables=[x], parameters=[a], return_result=True)
 
     assert result.generic_split is None
     assert result.generic_cases

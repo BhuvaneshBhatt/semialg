@@ -1,0 +1,266 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+
+import sympy as sp
+
+from ._linear_relations import linear_relation_bound, safe_linear_solution
+from .algebraic.groebner_utils import compute_groebner_basis
+from .formulas.boolean import is_false_expr, is_true_expr
+from .normalization import conjuncts, normalize_formula, normalize_variables
+from .preprocess.algebraic import normalize_polynomial_atoms
+
+
+@dataclass(frozen=True)
+class PresolveResult:
+    """Exact structural presolve result for a semialgebraic formula.
+
+    ``substitutions`` records variables eliminated by globally safe affine
+    equalities.  Only variables explicitly listed in ``eliminate`` are ever
+    removed, so callers can protect free/output coordinates.
+    """
+
+    original_formula: sp.Expr
+    formula: sp.Expr
+    variables: tuple[sp.Symbol, ...]
+    substitutions: tuple[tuple[sp.Symbol, sp.Expr], ...] = ()
+    variable_blocks: tuple[tuple[sp.Symbol, ...], ...] = ()
+    linear: bool = False
+    zero_dim_eqs: bool | None = None
+    changed: bool = False
+    diagnostics: dict[str, object] = field(default_factory=dict)
+
+    @property
+    def substitution_map(self) -> dict[sp.Symbol, sp.Expr]:
+        return dict(self.substitutions)
+
+
+def _safe_affine_solution(
+    expr: sp.Expr, var: sp.Symbol, variables: set[sp.Symbol]
+) -> sp.Expr | None:
+    """Solve ``expr == 0`` only when division is globally certified safe."""
+
+    del variables  # Only ``expr`` and ``var`` determine whether the affine solve is globally safe.
+    return safe_linear_solution(expr, var)
+
+
+def _dedupe_conjunction(expr: sp.Expr) -> sp.Expr:
+    if not isinstance(expr, sp.And):
+        # Do not send arbitrary Boolean formulas through ``simplify`` here.
+        # SymPy may rewrite polynomial interval logic into non-polynomial
+        # syntax such as ``Abs(x) > 1``, which breaks the exact polynomial
+        # CAD contract. Presolve only needs conjunction cleanup here.
+        return expr
+    items: list[sp.Expr] = []
+    seen: set[sp.Expr] = set()
+    for atom in expr.args:
+        atom = sp.simplify(atom)
+        if is_false_expr(atom):
+            return sp.false
+        if is_true_expr(atom):
+            continue
+        if atom not in seen:
+            items.append(atom)
+            seen.add(atom)
+    return sp.And(*items) if items else sp.true
+
+
+def _variable_blocks(
+    expr: sp.Expr, variables: tuple[sp.Symbol, ...]
+) -> tuple[tuple[sp.Symbol, ...], ...]:
+    """Return connected variable blocks of the formula incidence graph."""
+
+    adjacency = {v: set() for v in variables}
+    atoms = conjuncts(expr) if isinstance(expr, sp.And) else (expr,)
+    for atom in atoms:
+        active = tuple(v for v in variables if v in atom.free_symbols)
+        for left in active:
+            adjacency[left].update(right for right in active if right != left)
+    blocks: list[tuple[sp.Symbol, ...]] = []
+    unseen = set(variables)
+    while unseen:
+        seed = min(unseen, key=lambda s: variables.index(s))
+        stack = [seed]
+        component: set[sp.Symbol] = set()
+        while stack:
+            item = stack.pop()
+            if item in component:
+                continue
+            component.add(item)
+            stack.extend(adjacency[item] - component)
+        unseen.difference_update(component)
+        blocks.append(tuple(v for v in variables if v in component))
+    return tuple(blocks)
+
+
+def _is_linear_formula(expr: sp.Expr, variables: tuple[sp.Symbol, ...]) -> bool:
+    if expr is sp.true or expr is sp.false or expr in (True, False):
+        return True
+    atoms = conjuncts(expr) if isinstance(expr, sp.And) else (expr,)
+    for atom in atoms:
+        if not getattr(atom, "is_Relational", False):
+            return False
+        try:
+            poly = (
+                sp.Poly(sp.expand(atom.lhs - atom.rhs), *variables, domain="EX")
+                if variables
+                else sp.Poly(sp.expand(atom.lhs - atom.rhs))
+            )
+        except (sp.PolynomialError, TypeError, ValueError):
+            return False
+        if poly.total_degree() > 1:
+            return False
+    return True
+
+
+def _zero_dim_eqs(expr: sp.Expr, variables: tuple[sp.Symbol, ...]) -> bool | None:
+    if not variables or not isinstance(expr, sp.And):
+        return None
+    equations = [
+        sp.expand(atom.lhs - atom.rhs) for atom in expr.args if isinstance(atom, sp.Equality)
+    ]
+    if not equations:
+        return None
+    try:
+        return bool(
+            compute_groebner_basis(equations, variables, order="grevlex").is_zero_dimensional
+        )
+    except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
+        return None
+
+
+def _linear_bound_for_var(
+    atom: sp.Expr,
+    var: sp.Symbol,
+) -> tuple[str, sp.Expr, bool] | None:
+    """Return ``('lower'|'upper', value, strict)`` for a certified linear atom."""
+
+    if not getattr(atom, "is_Relational", False):
+        return None
+    bound = linear_relation_bound(atom, var)
+    if bound is None:
+        return None
+    return bound.side, bound.value, bound.strict
+
+
+def fourier_motzkin_eliminate(
+    formula: object,
+    variables: Sequence[sp.Symbol | str],
+) -> tuple[sp.Expr, tuple[sp.Symbol, ...]] | None:
+    """Exactly eliminate existential variables from a linear conjunction.
+
+    The caller is responsible for quantifier-prefix safety; this helper treats
+    every listed variable as existential in the supplied conjunction.
+    """
+
+    current = normalize_formula(formula)
+    vars_ = normalize_variables(variables, current, append_context_symbols=False)
+    if not isinstance(current, sp.And) and not getattr(current, "is_Relational", False):
+        return None
+    removed: list[sp.Symbol] = []
+    for var in reversed(vars_):
+        lowers: list[tuple[sp.Expr, bool]] = []
+        uppers: list[tuple[sp.Expr, bool]] = []
+        keep: list[sp.Expr] = []
+        atoms = current.args if isinstance(current, sp.And) else (current,)
+        for atom in atoms:
+            if var not in atom.free_symbols:
+                keep.append(atom)
+                continue
+            parsed = _linear_bound_for_var(atom, var)
+            if parsed is None:
+                return None
+            side, value, strict = parsed
+            (lowers if side == "lower" else uppers).append((value, strict))
+        # One-sided systems are always feasible in an unbounded real variable.
+        for lower, lower_strict in lowers:
+            for upper, upper_strict in uppers:
+                strict = lower_strict or upper_strict
+                keep.append(lower < upper if strict else lower <= upper)
+        current = _dedupe_conjunction(sp.And(*keep))
+        removed.append(var)
+        if is_false_expr(current):
+            break
+    return current, tuple(removed)
+
+
+def presolve_semialgebraic(
+    formula: object,
+    variables: Sequence[sp.Symbol | str],
+    *,
+    eliminate: Sequence[sp.Symbol | str] = (),
+    detect_zero_dimensional: bool = False,
+) -> PresolveResult:
+    """Apply cheap exact structural presolve transformations.
+
+    Current transformations are deliberately conservative: duplicate/trivial
+    conjunction cleanup, globally safe affine equality substitution for the
+    requested elimination variables, variable-incidence block discovery,
+    linearity recognition, and optional zero-dimensional equality detection.
+    No approximation or inequality division by parameter-dependent expressions
+    is performed.
+    """
+
+    original = normalize_formula(formula)
+    original = normalize_polynomial_atoms(original)
+    vars_ = normalize_variables(variables, original, append_context_symbols=False)
+    elim = (
+        normalize_variables(eliminate, original, append_context_symbols=False) if eliminate else ()
+    )
+    elim_set = set(elim)
+    current = _dedupe_conjunction(original)
+    substitutions: list[tuple[sp.Symbol, sp.Expr]] = []
+
+    if (isinstance(current, sp.And) or getattr(current, "is_Relational", False)) and elim_set:
+        changed = True
+        while changed:
+            changed = False
+            atoms = list(current.args) if isinstance(current, sp.And) else [current]
+            for atom in atoms:
+                if not isinstance(atom, sp.Equality):
+                    continue
+                eq_expr = sp.expand(atom.lhs - atom.rhs)
+                for var in tuple(vars_):
+                    if var not in elim_set or var not in eq_expr.free_symbols:
+                        continue
+                    solution = _safe_affine_solution(eq_expr, var, set(vars_))
+                    if solution is None or var in solution.free_symbols:
+                        continue
+                    # Replace the defining equality by True and substitute in
+                    # every other conjunct.  This is equivalence-preserving for
+                    # an existentially eliminated variable.
+                    new_atoms = [
+                        sp.simplify(other.subs(var, solution)) for other in atoms if other != atom
+                    ]
+                    current = _dedupe_conjunction(sp.And(*new_atoms))
+                    substitutions.append((var, sp.simplify(solution)))
+                    vars_ = tuple(v for v in vars_ if v != var)
+                    elim_set.remove(var)
+                    changed = True
+                    break
+                if changed:
+                    break
+
+    blocks = _variable_blocks(current, vars_)
+    linear = _is_linear_formula(current, vars_)
+    zero_dim = _zero_dim_eqs(current, vars_) if detect_zero_dimensional else None
+    return PresolveResult(
+        original_formula=original,
+        formula=current,
+        variables=vars_,
+        substitutions=tuple(substitutions),
+        variable_blocks=blocks,
+        linear=linear,
+        zero_dim_eqs=zero_dim,
+        changed=current != original or bool(substitutions),
+        diagnostics={
+            "removed_variables": tuple(var for var, _ in substitutions),
+            "block_count": len(blocks),
+            "linear": linear,
+            "zero_dim_eqs": zero_dim,
+        },
+    )
+
+
+__all__ = ["PresolveResult", "fourier_motzkin_eliminate", "presolve_semialgebraic"]

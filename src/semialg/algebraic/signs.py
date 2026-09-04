@@ -5,6 +5,7 @@ from collections.abc import Sequence
 import sympy as sp
 
 from ..exact_arithmetic import exact_sign
+from ..structural_keys import symbol_identity_key
 from .cache import CACHE, expr_key, sample_expr_key
 from .roots import refine_isol_intv
 from .samples import AlgebraicRoot, RationalSample, Sample, sample_to_expr
@@ -102,7 +103,7 @@ def sign_at_sample(poly: sp.Poly | sp.Expr, samples: Sequence[Sample]) -> int:
         gens = poly.gens
     else:
         expr = sp.expand(poly)
-        gens = tuple(sorted(expr.free_symbols, key=lambda sym: sym.name))
+        gens = tuple(sorted(expr.free_symbols, key=symbol_identity_key))
     if len(samples) > len(gens):
         raise ValueError("more sample coordinates were supplied than polynomial generators")
     cache_key = (

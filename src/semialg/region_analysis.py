@@ -1,0 +1,886 @@
+"""Exact local/topological analysis for unified semialgebraic regions."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
+from itertools import combinations
+
+import sympy as sp
+from sympy.core.relational import Relational
+
+from .normalization import normalize_formula
+from .relations import split_relation
+from .structural_keys import ordered_symbols
+
+
+def _residuals(formula: sp.Expr, variables: Sequence[sp.Symbol]) -> tuple[sp.Expr, ...]:
+    vars_set = set(variables)
+    out: list[sp.Expr] = []
+    seen: set[sp.Expr] = set()
+    for atom in formula.atoms(Relational):
+        residual = sp.expand(atom.lhs - atom.rhs)
+        if not (residual.free_symbols & vars_set):
+            continue
+        try:
+            p = sp.Poly(residual, *variables)
+        except (sp.PolynomialError, TypeError, ValueError):
+            continue
+        if p.total_degree() <= 0:
+            continue
+        primitive = sp.expand(p.primitive()[1].as_expr())
+        if primitive not in seen:
+            seen.add(primitive)
+            out.append(primitive)
+    return tuple(out)
+
+
+def _equality_residuals(formula: sp.Expr, variables: Sequence[sp.Symbol]) -> tuple[sp.Expr, ...]:
+    """Return distinct polynomial equality residuals defining the algebraic stratum."""
+
+    variable_set = set(variables)
+    out: list[sp.Expr] = []
+    seen: set[sp.Expr] = set()
+    for atom in formula.atoms(sp.Equality):
+        residual = sp.expand(atom.lhs - atom.rhs)
+        if not (residual.free_symbols & variable_set):
+            continue
+        try:
+            poly = sp.Poly(residual, *variables, domain=sp.QQ)
+        except (sp.PolynomialError, TypeError, ValueError):
+            try:
+                poly = sp.Poly(residual, *variables)
+            except (sp.PolynomialError, TypeError, ValueError):
+                continue
+        if poly.total_degree() <= 0:
+            continue
+        primitive = sp.expand(poly.primitive()[1].as_expr())
+        if primitive not in seen and -primitive not in seen:
+            seen.add(primitive)
+            out.append(primitive)
+    return tuple(out)
+
+
+def _rank_deficiency_formula(
+    equations: Sequence[sp.Expr],
+    variables: Sequence[sp.Symbol],
+    expected_rank: int,
+) -> sp.Expr:
+    """Return the locus where a polynomial Jacobian has insufficient rank."""
+
+    expanded = tuple(sp.expand(eq) for eq in equations)
+    equations = tuple(eq for eq in expanded if eq != 0)
+    if not equations or expected_rank <= 0:
+        return sp.false
+    jacobian = sp.Matrix([[sp.diff(eq, var) for var in variables] for eq in equations])
+    variety = sp.And(*(sp.Eq(eq, 0) for eq in equations))
+    if expected_rank > min(jacobian.rows, jacobian.cols):
+        return variety
+    minors: list[sp.Expr] = []
+    for rows in combinations(range(jacobian.rows), expected_rank):
+        for cols in combinations(range(jacobian.cols), expected_rank):
+            determinant = sp.expand(jacobian.extract(rows, cols).det())
+            if determinant != 0:
+                minors.append(determinant)
+    if not minors:
+        return variety
+    return sp.And(
+        variety,
+        *(sp.Eq(minor, 0) for minor in dict.fromkeys(minors)),
+    )
+
+
+@dataclass(frozen=True)
+class SingularLocusResult:
+    """Certified singular-locus result with proof-safe incomplete semantics.
+
+    ``formula`` is populated only when the singular locus is proved exact.
+    ``known_singular_formula`` is a certified subset that remains useful when
+    some algebraic component or boundary section could not be decomposed
+    completely.  Incomplete results must never be interpreted as saying that
+    points outside this known subset are regular.
+    """
+
+    variables: tuple[sp.Symbol, ...]
+    formula: sp.Expr | None
+    known_singular_formula: sp.Expr
+    complete: bool
+    method: str
+    diagnostics: tuple[str, ...] = ()
+
+    def require_complete(self) -> sp.Expr:
+        """Return the exact formula or raise when certification is incomplete."""
+        if not self.complete or self.formula is None:
+            detail = "; ".join(self.diagnostics) or "singular-locus certification is incomplete"
+            raise NotImplementedError(detail)
+        return self.formula
+
+
+@dataclass(frozen=True)
+class AlgebraicComponentStratum:
+    """Regularity data for one certified reduced-real algebraic component piece.
+
+    ``ordinary_regular_formula`` removes both the component's intrinsic
+    singular locus and every intersection with another decomposition piece.
+    This is the locus where the union locally consists of this one regular
+    component only.
+    """
+
+    index: int
+    equations: tuple[sp.Expr, ...]
+    dimension: int
+    codimension: int
+    formula: sp.Expr
+    intrinsic_singular: sp.Expr
+    ordinary_regular_formula: sp.Expr
+
+
+@dataclass(frozen=True)
+class ComponentIntersectionStratum:
+    """One exact incidence stratum shared by two or more component pieces.
+
+    ``component_indices`` is the exact set of decomposition pieces containing
+    points of ``formula``: components not listed are explicitly excluded.
+    Consequently complete collections of these strata are pairwise disjoint.
+    """
+
+    component_indices: tuple[int, ...]
+    formula: sp.Expr
+    dimension: int
+
+    @property
+    def order(self) -> int:
+        """Return the number of components meeting on this stratum."""
+        return len(self.component_indices)
+
+
+@dataclass(frozen=True)
+class AlgebraicSingularityStratification:
+    """Component-relative regularity and union-incidence singularity data."""
+
+    variables: tuple[sp.Symbol, ...]
+    components: tuple[AlgebraicComponentStratum, ...]
+    intersections: tuple[ComponentIntersectionStratum, ...]
+    intrinsic_singular: sp.Expr
+    union_singular: sp.Expr
+    singular_formula: sp.Expr
+    complete: bool
+
+
+def _equation_locus_formula(equations: Sequence[sp.Expr]) -> sp.Expr:
+    """Return the exact zero-set formula for polynomial equations."""
+    if not equations:
+        return sp.true
+    return sp.And(*(sp.Eq(eq, 0) for eq in equations))
+
+
+def _stratify_certified_components(
+    equations: Sequence[sp.Expr],
+    variables: Sequence[sp.Symbol],
+    *,
+    max_incidence_subsets: int = 256,
+    decomposition_provider: Callable[..., object] | None = None,
+) -> AlgebraicSingularityStratification | None:
+    """Build exact component and intersection strata when decomposition certifies them.
+
+    The singular set of a reduced union consists of singularities intrinsic to
+    its components together with points shared by distinct components.  Exact
+    incidence strata are enumerated when the number of subsets is modest.  If
+    that metadata enumeration would be excessive, ``complete`` is false but
+    ``union_singular`` and ``singular_formula`` remain exact because
+    pairwise intersections already describe every point lying on at least two
+    components.
+    """
+    from .algebraic_decomposition import (
+        equidimensional_decomposition,
+        verify_decomposition_certificate,
+    )
+
+    provider = decomposition_provider or equidimensional_decomposition
+    try:
+        decomposition = provider(equations, variables)
+    except (NotImplementedError, ValueError):
+        return None
+    if not decomposition.complete:
+        return None
+    if decomposition.certificate is None or not verify_decomposition_certificate(
+        decomposition.certificate
+    ):
+        return None
+
+    piece_formulas = tuple(
+        _equation_locus_formula(piece.equations) for piece in decomposition.pieces
+    )
+    pairwise = tuple(
+        sp.And(piece_formulas[left], piece_formulas[right])
+        for left, right in combinations(range(len(piece_formulas)), 2)
+    )
+    union_singular = sp.Or(*pairwise) if pairwise else sp.false
+
+    components: list[AlgebraicComponentStratum] = []
+    intrinsic_parts: list[sp.Expr] = []
+    for index, piece in enumerate(decomposition.pieces):
+        intrinsic = _rank_deficiency_formula(piece.equations, variables, piece.codimension)
+        if intrinsic != sp.false:
+            intrinsic_parts.append(intrinsic)
+        other_components = tuple(
+            formula for other, formula in enumerate(piece_formulas) if other != index
+        )
+        shared = sp.Or(*other_components) if other_components else sp.false
+        ordinary = sp.And(piece_formulas[index], sp.Not(intrinsic), sp.Not(shared))
+        components.append(
+            AlgebraicComponentStratum(
+                index=index,
+                equations=piece.equations,
+                dimension=piece.dimension,
+                codimension=piece.codimension,
+                formula=piece_formulas[index],
+                intrinsic_singular=intrinsic,
+                ordinary_regular_formula=ordinary,
+            )
+        )
+
+    intrinsic_singular = sp.Or(*intrinsic_parts) if intrinsic_parts else sp.false
+    singular = sp.Or(intrinsic_singular, union_singular)
+
+    component_count = len(piece_formulas)
+    subset_count = (1 << component_count) - component_count - 1
+    intersections: list[ComponentIntersectionStratum] = []
+    metadata_complete = subset_count <= max_incidence_subsets
+    if metadata_complete:
+        from .regions.operations import region_dimension
+
+        indices = tuple(range(component_count))
+        for order in range(2, component_count + 1):
+            for support in combinations(indices, order):
+                support_set = set(support)
+                included = [piece_formulas[index] for index in support]
+                excluded = [
+                    sp.Not(piece_formulas[index]) for index in indices if index not in support_set
+                ]
+                formula = sp.And(*included, *excluded)
+                dimension = region_dimension(formula, variables)
+                if dimension < 0:
+                    continue
+                intersections.append(
+                    ComponentIntersectionStratum(
+                        component_indices=support,
+                        formula=normalize_formula(formula),
+                        dimension=dimension,
+                    )
+                )
+        intersections.sort(
+            key=lambda stratum: (stratum.order, -stratum.dimension, stratum.component_indices)
+        )
+
+    return AlgebraicSingularityStratification(
+        variables=tuple(variables),
+        components=tuple(components),
+        intersections=tuple(intersections),
+        intrinsic_singular=intrinsic_singular,
+        union_singular=union_singular,
+        singular_formula=singular,
+        complete=metadata_complete,
+    )
+
+
+def _jacobian_rank_singular_result(
+    equations: Sequence[sp.Expr],
+    variables: Sequence[sp.Symbol],
+    *,
+    decomposition_provider: Callable[..., object] | None = None,
+) -> SingularLocusResult:
+    """Return component-sensitive singularities without unsafe fallback.
+
+    A complete certified equidimensional decomposition is a proof obligation,
+    not merely an optimization.  If it is unavailable, this function reports
+    an incomplete result instead of applying a global maximum-dimension rank
+    threshold, which is unsound for reducible or non-equidimensional sets.
+    """
+
+    expanded = tuple(sp.expand(eq) for eq in equations)
+    equations = tuple(eq for eq in expanded if eq != 0)
+    vars_ = tuple(variables)
+    if not equations:
+        return SingularLocusResult(vars_, sp.false, sp.false, True, "trivial")
+
+    stratification = _stratify_certified_components(
+        equations, vars_, decomposition_provider=decomposition_provider
+    )
+    if stratification is None:
+        return SingularLocusResult(
+            variables=vars_,
+            formula=None,
+            known_singular_formula=sp.false,
+            complete=False,
+            method="component-relative-jacobian",
+            diagnostics=(
+                "complete certified equidimensional decomposition unavailable; "
+                "global-rank fallback is intentionally disabled",
+            ),
+        )
+    singular = normalize_formula(stratification.singular_formula)
+    return SingularLocusResult(
+        variables=vars_,
+        formula=singular,
+        known_singular_formula=singular,
+        complete=True,
+        method="component-relative-jacobian",
+    )
+
+
+def _jacobian_rank_singular_formula(
+    equations: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
+) -> sp.Expr:
+    """Compatibility helper returning only a certified exact formula."""
+    return _jacobian_rank_singular_result(equations, variables).require_complete()
+
+
+def algebraic_singularity_stratification(
+    equations: Sequence[sp.Expr | sp.Equality],
+    variables: Sequence[sp.Symbol],
+    *,
+    max_incidence_subsets: int = 256,
+) -> AlgebraicSingularityStratification:
+    """Return exact reduced-real component regularity and intersection strata.
+
+    This is the detailed counterpart of the algebraic part of
+    :func:`region_singular_locus`.  It distinguishes ordinary regular points of
+    one component, singularities intrinsic to a component, and singularities
+    caused by the union of distinct components.  ``complete`` concerns the
+    explicit disjoint intersection metadata only; the returned singular formulas
+    remain exact even when incidence-subset enumeration is intentionally capped.
+    """
+    vars_ = tuple(variables)
+    residuals: list[sp.Expr] = []
+    for equation in equations:
+        expr = sp.sympify(equation)
+        if isinstance(expr, sp.Equality):
+            expr = expr.lhs - expr.rhs
+        expr = sp.expand(expr)
+        if expr != 0:
+            residuals.append(expr)
+    stratification = _stratify_certified_components(
+        tuple(residuals), vars_, max_incidence_subsets=max_incidence_subsets
+    )
+    if stratification is None:
+        raise NotImplementedError(
+            "component singularity stratification requires a complete certified "
+            "equidimensional decomposition"
+        )
+    return stratification
+
+
+def _region_formula(region: object) -> sp.Expr:
+    """Extract and normalize a region formula without triggering duplicate work."""
+
+    quantifier_free = getattr(region, "quantifier_free_formula", None)
+    if callable(quantifier_free):
+        return normalize_formula(quantifier_free())
+    return normalize_formula(getattr(region, "formula", region))
+
+
+def _region_variables(
+    region: object,
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol] | None,
+) -> tuple[sp.Symbol, ...]:
+    if variables is not None:
+        return tuple(variables)
+    ambient = getattr(region, "variables", None)
+    if ambient is not None:
+        return tuple(ambient)
+    return ordered_symbols(formula.free_symbols)
+
+
+def _active_boundary_formulas(
+    boundary_result: RegionBoundaryResult,
+) -> dict[sp.Expr, sp.Expr]:
+    """Return the exact realized boundary locus for each inequality residual.
+
+    Boundary CAD cells are sign invariant, so a residual recorded as active at
+    the exact sample is active on the whole cell. Grouping those cells avoids
+    treating algebraic zero sets of redundant or inactive inequalities as
+    geometric boundary pieces.
+    """
+
+    groups: dict[sp.Expr, list[sp.Expr]] = {}
+    for stratum in boundary_result.strata:
+        for residual in stratum.active_residuals:
+            groups.setdefault(residual, []).append(stratum.formula)
+    return {residual: normalize_formula(sp.Or(*formulas)) for residual, formulas in groups.items()}
+
+
+def _component_relative_boundary_singularity_result(
+    equalities: Sequence[sp.Expr],
+    residual: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    decomposition_provider: Callable[..., object] | None = None,
+) -> SingularLocusResult:
+    """Return a proof-safe singularity result for one realized boundary."""
+
+    vars_ = tuple(variables)
+    if not equalities:
+        return _jacobian_rank_singular_result(
+            (residual,), vars_, decomposition_provider=decomposition_provider
+        )
+
+    stratification = _stratify_certified_components(
+        equalities, vars_, decomposition_provider=decomposition_provider
+    )
+    if stratification is None:
+        return SingularLocusResult(
+            variables=vars_,
+            formula=None,
+            known_singular_formula=sp.false,
+            complete=False,
+            method="component-relative-boundary",
+            diagnostics=(
+                "equality variety lacks a complete certified equidimensional decomposition; "
+                "boundary rank cannot be certified componentwise",
+            ),
+        )
+
+    pieces: list[sp.Expr] = []
+    diagnostics: list[str] = []
+    complete = True
+    for component in stratification.components:
+        result = _jacobian_rank_singular_result(
+            (*component.equations, residual),
+            vars_,
+            decomposition_provider=decomposition_provider,
+        )
+        if result.known_singular_formula != sp.false:
+            pieces.append(result.known_singular_formula)
+        if not result.complete:
+            complete = False
+            diagnostics.extend(result.diagnostics)
+    known = normalize_formula(sp.Or(*pieces)) if pieces else sp.false
+    return SingularLocusResult(
+        variables=vars_,
+        formula=known if complete else None,
+        known_singular_formula=known,
+        complete=complete,
+        method="component-relative-boundary",
+        diagnostics=tuple(dict.fromkeys(diagnostics)),
+    )
+
+
+def _component_relative_boundary_singularities(
+    equalities: Sequence[sp.Expr],
+    residual: sp.Expr,
+    variables: Sequence[sp.Symbol],
+) -> sp.Expr:
+    """Compatibility helper returning only a certified exact formula."""
+    return _component_relative_boundary_singularity_result(
+        equalities, residual, variables
+    ).require_complete()
+
+
+def _region_singular_from_boundary_result(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    boundary_data: RegionBoundaryResult,
+    *,
+    decomposition_provider: Callable[..., object] | None = None,
+) -> SingularLocusResult:
+    """Compute a certified singular-locus result from exact boundary CAD data."""
+
+    vars_ = tuple(variables)
+    if boundary_data.formula == sp.false:
+        return SingularLocusResult(vars_, sp.false, sp.false, True, "empty-boundary")
+
+    equalities = _equality_residuals(formula, vars_)
+    pieces: list[sp.Expr] = []
+    diagnostics: list[str] = []
+    complete = True
+    if equalities:
+        base = _jacobian_rank_singular_result(
+            equalities, vars_, decomposition_provider=decomposition_provider
+        )
+        if base.known_singular_formula != sp.false:
+            pieces.append(base.known_singular_formula)
+        if not base.complete:
+            complete = False
+            diagnostics.extend(base.diagnostics)
+
+    for residual, active_formula in _active_boundary_formulas(boundary_data).items():
+        result = _component_relative_boundary_singularity_result(
+            equalities, residual, vars_, decomposition_provider=decomposition_provider
+        )
+        if result.known_singular_formula != sp.false:
+            pieces.append(sp.And(active_formula, result.known_singular_formula))
+        if not result.complete:
+            complete = False
+            diagnostics.extend(result.diagnostics)
+
+    known = sp.false
+    if pieces:
+        known = sp.simplify(normalize_formula(sp.And(boundary_data.formula, sp.Or(*pieces))))
+    return SingularLocusResult(
+        variables=vars_,
+        formula=known if complete else None,
+        known_singular_formula=known,
+        complete=complete,
+        method="realized-boundary-stratification",
+        diagnostics=tuple(dict.fromkeys(diagnostics)),
+    )
+
+
+def _region_singular_from_boundary(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    boundary_data: RegionBoundaryResult,
+) -> sp.Expr:
+    """Compatibility helper returning only a certified exact formula."""
+    return _region_singular_from_boundary_result(
+        formula, variables, boundary_data
+    ).require_complete()
+
+
+def _region_singular_locus_result(
+    region: object,
+    variables: Sequence[sp.Symbol] | None = None,
+    *,
+    decomposition_provider: Callable[..., object] | None = None,
+) -> SingularLocusResult:
+    """Compute a singular-locus result using an optional decomposition provider."""
+
+    formula = _region_formula(region)
+    vars_ = _region_variables(region, formula, variables)
+    if not vars_:
+        return SingularLocusResult(vars_, sp.false, sp.false, True, "trivial")
+
+    inequality_residuals = _inequality_boundary_residuals(formula, vars_)
+    if not inequality_residuals:
+        equalities = _equality_residuals(formula, vars_)
+        if not equalities:
+            return SingularLocusResult(vars_, sp.false, sp.false, True, "trivial")
+        return _jacobian_rank_singular_result(
+            equalities, vars_, decomposition_provider=decomposition_provider
+        )
+
+    boundary_data = region_boundary_result(formula, vars_)
+    return _region_singular_from_boundary_result(
+        formula,
+        vars_,
+        boundary_data,
+        decomposition_provider=decomposition_provider,
+    )
+
+
+def region_singular_locus_result(
+    region: object, variables: Sequence[sp.Symbol] | None = None
+) -> SingularLocusResult:
+    """Return singular-locus geometry together with completeness certification.
+
+    Exact formulas are returned only when every algebraic decomposition needed
+    by the component-relative Jacobian analysis is certified complete.  When a
+    proof obligation cannot be discharged, ``complete`` is false, ``formula``
+    is ``None``, and ``known_singular_formula`` is only a certified lower bound.
+    No global maximum-dimension Jacobian fallback is used.
+    """
+
+    return _region_singular_locus_result(region, variables)
+
+
+def region_singular_locus(region: object, variables: Sequence[sp.Symbol] | None = None) -> sp.Expr:
+    """Return the exact reduced-real singular locus on the actual boundary.
+
+    This formula-only convenience API is deliberately strict: if component-
+    sensitive regularity cannot be certified, it raises ``NotImplementedError``
+    rather than presenting a global-rank approximation as an exact answer.  Use
+    :func:`region_singular_locus_result` to inspect incomplete results and their
+    certified ``known_singular_formula`` lower bound.
+    """
+
+    return region_singular_locus_result(region, variables).require_complete()
+
+
+def _inequality_boundary_residuals(
+    formula: sp.Expr, variables: Sequence[sp.Symbol]
+) -> tuple[sp.Expr, ...]:
+    """Return distinct polynomial residuals of inequality boundaries.
+
+    Equality constraints describe the ambient algebraic stratum itself and are
+    therefore excluded: independent equalities need not create a corner.
+    """
+
+    variable_set = set(variables)
+    residuals: list[sp.Expr] = []
+    seen: set[sp.Expr] = set()
+    for atom in formula.atoms(Relational):
+        try:
+            residual, relation_kind = split_relation(atom)
+        except (TypeError, ValueError):
+            continue
+        if relation_kind in {"==", "!="}:
+            continue
+        residual = sp.expand(residual)
+        if not (residual.free_symbols & variable_set):
+            continue
+        try:
+            polynomial = sp.Poly(residual, *variables)
+        except (sp.PolynomialError, TypeError, ValueError):
+            continue
+        if polynomial.total_degree() <= 0:
+            continue
+        primitive = sp.expand(polynomial.primitive()[1].as_expr())
+        if primitive.could_extract_minus_sign():
+            primitive = -primitive
+        if primitive not in seen:
+            seen.add(primitive)
+            residuals.append(primitive)
+    return tuple(residuals)
+
+
+def _transverse_boundary_intersection(
+    first: sp.Expr, second: sp.Expr, variables: Sequence[sp.Symbol]
+) -> sp.Expr:
+    """Formula for a transverse intersection of two smooth boundaries."""
+
+    rank_two_minors = [
+        sp.expand(
+            sp.diff(first, left_variable) * sp.diff(second, right_variable)
+            - sp.diff(first, right_variable) * sp.diff(second, left_variable)
+        )
+        for left_index, left_variable in enumerate(variables)
+        for right_variable in variables[left_index + 1 :]
+    ]
+    nonzero_minors = [sp.Ne(minor, 0) for minor in rank_two_minors if minor != 0]
+    if not nonzero_minors:
+        return sp.false
+    return sp.And(sp.Eq(first, 0), sp.Eq(second, 0), sp.Or(*nonzero_minors))
+
+
+@dataclass(frozen=True)
+class ActiveBoundaryStratum:
+    """One exact stratum classified by active inequality boundaries.
+
+    ``active_residuals`` are the defining inequality residuals that vanish on
+    the stratum. ``formula`` also excludes all other recognized inequality
+    boundaries, so strata with different active sets are pairwise disjoint.
+    """
+
+    active_residuals: tuple[sp.Expr, ...]
+    formula: sp.Expr
+
+    @property
+    def active_count(self) -> int:
+        return len(self.active_residuals)
+
+
+def _active_strata_from_boundary(
+    boundary_data: RegionBoundaryResult,
+) -> tuple[ActiveBoundaryStratum, ...]:
+    """Merge boundary CAD cells having the same realized active set."""
+
+    groups: dict[tuple[sp.Expr, ...], list[sp.Expr]] = {}
+    for stratum in boundary_data.strata:
+        if not stratum.active_residuals:
+            continue
+        groups.setdefault(stratum.active_residuals, []).append(stratum.formula)
+    strata = [
+        ActiveBoundaryStratum(active, normalize_formula(sp.Or(*formulas)))
+        for active, formulas in groups.items()
+    ]
+    strata.sort(
+        key=lambda item: (
+            item.active_count,
+            tuple(sp.default_sort_key(expr) for expr in item.active_residuals),
+        )
+    )
+    return tuple(strata)
+
+
+def region_active_boundary_strata(
+    region: object, variables: Sequence[sp.Symbol] | None = None
+) -> tuple[ActiveBoundaryStratum, ...]:
+    """Stratify the exact boundary by realized active inequality constraints.
+
+    This consumes :func:`region_boundary_result`, reusing its exact boundary
+    CAD and active-residual metadata instead of launching an independent
+    decomposition. Cells with the same active set are merged.
+    """
+
+    return _active_strata_from_boundary(region_boundary_result(region, variables))
+
+
+def region_nonsmooth_locus(region: object, variables: Sequence[sp.Symbol] | None = None) -> sp.Expr:
+    """Return the exact recognized nonsmooth/corner locus of a region boundary.
+
+    Algebraic singularities come from :func:`region_singular_locus`. Corners
+    and ridges are added only on realized active-boundary strata containing at
+    least two inequality residuals, so intersections of inactive or redundant
+    inequalities cannot create false nonsmooth points.
+    """
+
+    formula = _region_formula(region)
+    vars_ = _region_variables(region, formula, variables)
+    if not vars_:
+        return sp.false
+    if not _inequality_boundary_residuals(formula, vars_):
+        return region_singular_locus(formula, vars_)
+
+    boundary_data = region_boundary_result(formula, vars_)
+    algebraic_singular = _region_singular_from_boundary(formula, vars_, boundary_data)
+    active_strata = _active_strata_from_boundary(boundary_data)
+    corner_candidates: list[sp.Expr] = []
+
+    for stratum in active_strata:
+        if stratum.active_count < 2:
+            continue
+        transverse_parts: list[sp.Expr] = []
+        for first, second in combinations(stratum.active_residuals, 2):
+            transverse = _transverse_boundary_intersection(first, second, vars_)
+            if transverse != sp.false:
+                transverse_parts.append(transverse)
+        if transverse_parts:
+            corner_candidates.append(sp.And(stratum.formula, sp.Or(*transverse_parts)))
+
+    if not corner_candidates:
+        return algebraic_singular
+    return normalize_formula(sp.Or(algebraic_singular, *corner_candidates))
+
+
+def region_regular_locus(region: object, variables: Sequence[sp.Symbol] | None = None) -> sp.Expr:
+    """Return the part of ``region`` outside its algebraic boundary singular locus."""
+    formula = _region_formula(region)
+    vars_ = _region_variables(region, formula, variables)
+    return sp.simplify(sp.And(formula, sp.Not(region_singular_locus(region, vars_))))
+
+
+@dataclass(frozen=True)
+class BoundaryStratum:
+    """One exact CAD boundary cell with membership and active-set metadata."""
+
+    formula: sp.Expr
+    dimension: int
+    included: bool
+    active_residuals: tuple[sp.Expr, ...]
+
+
+@dataclass(frozen=True)
+class RegionBoundaryResult:
+    """Exact region boundary together with reusable CAD and cell metadata."""
+
+    formula: sp.Expr
+    variables: tuple[sp.Symbol, ...]
+    strata: tuple[BoundaryStratum, ...]
+    cad_result: object
+
+    @property
+    def included_strata(self) -> tuple[BoundaryStratum, ...]:
+        return tuple(stratum for stratum in self.strata if stratum.included)
+
+    @property
+    def excluded_strata(self) -> tuple[BoundaryStratum, ...]:
+        return tuple(stratum for stratum in self.strata if not stratum.included)
+
+
+def region_boundary_result(
+    region: object, variables: Sequence[sp.Symbol] | None = None
+) -> RegionBoundaryResult:
+    """Return exact boundary cells, membership status, active residuals, and CAD.
+
+    The decomposition is computed once and retained on the result so plotting,
+    meshing, singularity analysis, and topology code can reuse the same exact
+    boundary CAD rather than decomposing the boundary again.
+    """
+
+    from .decomposition import cad
+    from .exact_arithmetic import exact_truth
+    from .reconstruct.cylindrical import path_condition
+    from .regions.operations import region_boundary
+    from .sampling import sign_at
+    from .topology.incidence import cell_dimension
+
+    formula = _region_formula(region)
+    vars_ = _region_variables(region, formula, variables)
+    boundary_formula = region_boundary(formula, vars_)
+    result = cad(formula, vars_, operation="boundary", output="cells", return_result=True)
+    residuals = _inequality_boundary_residuals(formula, vars_)
+    samples = result.cell_set.sample_points()
+    strata: list[BoundaryStratum] = []
+    for cell, point in zip(result.cells, samples, strict=True):
+        cell_formula = normalize_formula(
+            path_condition(cell, vars_, result.cad.cells_by_level, closed=False)
+        )
+        substitution = {var: sp.sympify(point[var]) for var in vars_}
+        included = exact_truth(formula.subs(substitution))
+        active = tuple(
+            residual for residual in residuals if sign_at(residual, point, variables=vars_) == 0
+        )
+        strata.append(
+            BoundaryStratum(
+                cell_formula, int(cell_dimension(cell, result.cad.cells_by_level)), included, active
+            )
+        )
+    return RegionBoundaryResult(normalize_formula(boundary_formula), vars_, tuple(strata), result)
+
+
+def _point_subs(point, variables: Sequence[sp.Symbol]) -> dict[sp.Symbol, sp.Expr]:
+    if isinstance(point, Mapping):
+        missing = tuple(v for v in variables if v not in point)
+        if missing:
+            names = ", ".join(sp.sstr(v) for v in missing)
+            raise ValueError(f"missing coordinate(s): {names}")
+        return {v: sp.sympify(point[v]) for v in variables}
+    values = tuple(point)
+    if len(values) != len(variables):
+        raise ValueError(f"point has dimension {len(values)}, expected {len(variables)}")
+    return {v: sp.sympify(x) for v, x in zip(variables, values, strict=True)}
+
+
+def _truth_at_point(formula: sp.Expr, subs: Mapping[sp.Symbol, sp.Expr]) -> bool:
+    value = sp.simplify(formula.subs(subs))
+    if value in (sp.true, True):
+        return True
+    if value in (sp.false, False):
+        return False
+    if value.free_symbols:
+        raise ValueError("point condition remains symbolic")
+    from .decision import is_satisfiable
+
+    return bool(is_satisfiable(value, (), strategy="cad"))
+
+
+def local_dimension(region: object, point, variables: Sequence[sp.Symbol] | None = None) -> int:
+    """Exact local semialgebraic dimension at a point.
+
+    The local dimension is the maximum dimension of a selected CAD cell whose
+    closure contains the point. Returns ``-1`` when the point is not in the
+    closure of the region.
+    """
+    from .cad_algorithms.cell_complex import build_cad_cell_complex
+    from .cad_region import as_cad_region
+
+    reg = as_cad_region(region, variables)
+    subs = _point_subs(point, reg.variables)
+    complex_ = build_cad_cell_complex(reg)
+    dims = [
+        cell.dimension
+        for cell in complex_.cells
+        if _truth_at_point(cell.as_formula(closed=True), subs)
+    ]
+    return max(dims, default=-1)
+
+
+__all__ = [
+    "ActiveBoundaryStratum",
+    "AlgebraicComponentStratum",
+    "AlgebraicSingularityStratification",
+    "BoundaryStratum",
+    "ComponentIntersectionStratum",
+    "RegionBoundaryResult",
+    "SingularLocusResult",
+    "algebraic_singularity_stratification",
+    "region_active_boundary_strata",
+    "region_boundary_result",
+    "region_singular_locus",
+    "region_singular_locus_result",
+    "region_nonsmooth_locus",
+    "region_regular_locus",
+    "local_dimension",
+]

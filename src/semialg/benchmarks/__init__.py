@@ -8,6 +8,7 @@ from .cases import (
     tticad_cases,
     variable_ordering_cases,
 )
+from .performance import PerformanceProbe, probes_as_dict, run_core_performance_probes
 from .results import (
     BenchmarkCaseResult,
     BenchmarkRunResult,
@@ -40,4 +41,7 @@ __all__ = [
     "gen_seeded_bench_wits",
     "gen_seeded_points",
     "gen_seeded_section_wit",
+    "PerformanceProbe",
+    "probes_as_dict",
+    "run_core_performance_probes",
 ]

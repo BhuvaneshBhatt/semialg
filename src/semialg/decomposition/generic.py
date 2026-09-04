@@ -7,7 +7,7 @@ from typing import Literal
 import sympy as sp
 
 from ..algebraic.samples import sample_to_expr
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.lifting.stack import CADCell
 from ..context import with_computation_context
 from ..domains import apply_assumptions, normalize_assumptions, normalize_domain
 from ..formula import Formula, parse_formula, parse_formula_text, to_sympy
@@ -19,7 +19,8 @@ from ..generic import (
     projection_causes,
 )
 from ..qe.complete import cells_to_formula
-from ..simplify.result import simplify_qe_formula
+from ..simplify.formula import simplify_qe_formula
+from ..symbol_resolution import build_symbol_table
 from .cylindrical import (
     CADResult,
     CellSet,
@@ -192,7 +193,8 @@ def _cells_above_param(
 ) -> tuple[CADCell, ...]:
     if param_count == 0:
         return tuple(cells)
-    assert param_cell is not None
+    if param_cell is None:
+        raise ValueError("parameter cell is required when param_count is nonzero")
     prefix = param_cell.index
     return tuple(cell for cell in cells if cell.index[:param_count] == prefix)
 
@@ -222,6 +224,7 @@ def _make_param_cases(
     variables: tuple[sp.Symbol, ...],
     base_formula: sp.Expr,
 ) -> tuple[GenericCase, ...]:
+    """Construct generic and exceptional parameter cases from projection conditions."""
     cad_obj = cad_result.cad
     selected = tuple(cad_result.cells)
     param_count = len(parameters)
@@ -292,9 +295,12 @@ def generic_cad(
     domain: str = "reals",
     assumptions: Iterable[sp.Expr] | sp.Expr | None = None,
     strict: bool = False,
-    return_result: bool = True,
+    return_result: bool = False,
 ):
     """Compute a generic cylindrical decomposition over parameter space.
+
+    The default return follows ``output``; set ``return_result=True`` for the
+    complete :class:`GenericCADResult`.
 
     Parameters are placed before ordinary variables in the underlying CAD. The
     generic formula is the union of full-dimensional parameter cells with
@@ -305,7 +311,7 @@ def generic_cad(
     dom = normalize_domain(domain)
     if dom.value != "reals":
         if strict:
-            raise NotImplementedError("generic CAD currently supports only the real domain")
+            raise NotImplementedError("generic CAD supports only the real domain")
         var_tuple = _normalize_variables(variables)
         param_tuple = _normalize_variables(parameters)
         result = GenericCADResult(
@@ -321,7 +327,9 @@ def generic_cad(
             generic_split=None,
             exceptional_causes=(),
         )
-        return result if return_result else result.generic_formula
+        if return_result:
+            return result
+        raise NotImplementedError(f"generic CAD supports only the real domain, not {dom.value!r}")
     var_tuple = _normalize_variables(variables)
     param_tuple = _normalize_variables(parameters)
     all_symbols = (*param_tuple, *var_tuple)
@@ -342,6 +350,7 @@ def generic_cad(
         strategy=strategy,
         domain=dom.value,
         assumptions=None,
+        return_result=True,
     )
     cases = _make_param_cases(cad_result, param_tuple, var_tuple, base_expr)
     all_causes = (
@@ -436,14 +445,10 @@ def generic_cad_text(
     domain: str = "reals",
     assumptions: Iterable[sp.Expr] | sp.Expr | None = None,
     strict: bool = False,
-    return_result: bool = True,
+    return_result: bool = False,
 ):
-    local_symbols = dict(symbols or {})
-    for sym_like in (*parameters, *variables):
-        if isinstance(sym_like, str):
-            local_symbols.setdefault(sym_like, sp.Symbol(sym_like, real=True))
-        else:
-            local_symbols.setdefault(sym_like.name, sym_like)
+    """Build a generic cylindrical decomposition from a textual formula."""
+    local_symbols = build_symbol_table(symbols, (*parameters, *variables))
     expr, _ = parse_formula_text(text, symbols=local_symbols)
     return generic_cad(
         expr,

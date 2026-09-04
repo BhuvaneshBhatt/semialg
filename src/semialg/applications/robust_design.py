@@ -7,8 +7,9 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
-from ..normalization import normalize_formula, normalize_variables
+from ..normalization import normalize_formula, normalize_parameters, normalize_variables
 from ..parameters import solvability_conditions
+from ..simplify.boolean import simplify_boolean
 
 FormulaLike = sp.Expr | sp.logic.boolalg.Boolean | bool
 
@@ -34,11 +35,7 @@ def _normalize_parameters(
 ) -> tuple[sp.Symbol, ...]:
     """Resolve parameter names against symbols already present in the problem."""
 
-    return normalize_variables(
-        parameters,
-        expr,
-        append_context_symbols=False,
-    )
+    return normalize_parameters(parameters, expr)
 
 
 def robust_parameter_analysis(
@@ -73,7 +70,7 @@ def robust_parameter_analysis(
 
     feasible = solvability_conditions(sp.And(domain, expr), variables, params)
     violation = solvability_conditions(sp.And(domain, sp.Not(expr)), variables, params)
-    robust = sp.simplify_logic(sp.Not(violation))
+    robust = simplify_boolean(sp.Not(violation))
     return RobustParameterResult(
         constraints=sp.And(domain, expr),
         variables=variables,

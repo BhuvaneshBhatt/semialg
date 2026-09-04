@@ -3,19 +3,16 @@ from __future__ import annotations
 import sympy as sp
 
 import semialg
-from semialg import (
-    ExactComputationContext,
-    ParameterStratifiedResult,
-    ParametricFunctionRangeResult,
-    ParametricOptimizationResult,
-    computation_context,
-    current_computation_context,
-    function_range,
-    semialgebraic_minimize,
-)
+from semialg import computation_context, function_range, semialgebraic_minimize
 from semialg.algebraic.roots import isolate_real_roots
 from semialg.algebraic.signs import sign_at_sample
-from semialg.optimization import _pruned_active_subsets
+from semialg.conditional import ParameterStratifiedResult
+from semialg.context import ExactComputationContext, current_computation_context
+from semialg.optimization import (
+    ParametricFunctionRangeResult,
+    ParametricOptimizationResult,
+    _pruned_active_subsets,
+)
 from semialg.planner.features import ProblemFeatures
 from semialg.planner.heuristics import candidate_variable_orders, score_variable_order
 
@@ -84,7 +81,7 @@ def test_active_set_semialgebraic_pruning_removes_infeasible_strict_boundary() -
 
 def test_fully_eliminated_equality_reconstructs_optimizer_point() -> None:
     x = sp.Symbol("x", real=True)
-    result = semialgebraic_minimize(x**2, [sp.Eq(x, 2)], [x])
+    result = semialgebraic_minimize(x**2, [sp.Eq(x, 2)], [x], return_result=True)
     assert result.value == 4
     assert result.attained
     assert result.point == {x: 2}
@@ -98,6 +95,7 @@ def test_parametric_optimization_returns_first_class_exact_strata() -> None:
         [x],
         parameters=[a],
         return_stratified=True,
+        return_result=True,
     )
     assert isinstance(result, ParameterStratifiedResult)
     assert result.parameters == (a,)
@@ -146,12 +144,9 @@ def test_parametric_string_parameter_preserves_existing_symbol_identity() -> Non
     assert result.parameters == (a,)
 
 
-def test_new_public_exports_resolve() -> None:
-    for name in (
-        "ExactComputationContext",
-        "computation_context",
-        "current_computation_context",
-        "ParametricOptimizationResult",
-        "ParametricFunctionRangeResult",
-    ):
-        assert getattr(semialg, name) is not None
+def test_context_and_parametric_types_use_intended_api_tiers() -> None:
+    assert semialg.computation_context is computation_context
+    assert ExactComputationContext is not None
+    assert current_computation_context is not None
+    assert ParametricOptimizationResult is not None
+    assert ParametricFunctionRangeResult is not None

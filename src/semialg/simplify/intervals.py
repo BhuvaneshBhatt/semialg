@@ -7,6 +7,7 @@ from functools import cmp_to_key
 import sympy as sp
 
 from ..exact_arithmetic import compare_exact_reals
+from .boolean import simplify_boolean
 
 
 @dataclass(frozen=True)
@@ -41,13 +42,13 @@ def _numeric(expr: sp.Expr | None, *, left: bool) -> sp.Expr:
 def _compare_expr(a: sp.Expr | None, b: sp.Expr | None, *, left: bool = True) -> int:
     aa = _numeric(a, left=left)
     bb = _numeric(b, left=left)
-    if aa is -sp.oo or aa == -sp.oo:
+    if aa == -sp.oo:
         return -1 if bb != -sp.oo else 0
-    if bb is -sp.oo or bb == -sp.oo:
+    if bb == -sp.oo:
         return 1
-    if aa is sp.oo or aa == sp.oo:
+    if aa == sp.oo:
         return 1 if bb != sp.oo else 0
-    if bb is sp.oo or bb == sp.oo:
+    if bb == sp.oo:
         return -1
     return compare_exact_reals(aa, bb)
 
@@ -149,8 +150,8 @@ def intervals_to_formula(var: sp.Symbol, intervals: Sequence[Interval1D]) -> sp.
         ]
     )
     try:
-        return sp.simplify_logic(expr, form="dnf")
-    except Exception:
+        return simplify_boolean(expr)
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         return expr
 
 

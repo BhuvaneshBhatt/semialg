@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 import sympy as sp
 
 from semialg import root_count_conditions, solvability_conditions
@@ -23,7 +24,9 @@ def test_solvability_conditions_can_return_result_object() -> None:
     assert result.formula == (a >= 0)
     assert result.variables == (x,)
     assert result.parameters == (a,)
-    assert bool(result) is True
+    assert result.is_conditional
+    with pytest.raises(TypeError, match="parameter-dependent solvability"):
+        bool(result)
 
 
 def test_root_count_conditions_for_monic_quadratic_family() -> None:

@@ -1,0 +1,242 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import sympy as sp
+from sympy.core.relational import Relational
+
+from .._linear_relations import certified_sign, linear_relation_bound, safe_linear_solution
+from ..dimension_validation import require_same_length
+from ..exact_arithmetic import compare_exact_reals
+from .real_utils import (
+    _RECOVERABLE_ERRORS,
+    CoordinateBounds,
+    LinearEliminationResult,
+    _relation_delta,
+    is_reliably_zero,
+    relation_to_zero_rhs,
+    relations_to_zero_rhs,
+)
+
+# ---------------------------------------------------------------------------
+# Bounds, boundedness, vector inequalities, and linear elimination
+
+
+def _linear_coeffs(
+    expr: sp.Expr, variables: Sequence[sp.Symbol]
+) -> tuple[list[sp.Expr], sp.Expr] | None:
+    expr = sp.expand(expr)
+    coeffs: list[sp.Expr] = []
+    remainder = expr
+    for var in variables:
+        coeff = sp.diff(expr, var)
+        if coeff.free_symbols & set(variables):
+            return None
+        coeffs.append(coeff)
+        remainder -= coeff * var
+    if remainder.free_symbols & set(variables):
+        return None
+    return coeffs, sp.simplify(remainder)
+
+
+def _relation_to_linear_bound(
+    rel: Relational, variables: Sequence[sp.Symbol]
+) -> tuple[sp.Symbol, sp.Expr, str, bool] | None:
+    norm = relation_to_zero_rhs(rel)
+    if not isinstance(norm, (sp.StrictLessThan, sp.LessThan, sp.StrictGreaterThan, sp.GreaterThan)):
+        return None
+    delta = _relation_delta(norm)
+    data = _linear_coeffs(delta, variables)
+    if data is None:
+        return None
+    coeffs, _const = data
+    active: list[tuple[sp.Symbol, sp.Expr]] = []
+    for index, coeff in enumerate(coeffs):
+        sign = certified_sign(coeff)
+        if sign == 0:
+            continue
+        if sign is None and sp.simplify(coeff) == 0:
+            continue
+        active.append((variables[index], coeff))
+    if len(active) != 1:
+        return None
+    var, _coeff = active[0]
+    bound = linear_relation_bound(norm, var)
+    if bound is None:
+        return None
+    return var, bound.value, bound.side, bound.strict
+
+
+def coordinate_bounds(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+) -> CoordinateBounds:
+    """Extract inexpensive coordinate bounds from linear inequalities.
+
+    Strictness is retained so contradictory open endpoints are recognized.
+    Unresolved parameter signs make the extraction incomplete rather than
+    causing an unsafe inequality orientation.
+    """
+
+    variables = tuple(variables)
+    if formula in {sp.false, False}:
+        return CoordinateBounds(
+            tuple((var, -sp.oo, sp.oo) for var in variables),
+            inconsistent=True,
+            complete=True,
+            strictness=tuple((var, False, False) for var in variables),
+        )
+
+    lower: dict[sp.Symbol, sp.Expr] = {var: -sp.oo for var in variables}
+    upper: dict[sp.Symbol, sp.Expr] = {var: sp.oo for var in variables}
+    lower_strict: dict[sp.Symbol, bool] = {var: False for var in variables}
+    upper_strict: dict[sp.Symbol, bool] = {var: False for var in variables}
+    normalized = relations_to_zero_rhs(formula)
+    if normalized in {sp.true, True}:
+        relations: tuple[Relational, ...] = ()
+        complete = True
+    elif isinstance(normalized, Relational):
+        relations = (normalized,)
+        complete = True
+    elif isinstance(normalized, sp.And):
+        relations = tuple(arg for arg in normalized.args if isinstance(arg, Relational))
+        # The cheap extractor certifies completeness only when it has accounted
+        # for every Boolean atom.  Disjunctions, negations, predicates, and
+        # other unsupported Boolean structure must not silently disappear.
+        complete = len(relations) == len(normalized.args)
+    else:
+        relations = ()
+        complete = False
+    for atom in relations:
+        bound = _relation_to_linear_bound(atom, variables)
+        if bound is None:
+            complete = False
+            continue
+        var, value, side, strict = bound
+        if side == "upper":
+            try:
+                cmp = compare_exact_reals(value, upper[var])
+            except _RECOVERABLE_ERRORS:
+                complete = False
+                continue
+            if cmp < 0:
+                upper[var] = value
+                upper_strict[var] = strict
+            elif cmp == 0:
+                upper_strict[var] = upper_strict[var] or strict
+        else:
+            try:
+                cmp = compare_exact_reals(value, lower[var])
+            except _RECOVERABLE_ERRORS:
+                complete = False
+                continue
+            if cmp > 0:
+                lower[var] = value
+                lower_strict[var] = strict
+            elif cmp == 0:
+                lower_strict[var] = lower_strict[var] or strict
+
+    inconsistent = False
+    for var in variables:
+        try:
+            cmp = compare_exact_reals(lower[var], upper[var])
+        except _RECOVERABLE_ERRORS:
+            continue
+        if cmp > 0 or (cmp == 0 and (lower_strict[var] or upper_strict[var])):
+            inconsistent = True
+            break
+
+    return CoordinateBounds(
+        tuple((var, lower[var], upper[var]) for var in variables),
+        inconsistent=inconsistent,
+        complete=complete,
+        strictness=tuple((var, lower_strict[var], upper_strict[var]) for var in variables),
+    )
+
+
+def is_bounded_solution_set(formula: sp.Expr, variables: Sequence[sp.Symbol]) -> bool | None:
+    """Try to prove coordinate-boundedness or obvious unboundedness."""
+
+    bounds = coordinate_bounds(formula, variables)
+    if bounds.inconsistent or formula in {sp.false, False}:
+        return True
+    finite_all = all(lo != -sp.oo and hi != sp.oo for _, lo, hi in bounds.bounds)
+    if finite_all:
+        return True
+    if formula in {sp.true, True}:
+        return False
+    return None
+
+
+def vector_relations(lhs: Sequence[sp.Expr], rhs: Sequence[sp.Expr], relation: str) -> sp.Expr:
+    """Convert componentwise vector inequalities to scalar inequalities."""
+
+    require_same_length(lhs, rhs, context="vector relation", names=("lhs", "rhs"))
+    if relation == "lt":
+        return sp.And(*(sp.Lt(a, b) for a, b in zip(lhs, rhs, strict=True)))
+    if relation == "le":
+        return sp.And(*(sp.Le(a, b) for a, b in zip(lhs, rhs, strict=True)))
+    if relation == "gt":
+        return sp.And(*(sp.Gt(a, b) for a, b in zip(lhs, rhs, strict=True)))
+    if relation == "ge":
+        return sp.And(*(sp.Ge(a, b) for a, b in zip(lhs, rhs, strict=True)))
+    raise ValueError("relation must be one of 'lt', 'le', 'gt', or 'ge'")
+
+
+def eliminate_linear_equations(
+    equations: Sequence[sp.Expr],
+    variables: Sequence[sp.Symbol],
+) -> LinearEliminationResult:
+    """Eliminate variables using equations that are linear in one variable.
+
+    A variable is eliminated only when its linear coefficient is globally
+    certified nonzero. No sample assignment is used to justify division on
+    only one parameter stratum.
+    """
+
+    remaining = [
+        sp.expand(eq.lhs - eq.rhs) if isinstance(eq, sp.Equality) else sp.expand(eq)
+        for eq in equations
+    ]
+    vars_left = list(variables)
+    replacements: list[tuple[sp.Symbol, sp.Expr]] = []
+    changed = True
+    while changed:
+        changed = False
+        for var in list(vars_left):
+            for idx, eq in enumerate(list(remaining)):
+                try:
+                    poly = sp.Poly(eq, var)
+                except _RECOVERABLE_ERRORS:
+                    continue
+                if poly.degree() != 1:
+                    continue
+                # A reference point can help choose witnesses, but it cannot
+                # justify globally dividing by a coefficient that may vanish
+                # on another parameter stratum.
+                replacement = safe_linear_solution(eq, var)
+                if replacement is None:
+                    continue
+                replacements.append((var, replacement))
+                vars_left.remove(var)
+                remaining = [
+                    sp.simplify(other.subs(var, replacement))
+                    for j, other in enumerate(remaining)
+                    if j != idx
+                ]
+                changed = True
+                break
+            if changed:
+                break
+    remaining = [eq for eq in remaining if not is_reliably_zero(eq)]
+    return LinearEliminationResult(tuple(remaining), tuple(vars_left), tuple(replacements))
+
+
+# ---------------------------------------------------------------------------
+
+__all__ = [
+    "coordinate_bounds",
+    "is_bounded_solution_set",
+    "vector_relations",
+    "eliminate_linear_equations",
+]

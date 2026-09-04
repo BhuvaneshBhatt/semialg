@@ -1,7 +1,7 @@
 import sympy as sp
 
-from semialg.cad import cad_cache_stats, clear_cad_caches
-from semialg.cad.projection.collins import build_collins_proj_set
+from semialg.cad_algorithms import cad_cache_stats, clear_cad_caches
+from semialg.cad_algorithms.projection.collins import build_collins_proj_set
 from semialg.formula import parse_formula, parse_quant_form_text
 from semialg.partial.qe import lazy_resolve_formula
 from semialg.planner.features import extract_problem_features
@@ -58,3 +58,34 @@ def test_partial_cad_only_lifts_descendants_of_ec_compatible_prefix_cells():
     assert result.stats.lifted_stacks == 2
     assert result.stats.ec_pruned_cells >= 2
     assert result.stats.evaluated_leaf_cells == 0
+
+
+def test_projection_cache_preserves_assumption_distinct_symbol_identity():
+    x_real = sp.Symbol("x", real=True)
+    x_positive = sp.Symbol("x", positive=True)
+    y = sp.Symbol("y", real=True)
+    clear_cad_caches()
+    first = build_collins_proj_set((x_real + y,), (x_real, y))
+    second = build_collins_proj_set((x_positive + y,), (x_positive, y))
+    stats = cad_cache_stats()
+    assert first.variables[0] is x_real
+    assert second.variables[0] is x_positive
+    assert first is not second
+    assert stats.projection_tower_misses == 2
+
+
+def test_complete_cad_cache_reuses_lifted_decomposition():
+    from semialg.cad_algorithms.decomposition import decomp_collins_complete
+
+    x, y = sp.symbols("x y", real=True)
+    polys = (x**2 + y**2 - 1, x + y)
+    clear_cad_caches()
+    first = decomp_collins_complete(polys, (x, y))
+    after_first = cad_cache_stats()
+    second = decomp_collins_complete(polys, (x, y))
+    after_second = cad_cache_stats()
+
+    assert first is second
+    assert after_first.complete_cad_misses == 1
+    assert after_second.complete_cad_hits == 1
+    assert after_second.complete_cad_misses == 1

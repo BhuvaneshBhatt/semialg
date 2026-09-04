@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import sympy as sp
 from sympy import S
 
+from ..._errors import EXACT_OPERATION_ERRORS
 from .roots import decomp_univar_inequality, isolate_univar_roots
 from .semantics import ResultSemantics
 from .state import TransProblemState
@@ -27,13 +28,14 @@ def extract_cand_form(state: TransProblemState, variable: sp.Symbol) -> sp.Expr:
 
 
 def _eliminate_exists_real(state: TransProblemState, variable: sp.Symbol) -> QuantElimResult | None:
+    """Eliminate one existential real variable using exact transcendental reductions when available."""
     formula = extract_cand_form(state, variable)
     try:
         simplified = sp.simplify(sp.logic.boolalg.eliminate_implications(formula))
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         simplified = formula
 
-    # First try direct logic-level existential reduction for purely univariate formulas.
+    # Univariate existential formulas can be reduced without introducing CAD.
     try:
         if simplified.free_symbols <= {variable}:
             sat = sp.satisfiable(simplified, use_lra_theory=True)
@@ -46,7 +48,7 @@ def _eliminate_exists_real(state: TransProblemState, variable: sp.Symbol) -> Qua
                     method="satisfiable_exists",
                     metadata={"reason": "unsat_univariate"},
                 )
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         pass
 
     # Equation-driven existential reduction.  Do not feed inequalities or
@@ -59,7 +61,7 @@ def _eliminate_exists_real(state: TransProblemState, variable: sp.Symbol) -> Qua
         for root in root_info.roots:
             try:
                 val = bool(sp.simplify(simplified.subs(variable, root)))
-            except Exception:
+            except EXACT_OPERATION_ERRORS:
                 val = False
             if val:
                 subs_truths.append(root)

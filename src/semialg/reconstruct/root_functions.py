@@ -2,7 +2,17 @@ from __future__ import annotations
 
 import sympy as sp
 
-from ..cad.bounds import AlgebraicRootFunction
+from ..cad_algorithms.bounds import AlgebraicRootFunction
+
+
+def primitive_fiber_polynomial(poly: sp.Expr, fiber_var: sp.Symbol) -> sp.Expr:
+    """Remove coefficient content that does not affect the fibre roots."""
+    poly = sp.expand(sp.sympify(poly))
+    try:
+        primitive = sp.Poly(poly, fiber_var).primitive()[1].as_expr()
+    except (sp.PolynomialError, TypeError, ValueError):
+        return poly
+    return sp.expand(primitive)
 
 
 class root_of(sp.Function):
@@ -18,7 +28,7 @@ class root_of(sp.Function):
 
     @classmethod
     def eval(cls, polynomial, fiber_var, root_index):
-        polynomial = sp.sympify(polynomial)
+        polynomial = primitive_fiber_polynomial(polynomial, fiber_var)
         fiber_var = sp.sympify(fiber_var)
         root_index = sp.sympify(root_index)
         if not isinstance(fiber_var, sp.Symbol) or root_index.is_Integer is not True:
@@ -51,7 +61,14 @@ RootFunction = AlgebraicRootFunction
 
 
 def root_function_expr(poly: sp.Expr, fiber_var: sp.Symbol, root_index: int) -> sp.Expr:
-    return AlgebraicRootFunction(sp.expand(poly), fiber_var, int(root_index)).as_expr()
+    poly = primitive_fiber_polynomial(poly, fiber_var)
+    return AlgebraicRootFunction(poly, fiber_var, int(root_index)).as_expr()
 
 
-__all__ = ["AlgebraicRootFunction", "RootFunction", "root_function_expr", "root_of"]
+__all__ = [
+    "AlgebraicRootFunction",
+    "RootFunction",
+    "primitive_fiber_polynomial",
+    "root_function_expr",
+    "root_of",
+]

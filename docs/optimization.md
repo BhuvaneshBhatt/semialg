@@ -22,10 +22,10 @@ from semialg import semialgebraic_minimize, semialgebraic_maximize
 
 x, y, z = sp.symbols("x y z", real=True)
 
-semialgebraic_minimize(x**2, [x >= 2], [x]).value
+semialgebraic_minimize(x**2, [x >= 2], [x])[0]
 # 4
 
-semialgebraic_minimize(x, [x > 0], [x]).attained
+semialgebraic_minimize(x, [x > 0], [x], return_result=True).attained
 # False
 
 semialgebraic_maximize(
@@ -47,7 +47,7 @@ For multivariate polynomial problems, the exact pipeline combines:
 5. active-boundary intersections and vertices;
 6. explicit Groebner/leading-ideal dimension detection for KKT and singular loci;
 7. exact zero-dimensional solving, including the RUR backend where applicable;
-8. recursive optimization over positive-dimensional projected KKT loci when equality reduction makes progress, with exact CAD-range certification as the conservative terminal step when no safe coordinate elimination is available;
+8. recursive optimization over positive-dimensional projected KKT and singular active-boundary loci when equality reduction makes progress, with exact `function_range`/image-CAD certification as the conservative terminal step when the objective is not reduced to a finite candidate set; attained range endpoints are followed by exact witness recovery on the value locus;
 9. rank-deficient/singular active loci;
 10. exact feasibility filtering against the original strict and non-strict constraints;
 11. exact comparison of algebraic objective values;
@@ -65,7 +65,7 @@ Range certification is controlled by `OptimizationCertificationPolicy` and the c
 - `certification="candidate"` disables the full range fallback while still allowing the cheaper CAD query that proves that no strictly better feasible point exists;
 - `recursion_limit` bounds recursive optimization of positive-dimensional critical loci.
 
-For example, a three-variable open ball can now return an unattained exact infimum through the range fallback:
+For example, a three-variable open ball can return an unattained exact infimum through the range fallback:
 
 ```python
 semialgebraic_minimize(
@@ -96,7 +96,7 @@ Open sets are distinguished from closed ones. For example, minimizing `x` over `
 
 ## Parameter-stratified optimization and ranges
 
-`semialgebraic_minimize`, `semialgebraic_maximize`, and `function_range` accept `parameters=[...]` together with `return_stratified=True`. The return value is a `ParameterStratifiedResult`. Each branch is guarded by an exact parameter condition.
+`semialgebraic_minimize`, `semialgebraic_maximize`, and `function_range` accept `parameters=[...]` together with `return_stratified=True`. The return value is a `ParameterStratifiedResult`. Each branch is guarded by an exact parameter condition. By default, parameter-dependent optimum/range values remain exact first-order relations with explicit quantifiers, avoiding a second potentially expensive QE pass. Set `eliminate_quantifiers=True` to request complete-CAD elimination explicitly; successful branches then set `quantifier_free=True` and expose an empty quantifier prefix. This option requires `return_stratified=True`.
 
 For optimization, a branch value is `ParametricOptimizationResult`; for ranges it is `ParametricFunctionRangeResult`. These objects deliberately keep the exact first-order relation and its explicit quantifier prefix instead of automatically performing another potentially enormous CAD elimination just to obtain a quantifier-free display. For a minimum with value symbol `t`, the exact relation encodes both
 
@@ -124,4 +124,21 @@ Bounded DNF expansion is used for disjunctive domains. Each feasible branch is o
 
 ## Current limits
 
-The optimizer is strongest for low-dimensional polynomial problems whose KKT/active loci are zero-dimensional, safely reducible by equalities, or affordable for exact CAD range certification. Positive-dimensional critical loci are detected explicitly and recursively reduced when possible rather than being silently treated as failed finite solves. Higher-dimensional open/unbounded problems may still be declined when the estimated complete image-CAD cost exceeds the configured policy, and noncompact optimization at infinity is not yet handled by a dedicated asymptotic-critical-point algorithm. General non-polynomial optimization and SOS/SDP certificate search are outside the current exact pipeline.
+The optimizer is strongest for low-dimensional polynomial problems whose KKT/active loci are zero-dimensional, safely reducible by equalities, or affordable for exact CAD range certification. Positive-dimensional critical loci are detected explicitly and recursively reduced when possible rather than being silently treated as failed finite solves. Higher-dimensional open/unbounded problems may still be declined when the estimated complete image-CAD cost exceeds the configured policy, and noncompact optimization at infinity has no dedicated asymptotic-critical-point algorithm. General non-polynomial optimization and SOS/SDP certificate search are outside the exact pipeline.
+
+
+## Direct parametric relation reconstruction
+
+When `return_stratified=True, eliminate_quantifiers=True` is requested, semialg first tries a cheap exact reconstruction before launching a second complete-CAD QE. Constant objectives and one-dimensional affine objectives/ranges over direct symbolic intervals can be written immediately as equalities or interval relations. Only unsupported cases fall through to generic relation elimination.
+
+### Exact polynomial nonnegativity backend
+
+Optimization clients can call `polynomial_nonnegative`, `find_negative_point`, or
+`zeng_negative_point` directly. This is intentionally a semialg public API rather
+than an optimization-package-specific hook, so downstream packages such as
+symbolic optimization layers can reuse the same exact certificates and witnesses.
+The result object distinguishes a certified negative point, certified global
+nonnegativity, and an unsupported/incomplete case. The current fast coercivity
+certificate intentionally accepts only positive even-monomial leading forms; a
+leading form containing mixed odd exponents falls back to an incomplete result
+unless another exact strategy supplies a negative witness.

@@ -1,27 +1,34 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
 
 import sympy as sp
 from sympy.logic.boolalg import Boolean
-from sympy.polys.polyerrors import PolynomialError
+from sympy.polys.polyerrors import CoercionFailed, PolynomialError
 
+from ..algebraic.equality_ideal import EqualityIdealContext
 from ..algebraic.rational_univariate import solve_formula_with_rur
-from ..context import with_computation_context
 from ..decision_diagnostics import solution_capability_diagnostics
 from ..formula import ParsedPrenexFormula, parse_formula
-from ..normalization import conjuncts as _conjuncts
-from ..normalization import normalize_formula as _normalize_formula
+from ..formulas.boolean import is_false_expr, is_true_expr
+from ..incidence import decompose_conjunctive_formula
+from ..inequality_reduction import reduce_conjunctive_inequalities
+from ..normalization import conjuncts, normalize_formula
 from ..qe import qe_by_complete_cad
+from ..simplify.boolean import simplify_boolean
 from ..solve import reduce_formula
+from ..solve.planner import (
+    affine_presolve,
+    exact_linear_feasibility,
+    groebner_reduce_conjunction,
+    profile_semialgebraic_system,
+    reconstruct_affine_assignment,
+    reconstruct_affine_solution_formula,
+)
+from ..structural_keys import symbol_identity_key
 from ._inputs import (
     as_real_symbol as _as_real_symbol,
-)
-from ._inputs import (
-    normalize_decision_variables as _normalize_variables,
-)
-from ._inputs import (
-    prepare_solve_inputs as _prepare_solve_inputs,
 )
 from ._metadata import (
     collect_solution_metadata as _collect_solution_metadata,
@@ -30,19 +37,8 @@ from ._metadata import (
     components_formula as _components_formula,
 )
 from ._metadata import (
-    metadata_request_for_output as _metadata_request_for_output,
-)
-from ._metadata import (
     one_dim_components as _one_dim_components,
 )
-from ._outputs import (
-    add_standard_solver_diagnostics as _add_standard_solver_diagnostics,
-)
-from ._outputs import (
-    select_solution_output as _select_solution_output,
-)
-from ._witnesses import find_validated_witness as _find_validated_witness
-from .sampling_helpers import _collect_structural_samples, _normalize_sample_request
 from .solution import (
     EquivalenceResult,
     ImplicationResult,
@@ -59,8 +55,8 @@ _RECOVERABLE_ERRORS = (
     TypeError,
     ValueError,
     NotImplementedError,
-    RuntimeError,
     sp.PolynomialError,
+    CoercionFailed,
 )
 
 
@@ -68,10 +64,7 @@ def _safe_simplify_expr(expr: sp.Expr) -> sp.Expr:
     """Simplify algebraic expressions without sending Boolean formulas to radsimp."""
 
     if isinstance(expr, Boolean):
-        try:
-            return sp.simplify_logic(expr, form="dnf")
-        except (TypeError, ValueError, NotImplementedError):
-            return expr
+        return simplify_boolean(expr)
     return sp.simplify(expr)
 
 
@@ -90,7 +83,7 @@ def _merge_variables(
                 out.append(sym)
                 seen.add(sym)
     for formula in formulas:
-        for sym in sorted(getattr(formula, "free_symbols", set()), key=lambda item: item.name):
+        for sym in sorted(getattr(formula, "free_symbols", set()), key=symbol_identity_key):
             if sym not in seen:
                 out.append(sym)
                 seen.add(sym)
@@ -118,9 +111,12 @@ def _fast_parameter_conditions(
         if degree == 1:
             return sp.Ne(poly.LC(), 0)
         if degree == 2:
-            coeffs = poly.all_coeffs()
-            a2, a1, a0 = coeffs
-            return _safe_simplify_expr(a1**2 - 4 * a2 * a0 >= 0)
+            a2, a1, a0 = poly.all_coeffs()
+            discriminant = sp.expand(a1**2 - 4 * a2 * a0)
+            quadratic = sp.And(sp.Ne(a2, 0), discriminant >= 0)
+            linear = sp.And(sp.Eq(a2, 0), sp.Ne(a1, 0))
+            constant_zero = sp.And(sp.Eq(a2, 0), sp.Eq(a1, 0), sp.Eq(a0, 0))
+            return _safe_simplify_expr(sp.Or(quadratic, linear, constant_zero))
     return None
 
 
@@ -129,25 +125,22 @@ def _fast_solution_formula(
 ) -> tuple[sp.Expr, str, bool | None]:
     """Fast conservative formula/satisfiability path for common solves."""
 
-    if expr is sp.true or expr == sp.true:
+    if is_true_expr(expr):
         return sp.true, "trivial", True
-    if expr is sp.false or expr == sp.false:
+    if is_false_expr(expr):
         return sp.false, "trivial", False
     if len(variables) == 1:
         components = _one_dim_components(expr, variables[0])
         if components is not None:
             reduced = _components_formula(components)
             return reduced, "one_dimensional_components", bool(components)
-        try:
-            reduced = sp.reduce_inequalities(list(_conjuncts(expr)), variables[0])
-            if reduced is not None:
-                return (
-                    reduced,
-                    "sympy_reduce_inequalities",
-                    reduced is not sp.false and reduced != sp.false,
-                )
-        except _RECOVERABLE_ERRORS:
-            pass
+        reduced = reduce_conjunctive_inequalities(expr, variables[0])
+        if reduced is not None:
+            return (
+                reduced,
+                "sympy_reduce_inequalities",
+                reduced is not sp.false and reduced != sp.false,
+            )
     if len(variables) == 2:
         try:
             from ..implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
@@ -208,6 +201,497 @@ def _try_rur_formula(
     return result
 
 
+@dataclass
+class _PlannedSolveOutcome:
+    reduced: sp.Expr
+    satisfiable: bool
+    method: str
+    diagnostics: dict[str, object] = field(default_factory=dict)
+    solved: object | None = None
+    rur_result: object | None = None
+
+
+def _planner_step(
+    method: str, accepted: bool, reason: str, **metadata: object
+) -> dict[str, object]:
+    return {
+        "method": method,
+        "accepted": bool(accepted),
+        "reason": reason,
+        "metadata": metadata,
+    }
+
+
+def _run_auto_solve_plan(
+    expr: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    domain: str,
+    strategy: str | None,
+    sample_count: int,
+    depth: int = 0,
+) -> _PlannedSolveOutcome:
+    """Execute the structural exact solver plan before general CAD/QE.
+
+    Every accepted transformation is equivalence preserving.  The planner may
+    prove satisfiability without CAD only when the selected backend itself gives
+    an exact certificate (interval reduction, Fourier--Motzkin, RUR, explicit
+    cylindrical cells, or recursively solved independent blocks).
+    """
+
+    if depth > 12:
+        parsed = ParsedPrenexFormula(variables, (), parse_formula(expr), expr)
+        solved = reduce_formula(parsed, domain=domain, return_result=True, strategy=strategy)
+        reduced = _safe_simplify_expr(solved.result)
+        sat = is_satisfiable(reduced, variables, domain=domain, strategy=strategy)
+        return _PlannedSolveOutcome(
+            reduced,
+            bool(sat),
+            getattr(solved, "method", "cad"),
+            {"planner_steps": (_planner_step("cad_qe", True, "planner recursion guard"),)},
+            solved=solved,
+        )
+
+    steps: list[dict[str, object]] = []
+    original_vars = tuple(variables)
+    profile = profile_semialgebraic_system(expr, original_vars)
+    diagnostics: dict[str, object] = {
+        "system_profile": {
+            "atom_count": profile.atom_count,
+            "equality_count": profile.equality_count,
+            "inequality_count": profile.inequality_count,
+            "polynomial": profile.polynomial,
+            "linear": profile.linear,
+            "max_total_degree": profile.max_total_degree,
+            "conjunctive": profile.conjunctive,
+            "variable_blocks": profile.variable_blocks,
+            "suggested_order": profile.suggested_order,
+            "potentially_zero_dimensional": profile.potentially_zero_dimensional,
+        }
+    }
+
+    work_expr = expr
+    work_vars = original_vars
+    presolved = None
+    if profile.polynomial and profile.conjunctive and original_vars:
+        try:
+            presolved = affine_presolve(expr, original_vars)
+        except _RECOVERABLE_ERRORS:
+            presolved = None
+        if presolved is not None and presolved.changed:
+            work_expr = presolved.formula
+            work_vars = presolved.variables
+            steps.append(
+                _planner_step(
+                    "affine_presolve",
+                    True,
+                    "globally safe affine equality substitution",
+                    substitutions=presolved.substitutions,
+                    remaining_variables=work_vars,
+                )
+            )
+        else:
+            steps.append(_planner_step("affine_presolve", False, "no safe affine elimination"))
+
+    def reconstruct(formula: sp.Expr) -> sp.Expr:
+        if presolved is None or not presolved.substitutions:
+            return formula
+        return reconstruct_affine_solution_formula(presolved, formula)
+
+    if is_false_expr(work_expr):
+        steps.append(_planner_step("trivial", True, "presolve proved inconsistency"))
+        diagnostics["planner_steps"] = tuple(steps)
+        return _PlannedSolveOutcome(sp.false, False, "affine_presolve", diagnostics)
+    if is_true_expr(work_expr) or not work_vars:
+        if not is_true_expr(work_expr):
+            simplified = _safe_simplify_expr(work_expr)
+            if is_false_expr(simplified):
+                steps.append(_planner_step("trivial", True, "zero-variable residual is false"))
+                diagnostics["planner_steps"] = tuple(steps)
+                return _PlannedSolveOutcome(sp.false, False, "affine_presolve", diagnostics)
+            if not is_true_expr(simplified):
+                # This should only occur if undeclared parameters escaped the
+                # solve-variable list.  Leave the general reducer to handle it.
+                work_expr = simplified
+            else:
+                work_expr = sp.true
+        if is_true_expr(work_expr):
+            result_formula = reconstruct(sp.true)
+            steps.append(_planner_step("trivial", True, "all remaining constraints eliminated"))
+            diagnostics["planner_steps"] = tuple(steps)
+            return _PlannedSolveOutcome(
+                result_formula,
+                True,
+                "affine_presolve" if presolved and presolved.changed else "trivial",
+                diagnostics,
+            )
+
+    # Small explicit disjunctions are solved branch-by-branch.  This mirrors
+    # Solve's DNF dispatch while avoiding an exponential normalization step: we
+    # only split an Or that is already present and cap the branch count.
+    if isinstance(work_expr, sp.Or) and len(work_expr.args) <= 8:
+        branch_outcomes: list[_PlannedSolveOutcome] = []
+        for branch in work_expr.args:
+            branch_outcomes.append(
+                _run_auto_solve_plan(
+                    branch,
+                    work_vars,
+                    domain=domain,
+                    strategy=strategy,
+                    sample_count=sample_count,
+                    depth=depth + 1,
+                )
+            )
+        sat_branches = [branch for branch in branch_outcomes if branch.satisfiable]
+        reduced_union = (
+            sp.Or(*(branch.reduced for branch in sat_branches)) if sat_branches else sp.false
+        )
+        reduced_union = reconstruct(reduced_union) if sat_branches else sp.false
+        methods = tuple(branch.method for branch in branch_outcomes)
+        steps.append(
+            _planner_step(
+                "boolean_branch_decomposition",
+                True,
+                "small explicit disjunction solved branch-by-branch",
+                branch_count=len(branch_outcomes),
+                branch_methods=methods,
+            )
+        )
+        diagnostics["planner_steps"] = tuple(steps)
+        diagnostics["branch_plans"] = tuple(branch.diagnostics for branch in branch_outcomes)
+        # Preserve the familiar finite-system method when every surviving
+        # branch was solved by RUR; otherwise expose the decomposition.
+        method = (
+            "rational_univariate"
+            if sat_branches
+            and all(branch.method == "rational_univariate" for branch in sat_branches)
+            else "boolean_branch_decomposition[" + ",".join(methods) + "]"
+        )
+        return _PlannedSolveOutcome(reduced_union, bool(sat_branches), method, diagnostics)
+
+    # Solve independent variable-incidence blocks separately.  This is the
+    # semialgebraic analogue of Solve's block-diagonal system decomposition.
+    components = decompose_conjunctive_formula(work_expr, work_vars)
+    if components:
+        child_formulas: list[sp.Expr] = []
+        child_methods: list[str] = []
+        child_diags: list[dict[str, object]] = []
+        all_sat = True
+        for component_formula, component_vars in components:
+            child = _run_auto_solve_plan(
+                component_formula,
+                tuple(component_vars),
+                domain=domain,
+                strategy=strategy,
+                sample_count=sample_count,
+                depth=depth + 1,
+            )
+            child_formulas.append(child.reduced)
+            child_methods.append(child.method)
+            child_diags.append(child.diagnostics)
+            if not child.satisfiable:
+                all_sat = False
+                break
+        if all_sat:
+            combined = sp.And(*child_formulas) if child_formulas else sp.true
+            combined = reconstruct(combined)
+        else:
+            combined = sp.false
+        method = "incidence_decomposition[" + ",".join(child_methods) + "]"
+        steps.append(
+            _planner_step(
+                "incidence_decomposition",
+                True,
+                "independent variable blocks solved separately",
+                block_count=len(components),
+                child_methods=tuple(child_methods),
+            )
+        )
+        diagnostics["planner_steps"] = tuple(steps)
+        diagnostics["child_plans"] = tuple(child_diags)
+        return _PlannedSolveOutcome(combined, all_sat, method, diagnostics)
+    steps.append(_planner_step("incidence_decomposition", False, "system is not separable"))
+
+    # Preserve the finite-system solver contract: when the original system can
+    # be zero dimensional, run RUR on the affine-presolved system before the
+    # generic univariate-set reducer.  Affine presolve can make this RUR much
+    # smaller while the result remains an exact finite-point certificate.
+    if profile.potentially_zero_dimensional:
+        rur_result = _try_rur_formula(
+            work_expr,
+            work_vars,
+            max_solutions=sample_count if sample_count else None,
+        )
+        if rur_result is not None and not rur_result.partial:
+            assignments = [dict(point) for point in rur_result.assignments]
+            if presolved is not None and presolved.substitutions:
+                assignments = [
+                    reconstruct_affine_assignment(presolved, point) for point in assignments
+                ]
+            reduced = (
+                _finite_points_formula(assignments, original_vars) if assignments else sp.false
+            )
+            steps.append(
+                _planner_step(
+                    "rational_univariate",
+                    True,
+                    "finite system solved by RUR after affine presolve",
+                    solution_count=len(assignments),
+                )
+            )
+            diagnostics["planner_steps"] = tuple(steps)
+            return _PlannedSolveOutcome(
+                reduced,
+                bool(assignments),
+                "rational_univariate",
+                diagnostics,
+                rur_result=rur_result,
+            )
+        steps.append(
+            _planner_step(
+                "rational_univariate",
+                False,
+                "finite-system RUR attempt did not certify the branch",
+            )
+        )
+
+    # Univariate semialgebraic reduction is substantially cheaper than either
+    # RUR or a general CAD and already yields an exact set description.
+    if len(work_vars) == 1:
+        reduced, fast_method, fast_sat = _fast_solution_formula(work_expr, work_vars)
+        if fast_sat is not None:
+            steps.append(_planner_step(fast_method, True, "exact univariate reduction"))
+            diagnostics["planner_steps"] = tuple(steps)
+            return _PlannedSolveOutcome(
+                reconstruct(reduced if fast_sat else sp.false),
+                bool(fast_sat),
+                fast_method,
+                diagnostics,
+            )
+        steps.append(
+            _planner_step("univariate_reduction", False, "univariate fast path unsupported")
+        )
+
+    work_profile = profile_semialgebraic_system(work_expr, work_vars)
+
+    # After affine equality substitution, a linear conjunction usually consists
+    # solely of inequalities.  Fourier--Motzkin can then decide feasibility
+    # without constructing a CAD; the unreduced linear formula itself is an
+    # exact representation of the solution set.
+    if work_profile.linear and work_profile.conjunctive:
+        linear = exact_linear_feasibility(work_expr, work_vars)
+        if linear is not None:
+            linear_sat, certificate = linear
+            steps.append(
+                _planner_step(
+                    "linear_fourier_motzkin",
+                    True,
+                    "exact linear feasibility after affine presolve",
+                    eliminated_condition=certificate,
+                )
+            )
+            diagnostics["planner_steps"] = tuple(steps)
+            return _PlannedSolveOutcome(
+                reconstruct(work_expr) if linear_sat else sp.false,
+                bool(linear_sat),
+                "linear_fourier_motzkin",
+                diagnostics,
+            )
+        steps.append(
+            _planner_step("linear_fourier_motzkin", False, "linear elimination unsupported")
+        )
+
+    # Explicit triangular/cylindrical bounds are already a solved set form and
+    # prove nonemptiness through their extracted cells.
+    if len(work_vars) > 1:
+        try:
+            from ..cad_algorithms.cells import extract_explicit_cylindrical_solution
+
+            explicit_cyl = extract_explicit_cylindrical_solution(work_expr, work_vars)
+        except _RECOVERABLE_ERRORS:
+            explicit_cyl = None
+        if explicit_cyl is not None:
+            steps.append(
+                _planner_step(
+                    "explicit_cylindrical_bounds",
+                    True,
+                    "recognized exact triangular/cylindrical bound structure",
+                )
+            )
+            diagnostics["planner_steps"] = tuple(steps)
+            return _PlannedSolveOutcome(
+                reconstruct(work_expr), True, "explicit_cylindrical_bounds", diagnostics
+            )
+        steps.append(_planner_step("explicit_cylindrical_bounds", False, "no explicit bound form"))
+
+    # Use the cheap equation-count test only as a gate for exact ideal
+    # analysis.  Once a Groebner basis is justified, decide finite-vs-positive
+    # dimensionality from the leading monomial ideal rather than guessing from
+    # the number of equations.
+    exact_ideal = None
+    if work_profile.potentially_zero_dimensional and work_profile.conjunctive:
+        equality_residuals = tuple(
+            sp.expand(atom.lhs - atom.rhs)
+            for atom in conjuncts(work_expr)
+            if isinstance(atom, sp.Equality) and sp.expand(atom.lhs - atom.rhs) != 0
+        )
+        try:
+            exact_ideal = EqualityIdealContext(equality_residuals, work_vars)
+        except _RECOVERABLE_ERRORS:
+            exact_ideal = None
+
+    if exact_ideal is not None and exact_ideal.inconsistent:
+        steps.append(
+            _planner_step(
+                "equality_ideal_analysis",
+                True,
+                "equality ideal is the unit ideal",
+                dimension=-1,
+                quotient_dimension=0,
+            )
+        )
+        diagnostics["planner_steps"] = tuple(steps)
+        return _PlannedSolveOutcome(sp.false, False, "equality_ideal_analysis", diagnostics)
+
+    should_try_rur = work_profile.potentially_zero_dimensional
+    if exact_ideal is not None:
+        should_try_rur = exact_ideal.zero_dimensional
+        steps.append(
+            _planner_step(
+                "equality_ideal_analysis",
+                True,
+                "computed exact dimension from the leading monomial ideal",
+                dimension=exact_ideal.dimension,
+                quotient_dimension=exact_ideal.quotient_dimension,
+            )
+        )
+
+    if should_try_rur:
+        rur_result = _try_rur_formula(
+            work_expr,
+            work_vars,
+            max_solutions=sample_count if sample_count else None,
+        )
+        if rur_result is not None and not rur_result.partial:
+            assignments = [dict(point) for point in rur_result.assignments]
+            if presolved is not None and presolved.substitutions:
+                assignments = [
+                    reconstruct_affine_assignment(presolved, point) for point in assignments
+                ]
+            reduced = (
+                _finite_points_formula(assignments, original_vars) if assignments else sp.false
+            )
+            steps.append(
+                _planner_step(
+                    "rational_univariate",
+                    True,
+                    "finite polynomial equality system solved by RUR",
+                    solution_count=len(assignments),
+                    quotient_dimension=(
+                        exact_ideal.quotient_dimension if exact_ideal is not None else None
+                    ),
+                )
+            )
+            diagnostics["planner_steps"] = tuple(steps)
+            return _PlannedSolveOutcome(
+                reduced,
+                bool(assignments),
+                "rational_univariate",
+                diagnostics,
+                rur_result=rur_result,
+            )
+        steps.append(
+            _planner_step("rational_univariate", False, "RUR did not certify a finite system")
+        )
+    else:
+        reason = (
+            f"exact equality-ideal dimension is {exact_ideal.dimension}"
+            if exact_ideal is not None
+            else "equation count proves a finite algebraic set is impossible or not applicable"
+        )
+        steps.append(_planner_step("rational_univariate", False, reason))
+
+    # A bounded Groebner presolve simplifies equality varieties and every
+    # inequality modulo the equality ideal.  For positive-dimensional systems
+    # this often shrinks the later CAD without pretending the answer is a list
+    # of isolated points.
+    groebner = None
+    if work_profile.polynomial and work_profile.conjunctive and work_profile.equality_count:
+        groebner = groebner_reduce_conjunction(
+            work_expr,
+            work_vars,
+            order=work_profile.suggested_order,
+        )
+    if groebner is not None:
+        groebner_expr, groebner_meta = groebner
+        steps.append(
+            _planner_step(
+                "groebner_presolve",
+                True,
+                "reduced polynomial system modulo equality ideal",
+                **groebner_meta,
+            )
+        )
+        if is_false_expr(groebner_expr):
+            diagnostics["planner_steps"] = tuple(steps)
+            return _PlannedSolveOutcome(sp.false, False, "groebner_presolve", diagnostics)
+        work_expr = groebner_expr
+        # If Groebner reduction exposed a one-dimensional/linear residual,
+        # exploit it before the general reducer.
+        post_profile = profile_semialgebraic_system(work_expr, work_vars)
+        if len(work_vars) == 1:
+            reduced, fast_method, fast_sat = _fast_solution_formula(work_expr, work_vars)
+            if fast_sat is not None:
+                steps.append(_planner_step(fast_method, True, "post-Groebner univariate reduction"))
+                diagnostics["planner_steps"] = tuple(steps)
+                return _PlannedSolveOutcome(
+                    reconstruct(reduced if fast_sat else sp.false),
+                    bool(fast_sat),
+                    "groebner_presolve+" + fast_method,
+                    diagnostics,
+                )
+        if post_profile.linear and post_profile.conjunctive:
+            linear = exact_linear_feasibility(work_expr, work_vars)
+            if linear is not None:
+                linear_sat, certificate = linear
+                steps.append(
+                    _planner_step(
+                        "linear_fourier_motzkin",
+                        True,
+                        "post-Groebner system is linear",
+                        eliminated_condition=certificate,
+                    )
+                )
+                diagnostics["planner_steps"] = tuple(steps)
+                return _PlannedSolveOutcome(
+                    reconstruct(work_expr) if linear_sat else sp.false,
+                    bool(linear_sat),
+                    "groebner_presolve+linear_fourier_motzkin",
+                    diagnostics,
+                )
+    else:
+        steps.append(_planner_step("groebner_presolve", False, "not useful/applicable"))
+
+    parsed = ParsedPrenexFormula(work_vars, (), parse_formula(work_expr), work_expr)
+    solved = reduce_formula(parsed, domain=domain, return_result=True, strategy=strategy)
+    reduced = _safe_simplify_expr(solved.result)
+    try:
+        satisfiable = is_satisfiable(reduced, work_vars, domain=domain, strategy=strategy)
+    except PolynomialError:
+        satisfiable = reduced is not sp.false and reduced != sp.false
+    final_reduced = reconstruct(reduced) if satisfiable else sp.false
+    selected = getattr(solved, "method", "cad")
+    steps.append(_planner_step("cad_qe", True, "general exact fallback", backend=selected))
+    diagnostics["planner_steps"] = tuple(steps)
+    return _PlannedSolveOutcome(
+        final_reduced,
+        bool(satisfiable),
+        selected,
+        diagnostics,
+        solved=solved,
+    )
+
+
 def _make_quantified_sentence(
     formula: sp.Expr, variables: Sequence[sp.Symbol]
 ) -> tuple[tuple[str, sp.Symbol], ...]:
@@ -218,246 +702,26 @@ def _truth_from_qe_result(result) -> bool:
     if result.is_sentence:
         return bool(result.truth_value)
     simplified = _safe_simplify_expr(result.formula)
-    if simplified is sp.true or simplified == sp.true:
+    if is_true_expr(simplified):
         return True
-    if simplified is sp.false or simplified == sp.false:
+    if is_false_expr(simplified):
         return False
     # A non-sentence result means parameters escaped the requested variable set.
     # Treat satisfiability existentially over remaining free symbols.
-    remaining = tuple(sorted(simplified.free_symbols, key=lambda item: item.name))
+    remaining = tuple(sorted(simplified.free_symbols, key=symbol_identity_key))
     if not remaining:
         return bool(simplified)
     return bool(
         qe_by_complete_cad(
-            remaining, _make_quantified_sentence(simplified, remaining), parse_formula(simplified)
+            remaining,
+            _make_quantified_sentence(simplified, remaining),
+            parse_formula(simplified),
+            return_result=True,
         ).truth_value
     )
 
 
-@with_computation_context
-def is_satisfiable(
-    formula: FormulaLike | Iterable[FormulaLike],
-    variables: Sequence[sp.Symbol | str] | None = None,
-    *,
-    domain: str = "reals",
-    strategy: str | None = None,
-    return_result: bool = False,
-) -> bool | SatisfiabilityResult:
-    """Return whether a real semialgebraic formula has a satisfying point.
-
-    By default this preserves the historical boolean API. With
-    ``return_result=True`` it returns a ``SatisfiabilityResult`` containing the
-    normalized formula, variable order, backend method, and a validated witness
-    when one is cheaply available.
-    """
-
-    if domain.lower() not in {"real", "reals", "r", "rr"}:
-        raise NotImplementedError("is_satisfiable currently supports only the real domain")
-    expr = _normalize_formula(formula)
-    vars_ = _normalize_variables(variables, expr)
-    method = "trivial"
-    witness: Mapping[sp.Symbol, sp.Expr] | None = None
-    if expr is sp.true or expr == sp.true:
-        sat = True
-        witness = {var: sp.Integer(0) for var in vars_}
-    elif expr is sp.false or expr == sp.false:
-        sat = False
-    else:
-        # First try exact finite-system dispatch. This proves SAT/UNSAT
-        # for supported zero-dimensional equality branches without constructing
-        # a full CAD of the ambient space.
-        rur_result = _try_rur_formula(expr, vars_, max_solutions=1)
-        if rur_result is not None and not rur_result.partial:
-            sat = bool(rur_result.assignments)
-            method = "rational_univariate"
-            witness = dict(rur_result.assignments[0]) if rur_result.assignments else None
-        else:
-            # Try a validated witness before paying for full QE. This never proves
-            # unsatisfiability, but it gives cheap structured results for common
-            # full-dimensional feasible regions.
-            witness = _find_validated_witness(expr, vars_, strategy=strategy)
-            if witness is not None:
-                sat = True
-                method = "validated_sample"
-            else:
-                if len(vars_) == 1:
-                    try:
-                        reduced = sp.reduce_inequalities(list(_conjuncts(expr)), vars_[0])
-                        comps = _one_dim_components(reduced, vars_[0])
-                        if comps is not None:
-                            sat = bool(comps)
-                            method = "sympy_reduce_inequalities"
-                            witness = {vars_[0]: comps[0].sample_point()} if comps else None
-                        else:
-                            raise ValueError("univariate reduction did not yield components")
-                    except _RECOVERABLE_ERRORS:
-                        result = qe_by_complete_cad(
-                            vars_, _make_quantified_sentence(expr, vars_), parse_formula(expr)
-                        )
-                        sat = _truth_from_qe_result(result)
-                        method = getattr(result, "method", "complete_cad_qe")
-                else:
-                    result = qe_by_complete_cad(
-                        vars_, _make_quantified_sentence(expr, vars_), parse_formula(expr)
-                    )
-                    sat = _truth_from_qe_result(result)
-                    method = getattr(result, "method", "complete_cad_qe")
-                if sat and witness is None:
-                    witness = _find_validated_witness(expr, vars_, strategy=strategy)
-    if return_result:
-        return SatisfiabilityResult(
-            bool(sat),
-            expr,
-            vars_,
-            witness=witness,
-            method=method,
-            diagnostics={"domain": domain, "strategy": strategy},
-        )
-    return bool(sat)
-
-
-def is_tautology(
-    formula: FormulaLike | Iterable[FormulaLike],
-    variables: Sequence[sp.Symbol | str] | None = None,
-    *,
-    domain: str = "reals",
-    strategy: str | None = None,
-    return_result: bool = False,
-) -> bool | TautologyResult:
-    """Return whether a real semialgebraic formula is true for all variables.
-
-    With ``return_result=True``, a false result includes a validated
-    counterexample whenever the sampling layer can provide one.
-    """
-
-    expr = _normalize_formula(formula)
-    vars_ = _normalize_variables(variables, expr)
-    negated = sp.Not(expr)
-    sat = is_satisfiable(negated, vars_, domain=domain, strategy=strategy, return_result=True)
-    taut = not bool(sat)
-    if return_result:
-        return TautologyResult(
-            taut,
-            expr,
-            vars_,
-            counterexample=sat.witness if not taut else None,
-            method=sat.method,
-            diagnostics={"satisfiability": sat.diagnostics},
-        )
-    return taut
-
-
-def implies(
-    assumptions: FormulaLike | Iterable[FormulaLike],
-    conclusion: FormulaLike,
-    variables: Sequence[sp.Symbol | str] | None = None,
-    *,
-    domain: str = "reals",
-    strategy: str | None = None,
-    return_result: bool = False,
-) -> bool | ImplicationResult:
-    """Return whether ``assumptions`` imply ``conclusion`` over the reals.
-
-    With ``return_result=True``, invalid implications include a validated
-    counterexample satisfying the premise and falsifying the conclusion when
-    available.
-    """
-
-    premise = _normalize_formula(assumptions)
-    consequent = _normalize_formula(conclusion)
-    universe = _normalize_variables(variables, sp.And(premise, consequent))
-    counterexample_formula = sp.And(premise, sp.Not(consequent))
-    sat = is_satisfiable(
-        counterexample_formula, universe, domain=domain, strategy=strategy, return_result=True
-    )
-    valid = not bool(sat)
-    if return_result:
-        return ImplicationResult(
-            valid,
-            premise,
-            consequent,
-            universe,
-            counterexample=sat.witness if not valid else None,
-            method=sat.method,
-            diagnostics={
-                "counterexample_formula": sp.sstr(counterexample_formula),
-                "satisfiability": sat.diagnostics,
-            },
-        )
-    return valid
-
-
-def equivalent(
-    lhs: FormulaLike,
-    rhs: FormulaLike,
-    variables: Sequence[sp.Symbol | str] | None = None,
-    *,
-    domain: str = "reals",
-    strategy: str | None = None,
-    return_result: bool = False,
-) -> bool | EquivalenceResult:
-    """Return whether two semialgebraic formulas define the same real set.
-
-    With ``return_result=True``, a false result includes a counterexample from
-    the symmetric difference and, when it can be determined cheaply, the failed
-    implication direction.
-    """
-
-    left = _normalize_formula(lhs)
-    right = _normalize_formula(rhs)
-    universe = _normalize_variables(variables, sp.And(left, right))
-    if left == right:
-        if return_result:
-            return EquivalenceResult(True, left, right, universe, method="syntactic")
-        return True
-    try:
-        if sp.simplify_logic(sp.Xor(left, right)) is sp.false:
-            if return_result:
-                return EquivalenceResult(True, left, right, universe, method="logic_simplify")
-            return True
-    except (TypeError, ValueError, NotImplementedError, AttributeError):
-        pass
-    if len(universe) == 1:
-        try:
-            same_set = bool(left.as_set() == right.as_set())
-            if same_set:
-                if return_result:
-                    return EquivalenceResult(True, left, right, universe, method="sympy_set")
-                return True
-        except (TypeError, ValueError, NotImplementedError, AttributeError):
-            pass
-    left_not_right = sp.And(left, sp.Not(right))
-    right_not_left = sp.And(right, sp.Not(left))
-    lnr = is_satisfiable(
-        left_not_right, universe, domain=domain, strategy=strategy, return_result=True
-    )
-    rnl = is_satisfiable(
-        right_not_left, universe, domain=domain, strategy=strategy, return_result=True
-    )
-    equiv = not bool(lnr) and not bool(rnl)
-    failed_direction = None
-    witness = None
-    if bool(lnr) and bool(rnl):
-        failed_direction = "both"
-        witness = lnr.witness or rnl.witness
-    elif bool(lnr):
-        failed_direction = "lhs_implies_rhs"
-        witness = lnr.witness
-    elif bool(rnl):
-        failed_direction = "rhs_implies_lhs"
-        witness = rnl.witness
-    if return_result:
-        return EquivalenceResult(
-            equiv,
-            left,
-            right,
-            universe,
-            counterexample=witness,
-            failed_direction=failed_direction,
-            method="symmetric_difference",
-            diagnostics={"lhs_not_rhs": lnr.diagnostics, "rhs_not_lhs": rnl.diagnostics},
-        )
-    return equiv
+from ._predicates import equivalent, implies, is_satisfiable, is_tautology  # noqa: E402
 
 
 def _parameter_solution_data(
@@ -471,7 +735,7 @@ def _parameter_solution_data(
 
     if not parameters:
         return None, None
-    pieces = _conjuncts(formula)
+    pieces = conjuncts(formula)
     param_formula = pieces[0] if len(pieces) == 1 else formula
     conditions = _fast_parameter_conditions(param_formula, variables, parameters)
     if conditions is None:
@@ -542,258 +806,7 @@ def _trivial_solution(
     )
 
 
-@with_computation_context
-def solve_semialgebraic(
-    constraints: FormulaLike | Iterable[FormulaLike],
-    variables: Sequence[sp.Symbol | str] | None = None,
-    *,
-    parameters: Sequence[sp.Symbol | str] | None = None,
-    domain: str = "reals",
-    count: int = 1,
-    samples: int | str | None = None,
-    sample_mode: str | None = None,
-    strategy: str | None = None,
-    method: str = "auto",
-    variable_order: Sequence[sp.Symbol | str] | None = None,
-    projection_order: Sequence[sp.Symbol | str] | None = None,
-    normalize_domains: bool = True,
-    return_formula: bool = False,
-    output: str | None = None,
-) -> SemialgebraicSolution | sp.Expr | tuple[object, ...] | bool | None:
-    """Reduce, sample, and summarize a semialgebraic system over the reals.
-
-    ``output`` may be used as a convenience selector for common views of the
-    solution. The default ``None`` preserves structured result-object behavior.
-    Component- and cell-aware sampling is available through
-    ``samples="per_component"``, ``samples="per_cell"``, or the equivalent
-    ``sample_mode`` keyword. Supported selectors are ``"formula"``, ``"reduced_formula"``,
-    ``"piecewise"``, ``"samples"``, ``"components"``, ``"cells"``,
-    ``"cylindrical"``, and ``"conditions"``. The ``"conditions"`` selector returns
-    the parameter-space condition under which the system is solvable.
-
-    The returned ``SemialgebraicSolution`` includes best-effort metadata such as simplified
-    constraints, parameter conditions, dimension, boundedness, compactness,
-    exact 1D components, and 2D vertical-bound cells when those analyses are
-    supported. Unsupported metadata is reported as ``None`` or an empty tuple
-    rather than being guessed.
-    """
-
-    expr_original, expr, params, vars_, method_key, domain_normalization = _prepare_solve_inputs(
-        constraints,
-        variables,
-        parameters,
-        domain=domain,
-        method=method,
-        variable_order=variable_order,
-        projection_order=projection_order,
-        normalize_domains=normalize_domains,
-    )
-    sample_count, resolved_sample_mode = _normalize_sample_request(count, samples, sample_mode)
-    if method_key == "interval" and len(vars_) != 1:
-        raise NotImplementedError("method='interval' supports exactly one solve variable")
-
-    parameter_conditions, parameter_decomposition = _parameter_solution_data(
-        expr,
-        vars_,
-        params,
-        domain=domain,
-    )
-
-    if expr is sp.true or expr == sp.true:
-        result = _trivial_solution(
-            expr,
-            vars_,
-            params,
-            satisfiable=True,
-            sample_count=sample_count,
-            parameter_conditions=parameter_conditions,
-            parameter_decomposition=parameter_decomposition,
-            strategy=strategy,
-        )
-        return result.formula if return_formula else _select_solution_output(result, output)
-    if expr is sp.false or expr == sp.false:
-        result = _trivial_solution(
-            expr,
-            vars_,
-            params,
-            satisfiable=False,
-            sample_count=sample_count,
-            parameter_conditions=parameter_conditions,
-            parameter_decomposition=parameter_decomposition,
-            strategy=strategy,
-        )
-        return result.formula if return_formula else _select_solution_output(result, output)
-
-    condition_keys = {"conditions", "parameter_conditions", "solvability_conditions"}
-    if (
-        output is not None
-        and output.lower().replace("-", "_") in condition_keys
-        and not return_formula
-    ):
-        return parameter_conditions if parameter_conditions is not None else sp.true
-
-    if params:
-        satisfiable = parameter_conditions is not sp.false and parameter_conditions != sp.false
-        simplified_constraints = _conjuncts(expr)
-        result = SemialgebraicSolution(
-            expr if satisfiable else sp.false,
-            vars_,
-            (),
-            bool(satisfiable),
-            "parameter_conditions",
-            _add_standard_solver_diagnostics(
-                solution_capability_diagnostics(
-                    expr,
-                    selected_output=output,
-                    selected_sample_mode=resolved_sample_mode,
-                    requested_sample_count=sample_count,
-                    has_parameter_conditions=parameter_conditions is not None,
-                    has_param_decomp=parameter_decomposition is not None,
-                ),
-                method="parameter_conditions",
-                variables=vars_,
-                projection_order=projection_order,
-                domain_normalization=domain_normalization,
-                metadata={},
-                parameter_decomposition=parameter_decomposition,
-            ),
-            parameters=params,
-            simplified_constraints=simplified_constraints,
-            parameter_conditions=parameter_conditions,
-            parameter_decomposition=parameter_decomposition,
-            dimension=None,
-            bounded=None,
-            closed=None,
-            compact=None,
-            components=(),
-            cells=(),
-            cylindrical_solution=None,
-            connectivity=None,
-        )
-        return result.formula if return_formula else _select_solution_output(result, output)
-
-    selected_method: str | None = None
-    rur_result = None
-    if method_key in {"auto", "rur"}:
-        rur_result = _try_rur_formula(
-            expr, vars_, max_solutions=sample_count if sample_count else None
-        )
-        if method_key == "rur" and rur_result is None:
-            raise NotImplementedError(
-                "method='rur' supports finite zero-dimensional equality branches only"
-            )
-    if rur_result is not None and not rur_result.partial:
-        assignments = tuple(dict(point) for point in rur_result.assignments)
-        reduced = _finite_points_formula(assignments, vars_) if assignments else sp.false
-        satisfiable = bool(assignments)
-        selected_method = "rational_univariate"
-        fast_method = selected_method
-        fast_satisfiable = satisfiable
-        solved = None
-        explicit_cyl = None
-    elif method_key in {"cad", "qe", "cylindrical", "sampling"}:
-        reduced, fast_method, fast_satisfiable = expr, method_key, None
-        solved = None
-    else:
-        reduced, fast_method, fast_satisfiable = _fast_solution_formula(expr, vars_)
-        solved = None
-    explicit_cyl = None
-    if selected_method is None and fast_satisfiable is None and len(vars_) > 1:
-        try:
-            from ..cad.cells import extract_explicit_cylindrical_solution
-
-            explicit_cyl = extract_explicit_cylindrical_solution(expr, vars_)
-        except _RECOVERABLE_ERRORS:
-            explicit_cyl = None
-    if selected_method is None and fast_satisfiable is None and explicit_cyl is not None:
-        reduced = expr
-        satisfiable = True
-        selected_method = "explicit_cylindrical_bounds"
-    elif selected_method is None and fast_satisfiable is None:
-        parsed = ParsedPrenexFormula(vars_, (), parse_formula(expr), expr)
-        solved = reduce_formula(parsed, domain=domain, return_result=True, strategy=strategy)
-        reduced = _safe_simplify_expr(solved.result)
-        try:
-            satisfiable = is_satisfiable(reduced, vars_, domain=domain, strategy=strategy)
-        except PolynomialError:
-            # Reconstructed CAD formulas may contain algebraic boundary functions.
-            # A non-false CAD reconstruction already carries selected cells, so use
-            # it as the satisfiability witness when polynomial parsing is not available.
-            satisfiable = reduced is not sp.false and reduced != sp.false
-        selected_method = getattr(solved, "method", "cad")
-    elif selected_method is None:
-        satisfiable = bool(fast_satisfiable)
-        selected_method = fast_method
-
-    selected_method = selected_method or fast_method
-    simplified_constraints: tuple[sp.Expr, ...] = _conjuncts(reduced)
-    # Record a simplified constraint tuple without making full redundancy removal
-    # part of the critical solve path. The dedicated ``simplify_system`` API
-    # remains available for heavier semantic cleanup.
-
-    final_formula = sp.false if not satisfiable else reduced
-    meta = _collect_solution_metadata(
-        final_formula,
-        vars_,
-        request=_metadata_request_for_output(output, resolved_sample_mode),
-    )
-    if satisfiable:
-        samples_out = _collect_structural_samples(
-            final_formula,
-            expr,
-            vars_,
-            meta,
-            count=sample_count,
-            mode=resolved_sample_mode,
-            strategy=strategy,
-        )
-    else:
-        samples_out = ()
-    diagnostics = dict(getattr(solved, "metadata", {}) or {}) if solved is not None else {}
-    diagnostics.update(solution_capability_diagnostics(expr))
-    diagnostics["selected_output"] = output
-    diagnostics["selected_sample_mode"] = resolved_sample_mode
-    diagnostics["requested_sample_count"] = sample_count
-    diagnostics["structural_sample_count"] = len(samples_out)
-    diagnostics["simplified_constraint_count"] = len(simplified_constraints)
-    diagnostics["has_parameter_conditions"] = parameter_conditions is not None
-    diagnostics["has_parameter_decomposition"] = parameter_decomposition is not None
-    diagnostics["used_rur"] = selected_method == "rational_univariate"
-    if selected_method == "rational_univariate" and rur_result is not None:
-        diagnostics["rur_solved_branches"] = rur_result.solved_branches
-        diagnostics["rur_skipped_branches"] = rur_result.skipped_branches
-        diagnostics["rur_notes"] = tuple(rur_result.notes)
-    diagnostics = _add_standard_solver_diagnostics(
-        diagnostics,
-        method=method_key,
-        variables=vars_,
-        projection_order=projection_order,
-        domain_normalization=domain_normalization,
-        metadata=meta,
-        parameter_decomposition=parameter_decomposition,
-        solved=solved,
-    )
-    result = SemialgebraicSolution(
-        final_formula,
-        vars_,
-        samples_out,
-        satisfiable,
-        selected_method,
-        diagnostics,
-        parameters=params,
-        simplified_constraints=simplified_constraints,
-        parameter_conditions=parameter_conditions,
-        parameter_decomposition=parameter_decomposition,
-        dimension=meta["dimension"],
-        bounded=meta["bounded"],
-        closed=meta["closed"],
-        compact=meta["compact"],
-        components=meta["components"],
-        cells=meta["cells"],
-        cylindrical_solution=meta.get("cylindrical_solution"),
-        connectivity=meta.get("connectivity"),
-    )
-    return result.formula if return_formula else _select_solution_output(result, output)
+from ._solve_api import solve_semialgebraic  # noqa: E402
 
 
 def canonicalize_one_dimensional_formula(
@@ -801,15 +814,12 @@ def canonicalize_one_dimensional_formula(
 ) -> sp.Expr:
     """Return a canonical interval-union formula for supported 1D systems."""
 
-    expr = _normalize_formula(formula)
+    expr = normalize_formula(formula)
     var = _as_real_symbol(variable)
     components = _one_dim_components(expr, var)
     if components is None:
-        try:
-            reduced = sp.reduce_inequalities(list(_conjuncts(expr)), var)
-            components = _one_dim_components(reduced, var)
-        except _RECOVERABLE_ERRORS:
-            components = None
+        reduced = reduce_conjunctive_inequalities(expr, var)
+        components = _one_dim_components(reduced, var) if reduced is not None else None
     if components is None:
         return _safe_simplify_expr(expr)
     return _components_formula(components)

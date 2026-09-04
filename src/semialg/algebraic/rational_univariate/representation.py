@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from ...dimension_validation import zip_equal
+from ...dimension_validation import assignments_from_points, zip_equal
 from ...exceptions import AlgebraicSolvingError
 from ...status import SolverStatus
 
@@ -21,8 +21,9 @@ class RationalUnivariateRepresentation:
     If ``parameter`` is named ``t``, each solution is represented by
     ``defining_polynomial(t) == 0`` and
     ``variable_i == coordinate_numerators[i](t) / coordinate_denominator(t)``.
-    The implementation targets rational-coefficient, zero-dimensional polynomial
-    systems and returns distinct algebraic solution branches.
+    The implementation supports rational and simple exact algebraic coefficient
+    fields for zero-dimensional polynomial systems and returns distinct algebraic
+    solution branches.
     """
 
     variables: tuple[sp.Symbol, ...]
@@ -65,7 +66,8 @@ class RationalUnivariateRepresentation:
         """Return denominator-free coordinate polynomials modulo the RUR polynomial."""
 
         if self.is_empty:
-            return tuple(sp.Poly(0, self.parameter, domain=sp.QQ) for _ in self.variables)
+            domain = self.defining_polynomial.domain
+            return tuple(sp.Poly(0, self.parameter, domain=domain) for _ in self.variables)
         try:
             inverse_denominator = sp.invert(self.coordinate_denominator, self.defining_polynomial)
         except (sp.polys.polyerrors.NotInvertible, sp.PolynomialError, ValueError) as exc:
@@ -76,7 +78,7 @@ class RationalUnivariateRepresentation:
             sp.Poly(
                 (inverse_denominator * numerator).rem(self.defining_polynomial).as_expr(),
                 self.parameter,
-                domain=sp.QQ,
+                domain=self.defining_polynomial.domain,
             )
             for numerator in self.coordinate_numerators
         )
@@ -159,10 +161,7 @@ class FilteredRationalUnivariateSolutions:
 
     @property
     def assignments(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
-        return tuple(
-            dict(zip_equal(self.variables, point, context="RUR solution point"))
-            for point in self.points
-        )
+        return assignments_from_points(self.variables, self.points, context="RUR solution point")
 
     @property
     def satisfiable(self) -> bool:

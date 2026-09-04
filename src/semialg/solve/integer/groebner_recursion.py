@@ -61,14 +61,17 @@ def _compute_small_obstr(
 
 
 @lru_cache(maxsize=256)
-def _groebner_basis_cached(polys_key, vars_key):
-    polys = [sp.sympify(s) for s in polys_key]
-    vars_ = [sp.Symbol(v) for v in vars_key]
+def _groebner_basis_cached(
+    polys: tuple[sp.Expr, ...], variables: tuple[sp.Symbol, ...]
+) -> tuple[sp.Expr, ...]:
+    """Compute and cache a Groebner basis without losing SymPy symbol identity."""
+
     try:
-        gb = sp.groebner(polys, *reversed(tuple(vars_)), order="lex")
-        return tuple(sp.expand(p.as_expr()) for p in gb.polys if sp.expand(p.as_expr()) != 0)
+        gb = sp.groebner(polys, *reversed(variables), order="lex")
+        expanded = tuple(sp.expand(p.as_expr()) for p in gb.polys)
+        return tuple(poly for poly in expanded if poly != 0)
     except _RECOVERABLE_ERRORS:
-        return tuple(polys)
+        return polys
 
 
 def compute_groebner_basis(
@@ -78,15 +81,23 @@ def compute_groebner_basis(
     if not eqs:
         return None
     polys = tuple(sp.expand(eq.lhs - eq.rhs) for eq in eqs)
-    vars_key = tuple(v.name for v in variables)
-    return _groebner_basis_cached(tuple(map(sp.srepr, polys)), vars_key)
+    return _groebner_basis_cached(polys, tuple(variables))
 
 
 def extract_lin_basis(
     basis: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
 ) -> tuple[sp.Expr, ...]:
+    """Choose an acyclic set of affine eliminations from a Groebner basis.
+
+    Variables are considered from the end of the requested order. Once a
+    variable is selected for elimination, later relations may not depend on it;
+    this prevents cycles such as simultaneously selecting ``x = y`` and
+    ``y = x``.
+    """
+
     variables = tuple(variables)
-    relations = []
+    relations: list[sp.Equality] = []
+    eliminated: set[sp.Symbol] = set()
     for var in reversed(variables):
         best = None
         for poly_expr in basis:
@@ -100,22 +111,21 @@ def extract_lin_basis(
             b = sp.expand(p1.coeff_monomial(1))
             if a == 0 or a.has(var) or b.has(var):
                 continue
-            # Eliminating an affine variable avoids introducing unnecessary algebraic
-            # branches into the recursive polynomial system.
+            rhs = sp.simplify(-b / a)
+            if rhs.free_symbols & eliminated:
+                continue
             score = (
                 _expr_complexity(a) + _expr_complexity(b),
                 len(poly_expr.free_symbols),
                 sp.srepr(poly_expr),
             )
-            rel = sp.Eq(var, sp.simplify(-b / a))
+            rel = sp.Eq(var, rhs)
             if best is None or score < best[0]:
                 best = (score, rel)
         if best is not None:
             relations.append(best[1])
-    by_var = {}
-    for rel in relations:
-        if isinstance(rel, sp.Equality):
-            by_var[rel.lhs] = rel
+            eliminated.add(var)
+    by_var = {rel.lhs: rel for rel in relations}
     return tuple(by_var[v] for v in variables if v in by_var)
 
 
@@ -396,10 +406,10 @@ def rec_reduce_sys(
                     else []
                 )
                 formula = recon_int_sol_fams(
+                    sub.formula,
                     variables,
                     points,
                     linear_relations=step.leading_linear_relations,
-                    expr=sub.formula,
                 )
                 return canon_int_result(
                     variables,
@@ -411,7 +421,7 @@ def rec_reduce_sys(
                     metadata={"step": step, "subresult": sub, **obstruction},
                 )
 
-    specialized_basis, specialized_remaining, relation_map = _part_spec_rels(
+    specialized_basis, specialized_remaining, _relation_map = _part_spec_rels(
         step.groebner_basis, variables, step.leading_linear_relations
     )
     coupled = _choose_coupled_rels(specialized_basis, specialized_remaining)
@@ -460,82 +470,78 @@ def rec_reduce_sys(
                     metadata={"step": step, **obstruction},
                 )
 
-        if not step.branch_roots:
-            return canon_int_result(
-                variables,
-                formula=sp.false,
-                solutions=[],
-                method="groebner_recursive_no_integer_roots",
-                complete=True,
-                provenance=["groebner"],
-                metadata={"step": step, **obstruction},
+    if not step.branch_roots:
+        return canon_int_result(
+            variables,
+            formula=sp.false,
+            solutions=[],
+            method="groebner_recursive_no_integer_roots",
+            complete=True,
+            provenance=["groebner"],
+            metadata={"step": step, **obstruction},
+        )
+
+    from .engine import run_int_solver_pipeline
+
+    points = []
+    branch_formulas = []
+    remaining = tuple(v for v in variables if v != step.chosen_variable)
+    for root in step.branch_roots:
+        substituted_expr = sp.simplify(expr.subs(step.chosen_variable, root))
+        if step.consistency_constraints:
+            substituted_expr = sp.And(substituted_expr, *step.consistency_constraints)
+        if not remaining:
+            truth = sp.simplify(substituted_expr)
+            if truth is not sp.false:
+                points.append((root,))
+            continue
+        sub = run_int_solver_pipeline(substituted_expr, remaining, search_bound=60)
+        if sub is not None:
+            if sub.solutions:
+                for tail in sub.solutions:
+                    mapping = {
+                        step.chosen_variable: root,
+                        **{v: val for v, val in zip(remaining, tail, strict=True)},
+                    }
+                    points.append(tuple(mapping[v] for v in variables))
+            branch_formulas.append(sp.And(sp.Eq(step.chosen_variable, root), sub.formula))
+        else:
+            deeper = rec_reduce_sys(
+                substituted_expr,
+                remaining,
+                max_depth=max_depth - 1,
+                max_branch_points=max_branch_points,
             )
-
-        from .engine import run_int_solver_pipeline
-
-        points = []
-        branch_formulas = []
-        remaining = tuple(v for v in variables if v != step.chosen_variable)
-        for root in step.branch_roots:
-            substituted_expr = sp.simplify(expr.subs(step.chosen_variable, root))
-            if step.consistency_constraints:
-                substituted_expr = sp.And(substituted_expr, *step.consistency_constraints)
-            if not remaining:
-                truth = sp.simplify(substituted_expr)
-                if truth is not sp.false:
-                    points.append((root,))
-                continue
-            sub = run_int_solver_pipeline(substituted_expr, remaining, search_bound=60)
-            if sub is not None:
-                if sub.solutions:
-                    for tail in sub.solutions:
+            if deeper is not None:
+                if deeper.solutions:
+                    for tail in deeper.solutions:
                         mapping = {
                             step.chosen_variable: root,
                             **{v: val for v, val in zip(remaining, tail, strict=True)},
                         }
                         points.append(tuple(mapping[v] for v in variables))
-                branch_formulas.append(sp.And(sp.Eq(step.chosen_variable, root), sub.formula))
+                branch_formulas.append(sp.And(sp.Eq(step.chosen_variable, root), deeper.formula))
             else:
-                deeper = rec_reduce_sys(
-                    substituted_expr,
-                    remaining,
-                    max_depth=max_depth - 1,
-                    max_branch_points=max_branch_points,
-                )
-                if deeper is not None:
-                    if deeper.solutions:
-                        for tail in deeper.solutions:
-                            mapping = {
-                                step.chosen_variable: root,
-                                **{v: val for v, val in zip(remaining, tail, strict=True)},
-                            }
-                            points.append(tuple(mapping[v] for v in variables))
-                    branch_formulas.append(
-                        sp.And(sp.Eq(step.chosen_variable, root), deeper.formula)
-                    )
-                else:
-                    branch_formulas.append(
-                        sp.And(sp.Eq(step.chosen_variable, root), substituted_expr)
-                    )
+                branch_formulas.append(sp.And(sp.Eq(step.chosen_variable, root), substituted_expr))
 
-        points = dedup_int_points(points)
-        if points:
-            return canon_int_result(
-                variables,
-                solutions=points,
-                method="groebner_recursive_integer_solver",
-                complete=False,
-                provenance=["groebner"],
-                metadata={"step": step, **obstruction},
-            )
+    points = dedup_int_points(points)
+    if points:
         return canon_int_result(
             variables,
-            formula=sp.Or(*branch_formulas) if branch_formulas else sp.false,
-            method="groebner_recursive_symbolic_branch_union",
+            solutions=points,
+            method="groebner_recursive_integer_solver",
             complete=False,
             provenance=["groebner"],
             metadata={"step": step, **obstruction},
         )
+    return canon_int_result(
+        variables,
+        formula=sp.Or(*branch_formulas) if branch_formulas else sp.false,
+        method="groebner_recursive_symbolic_branch_union",
+        complete=False,
+        provenance=["groebner"],
+        metadata={"step": step, **obstruction},
+    )
 
 
 def find_int_recursion(

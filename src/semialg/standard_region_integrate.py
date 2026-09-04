@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from functools import lru_cache
+from itertools import combinations
 
 import sympy as sp
 
@@ -42,6 +44,110 @@ def _symbols(
     return normalize_variables(names, *context, append_context_symbols=False)
 
 
+def _tetrahedron_open_interior(
+    region: TetrahedronRegion, variables: tuple[sp.Symbol, sp.Symbol, sp.Symbol]
+) -> sp.Expr:
+    """Return strict barycentric inequalities for a full-dimensional tetrahedron."""
+
+    vertices = tuple(sp.Matrix(vertex) for vertex in region.vertices)
+    matrix = sp.Matrix.hstack(*(vertex - vertices[0] for vertex in vertices[1:]))
+    if matrix.det() == 0:
+        raise ValueError("open tetrahedron interior requires a full-dimensional tetrahedron")
+    coords = matrix.inv() * (sp.Matrix(variables) - vertices[0])
+    lambdas = (sp.simplify(1 - sum(coords)), *(sp.simplify(value) for value in coords))
+    return sp.And(*(value > 0 for value in lambdas))
+
+
+@lru_cache(maxsize=128)
+def _polyhedron_measure_tetrahedra(region: PolyhedronRegion) -> tuple[TetrahedronRegion, ...]:
+    """Return top-dimensional tetrahedra after certifying no positive-measure overlap."""
+
+    dimension = region.dimension()
+    pieces = tuple(tet for tet in region.tetrahedra if tet.dimension() == dimension)
+    if dimension < 0 or len(pieces) < 2:
+        return pieces
+
+    if dimension == 3:
+        from .presolve import fourier_motzkin_eliminate
+
+        variables = sp.symbols("_poly_x _poly_y _poly_z", real=True)
+        for left, right in combinations(pieces, 2):
+            overlap = sp.And(
+                _tetrahedron_open_interior(left, variables),
+                _tetrahedron_open_interior(right, variables),
+            )
+            eliminated = fourier_motzkin_eliminate(overlap, variables)
+            if eliminated is None:
+                raise NotImplementedError(
+                    "could not certify tetrahedral interior disjointness exactly"
+                )
+            feasible = sp.simplify(eliminated[0])
+            if feasible in (False, sp.false):
+                continue
+            if len(eliminated[1]) != len(variables) or feasible not in (True, sp.true):
+                raise NotImplementedError(
+                    "tetrahedral overlap certification left unresolved conditions"
+                )
+            raise ValueError(
+                "PolyhedronRegion tetrahedra must have disjoint interiors for exact integration"
+            )
+        return pieces
+
+    from .regions.operations import region_dimension
+    from .symbolic_regions import as_semialgebraic_region
+
+    variables = tuple(sp.Dummy(f"poly{i + 1}", real=True) for i in range(3))
+    formulas = tuple(
+        as_semialgebraic_region(tet, variables).quantifier_free_formula() for tet in pieces
+    )
+    for left, right in combinations(formulas, 2):
+        intersection = sp.And(left, right)
+        if region_dimension(intersection, variables) >= dimension:
+            raise ValueError(
+                "PolyhedronRegion tetrahedra overlap in positive top-dimensional measure"
+            )
+    return pieces
+
+
+def _mapping_is_affine(mapping: Sequence[sp.Expr], variables: Sequence[sp.Symbol]) -> bool:
+    """Return whether every mapping component is affine in the base variables."""
+
+    for expr in mapping:
+        try:
+            if sp.Poly(sp.expand(expr), *variables).total_degree() > 1:
+                return False
+        except (TypeError, ValueError, sp.PolynomialError):
+            return False
+    return True
+
+
+def _integrate_exact_image(
+    integrand: sp.Expr,
+    region: StandardRegion,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    method: str,
+    precision: int,
+) -> sp.Expr:
+    """Integrate over a standard region's exact semialgebraic image."""
+
+    from .region_integrate import integrate_over_region
+    from .symbolic_regions import as_semialgebraic_region
+
+    symbolic = as_semialgebraic_region(region, variables)
+    formula = symbolic.quantifier_free_formula()
+    return sp.sympify(
+        integrate_over_region(
+            integrand,
+            formula,
+            variables,
+            method=method,
+            precision=precision,
+            measure_dimension="intrinsic",
+        )
+    )
+
+
 def _monomial_integral_box(
     exponents: tuple[int, ...], bounds: tuple[tuple[sp.Expr, sp.Expr], ...]
 ) -> sp.Expr:
@@ -56,7 +162,7 @@ def _integrate_polynomial_over_box(
 ) -> sp.Expr | None:
     try:
         poly = sp.Poly(sp.expand(expr), *variables)
-    except Exception:
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         return None
     total = sp.Integer(0)
     for monom, coeff in poly.terms():
@@ -127,7 +233,7 @@ def _integrate_polynomial_over_centered_region(
     )
     try:
         poly = sp.Poly(shifted, *shifted_vars)
-    except Exception:
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         return None
     total = sp.Integer(0)
     for monom, coeff in poly.terms():
@@ -182,6 +288,7 @@ def _integrate_boolean_region(
     method: str,
     precision: int,
 ) -> sp.Expr:
+    """Integrate a Boolean combination of standard regions by exact disjoint decomposition."""
     if region.op == "union":
         if region.assume_disjoint:
             return sp.simplify(
@@ -249,7 +356,6 @@ def _integrate_boolean_region(
             )
         )
     if region.op == "intersection":
-        # First useful exact intersection: intervals and boxes.
         if all(isinstance(r, IntervalRegion) for r in region.regions) and len(variables) == 1:
             lowers = tuple(r.lower for r in region.regions)
             uppers = tuple(r.upper for r in region.regions)
@@ -273,7 +379,9 @@ def _integrate_boolean_region(
             return integrate_over_standard_region(
                 integrand, BoxRegion(bounds), variables, method=method, precision=precision
             )
-        raise NotImplementedError("this BooleanRegion intersection is not yet supported exactly")
+        raise NotImplementedError(
+            "this BooleanRegion intersection is outside the exact supported fragment"
+        )
     raise NotImplementedError(f"unsupported BooleanRegion op: {region.op}")
 
 
@@ -316,6 +424,8 @@ def integrate_over_standard_region(
         )
         return sp.N(value, precision) if method == "numeric" else sp.simplify(value)
     if isinstance(region, (SimplexRegion, TetrahedronRegion)):
+        if region.dimension() < len(region.vertices) - 1:
+            return _integrate_exact_image(expr, region, vars_, method=method, precision=precision)
         pregion = _simplex_parametric_region(region)
         return integrate_over_parametric_region(
             expr, vars_, pregion, method=method, precision=precision
@@ -328,10 +438,11 @@ def integrate_over_standard_region(
             )
         )
     if isinstance(region, PolyhedronRegion):
+        pieces = _polyhedron_measure_tetrahedra(region)
         return sp.simplify(
             sum(
                 integrate_over_standard_region(expr, tet, vars_, method=method, precision=precision)
-                for tet in region.tetrahedra
+                for tet in pieces
             )
         )
     if isinstance(region, (ParallelogramRegion, ParallelepipedRegion)):
@@ -437,19 +548,25 @@ def integrate_over_standard_region(
             expr, vars_, region, method=method, precision=precision
         )  # type: ignore[return-value]
     if isinstance(region, TransformedRegion):
-        # Transform by composing an available parametrization of the base when possible.
         base_vars = region.base_variables
-        if isinstance(region.base, BoxRegion):
-            params = base_vars
+        fast_affine = (
+            _mapping_is_affine(region.mapping, base_vars)
+            and region.dimension() == region.base.dimension()
+        )
+        if fast_affine and isinstance(region.base, BoxRegion):
             limits = tuple(
                 (v, lo, hi)
-                for v, (lo, hi) in reversed(tuple(zip(params, region.base.bounds, strict=True)))
+                for v, (lo, hi) in reversed(tuple(zip(base_vars, region.base.bounds, strict=True)))
             )
-            pregion = ParametricRegion(params, limits, region.mapping)
+            pregion = ParametricRegion(base_vars, limits, region.mapping)
             return integrate_over_parametric_region(
                 expr, vars_, pregion, method=method, precision=precision
             )  # type: ignore[return-value]
-        if isinstance(region.base, (SimplexRegion, TetrahedronRegion)):
+        if (
+            fast_affine
+            and isinstance(region.base, (SimplexRegion, TetrahedronRegion))
+            and region.base.dimension() == len(region.base.vertices) - 1
+        ):
             base_param = _simplex_parametric_region(region.base)
             composed = tuple(
                 sp.simplify(e.subs(dict(zip(base_vars, base_param.mapping, strict=True))))
@@ -462,9 +579,7 @@ def integrate_over_standard_region(
                 method=method,
                 precision=precision,
             )  # type: ignore[return-value]
-        raise NotImplementedError(
-            "TransformedRegion currently supports BoxRegion and SimplexRegion bases"
-        )
+        return _integrate_exact_image(expr, region, vars_, method=method, precision=precision)
     if isinstance(region, BooleanRegion):
         return _integrate_boolean_region(expr, vars_, region, method=method, precision=precision)
 

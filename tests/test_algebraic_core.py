@@ -10,7 +10,7 @@ from semialg.algebraic import (
     refine_isol_intv,
     sign_at_sample,
 )
-from semialg.cad import decomp_collins_complete
+from semialg.cad_algorithms import decomp_collins_complete
 
 
 def test_algebraic_core_01():

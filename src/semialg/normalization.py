@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 import sympy as sp
 
@@ -27,6 +27,19 @@ def normalize_formula(condition: object) -> sp.Expr:
     return to_sympy(condition)  # type: ignore[arg-type]
 
 
+def normalize_constraints(condition: object | None) -> sp.Expr:
+    """Normalize optional constraints, including general iterables, to one formula."""
+
+    if condition is None:
+        return sp.true
+    if isinstance(condition, Iterable) and not isinstance(
+        condition, (sp.Basic, sp.logic.boolalg.Boolean, str, bytes)
+    ):
+        pieces = tuple(normalize_formula(piece) for piece in condition)
+        return sp.And(*pieces) if pieces else sp.true
+    return normalize_formula(condition)
+
+
 def normalize_variables(
     variables: Sequence[sp.Symbol | str] | None,
     *context: object,
@@ -39,6 +52,27 @@ def normalize_variables(
         variables,
         context=context,
         append_context_symbols=append_context_symbols,
+        exclude=exclude,
+    )
+
+
+def normalize_parameters(
+    parameters: Sequence[sp.Symbol | str] | None,
+    *context: object,
+    exclude: Sequence[sp.Symbol] = (),
+) -> tuple[sp.Symbol, ...]:
+    """Resolve an ordered parameter list against symbols in ``context``.
+
+    This is the parameter counterpart of :func:`normalize_variables`: explicit
+    order is preserved, duplicate symbols are removed, same-name symbols with
+    different assumptions are rejected as ambiguous, and no contextual symbols
+    are appended implicitly.
+    """
+
+    return normalize_variables(
+        parameters,
+        *context,
+        append_context_symbols=False,
         exclude=exclude,
     )
 
@@ -79,6 +113,37 @@ def normalize_symbol_sequence(
     return normalize_variables(variables)
 
 
+def normalize_point(
+    point: Mapping[sp.Symbol | str, object] | Sequence[object],
+    variables: Sequence[sp.Symbol],
+    *,
+    context: Sequence[object] = (),
+) -> dict[sp.Symbol, sp.Expr]:
+    """Normalize a point while preserving contextual symbol identity.
+
+    Mapping keys may be exact Symbol objects or unambiguous string names.
+    Missing, extra, and ambiguous coordinates are rejected.
+    """
+    vars_ = tuple(variables)
+    if isinstance(point, Mapping):
+        out: dict[sp.Symbol, sp.Expr] = {}
+        for raw_key, raw_value in point.items():
+            symbol = resolve_symbol(raw_key, context=context, known_symbols=vars_)
+            if symbol not in vars_:
+                raise ValueError(f"point coordinate {symbol!r} is not in the variable list")
+            if symbol in out:
+                raise ValueError(f"duplicate point coordinate for {symbol!r}")
+            out[symbol] = sp.sympify(raw_value)
+        missing = tuple(v for v in vars_ if v not in out)
+        if missing:
+            raise ValueError(f"point is missing coordinates for {missing!r}")
+        return out
+    values = tuple(sp.sympify(value) for value in point)
+    if len(values) != len(vars_):
+        raise ValueError("point dimension does not match variables")
+    return dict(zip(vars_, values, strict=True))
+
+
 def conjuncts(expr: sp.Expr) -> tuple[sp.Expr, ...]:
     """Return flattened top-level conjunction atoms in deterministic order."""
 
@@ -90,6 +155,36 @@ def conjuncts(expr: sp.Expr) -> tuple[sp.Expr, ...]:
             items.extend(conjuncts(arg))
         return tuple(items)
     return (expr,)
+
+
+def disjuncts(expr: sp.Expr) -> tuple[sp.Expr, ...]:
+    """Return top-level disjunction branches without Boolean simplification."""
+
+    if expr is sp.false or expr == sp.false:
+        return ()
+    if isinstance(expr, sp.Or):
+        return tuple(expr.args)
+    return (expr,)
+
+
+def require_conjunction(
+    expr: sp.Expr, *, message: str = "formula must be a conjunction"
+) -> tuple[sp.Expr, ...]:
+    """Return flattened conjunction atoms or reject Boolean branching.
+
+    This is the shared no-allocation-beyond-flattening helper for algorithmic
+    paths that intentionally accept only conjunctions.
+    """
+    if expr is sp.false or expr == sp.false:
+        return (sp.false,)
+    if isinstance(expr, (sp.Or, sp.Not)):
+        raise NotImplementedError(message)
+    atoms = conjuncts(expr)
+    if all(getattr(atom, "is_Relational", False) for atom in atoms):
+        return atoms
+    if not atoms:
+        return ()
+    raise TypeError(f"unsupported formula expression: {expr!r}")
 
 
 def normalize_bounds(
@@ -117,14 +212,10 @@ def normalize_bounds(
         if any(len(item) != 3 for item in items):
             raise ValueError("sequence bounds must contain (variable, lower, upper) triples")
     known = tuple(variables)
-    by_name = {var.name: var for var in known}
     result: dict[sp.Symbol, tuple[sp.Expr, sp.Expr]] = {}
     for raw_var, lower, upper in items:
         if isinstance(raw_var, str):
-            var = by_name.get(raw_var)
-            if var is None:
-                resolve_symbol(raw_var, known_symbols=known)
-                raise ValueError(f"bound variable {raw_var!r} is not in the variable list")
+            var = resolve_symbol(raw_var, known_symbols=known)
         else:
             var = raw_var
             if var not in known:

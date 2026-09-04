@@ -23,7 +23,11 @@ def test_semialgebraic__01():
 def test_semialgebraic__02():
     x, y = sp.symbols("x y", real=True)
     result = qe_by_complete_cad(
-        [y, x], [("exists", y)], parse_formula(sp.Eq(y**2 - x, 0)), free_variables=[x]
+        [y, x],
+        [("exists", y)],
+        parse_formula(sp.Eq(y**2 - x, 0)),
+        free_variables=[x],
+        return_result=True,
     )
     assert result.formula == (x >= 0)
     assert result.cell_union is not None
@@ -33,7 +37,9 @@ def test_semialgebraic__02():
 def test_semialgebraic__03():
     x, y = sp.symbols("x y", real=True)
     matrix = parse_formula(sp.And(sp.Eq(y**2 - x, 0), x <= 4))
-    result = qe_by_complete_cad([x, y], [("exists", y)], matrix, free_variables=[x])
+    result = qe_by_complete_cad(
+        [x, y], [("exists", y)], matrix, free_variables=[x], return_result=True
+    )
     assert sp.simplify_logic(result.formula ^ ((x >= 0) & (x <= 4))) == sp.false
 
 

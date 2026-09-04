@@ -6,6 +6,7 @@ import sympy as sp
 
 from ..instances.real_fallbacks import satisfies_formula
 from ..sampling import sample_points
+from ..structural_keys import point_key
 
 
 def _normalize_sample_request(
@@ -43,10 +44,10 @@ def _normalize_sample_request(
 def _dedupe_samples(
     samples: Iterable[Mapping[sp.Symbol, sp.Expr]],
 ) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
-    seen: set[tuple[tuple[str, str], ...]] = set()
+    seen: set[tuple[tuple[sp.Symbol, sp.Expr], ...]] = set()
     out: list[Mapping[sp.Symbol, sp.Expr]] = []
     for sample in samples:
-        key = tuple(sorted((sym.name, sp.sstr(value)) for sym, value in sample.items()))
+        key = point_key(sample)
         if key not in seen:
             seen.add(key)
             out.append(dict(sample))

@@ -14,8 +14,8 @@ from .eliminate import (
     can_use_quadratic_vs,
     eliminate_quadratic_variable,
 )
+from .results import VirtualSubstitutionError, VirtualSubstitutionWitnessResult
 from .substitution import _unique_polynomials
-from .types import VirtualSubstitutionError, VirtualSubstitutionWitnessResult
 
 
 def _truth_of_formula_at_assignment(
@@ -68,10 +68,10 @@ def _real_roots_of_low_degree_polynomial(
 
 def _dedupe_by_expression(values: Iterable[sp.Expr]) -> tuple[sp.Expr, ...]:
     out: list[sp.Expr] = []
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     for value in values:
         value = sp.simplify(value)
-        key = sp.sstr(value)
+        key = value
         if key not in seen:
             out.append(value)
             seen.add(key)
@@ -130,9 +130,9 @@ def reconstruct_vs_value(
     variable: sp.Symbol,
     known_values: Mapping[sp.Symbol, sp.Expr],
 ) -> sp.Expr | None:
-    """Find one concrete value of ``variable`` satisfying a quadratic stage.
+    """Find one concrete value of ``variable`` satisfying a quadratic elimination step.
 
-    ``formula`` is the stage formula before ``variable`` was eliminated. All
+    ``formula`` is the formula before ``variable`` was eliminated. All
     other free variables should already have values in ``known_values``. The
     reconstruction samples exact boundary roots and one representative from
     each open interval determined by those roots.
@@ -196,7 +196,7 @@ def try_quadratic_virtual_substitution_witness(
             return None
         eliminated.append(variable)
         notes.append(
-            f"eliminated existential variable {variable} and recorded reconstruction stage"
+            f"eliminated existential variable {variable} and recorded the reconstruction step"
         )
 
     if not eliminated:

@@ -12,7 +12,6 @@ _RECOVERABLE_ERRORS = (
     TypeError,
     ValueError,
     NotImplementedError,
-    RuntimeError,
     sp.PolynomialError,
 )
 

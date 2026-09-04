@@ -7,22 +7,25 @@ from sympy import S
 from sympy.logic.boolalg import And as SymAnd
 from sympy.solvers.inequalities import reduce_inequalities
 
+from .._errors import EXACT_OPERATION_ERRORS
 from ..algebraic.rational_univariate import RationalUnivariateError, solve_formula_with_rur
-from ..cad.constants import (
+from ..cad_algorithms.constants import (
     PROJECTION_COLLINS,
     PROJECTION_LAZARD,
     PROJECTION_MCCALLUM,
     PROJECTION_TTICAD,
 )
-from ..cad.reduced import decomp_form_reduced_safe
+from ..cad_algorithms.reduced import decomp_form_reduced_safe
 from ..context import with_computation_context
 from ..formula import ParsedPrenexFormula, parse_formula, parse_quant_form_text, to_sympy
+from ..inequality_reduction import reduce_conjunctive_inequalities
 from ..model import ProjectionConfig
 from ..planner.select import select_strat_for_form
 from ..qe.complete import qe_by_complete_cad, qe_from_cad
 from ..qe.virtual_substitution import try_quadratic_virtual_substitution_qe
 from ..simplify.boolean import simplify_boolean
 from ..status import SolverStatus
+from ..structural_keys import symbol_identity_key
 from ..tticad.safe import decompose_tticad_safe
 from .domains import SolveDomain, apply_assumptions, normalize_assumptions, normalize_domain
 from .integer.diophantine import solve_int_methods
@@ -58,9 +61,9 @@ def _finite_assignments_to_formula(assignments, free_variables: Sequence[sp.Symb
     if not free_variables:
         return sp.true
     pieces = []
-    seen: set[tuple[str, ...]] = set()
+    seen: set[tuple[sp.Expr, ...]] = set()
     for assignment in assignments:
-        key = tuple(sp.sstr(sp.simplify(assignment[var])) for var in free_variables)
+        key = tuple(sp.simplify(assignment[var]) for var in free_variables)
         if key in seen:
             continue
         seen.add(key)
@@ -88,7 +91,7 @@ def _try_rational_univariate_reduction(parsed: ParsedPrenexFormula):
         return None
     quantified = {sym for _, sym in parsed.quantifiers}
     matrix_symbols = tuple(
-        sorted(getattr(parsed.matrix_expr, "free_symbols", set()), key=lambda sym: sym.name)
+        sorted(getattr(parsed.matrix_expr, "free_symbols", set()), key=symbol_identity_key)
     )
     ordered_symbols = tuple(dict.fromkeys(tuple(parsed.vars) + matrix_symbols))
     all_symbols = tuple(
@@ -105,7 +108,7 @@ def _try_rational_univariate_reduction(parsed: ParsedPrenexFormula):
     free_variables = tuple(sym for sym in all_symbols if sym not in quantified)
     formula = _finite_assignments_to_formula(rur.assignments, free_variables)
     try:
-        formula = sp.simplify_logic(formula, form="dnf")
+        formula = simplify_boolean(formula)
     except (TypeError, ValueError, sp.SympifyError):
         pass
     return formula, rur
@@ -136,7 +139,7 @@ def _safe_strategy_selection(parsed: ParsedPrenexFormula, fallback_vars: Sequenc
     try:
         planner_parsed = _planner_ready_parsed(parsed)
         return select_strat_for_form(planner_parsed.matrix, parsed=planner_parsed)
-    except Exception as exc:
+    except EXACT_OPERATION_ERRORS as exc:
         return StrategySelection(
             backend=PROJECTION_COLLINS,
             variable_order=tuple(fallback_vars),
@@ -188,7 +191,7 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
             extra_free = tuple(
                 sorted(
                     (set(remaining_symbols) - set(free_after_vs) - set(remaining_quantified)),
-                    key=lambda s: s.name,
+                    key=symbol_identity_key,
                 )
             )
             parsed = ParsedPrenexFormula(
@@ -230,6 +233,7 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
             parsed.quantifiers,
             parsed.matrix,
             backend=getattr(safe, "effective_backend", safe.cad.backend),
+            return_result=True,
         )
         from ..planner.select import StrategySelection
 
@@ -244,7 +248,7 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
             ),
         )
     else:
-        result = qe_by_complete_cad(vars_, parsed.quantifiers, parsed.matrix)
+        result = qe_by_complete_cad(vars_, parsed.quantifiers, parsed.matrix, return_result=True)
     if result.is_sentence:
         formula = sp.true if result.truth_value else sp.false
     else:
@@ -290,7 +294,7 @@ def _reduce_complexes(parsed: ParsedPrenexFormula):
     expr = to_sympy(parsed.matrix)
     vars_ = tuple(parsed.vars)
     if parsed.quantifiers:
-        # Limited experimental support: existential quantifier over a quantifier-free equality system.
+        # Complex quantified reduction is restricted to existential equality systems.
         if all(q == "exists" for q, _ in parsed.quantifiers) and _complex_formula_support(expr):
             if len(vars_) == 1:
                 sol = sp.solveset(expr, vars_[0], domain=S.Complexes)
@@ -350,6 +354,7 @@ def reduce_int_univar(expr: sp.Expr, var: sp.Symbol):
 
 
 def _reduce_integers(parsed: ParsedPrenexFormula):
+    """Reduce an integer-domain formula through the integer decision and reconstruction pipeline."""
     expr = to_sympy(parsed.matrix)
     vars_ = tuple(parsed.vars)
     if parsed.quantifiers:
@@ -423,9 +428,9 @@ def _drop_trivial_real_bounds(formula: sp.Expr) -> sp.Expr:
         return formula
     kept = []
     for arg in formula.args:
-        if isinstance(arg, sp.StrictLessThan) and arg.rhs is sp.oo:
+        if isinstance(arg, sp.StrictLessThan) and arg.rhs == sp.oo:
             continue
-        if isinstance(arg, sp.StrictGreaterThan) and arg.rhs is -sp.oo:
+        if isinstance(arg, sp.StrictGreaterThan) and arg.rhs == -sp.oo:
             continue
         kept.append(arg)
     if not kept:
@@ -443,20 +448,15 @@ def _normalize_reduced_real_formula(
     else:
         try:
             simplified = sp.simplify(formula)
-        except Exception:
+        except EXACT_OPERATION_ERRORS:
             simplified = formula
-    try:
-        symbols = tuple(
-            sym for sym in free_variables if sym in getattr(simplified, "free_symbols", set())
-        )
-        if len(symbols) == 1:
-            reduced = reduce_inequalities(
-                list(sp.And(simplified).args) if isinstance(simplified, sp.And) else [simplified],
-                symbols[0],
-            )
+    symbols = tuple(
+        sym for sym in free_variables if sym in getattr(simplified, "free_symbols", set())
+    )
+    if len(symbols) == 1:
+        reduced = reduce_conjunctive_inequalities(simplified, symbols[0])
+        if reduced is not None:
             return simplify_boolean(_drop_trivial_real_bounds(reduced))
-    except Exception:
-        pass
     dropped = _drop_trivial_real_bounds(simplified)
     return (
         simplify_boolean(dropped) if getattr(dropped, "is_Boolean", False) else sp.simplify(dropped)
@@ -473,6 +473,7 @@ def reduce_formula(
     return_result: bool = False,
     strategy: str | None = None,
 ):
+    """Reduce a parsed real formula using the selected exact decision strategy."""
     dom = normalize_domain(domain)
     if assumptions:
         matrix = parse_formula(apply_assumptions(to_sympy(parsed.matrix), assumptions))
@@ -550,6 +551,7 @@ def reduce_text(
     return_result: bool = False,
     strategy: str | None = None,
 ):
+    """Parse and reduce a textual real formula using the selected exact strategy."""
     if variable_order is not None:
         variable_order = [
             sp.Symbol(v, real=True) if isinstance(v, str) else v for v in variable_order

@@ -10,8 +10,8 @@ from semialg.algebraic import (
     isolate_real_roots,
     sign_at_sample,
 )
-from semialg.cad import build_collins_proj_set, decomp_collins_complete
-from semialg.cad.reduced import decompose_reduced_safe
+from semialg.cad_algorithms import build_collins_proj_set, decomp_collins_complete
+from semialg.cad_algorithms.reduced import decompose_reduced_safe
 from semialg.formula import parse_quant_form_text
 from semialg.qe.complete import qe_by_complete_cad
 from semialg.validation import built_in_smoke_cases, run_validation_cases
@@ -50,7 +50,9 @@ def test_foundation_con_03() -> None:
 def test_foundation_con_04() -> None:
     x, y = sp.symbols("x y", real=True)
     parsed = parse_quant_form_text("exists y. y^2 - x = 0", symbols={"x": x, "y": y})
-    result = qe_by_complete_cad(parsed.vars, parsed.quantifiers, parsed.matrix, free_variables=[x])
+    result = qe_by_complete_cad(
+        parsed.vars, parsed.quantifiers, parsed.matrix, free_variables=[x], return_result=True
+    )
     assert result.status == "complete"
     assert result.cell_union is not None
     assert bool(result.formula.subs(x, 4)) is True

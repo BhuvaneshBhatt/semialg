@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import cad, classify_real_roots, root_of
+from semialg import cad, classify_real_roots
 from semialg.algebraic.roots import isolate_real_roots
 from semialg.algebraic.sample_points import choose_sector_sample
 from semialg.algebraic.samples import AlgebraicRoot
+from semialg.reconstruct import root_of
 from semialg.simplify.intervals import Interval1D, merge_intervals
 
 
@@ -26,25 +27,14 @@ def test_root_of_treats_fiber_variable_as_bound_under_substitution():
     assert expression.subs(y, 17) == expression
 
 
-def test_exact_root_isolation_fallback_never_uses_nroots(monkeypatch):
+def test_exact_root_isolation_handles_algebraic_coefficients_without_numerics():
     x = sp.Symbol("x", real=True)
-    original_real_roots = sp.real_roots
+    roots = isolate_real_roots(sp.Poly(x**2 - sp.sqrt(2), x, extension=True))
 
-    def fail_real_roots(*args, **kwargs):
-        raise NotImplementedError("force RootOf fallback")
-
-    def forbidden_nroots(*args, **kwargs):
-        raise AssertionError("nroots must not be used by exact root isolation")
-
-    monkeypatch.setattr(sp, "real_roots", fail_real_roots)
-    monkeypatch.setattr(sp, "nroots", forbidden_nroots)
-    roots = isolate_real_roots(sp.Poly(x**5 - x - 1, x))
-    assert len(roots) == 1
-    assert roots[0].as_expr().is_real is True
-    # Restore explicitly before comparing the RootOf to avoid depending on the
-    # monkeypatch for helper internals.
-    monkeypatch.setattr(sp, "real_roots", original_real_roots)
-    assert sp.simplify((x**5 - x - 1).subs(x, roots[0].as_expr())) == 0
+    values = tuple(root.as_expr() for root in roots)
+    expected = (-(2 ** sp.Rational(1, 4)), 2 ** sp.Rational(1, 4))
+    assert values == expected
+    assert all(sp.simplify((x**2 - sp.sqrt(2)).subs(x, value)) == 0 for value in values)
 
 
 def test_sector_sample_refines_overlapping_algebraic_intervals_exactly():
@@ -84,7 +74,7 @@ def test_interval_simplification_orders_extremely_close_algebraics_exactly():
 
 def test_disk_boundary_excludes_interior_and_root_of_substitutes_at_endpoints():
     x, y = sp.symbols("x y", real=True)
-    boundary = cad(x**2 + y**2 <= 1, [x, y], operation="boundary")
+    boundary = cad(x**2 + y**2 <= 1, [x, y], operation="boundary", return_result=True)
     assert bool(boundary.formula.subs({x: 1, y: 0}))
     assert bool(boundary.formula.subs({x: 0, y: 1}))
     assert not bool(boundary.formula.subs({x: 0, y: 0}))

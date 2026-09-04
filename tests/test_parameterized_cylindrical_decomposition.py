@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import parameterized_cylindrical_decomposition, solve_semialgebraic
+from semialg import solve_semialgebraic
+from semialg.parameter_stratification import parameterized_cylindrical_decomposition
 
 pytestmark = pytest.mark.slow
 

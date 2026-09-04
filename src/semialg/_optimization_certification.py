@@ -1,0 +1,149 @@
+from __future__ import annotations
+
+from functools import lru_cache
+
+import sympy as sp
+from sympy.core.sympify import SympifyError
+from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
+
+from ._optimization_backends import qe_by_complete_cad
+from .formula import parse_formula
+from .normalization import require_conjunction
+from .optimization_results import (
+    FunctionRangeResult,
+    OptimizationCertificationPolicy,
+)
+from .relations import split_relation as _relation_parts
+
+_EXPECTED_ERRORS = (
+    TypeError,
+    ValueError,
+    ArithmeticError,
+    NotImplementedError,
+    SympifyError,
+    PolynomialError,
+    GeneratorsNeeded,
+)
+
+FormulaLike = sp.Expr | sp.logic.boolalg.Boolean | bool
+
+
+def _certify_candidate_by_qe(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    value: sp.Expr,
+    *,
+    kind: str,
+) -> bool:
+    """Prove that no feasible point has objective strictly better than ``value``."""
+
+    better = objective < value if kind == "min" else objective > value
+    sentence = sp.And(condition, better, evaluate=False)
+    try:
+        result = qe_by_complete_cad(
+            variables,
+            tuple(("exists", var) for var in variables),
+            parse_formula(sentence),
+            return_result=True,
+        )
+    except (NotImplementedError, ValueError, TypeError, ArithmeticError, PolynomialError):
+        return False
+    return result.truth_value is False
+
+
+def _range_certification_cost(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+) -> int:
+    """Conservative symbolic estimate for complete image-CAD cost."""
+
+    if not variables:
+        return 0
+    degrees: list[int] = []
+    polynomial_count = 1
+    try:
+        degrees.append(max(1, sp.Poly(objective, *variables).total_degree()))
+        for atom in require_conjunction(
+            condition, message="optimization candidate enumeration supports conjunctions"
+        ):
+            if atom is sp.false:
+                continue
+            residual, _ = _relation_parts(atom)
+            degrees.append(max(1, sp.Poly(residual, *variables).total_degree()))
+            polynomial_count += 1
+    except _EXPECTED_ERRORS:
+        return 10**9
+    max_degree = max(degrees, default=1)
+    # Image CAD introduces one additional value variable.  This estimate is
+    # intentionally monotone and coarse; it is a guardrail, not a complexity proof.
+    return int(polynomial_count * (max_degree + 1) ** (len(variables) + 1))
+
+
+@lru_cache(maxsize=64)
+def _cached_complete_range_certification(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+) -> FunctionRangeResult | None:
+    """Cache the complete image-CAD range shared by min/max certification.
+
+    Positive-dimensional KKT projection itself is Groebner-based, so there is
+    no sign-invariant CAD that can safely be extended by the objective graph.
+    The first reusable exact object is therefore the completed image range.
+    Caching it lets opposite-bound and repeated locus certifications reuse that
+    expensive CAD result without weakening the certification path.
+    """
+
+    try:
+        from ._optimization_range import function_range
+
+        result = function_range(
+            objective,
+            condition,
+            variables,
+            value_symbol=sp.Symbol("_semialg_opt_value", real=True),
+            method="cad",
+            return_result=True,
+        )
+    except (NotImplementedError, ValueError, TypeError, ArithmeticError, PolynomialError):
+        return None
+    return result if isinstance(result, FunctionRangeResult) else None
+
+
+def clear_optimization_range_cache() -> None:
+    """Clear cached complete image-range certifications used by optimization."""
+
+    _cached_complete_range_certification.cache_clear()
+
+
+def optimization_range_cache_info():
+    """Return cache statistics for complete image-range certifications."""
+
+    return _cached_complete_range_certification.cache_info()
+
+
+def _certify_optimum_by_range(
+    objective: sp.Expr,
+    condition: sp.Expr,
+    variables: tuple[sp.Symbol, ...],
+    *,
+    kind: str,
+    policy: OptimizationCertificationPolicy,
+) -> tuple[sp.Expr, bool] | None:
+    """Use complete CAD image computation when allowed by the cost policy."""
+
+    cost = _range_certification_cost(objective, condition, variables)
+    if policy.mode == "candidate":
+        return None
+    if policy.mode == "auto" and cost > policy.range_cost_limit:
+        return None
+    result = _cached_complete_range_certification(objective, condition, variables)
+    if result is None:
+        return None
+    if kind == "min" and result.infimum is not None:
+        return sp.simplify(result.infimum), bool(result.minimum_attained)
+    if kind == "max" and result.supremum is not None:
+        return sp.simplify(result.supremum), bool(result.maximum_attained)
+    return None

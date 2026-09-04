@@ -18,10 +18,10 @@ class DesignatedECChoice:
 
 
 def choose_designated_ec(
-    exprs: Sequence[sp.Expr], *, policy: str = "lowest_degree"
+    exprs: Sequence[sp.Expr], *, policy: str = "lowest_degree", variables: Sequence[sp.Symbol] = ()
 ) -> DesignatedECChoice:
-    ranked = rank_eq_cons(exprs)
-    chosen = choose_eq_cons(exprs, policy=policy)
+    ranked = rank_eq_cons(exprs, variables)
+    chosen = choose_eq_cons(exprs, policy=policy, variables=variables)
     return DesignatedECChoice(expr=chosen, policy=policy, ranked=ranked)
 
 

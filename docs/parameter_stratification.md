@@ -15,6 +15,8 @@ Many exact symbolic answers depend on parameter regions. `semialg` represents th
 - `semialgebraic_minimize(..., parameters=[...], return_stratified=True)`
 - `semialgebraic_maximize(..., parameters=[...], return_stratified=True)`
 - `function_range(..., parameters=[...], return_stratified=True)`
+- `integrate_over_region(..., parameters=[...], return_stratified=True)`
+- `semialgebraic_measure(..., parameters=[...], return_stratified=True)`
 - `ParametricOptimizationResult`
 - `ParametricFunctionRangeResult`
 
@@ -22,7 +24,7 @@ A branch consists of an exact semialgebraic guard and a value valid under that g
 
 ```python
 import sympy as sp
-from semialg import conditional_result, verify_parameter_stratification
+from semialg.conditional import conditional_result, verify_parameter_stratification
 
 a = sp.Symbol("a")
 result = conditional_result(
@@ -57,3 +59,12 @@ A sampled CAD fiber is evidence for a parameter cell, not automatically a symbol
 ## Optimization and range relations
 
 Parameterized optimization and range calls return guarded exact first-order result objects. They do not assume that a representative fiber is constant over its parameter cell. `ParametricOptimizationResult.formula` together with `.quantifiers` characterizes the infimum/supremum relation, including nonattainment; `ParametricFunctionRangeResult.formula` plus `.quantifiers` characterizes image membership. Both expose `quantifier_free=False` to make the representation explicit. This design keeps stratified calls predictable: requesting a first-class parameter result does not implicitly force a second full CAD elimination.
+
+
+## Optional relation elimination
+
+Parametric optimization and function-range results retain their exact quantified first-order definitions by default. Set `eliminate_quantifiers=True` to perform the additional complete-CAD elimination explicitly. This can be substantially more expensive, so it is not implied by `return_stratified=True`.
+
+## Parametric integration
+
+For semialgebraic regions whose inequalities contain symbolic parameters, region integration stratifies parameter space, reduces the region with symbolic parameter-dependent bounds, and attaches exact integral expressions to the certified guards. Empty fibers are represented by a zero-valued branch, giving complete parameter-space coverage. This is different from `ParametricRegion`, which represents an explicit geometric parametrization.

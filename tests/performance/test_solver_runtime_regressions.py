@@ -14,7 +14,10 @@ import time
 import pytest
 import sympy as sp
 
-from semialg import extract_cylindrical_solution, extract_explicit_cylindrical_solution
+from semialg.cad_algorithms.cells import (
+    extract_cylindrical_solution,
+    extract_explicit_cylindrical_solution,
+)
 
 pytestmark = [pytest.mark.slow, pytest.mark.performance]
 

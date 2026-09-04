@@ -5,8 +5,9 @@ from collections.abc import Iterable, Sequence
 import sympy as sp
 
 from ..cache import CACHE, expr_key
+from ._domains import require_exact_rur_domain
 from .quotient import (
-    _as_rational_polynomial,
+    _as_exact_polynomial,
     _coefficient_vector,
     _leading_exponent_grevlex,
     _multiplication_matrix,
@@ -25,12 +26,10 @@ def compute_rational_univariate_representation(
     *,
     max_separating_attempts: int = 64,
 ) -> RationalUnivariateRepresentation:
-    """Compute a RUR for a rational zero-dimensional polynomial system.
+    """Compute a RUR for an exact zero-dimensional polynomial system.
 
-    Construct a rational univariate representation from the quotient algebra.
-
-    Inputs must be rational polynomial equalities and the standard monomial
-    basis must be finite.
+    Rational and simple algebraic coefficients are supported through a common
+    exact coefficient field. The standard monomial basis must be finite.
     """
 
     variable_tuple = tuple(variables)
@@ -46,11 +45,33 @@ def compute_rational_univariate_representation(
     if parameter in variable_tuple:
         raise RationalUnivariateError("parameter must be distinct from system variables")
 
-    polys = [_as_rational_polynomial(poly, variable_tuple).as_expr() for poly in raw_polynomials]
+    try:
+        poly_objects, options = sp.parallel_poly_from_expr(
+            raw_polynomials,
+            *variable_tuple,
+            extension=True,
+        )
+    except (
+        sp.PolynomialError,
+        sp.polys.polyerrors.CoercionFailed,
+        ValueError,
+        TypeError,
+        NotImplementedError,
+    ) as exc:
+        raise RationalUnivariateError(
+            "RUR requires polynomial equations over an exact algebraic coefficient field"
+        ) from exc
+    coefficient_domain = require_exact_rur_domain(options["domain"])
+    poly_objects = [
+        _as_exact_polynomial(poly.as_expr(), variable_tuple, domain=coefficient_domain)
+        for poly in poly_objects
+    ]
+    polys = [poly.as_expr() for poly in poly_objects]
     cache_key = (
         tuple(expr_key(poly) for poly in polys),
-        tuple(sp.srepr(v) for v in variable_tuple),
-        sp.srepr(parameter),
+        variable_tuple,
+        parameter,
+        str(coefficient_domain),
         int(max_separating_attempts),
     )
     cached = CACHE.rur.get(cache_key)
@@ -63,15 +84,15 @@ def compute_rational_univariate_representation(
             "at least as many equations as variables are required for rational univariate solving"
         )
 
-    groebner_basis = sp.groebner(polys, *variable_tuple, order="grevlex", domain=sp.QQ)
-    if groebner_basis.polys == [sp.Poly(1, *variable_tuple, domain=sp.QQ)]:
+    groebner_basis = sp.groebner(polys, *variable_tuple, order="grevlex", domain=coefficient_domain)
+    if groebner_basis.polys == [sp.Poly(1, *variable_tuple, domain=coefficient_domain)]:
         result = RationalUnivariateRepresentation(
             variables=variable_tuple,
             parameter=parameter,
-            defining_polynomial=sp.Poly(1, parameter, domain=sp.QQ),
-            coordinate_denominator=sp.Poly(1, parameter, domain=sp.QQ),
+            defining_polynomial=sp.Poly(1, parameter, domain=coefficient_domain),
+            coordinate_denominator=sp.Poly(1, parameter, domain=coefficient_domain),
             coordinate_numerators=tuple(
-                sp.Poly(0, parameter, domain=sp.QQ) for _ in variable_tuple
+                sp.Poly(0, parameter, domain=coefficient_domain) for _ in variable_tuple
             ),
             separating_linear_form=sp.Integer(0),
             standard_exponents=tuple(),
@@ -83,7 +104,9 @@ def compute_rational_univariate_representation(
 
     leading_exponents = [_leading_exponent_grevlex(poly) for poly in groebner_basis.polys]
     basis_exponents = _standard_exponents(leading_exponents, len(variable_tuple))
-    tensor = _multiplication_tensor(groebner_basis, variable_tuple, basis_exponents)
+    tensor = _multiplication_tensor(
+        groebner_basis, variable_tuple, basis_exponents, coefficient_domain
+    )
     linear_form, defining_poly, denominator_poly, trace_vector, powers, geometric_count = (
         _select_separating_linear_form(
             groebner_basis,
@@ -91,6 +114,7 @@ def compute_rational_univariate_representation(
             parameter,
             basis_exponents,
             tensor,
+            coefficient_domain,
             max_attempts=max_separating_attempts,
         )
     )
@@ -108,7 +132,9 @@ def compute_rational_univariate_representation(
     coordinate_numerators: list[sp.Poly] = []
     for variable in variable_tuple:
         remainder = _normal_form(groebner_basis, variable)
-        variable_vector = _coefficient_vector(remainder, variable_tuple, basis_exponents)
+        variable_vector = _coefficient_vector(
+            remainder, variable_tuple, basis_exponents, coefficient_domain
+        )
         variable_mult = _multiplication_matrix(variable_vector, tensor)
         trace_variable_products = variable_mult.T * trace_vector
         numerator = sp.Integer(0)
@@ -116,7 +142,9 @@ def compute_rational_univariate_representation(
             numerator += (horner_vector.T * trace_variable_products)[0] * parameter ** (
                 degree - power_index - 1
             )
-        coordinate_numerators.append(sp.Poly(sp.expand(numerator), parameter, domain=sp.QQ))
+        coordinate_numerators.append(
+            sp.Poly(sp.expand(numerator), parameter, domain=coefficient_domain)
+        )
 
     result = RationalUnivariateRepresentation(
         variables=variable_tuple,

@@ -11,7 +11,7 @@ pytestmark = pytest.mark.slow
 def test_complete_qe_01():
     x = sp.Symbol("x", real=True)
     parsed = parse_quant_form_text("exists x. x^2 - 1 = 0", symbols={"x": x})
-    result = qe_by_complete_cad(parsed.vars, parsed.quantifiers, parsed.matrix)
+    result = qe_by_complete_cad(parsed.vars, parsed.quantifiers, parsed.matrix, return_result=True)
     assert result.is_sentence
     assert result.truth_value is True
     assert result.formula == sp.true
@@ -20,7 +20,7 @@ def test_complete_qe_01():
 def test_complete_qe_02():
     x = sp.Symbol("x", real=True)
     parsed = parse_quant_form_text("forall x. x^2 + 1 > 0", symbols={"x": x})
-    result = qe_by_complete_cad(parsed.vars, parsed.quantifiers, parsed.matrix)
+    result = qe_by_complete_cad(parsed.vars, parsed.quantifiers, parsed.matrix, return_result=True)
     assert result.is_sentence
     assert result.truth_value is True
 

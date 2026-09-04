@@ -3,14 +3,15 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg.decomposition import CADFunction, CellSet, cad, cad_text
+from semialg import cad
+from semialg.decomposition import CADFunction, CellSet, cad_text
 
 pytestmark = pytest.mark.slow
 
 
 def test_cad_api_01():
     x = sp.Symbol("x", real=True)
-    result = cad(x**2 - 1 >= 0, [x])
+    result = cad(x**2 - 1 >= 0, [x], return_result=True)
     assert result.status == "complete"
     assert len(result.cells) >= 2
     assert bool(result.formula.subs({x: -2}))
@@ -34,17 +35,15 @@ def test_cad_api_03():
 
 def test_cad_api_04():
     x = sp.Symbol("x", real=True)
-    interior = cad(x**2 <= 1, [x], operation="interior")
-    closure = cad(x**2 < 1, [x], operation="closure")
+    interior = cad(x**2 <= 1, [x], operation="interior", return_result=True)
+    closure = cad(x**2 < 1, [x], operation="closure", return_result=True)
     assert bool(interior.formula.subs({x: 0}))
     assert not bool(interior.formula.subs({x: 1}))
     assert bool(closure.formula.subs({x: 1}))
 
 
 def test_cad_api_05():
-    import semialg
-
-    assert semialg.cad is not None
+    assert callable(cad)
 
 
 def test_cad_api_06():

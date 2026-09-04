@@ -5,12 +5,14 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from ..algebraic.equality_ideal import EqualityIdealContext
+from ..algebraic.groebner_utils import compute_groebner_basis
 from ..algebraic.rational_univariate import (
     FilteredRationalUnivariateSolutions,
     RationalUnivariateError,
     solve_and_filter_zero_dimensional_system_with_rur,
 )
-from ..dimension_validation import zip_equal
+from ..dimension_validation import assignments_from_points
 
 
 @dataclass(frozen=True)
@@ -31,13 +33,11 @@ class ZeroDimensionalSolveResult:
     status: str = "satisfied"
     representation: object | None = None
     notes: tuple[str, ...] = ()
+    ideal_analysis: object | None = None
 
     @property
     def assignments(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
-        return tuple(
-            dict(zip_equal(self.variables, point, context="RUR solution point"))
-            for point in self.points
-        )
+        return assignments_from_points(self.variables, self.points, context="RUR solution point")
 
     @property
     def satisfiable(self) -> bool:
@@ -90,31 +90,10 @@ def is_zero_dimensional(
         polys = _normalize_equations(equations, variable_tuple)
         if not polys:
             return False
-        basis = sp.groebner(polys, *variable_tuple, order="grevlex", domain=sp.QQ)
+        basis = compute_groebner_basis(polys, variable_tuple, order="grevlex", domain=sp.QQ)
     except (sp.PolynomialError, ValueError, TypeError):
         return False
     return bool(basis.is_zero_dimensional)
-
-
-def _cad_or_regular_chains_placeholder(
-    equations: tuple[sp.Expr, ...],
-    inequalities: sp.Expr | bool | Iterable[sp.Expr | bool] | None,
-    variables: tuple[sp.Symbol, ...],
-    *,
-    real: bool,
-) -> ZeroDimensionalSolveResult:
-    """Fallback hook for future positive-dimensional solvers.
-
-    The semialg package already has CAD/VS entry points for Boolean formulas,
-    but they do not currently expose a point-enumerating API compatible with a
-    zero-dimensional exact solver. This hook makes the backend dispatch explicit
-    while preventing accidental fake point enumeration for curves/surfaces.
-    """
-
-    raise RationalUnivariateError(
-        "the equality system is not zero-dimensional; use CAD/quantifier "
-        "elimination or a future regular-chains backend for positive-dimensional sets"
-    )
 
 
 def solve_zero_dimensional_system(
@@ -127,8 +106,13 @@ def solve_zero_dimensional_system(
     real: bool = True,
     parameter: sp.Symbol | None = None,
     max_separating_attempts: int = 64,
-) -> ZeroDimensionalSolveResult:
+    return_result: bool = False,
+) -> tuple[tuple[sp.Expr, ...], ...] | ZeroDimensionalSolveResult:
     """Solve a finite rational polynomial system exactly.
+
+    The default return is the tuple of exact solution-coordinate tuples in the
+    requested variable order. Set ``return_result=True`` for backend, status,
+    RUR representation, and diagnostic notes.
 
     Parameters
     ----------
@@ -142,9 +126,8 @@ def solve_zero_dimensional_system(
         Variable order. ``vars`` matches the public API requested for this
         backend; ``variables`` is accepted as a clearer alias.
     backend:
-        ``"rur"`` uses the rational-univariate backend. ``"auto"`` uses RUR
-        when the equations are zero-dimensional and otherwise dispatches to the
-        positive-dimensional fallback hook.
+        ``"rur"`` and ``"auto"`` use the rational-univariate backend. This
+        solver rejects positive-dimensional equality systems explicitly.
     real:
         When true, return only real solutions. Complex algebraic solutions are
         available for unconstrained equality systems by setting ``real=False``.
@@ -164,38 +147,61 @@ def solve_zero_dimensional_system(
     constraints = sp.true if inequalities is None else inequalities
 
     if backend_name in {"auto", "rur", "rational_univariate"}:
-        if is_zero_dimensional(equation_tuple, variable_tuple):
+        ideal = EqualityIdealContext(equation_tuple, variable_tuple)
+        analysis = ideal.analysis
+        if ideal.inconsistent:
+            result = ZeroDimensionalSolveResult(
+                variables=variable_tuple,
+                points=tuple(),
+                backend="groebner_ideal",
+                status="unsat",
+                notes=("equality_ideal_is_unit",),
+                ideal_analysis=analysis,
+            )
+            return result if return_result else result.points
+        if ideal.zero_dimensional:
+            simplified_constraints = ideal.simplify_constraints(constraints)
+            if simplified_constraints is sp.false or simplified_constraints == sp.false:
+                result = ZeroDimensionalSolveResult(
+                    variables=variable_tuple,
+                    points=tuple(),
+                    backend="groebner_ideal+rational_univariate",
+                    status="unsat",
+                    notes=(
+                        f"quotient_dimension={ideal.quotient_dimension}",
+                        "constraints_false_on_equality_variety",
+                    ),
+                    ideal_analysis=analysis,
+                )
+                return result if return_result else result.points
             filtered: FilteredRationalUnivariateSolutions = (
                 solve_and_filter_zero_dimensional_system_with_rur(
                     equation_tuple,
                     variable_tuple,
-                    constraints,
+                    simplified_constraints,
                     real=real,
                     parameter=parameter,
                     max_separating_attempts=max_separating_attempts,
                 )
             )
-            return ZeroDimensionalSolveResult(
+            result = ZeroDimensionalSolveResult(
                 variables=variable_tuple,
                 points=filtered.points,
                 backend="rational_univariate",
                 status="satisfied" if filtered.points else "unsat",
                 representation=filtered.representation,
                 notes=(
-                    f"quotient_dimension={filtered.representation.dimension}",
+                    f"quotient_dimension={ideal.quotient_dimension}",
                     f"geometric_solution_count={filtered.representation.solution_count}",
                     f"separating_linear_form={sp.sstr(filtered.representation.separating_linear_form)}",
+                    f"simplified_constraints={sp.sstr(simplified_constraints)}",
                 ),
+                ideal_analysis=analysis,
             )
-        if backend_name == "rur":
-            raise RationalUnivariateError("RUR backend requires a zero-dimensional equality system")
-        return _cad_or_regular_chains_placeholder(
-            equation_tuple, constraints, variable_tuple, real=real
-        )
-
-    if backend_name in {"cad", "regular_chains", "regular_chains_or_cad"}:
-        return _cad_or_regular_chains_placeholder(
-            equation_tuple, constraints, variable_tuple, real=real
+            return result if return_result else result.points
+        raise RationalUnivariateError(
+            "zero-dimensional solving requires a zero-dimensional equality system; "
+            "use CAD or quantifier elimination for positive-dimensional sets"
         )
 
     raise RationalUnivariateError(f"unknown zero-dimensional solver backend: {backend}")

@@ -3,15 +3,16 @@ from __future__ import annotations
 import sympy as sp
 
 from ..model import QEResult
+from ..simplify.boolean import simplify_boolean
+from .cell_formulas import qe_cells_and_vars
 from .closure import region_closure
-from .common import qe_cells_and_vars
 from .interior import region_interior
 
 
 def region_boundary(cells_with_truth, variables):
     closure = region_closure(cells_with_truth, variables)
     interior = region_interior(cells_with_truth, variables)
-    return sp.simplify_logic(sp.And(closure, sp.Not(interior)), form="dnf")
+    return simplify_boolean(sp.And(closure, sp.Not(interior)))
 
 
 def qe_boundary(qe_result: QEResult):

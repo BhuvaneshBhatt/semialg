@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import compute_border_basis
-from semialg.algebraic import BorderBasisError
+from semialg.algebraic import BorderBasisError, compute_border_basis
 
 
 def test_border_basis_for_two_reduced_points():
@@ -84,7 +83,7 @@ def test_linear_border_basis_matches_groebner_derived_basis():
 
 
 def test_linear_border_basis_public_helper():
-    from semialg import compute_border_basis_linear
+    from semialg.algebraic import compute_border_basis_linear
 
     x, y = sp.symbols("x y")
     result = compute_border_basis_linear([x**2, y - 1], [x, y])

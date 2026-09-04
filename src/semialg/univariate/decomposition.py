@@ -6,6 +6,14 @@ import sympy as sp
 
 from ..validation.solution_checking import form_sat_by_assign
 
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+)
+
 
 @dataclass(frozen=True)
 class UnivarDecompWit:
@@ -20,13 +28,13 @@ def _cand_values_comps(expr: sp.Expr, variable: sp.Symbol, domain) -> list[objec
         solset = sp.solveset(sp.Eq(expr, 0), variable, domain=domain)
         if isinstance(solset, sp.FiniteSet):
             candidates.extend(list(solset))
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         pass
     try:
         poly = sp.Poly(sp.expand(expr), variable)
         if poly.total_degree() > 0:
             candidates.extend(poly.all_roots())
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         pass
     out = []
     for c in candidates:

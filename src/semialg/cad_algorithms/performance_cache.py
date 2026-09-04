@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ..cache_utils import BoundedLRU
+
+
+@dataclass
+class CADCacheStats:
+    projection_tower_hits: int = 0
+    projection_tower_misses: int = 0
+    squarefree_hits: int = 0
+    squarefree_misses: int = 0
+    projection_step_hits: int = 0
+    projection_step_misses: int = 0
+    complete_cad_hits: int = 0
+    complete_cad_misses: int = 0
+
+
+STATS = CADCacheStats()
+PROJECTION_TOWERS: BoundedLRU[object] = BoundedLRU(64, "cad.projection_towers")
+SQUAREFREE_BASES: BoundedLRU[object] = BoundedLRU(256, "cad.squarefree_bases")
+PROJECTION_STEPS: BoundedLRU[object] = BoundedLRU(256, "cad.projection_steps")
+COMPLETE_CADS: BoundedLRU[object] = BoundedLRU(32, "cad.complete_cads")
+
+
+@dataclass(frozen=True)
+class CADCacheLimits:
+    """Capacities for process-local CAD performance caches."""
+
+    projection_towers: int = 64
+    squarefree_bases: int = 256
+    projection_steps: int = 256
+    complete_cads: int = 32
+
+
+def configure_cad_cache_limits(
+    *,
+    projection_towers: int | None = None,
+    squarefree_bases: int | None = None,
+    projection_steps: int | None = None,
+    complete_cads: int | None = None,
+) -> CADCacheLimits:
+    """Resize process-local CAD caches and return the resulting limits."""
+
+    updates = {
+        "projection_towers": (PROJECTION_TOWERS, projection_towers),
+        "squarefree_bases": (SQUAREFREE_BASES, squarefree_bases),
+        "projection_steps": (PROJECTION_STEPS, projection_steps),
+        "complete_cads": (COMPLETE_CADS, complete_cads),
+    }
+    for _name, (cache, value) in updates.items():
+        if value is not None:
+            cache.resize(value)
+    return CADCacheLimits(
+        projection_towers=PROJECTION_TOWERS.maxsize,
+        squarefree_bases=SQUAREFREE_BASES.maxsize,
+        projection_steps=PROJECTION_STEPS.maxsize,
+        complete_cads=COMPLETE_CADS.maxsize,
+    )
+
+
+def clear_cad_caches() -> None:
+    PROJECTION_TOWERS.clear()
+    SQUAREFREE_BASES.clear()
+    PROJECTION_STEPS.clear()
+    COMPLETE_CADS.clear()
+    from .polynomial_utils import polynomial_key
+
+    polynomial_key.cache_clear()
+    fresh = CADCacheStats()
+    STATS.__dict__.update(fresh.__dict__)
+
+
+def cad_cache_stats() -> CADCacheStats:
+    return CADCacheStats(**STATS.__dict__)
+
+
+__all__ = [
+    "CADCacheLimits",
+    "CADCacheStats",
+    "cad_cache_stats",
+    "clear_cad_caches",
+    "configure_cad_cache_limits",
+]

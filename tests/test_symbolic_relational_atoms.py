@@ -5,7 +5,8 @@ import warnings
 import sympy as sp
 from sympy.utilities.exceptions import SymPyDeprecationWarning
 
-from semialg import BooleanSimplificationResult, equivalent, simplify_boole
+from semialg import equivalent, simplify_boole
+from semialg.symbolic_simplify import BooleanSimplificationResult
 
 
 def test_simplify_boole_canonicalizes_relational_atoms():

@@ -7,6 +7,7 @@ import sympy as sp
 
 from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
 from ._common import expr_complexity as _expr_complexity
+from ._linear_candidates import linear_equality_candidate
 from .formula_utils import conjuncts as _conjuncts
 from .output_normalization import CanonIntSolveResult, canon_int_result
 
@@ -43,19 +44,10 @@ def enum_int_lin_elim_cands(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> li
             continue
         diff = sp.expand(atom.lhs - atom.rhs)
         for var in reversed(variables):
-            try:
-                poly = sp.Poly(diff, var)
-            except _RECOVERABLE_ERRORS:
+            data = linear_equality_candidate(diff, var)
+            if data is None:
                 continue
-            if poly.degree() != 1:
-                continue
-            coeff = sp.expand(poly.coeff_monomial(var))
-            const = sp.expand(poly.coeff_monomial(1))
-            if coeff == 0 or coeff.has(var) or const.has(var):
-                continue
-            numerator = sp.expand(-const)
-            denominator = sp.expand(coeff)
-            replacement = sp.simplify(numerator / denominator)
+            coeff, numerator, denominator, replacement = data
             try:
                 divisibility = sp.Eq(sp.Mod(numerator, denominator), 0)
             except _RECOVERABLE_ERRORS:
@@ -104,6 +96,7 @@ def apply_int_lin_elim(
 def _terminal_integer_solve(
     expr: sp.Expr, variables: Sequence[sp.Symbol]
 ) -> CanonIntSolveResult | None:
+    """Solve the terminal low-dimensional integer system reached by recursive elimination."""
     variables = tuple(variables)
     truth = sp.simplify(expr)
     if truth is sp.false:
@@ -166,6 +159,7 @@ def rec_reduce_int_lin_sys(
     *,
     max_depth: int = 8,
 ) -> CanonIntSolveResult | None:
+    """Recursively eliminate linear integer constraints while tracking branch completeness."""
     variables = tuple(variables)
     terminal = _terminal_integer_solve(expr, variables)
     if terminal is not None and (terminal.complete or len(variables) <= 1):

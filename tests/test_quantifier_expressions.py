@@ -109,7 +109,8 @@ def test_periodic_reconstruction_accepts_python_numeric_endpoints():
 
 
 def test_apply_and_split_quantifiers_round_trip():
-    from semialg import apply_quantifiers, split_quantifiers
+    from semialg import apply_quantifiers
+    from semialg.quantifiers import split_quantifiers
 
     x, y, z = sp.symbols("x y z", real=True)
     matrix = sp.Eq(x + y, z)

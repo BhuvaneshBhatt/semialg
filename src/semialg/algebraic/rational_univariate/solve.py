@@ -11,6 +11,34 @@ from .representation import (
 )
 
 
+def _defining_roots(
+    representation: RationalUnivariateRepresentation,
+    *,
+    real: bool,
+) -> tuple[sp.Expr, ...]:
+    """Return exact roots of the RUR defining polynomial over its coefficient field."""
+
+    defining = representation.defining_polynomial
+    if not real:
+        return tuple(defining.all_roots())
+    try:
+        return tuple(sp.real_roots(defining.as_expr()))
+    except NotImplementedError as exc:
+        roots = tuple(defining.all_roots())
+        real_roots: list[sp.Expr] = []
+        for root in roots:
+            simplified = sp.simplify(root)
+            if simplified.is_real is True:
+                real_roots.append(simplified)
+            elif simplified.is_real is False:
+                continue
+            else:
+                raise NotImplementedError(
+                    "could not certify whether an algebraic RUR root is real"
+                ) from exc
+        return tuple(real_roots)
+
+
 def solve_rur_representation(
     representation: RationalUnivariateRepresentation,
     *,
@@ -22,17 +50,13 @@ def solve_rur_representation(
         return tuple()
 
     t = representation.parameter
-    defining = representation.defining_polynomial
     coordinate_polys = representation.normalized_coordinate_polynomials()
-    if real:
-        roots = tuple(sp.real_roots(defining.as_expr()))
-    else:
-        roots = tuple(sp.Poly(defining.as_expr(), t, domain=sp.QQ).all_roots())
+    roots = _defining_roots(representation, real=real)
     solutions: list[tuple[sp.Expr, ...]] = []
     seen_keys: set[tuple[str, ...]] = set()
     for root in roots:
         point = tuple(sp.cancel(poly.as_expr().subs(t, root)) for poly in coordinate_polys)
-        key = tuple(sp.sstr(coord) for coord in point)
+        key = tuple(point)
         if key in seen_keys:
             continue
         if any(
@@ -70,18 +94,12 @@ def solve_rur_points(
 
     if representation.defining_polynomial.degree() <= 0:
         return tuple()
-    t = representation.parameter
-    defining = representation.defining_polynomial
-    roots = (
-        tuple(sp.real_roots(defining.as_expr()))
-        if real
-        else tuple(sp.Poly(defining.as_expr(), t, domain=sp.QQ).all_roots())
-    )
+    roots = _defining_roots(representation, real=real)
     points: list[RationalUnivariatePoint] = []
     seen: set[tuple[str, ...]] = set()
     for root in roots:
         point = RationalUnivariatePoint(representation, root)
-        key = tuple(sp.sstr(coord) for coord in point.coordinates)
+        key = tuple(point.coordinates)
         if key in seen:
             continue
         seen.add(key)

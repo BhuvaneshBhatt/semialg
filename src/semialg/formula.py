@@ -38,6 +38,9 @@ from sympy.parsing.sympy_parser import (
     implicit_multiplication_application as implicit_mul,
 )
 
+from .structural_keys import symbol_identity_key
+from .symbol_resolution import build_symbol_table
+
 
 class FormulaOps:
     def __and__(self, other):
@@ -170,9 +173,27 @@ def formula_polynomials(formula: Formula) -> list[sp.Expr]:
     raise TypeError(f"Unsupported formula node: {type(formula)}")
 
 
+def _canonical_equality_residual(expr: sp.Expr) -> sp.Expr:
+    """Normalize a polynomial equality residual up to a nonzero scalar factor."""
+
+    expanded = sp.expand(expr)
+    symbols = tuple(sorted(expanded.free_symbols, key=symbol_identity_key))
+    if not symbols:
+        return sp.Integer(0) if expanded == 0 else sp.Integer(1)
+    try:
+        poly = sp.Poly(expanded, *symbols, extension=True)
+    except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
+        return expanded
+    if poly.is_zero:
+        return sp.Integer(0)
+    return sp.expand(poly.monic().as_expr())
+
+
 def equational_constraints(formula: Formula) -> list[sp.Expr]:
+    """Return deterministic polynomial equalities required by every Boolean branch."""
+
     if isinstance(formula, Atom):
-        return [sp.expand(formula.expr)] if formula.op == "=" else []
+        return [_canonical_equality_residual(formula.expr)] if formula.op == "=" else []
     if isinstance(formula, BoolConst):
         return []
     if isinstance(formula, And):
@@ -181,11 +202,13 @@ def equational_constraints(formula: Formula) -> list[sp.Expr]:
             out.extend(equational_constraints(arg))
         return list(dict.fromkeys(out))
     if isinstance(formula, Or):
-        common: set[sp.Expr] | None = None
-        for arg in formula.args:
-            current = set(equational_constraints(arg))
-            common = current if common is None else common & current
-        return list(common or set())
+        branch_constraints = [equational_constraints(arg) for arg in formula.args]
+        if not branch_constraints:
+            return []
+        common = set(branch_constraints[0])
+        for current in branch_constraints[1:]:
+            common.intersection_update(current)
+        return [expr for expr in branch_constraints[0] if expr in common]
     if isinstance(formula, Not):
         return []
     raise TypeError(f"Unsupported formula node: {type(formula)}")
@@ -213,7 +236,7 @@ def parse_quantified_expr(
 
     quantifiers, matrix_expr = split_quantifiers(expr)
     matrix = parse_formula(matrix_expr)
-    matrix_symbols = tuple(sorted(matrix_expr.free_symbols, key=lambda s: s.name))
+    matrix_symbols = tuple(sorted(matrix_expr.free_symbols, key=symbol_identity_key))
     quantified_vars = tuple(var for _, var in quantifiers)
     free_vars = tuple(sym for sym in matrix_symbols if sym not in quantified_vars)
 
@@ -232,11 +255,11 @@ def parse_quant_form_text(
     symbols: dict[str, sp.Symbol] | None = None,
     variable_order: Sequence[sp.Symbol] | None = None,
 ) -> ParsedPrenexFormula:
-    local_symbols = dict(symbols or {})
+    local_symbols = build_symbol_table(symbols, variable_order or ())
     quantifiers, matrix_text = _split_quantifier_prefix(text, local_symbols)
     matrix_expr = _parse_matrix_text(matrix_text, symbols=local_symbols)
     matrix = parse_formula(matrix_expr)
-    matrix_symbols = tuple(sorted(matrix_expr.free_symbols, key=lambda s: s.name))
+    matrix_symbols = tuple(sorted(matrix_expr.free_symbols, key=symbol_identity_key))
     quantified_vars = tuple(var for _, var in quantifiers)
     free_vars = tuple(sym for sym in matrix_symbols if sym not in quantified_vars)
 
@@ -308,10 +331,9 @@ def _parse_matrix_text(text: str, symbols: dict[str, sp.Symbol] | None = None) -
     normalized = re.sub(r"\band\b", " & ", normalized, flags=re.IGNORECASE)
     normalized = re.sub(r"\bor\b", " | ", normalized, flags=re.IGNORECASE)
     normalized = re.sub(r"\bnot\b", " ~ ", normalized, flags=re.IGNORECASE)
-    expr = parse_expr(
+    return parse_expr(
         normalized, local_dict=local_dict, transformations=_TRANSFORMS, evaluate=False
     )
-    return expr
 
 
 def _split_top_level_keyword(text: str, keyword: str) -> tuple[str, str] | None:

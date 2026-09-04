@@ -6,11 +6,13 @@ from dataclasses import dataclass, field
 import sympy as sp
 
 from ..algebraic.samples import Sample, sample_to_expr
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.lifting.stack import CADCell
 from ..context import with_computation_context
 from ..domains import normalize_assumptions
 from ..qe.complete import cells_to_formula
-from ..simplify.result import simplify_qe_formula
+from ..simplify.formula import simplify_qe_formula
+from ..structural_keys import symbol_identity_key
+from ..symbol_resolution import build_symbol_table
 from ..topology.incidence import cell_dimension, closures_intersect
 from .cylindrical import CellSet, cad
 
@@ -79,9 +81,13 @@ def component_instances(
     assumptions: Iterable[sp.Expr] | sp.Expr | None = None,
     max_components: int | None = None,
     strict: bool = False,
-    return_result: bool = True,
+    return_result: bool = False,
 ):
-    """Return one sample point from each connected semialgebraic component."""
+    """Return one exact sample mapping from each connected component.
+
+    The default return is the tuple of mappings. Set ``return_result=True``
+    for component objects, status, and CAD diagnostics.
+    """
 
     result = cad(
         formula,
@@ -91,6 +97,7 @@ def component_instances(
         strategy=strategy,
         assumptions=assumptions,
         strict=strict,
+        return_result=True,
     )
     comp_result = components_from_cell_set(
         result.as_cell_set(),
@@ -219,50 +226,6 @@ def _sample_map(
     return {var: sample_to_expr(sample) for var, sample in zip(variables, samples, strict=True)}
 
 
-def _cell_chain(
-    cell: CADCell, cells_by_level: Mapping[int, Sequence[CADCell]]
-) -> tuple[tuple[Sample | None, Sample | None], ...]:
-    chain: list[tuple[Sample | None, Sample | None]] = []
-    for level in range(1, cell.level + 1):
-        prefix = cell.index[:level]
-        ancestor = next(
-            candidate for candidate in cells_by_level[level] if candidate.index == prefix
-        )
-        chain.append(ancestor.interval or (None, None))
-    return tuple(chain)
-
-
-def _chains_touch(
-    left_chain: Sequence[tuple[Sample | None, Sample | None]],
-    right_chain: Sequence[tuple[Sample | None, Sample | None]],
-) -> bool:
-    if len(left_chain) != len(right_chain):
-        return False
-    return all(
-        _closed_intervals_touch(left, right)
-        for left, right in zip(left_chain, right_chain, strict=True)
-    )
-
-
-def _closed_intervals_touch(
-    left: tuple[Sample | None, Sample | None],
-    right: tuple[Sample | None, Sample | None],
-) -> bool:
-    left_lo, left_hi = left
-    right_lo, right_hi = right
-    if left_hi is not None and right_lo is not None and _sample_less(left_hi, right_lo):
-        return False
-    if right_hi is not None and left_lo is not None and _sample_less(right_hi, left_lo):
-        return False
-    return True
-
-
-def _sample_less(left: Sample, right: Sample) -> bool:
-    from ..algebraic.comparison import compare_samples
-
-    return compare_samples(left, right) < 0
-
-
 @with_computation_context
 def component_instances_text(
     text: str,
@@ -274,25 +237,19 @@ def component_instances_text(
     assumptions: Iterable[sp.Expr] | sp.Expr | None = None,
     max_components: int | None = None,
     strict: bool = False,
-    return_result: bool = True,
+    return_result: bool = False,
 ):
     """Text wrapper for :func:`component_instances`."""
 
     from ..formula import parse_formula_text
     from .cylindrical import _normalize_variables
 
-    local_symbols = dict(symbols or {})
-    if variables is not None:
-        for var in variables:
-            if isinstance(var, str):
-                local_symbols.setdefault(var, sp.Symbol(var, real=True))
-            else:
-                local_symbols.setdefault(var.name, var)
+    local_symbols = build_symbol_table(symbols, variables or ())
     expr, _ = parse_formula_text(text, symbols=local_symbols)
     var_tuple = (
         _normalize_variables(variables)
         if variables is not None
-        else tuple(sorted(expr.free_symbols, key=lambda sym: sym.name))
+        else tuple(sorted(expr.free_symbols, key=symbol_identity_key))
     )
     return component_instances(
         expr,

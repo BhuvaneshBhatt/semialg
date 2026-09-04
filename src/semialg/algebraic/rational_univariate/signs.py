@@ -10,62 +10,46 @@ from .representation import FilteredRationalUnivariateSolutions, RationalUnivari
 from .solve import solve_rur_representation
 
 
-def _numeric_sign_with_refinement(expr: sp.Expr) -> int | None:
-    """Resolve the sign of an exact algebraic expression by guarded refinement."""
-
-    for precision in (50, 80, 120, 180, 260, 360):
-        try:
-            value = sp.N(expr, precision)
-        except (TypeError, ValueError, ArithmeticError):
-            continue
-        if value.has(sp.I):
-            try:
-                complex_value = complex(value)
-            except (TypeError, ValueError, ArithmeticError):
-                return None
-            tolerance = 10 ** (-(precision // 4))
-            if abs(complex_value.imag) > tolerance:
-                return None
-            real_value = complex_value.real
-        else:
-            real_value = sp.re(value)
-        tolerance = sp.Float(10, precision) ** (-(precision // 4))
-        try:
-            if real_value > tolerance:
-                return 1
-            if real_value < -tolerance:
-                return -1
-        except TypeError:
-            continue
-    return None
-
-
 def sign_of_algebraic_expression(expr: sp.Expr) -> int:
     """Return the sign of an exact real algebraic expression.
 
-    SymPy exact sign reasoning is used first. Conservative numerical
-    refinement is used only when the expression is algebraic but not simplified
-    enough for an immediate exact decision.
+    Only exact symbolic/algebraic-number reasoning is accepted.  Failure to
+    certify a sign raises ``RationalUnivariateError`` rather than falling back
+    to arbitrary-precision floating evaluation.
     """
 
     simplified = sp.simplify(sp.cancel(expr))
-    if simplified == 0 or simplified.is_zero:
+    if simplified == 0 or simplified.is_zero is True:
         return 0
-    if simplified.is_positive:
+    if simplified.is_positive is True:
         return 1
-    if simplified.is_negative:
+    if simplified.is_negative is True:
         return -1
-    sign = sp.sign(simplified)
-    if sign == 1:
+    exact_sign = sp.sign(simplified)
+    if exact_sign == 1:
         return 1
-    if sign == -1:
+    if exact_sign == -1:
         return -1
-    if sign == 0:
+    if exact_sign == 0:
         return 0
-    numeric = _numeric_sign_with_refinement(simplified)
-    if numeric is not None:
-        return numeric
-    raise RationalUnivariateError(f"could not determine algebraic sign of {expr!s}")
+    try:
+        algebraic = sp.polys.numberfields.to_number_field(simplified)
+    except (
+        sp.PolynomialError,
+        TypeError,
+        ValueError,
+        NotImplementedError,
+    ) as exc:
+        raise RationalUnivariateError(
+            f"could not represent expression as an exact algebraic number: {expr!s}"
+        ) from exc
+    if algebraic.is_zero is True:
+        return 0
+    if algebraic.is_positive is True:
+        return 1
+    if algebraic.is_negative is True:
+        return -1
+    raise RationalUnivariateError(f"could not certify algebraic sign of {expr!s}")
 
 
 def evaluate_relation_at_point(relation: sp.Expr, assignment: Mapping[sp.Symbol, sp.Expr]) -> bool:
@@ -166,11 +150,27 @@ def solve_rur_semialgebraic_system(
     """
 
     equality_tuple = tuple(equalities)
+    from ..equality_ideal import EqualityIdealContext
+
+    ideal = EqualityIdealContext(equality_tuple, variables)
+    if ideal.inconsistent:
+        return tuple()
+    if not ideal.zero_dimensional:
+        raise RationalUnivariateError("RUR constraint filtering requires a zero-dimensional ideal")
+    if isinstance(constraints, (bool, sp.logic.boolalg.Boolean, *RELATION_TYPES)):
+        constraint_formula = constraints
+    else:
+        constraint_formula = sp.And(*tuple(constraints))
+    simplified_constraints = ideal.simplify_constraints(constraint_formula)
+    if simplified_constraints is sp.false or simplified_constraints == sp.false:
+        return tuple()
     representation = compute_rational_univariate_representation(
         equality_tuple, variables, parameter, max_separating_attempts=max_separating_attempts
     )
     candidate_points = solve_rur_representation(representation, real=real)
-    filtered = filter_rur_solutions_by_constraints(candidate_points, variables, constraints)
+    filtered = filter_rur_solutions_by_constraints(
+        candidate_points, variables, simplified_constraints
+    )
     if as_assignments:
         variable_tuple = tuple(variables)
         return tuple(dict(zip(variable_tuple, point, strict=True)) for point in filtered)
@@ -189,11 +189,33 @@ def solve_and_filter_zero_dimensional_system_with_rur(
     """Return a structured RUR solution object."""
 
     equality_tuple = tuple(equalities)
+    from ..equality_ideal import EqualityIdealContext
+
+    ideal = EqualityIdealContext(equality_tuple, variables)
+    if ideal.inconsistent:
+        representation = compute_rational_univariate_representation(
+            equality_tuple, variables, parameter, max_separating_attempts=max_separating_attempts
+        )
+        return FilteredRationalUnivariateSolutions(
+            variables=tuple(variables), representation=representation, points=tuple()
+        )
+    if not ideal.zero_dimensional:
+        raise RationalUnivariateError("RUR constraint filtering requires a zero-dimensional ideal")
+    if isinstance(constraints, (bool, sp.logic.boolalg.Boolean, *RELATION_TYPES)):
+        constraint_formula = constraints
+    else:
+        constraint_formula = sp.And(*tuple(constraints))
+    simplified_constraints = ideal.simplify_constraints(constraint_formula)
     representation = compute_rational_univariate_representation(
         equality_tuple, variables, parameter, max_separating_attempts=max_separating_attempts
     )
-    candidate_points = solve_rur_representation(representation, real=real)
-    filtered = filter_rur_solutions_by_constraints(candidate_points, variables, constraints)
+    if simplified_constraints is sp.false or simplified_constraints == sp.false:
+        filtered = tuple()
+    else:
+        candidate_points = solve_rur_representation(representation, real=real)
+        filtered = filter_rur_solutions_by_constraints(
+            candidate_points, variables, simplified_constraints
+        )
     return FilteredRationalUnivariateSolutions(
         variables=tuple(variables),
         representation=representation,

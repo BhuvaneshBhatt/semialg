@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import cad, semialgebraicize
+from semialg import cad
+from semialg.preprocess import semialgebraicize
 
 
 def test_semialgebraicize_abs_introduces_polynomial_auxiliary():
@@ -31,7 +32,7 @@ def test_semialgebraicize_abs_fractional_power_is_polynomial_matrix():
 
 def test_cad_uses_semialgebraic_preprocessing_for_abs():
     x = sp.Symbol("x", real=True)
-    result = cad(sp.Abs(x) <= 1, [x])
+    result = cad(sp.Abs(x) <= 1, [x], return_result=True)
 
     assert result.status == "complete"
     assert result.diagnostics["preprocessed"] is True
@@ -41,11 +42,19 @@ def test_cad_uses_semialgebraic_preprocessing_for_abs():
     )
 
 
-def test_cad_accepts_abs_fractional_power_input():
+def test_cad_reports_preprocessing_limit_instead_of_fabricating_complete_result():
     x, y = sp.symbols("x y", real=True)
     expr = sp.Abs(x) ** sp.Rational(3, 2) + sp.Abs(y) ** sp.Rational(3, 2) <= 1
-    result = cad(expr, [x, y])
+    result = cad(expr, [x, y], return_result=True)
 
-    assert result.status == "complete"
+    # This preprocessing introduces four existential auxiliaries.  The default
+    # guard is three. A bounded structured request must not decompose a
+    # placeholder ``True`` formula; it must instead
+    # preserve the original formula and make the resource limitation explicit.
+    assert result.status == "unknown"
+    assert result.formula == expr
     assert result.diagnostics["preprocessed"] is True
-    assert result.formula != sp.false
+    assert result.diagnostics["preprocess_elimination_limited"] is True
+    assert result.diagnostics["max_preprocess_aux_vars"] == 3
+    assert len(result.diagnostics["preprocess_aux_vars"]) == 4
+    assert result.diagnostics["qe_formula"] is None

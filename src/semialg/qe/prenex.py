@@ -34,11 +34,13 @@ def qe_prenex(
     quantifiers: Sequence[tuple[str, sp.Symbol]],
     matrix: Formula,
     config: QEConfig | None = None,
-) -> CompleteQEResult:
+    *,
+    return_result: bool = False,
+) -> sp.Expr | CompleteQEResult:
     # Configuration fields let reduced and partial CAD drivers share this call
     # signature while preserving complete-CAD semantics for prenex QE.
     _ = config
-    return qe_by_complete_cad(tuple(vars_), tuple(quantifiers), matrix)
+    return qe_by_complete_cad(tuple(vars_), tuple(quantifiers), matrix, return_result=return_result)
 
 
 def qe_prenex_suffix(
@@ -47,9 +49,10 @@ def qe_prenex_suffix(
     matrix: Formula,
     *,
     config: QEConfig | None = None,
+    return_result: bool = False,
     **_ignored: object,
-) -> CompleteQEResult:
-    return qe_prenex(vars_, quantifiers, matrix, config=config)
+) -> sp.Expr | CompleteQEResult:
+    return qe_prenex(vars_, quantifiers, matrix, config=config, return_result=return_result)
 
 
 def qe_blocks(
@@ -57,22 +60,41 @@ def qe_blocks(
     quantifier_blocks: Sequence[QuantifierBlock],
     matrix: Formula,
     config: QEConfig | None = None,
-) -> CompleteQEResult:
+    *,
+    return_result: bool = False,
+) -> sp.Expr | CompleteQEResult:
     quantifiers = blocks_to_quantifiers(norm_quant_blocks(quantifier_blocks))
-    return qe_prenex(vars_=vars_, quantifiers=quantifiers, matrix=matrix, config=config)
-
-
-def qe_parsed(parsed: ParsedPrenexFormula, config: QEConfig | None = None) -> CompleteQEResult:
     return qe_prenex(
-        vars_=parsed.vars, quantifiers=parsed.quantifiers, matrix=parsed.matrix, config=config
+        vars_=vars_,
+        quantifiers=quantifiers,
+        matrix=matrix,
+        config=config,
+        return_result=return_result,
+    )
+
+
+def qe_parsed(
+    parsed: ParsedPrenexFormula, config: QEConfig | None = None, *, return_result: bool = False
+) -> sp.Expr | CompleteQEResult:
+    return qe_prenex(
+        vars_=parsed.vars,
+        quantifiers=parsed.quantifiers,
+        matrix=parsed.matrix,
+        config=config,
+        return_result=return_result,
     )
 
 
 def qe_text(
-    text: str, *, symbols=None, variable_order=None, config: QEConfig | None = None
-) -> CompleteQEResult:
+    text: str,
+    *,
+    symbols=None,
+    variable_order=None,
+    config: QEConfig | None = None,
+    return_result: bool = False,
+) -> sp.Expr | CompleteQEResult:
     parsed = parse_quant_form_text(text, symbols=symbols, variable_order=variable_order)
-    return qe_parsed(parsed, config=config)
+    return qe_parsed(parsed, config=config, return_result=return_result)
 
 
 __all__ = [

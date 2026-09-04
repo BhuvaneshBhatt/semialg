@@ -29,6 +29,7 @@ def _sort_key(formula: Formula) -> tuple:
 
 
 def normalize_formula(formula: Formula) -> Formula:
+    """Normalize Boolean and relational syntax without changing the represented real set."""
     if isinstance(formula, (BoolConst, Atom)):
         return formula
     if isinstance(formula, Not):

@@ -3,15 +3,15 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import (
+from semialg import root_count_conditions, solvability_conditions
+from semialg.conditional import (
     ConditionalBranch,
+    ParameterStratificationCertificate,
     ParameterStratifiedResult,
     conditional_result,
-    parameterized_cylindrical_decomposition,
-    root_count_conditions,
-    solvability_conditions,
     verify_parameter_stratification,
 )
+from semialg.parameter_stratification import parameterized_cylindrical_decomposition
 
 
 def test_conditional_branch_applies_and_specializes() -> None:
@@ -113,17 +113,12 @@ def test_parameterized_decomposition_exposes_guarded_strata_not_sample_fibers() 
     assert hasattr(selected, "sample")
 
 
-def test_public_conditional_exports_resolve() -> None:
-    import semialg
-
-    for name in (
-        "ConditionalBranch",
-        "ParameterStratifiedResult",
-        "ParameterStratificationCertificate",
-        "conditional_result",
-        "verify_parameter_stratification",
-    ):
-        assert getattr(semialg, name) is not None
+def test_conditional_api_is_available_from_its_submodule() -> None:
+    assert ConditionalBranch is not None
+    assert ParameterStratifiedResult is not None
+    assert ParameterStratificationCertificate is not None
+    assert callable(conditional_result)
+    assert callable(verify_parameter_stratification)
 
 
 def test_string_assignments_resolve_to_original_parameter_symbol_assumptions() -> None:

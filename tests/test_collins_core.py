@@ -1,8 +1,8 @@
 import sympy as sp
 
 from semialg.algebraic import RationalSample, compare_samples, sign_at_sample
-from semialg.cad import build_collins_proj_set, decomp_collins_complete
-from semialg.cad.lifting.sign_invariance import verify_recorded_signs
+from semialg.cad_algorithms import build_collins_proj_set, decomp_collins_complete
+from semialg.cad_algorithms.lifting.sign_invariance import verify_recorded_signs
 
 
 def test_collins_core_01():

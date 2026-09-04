@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
+from ..._errors import EXACT_OPERATION_ERRORS
+
 
 @dataclass(frozen=True)
 class TransFamDetection:
@@ -96,7 +98,7 @@ def _rewrite_simple_equality(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> s
     rest = sp.simplify(lhs - e)
     try:
         sol = sp.solve(sp.Eq(e, -rest), x)
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         return None
     if len(sol) == 1:
         return sp.Eq(x, sp.simplify(sol[0]))
@@ -112,7 +114,7 @@ def _rewrite_simple_equalit2(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> s
         return None
     try:
         sol = sp.solve(expr, x)
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         return None
     if len(sol) == 1:
         return sp.Eq(x, sp.simplify(sol[0]))
@@ -140,7 +142,7 @@ def _rewrite_productlog_simp(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> s
     x = variables[0]
     try:
         sols = sp.solve(expr, x)
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         return None
     if len(sols) == 1:
         return sp.Eq(x, sp.simplify(sols[0]))
@@ -159,21 +161,6 @@ def _rewrite_erf_simple(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Exp
     rest = sp.simplify(diff - target)
     if target == sp.erf(x):
         return sp.Eq(x, sp.erfinv(-rest))
-    return None
-
-
-def _rewrite_erfc_simple(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Expr | None:
-    if not isinstance(expr, sp.Equality) or len(variables) != 1:
-        return None
-    x = variables[0]
-    diff = sp.simplify(expr.lhs - expr.rhs)
-    erfc_terms = list(diff.atoms(sp.erfc))
-    if len(erfc_terms) != 1:
-        return None
-    target = erfc_terms[0]
-    rest = sp.simplify(diff - target)
-    if target == sp.erfc(x):
-        return sp.Eq(x, sp.erfcinv(-rest))
     return None
 
 

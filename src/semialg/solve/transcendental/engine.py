@@ -6,6 +6,7 @@ import sympy as sp
 from sympy import S
 from sympy.core.relational import Relational
 
+from ..._errors import EXACT_OPERATION_ERRORS
 from .cleanup import (
     finite_points_form,
     recon_solved_points,
@@ -17,7 +18,7 @@ from .periodic import (
     find_periodic_variables,
     recon_periodic_domain,
 )
-from .preprocess import prep_trans_problem
+from .preprocess import preprocess_transcendental_problem
 from .quantifier_elimination import eliminate_lead_block
 from .roots import decomp_univar_inequality, isolate_univar_roots
 from .semantics import ResultSemantics
@@ -57,7 +58,7 @@ def try_spec_fam_rewrites(state: TransProblemState) -> sp.Expr | None:
             continue
         try:
             rewritten = handler.rewrite_builder(state.formula, variables)
-        except Exception:
+        except EXACT_OPERATION_ERRORS:
             rewritten = None
         if rewritten is not None and rewritten != state.formula:
             return sp.simplify(rewritten)
@@ -142,10 +143,10 @@ def reduce_trans_problem(state: TransProblemState) -> TransReductionResult:
                 metadata={"intervals": dec.true_intervals, **dec.metadata},
             )
 
-    prep = prep_trans_problem(state, quantifier_aware=True)
+    prep = preprocess_transcendental_problem(state, quantifier_aware=True)
     current = prep.state
     if prep.changed:
-        trace.append("prep_trans_problem")
+        trace.append("preprocess_transcendental_problem")
     if prep.quantifier_plan is not None:
         trace.append("quantifier_dispatch_plan")
 

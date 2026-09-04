@@ -1,11 +1,12 @@
 import sympy as sp
 
-from semialg.cad import (
+from semialg.cad_algorithms import (
     ProjectionPolynomial,
     build_collins_proj_set,
     decomp_collins_complete,
     verify_cad_sign_inv,
 )
+from semialg.cad_algorithms.polynomial_utils import polynomial_key
 
 
 def test_auditable_coll_01():
@@ -29,9 +30,9 @@ def test_auditable_coll_02():
     assert cad.cells[1].root_index == 0
     assert cad.cells[3].root_index == 1
     assert cad.cells[1].defining_polynomial_key in {
-        sp.sstr(x**2 - 1),
-        sp.sstr(x + 1),
-        sp.sstr(x - 1),
+        polynomial_key(sp.Poly(x**2 - 1, x)),
+        polynomial_key(sp.Poly(x + 1, x)),
+        polynomial_key(sp.Poly(x - 1, x)),
     }
 
 

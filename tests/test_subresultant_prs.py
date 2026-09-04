@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import principal_subresultant_coefficients, subresultant_prs
-from semialg.algebraic import SubresultantPRSResult
+from semialg.algebraic import (
+    SubresultantPRSResult,
+    principal_subresultant_coefficients,
+    subresultant_prs,
+)
 
 
 def test_subresultant_prs_uses_exact_univariate_polys():

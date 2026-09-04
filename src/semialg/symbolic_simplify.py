@@ -6,20 +6,15 @@ from dataclasses import dataclass, field
 import sympy as sp
 from sympy.logic.boolalg import Boolean
 
+from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
 from .decision import implies, is_satisfiable, is_tautology
-from .normalization import normalize_formula as _normalize_formula
-from .normalization import normalize_variables as _normalize_variables
+from .inequality_reduction import reduce_conjunctive_inequalities
+from .normalization import normalize_formula, normalize_variables
+from .simplify.atoms import canonicalize_relation
+from .simplify.boolean import simplify_boolean, simplify_boolean_form
+from .simplify.formula import simplify_semialgebraic_formula
 
 FormulaLike = sp.Expr | Boolean | bool
-
-_RECOVERABLE_ERRORS = (
-    ArithmeticError,
-    TypeError,
-    ValueError,
-    NotImplementedError,
-    RuntimeError,
-    sp.PolynomialError,
-)
 
 
 @dataclass(frozen=True)
@@ -55,17 +50,29 @@ class PiecewiseSimplificationResult:
         return self.expression is not sp.nan
 
 
-def _safe_simplify_logic(expr: sp.Expr) -> sp.Expr:
-    """Simplify logic without routing Boolean formulas through scalar simplifiers."""
+def _safe_simplify_logic(
+    expr: sp.Expr,
+    *,
+    logic_simplifier=None,
+    scalar_simplifier=None,
+) -> sp.Expr:
+    """Simplify Boolean or scalar expressions with narrow failure recovery.
 
+    Optional simplifier callables make backend behavior directly testable without
+    replacing process-global SymPy functions.
+    """
+
+    scalar_fn = scalar_simplifier or sp.simplify
     if isinstance(expr, Boolean):
+        if logic_simplifier is None:
+            return simplify_boolean(expr)
         try:
-            simplified = sp.simplify_logic(expr, form="dnf")
+            simplified = logic_simplifier(expr, form="dnf")
             return simplified if simplified is not None else expr
         except _RECOVERABLE_ERRORS:
             return expr
     try:
-        return sp.simplify(expr)
+        return scalar_fn(expr)
     except _RECOVERABLE_ERRORS:
         return expr
 
@@ -126,9 +133,9 @@ def _complement_relational(expr: sp.Expr) -> sp.Expr | None:
 
 def _deduplicate(args: Iterable[sp.Expr]) -> list[sp.Expr]:
     out: list[sp.Expr] = []
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     for arg in args:
-        key = sp.sstr(arg)
+        key = arg
         if key not in seen:
             seen.add(key)
             out.append(arg)
@@ -156,48 +163,12 @@ def _normalize_polynomial_side(
 
 
 def _canonical_relational(atom: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Expr:
-    """Canonicalize simple polynomial relations to ``p rel 0``.
+    """Canonicalize a relational atom using the shared semialgebraic normal form."""
 
-    Inequalities are normalized to use ``>=``/``>`` where possible, with
-    rational content removed and leading polynomial sign made positive. This
-    makes duplicate detection and implication-based absorption much more stable
-    without using scalar simplification on Boolean formulas.
-    """
-
+    del variables  # canonicalization derives a deterministic symbol order from the atom itself
     if not isinstance(atom, sp.core.relational.Relational):
         return atom
-    lhs, rhs = atom.lhs, atom.rhs
-    if isinstance(atom, sp.GreaterThan):
-        rel = ">="
-        diff = lhs - rhs
-    elif isinstance(atom, sp.StrictGreaterThan):
-        rel = ">"
-        diff = lhs - rhs
-    elif isinstance(atom, sp.LessThan):
-        rel = ">="
-        diff = rhs - lhs
-    elif isinstance(atom, sp.StrictLessThan):
-        rel = ">"
-        diff = rhs - lhs
-    elif isinstance(atom, (sp.Equality, sp.Unequality)):
-        rel = "==" if isinstance(atom, sp.Equality) else "!="
-        diff = lhs - rhs
-    else:
-        return atom
-
-    expr = _normalize_polynomial_side(diff, variables, normalize_sign=rel in {"==", "!="})
-    if expr == 0:
-        if rel in {">=", "=="}:
-            return sp.true
-        if rel in {">", "!="}:
-            return sp.false
-    if rel == ">=":
-        return expr >= 0
-    if rel == ">":
-        return expr > 0
-    if rel == "==":
-        return sp.Eq(expr, 0)
-    return sp.Ne(expr, 0)
+    return canonicalize_relation(atom)
 
 
 def _set_to_formula(set_expr: sp.Set, var: sp.Symbol) -> sp.Expr | None:
@@ -234,14 +205,10 @@ def _try_univariate_interval_simplify(
     if len(variables) != 1:
         return None
     var = variables[0]
+    reduced = reduce_conjunctive_inequalities(expr, var)
+    source = reduced if reduced is not None else expr
     try:
-        reduced = sp.reduce_inequalities(
-            list(expr.args) if isinstance(expr, sp.And) else [expr], var
-        )
-    except _RECOVERABLE_ERRORS:
-        reduced = expr
-    try:
-        set_expr = reduced.as_set()
+        set_expr = source.as_set()
     except _RECOVERABLE_ERRORS:
         return None
     formula = _set_to_formula(set_expr, var)
@@ -323,7 +290,7 @@ def _simplify_or(
 def _simplify_boolean_rec(
     expr: sp.Expr, variables: Sequence[sp.Symbol], strategy: str | None
 ) -> sp.Expr:
-    expr = _normalize_formula(expr)
+    expr = normalize_formula(expr)
     if expr is sp.true or expr == sp.true or expr is sp.false or expr == sp.false:
         return expr
     if isinstance(expr, sp.And):
@@ -369,21 +336,22 @@ def simplify_boole(
     the original variable space.
     """
 
-    formula = _normalize_formula(expr)
+    formula = normalize_formula(expr)
     original = formula
     if assumptions is not None:
-        assumption_expr = _normalize_formula(assumptions)
+        assumption_expr = normalize_formula(assumptions)
         universe_expr = sp.And(assumption_expr, formula)
     else:
         assumption_expr = sp.true
         universe_expr = formula
-    vars_ = _normalize_variables(variables, universe_expr)
+    vars_ = normalize_variables(variables, universe_expr)
     diagnostics: dict[str, object] = {"form": form, "semantic": semantic}
 
     def finish(
         value: sp.Expr, method: str = "semantic_boolean_simplification"
     ) -> sp.Expr | BooleanSimplificationResult:
         value = _safe_simplify_logic(value)
+        value = simplify_semialgebraic_formula(value, implication_minimize=False)
         if return_result:
             return BooleanSimplificationResult(
                 value, original, vars_, assumption_expr, method=method, diagnostics=diagnostics
@@ -427,12 +395,12 @@ def simplify_boole(
 
     if form == "cnf":
         try:
-            simplified = sp.simplify_logic(simplified, form="cnf")
+            simplified = simplify_boolean_form(simplified, form="cnf")
         except _RECOVERABLE_ERRORS:
             pass
     elif form == "dnf":
         try:
-            simplified = sp.simplify_logic(simplified, form="dnf")
+            simplified = simplify_boolean_form(simplified, form="dnf")
         except _RECOVERABLE_ERRORS:
             pass
 
@@ -497,13 +465,13 @@ def simplify_piecewise(
             original_expr,
             (),
             strategy,
-            _normalize_formula(assumptions) if assumptions is not None else None,
+            normalize_formula(assumptions) if assumptions is not None else None,
         )
         result = PiecewiseSimplificationResult(
             simplified,
             original_expr,
             (),
-            _normalize_formula(assumptions) if assumptions is not None else sp.true,
+            normalize_formula(assumptions) if assumptions is not None else sp.true,
         )
         return result if return_result else simplified
     expr = original_expr
@@ -517,14 +485,14 @@ def simplify_piecewise(
         else sp.true
     )
     if assumptions is not None:
-        variable_expr = sp.And(variable_expr, _normalize_formula(assumptions))
-    vars_ = _normalize_variables(variables, variable_expr)
-    assumption_expr = _normalize_formula(assumptions) if assumptions is not None else sp.true
+        variable_expr = sp.And(variable_expr, normalize_formula(assumptions))
+    vars_ = normalize_variables(variables, variable_expr)
+    assumption_expr = normalize_formula(assumptions) if assumptions is not None else sp.true
 
     covered = sp.false
     branches: list[tuple[sp.Expr, sp.Expr]] = []
     for value, condition in expr.args:
-        condition_expr = sp.true if condition is True else _normalize_formula(condition)
+        condition_expr = sp.true if condition is True else normalize_formula(condition)
         if _semantic_tautology(covered, vars_, strategy):
             removed_unreachable.append((value, condition_expr))
             continue

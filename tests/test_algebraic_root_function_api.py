@@ -3,8 +3,12 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import AlgebraicRootFunction, CertifiedRootComparison, DelineabilityCertificate
-from semialg.cad.bounds import AlgebraicNumberBound
+from semialg.cad_algorithms.bounds import AlgebraicNumberBound
+from semialg.cad_algorithms.cells import (
+    AlgebraicRootFunction,
+    CertifiedRootComparison,
+    DelineabilityCertificate,
+)
 
 _DEFAULT_BASE_SYMBOL = sp.Symbol("x", real=True)
 

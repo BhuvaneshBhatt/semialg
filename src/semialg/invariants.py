@@ -7,7 +7,7 @@ from .model import CADResult
 
 
 class CADInvariantError(ValueError):
-    pass
+    """Raised when a CAD structure violates a required invariant."""
 
 
 def validate_cad_result(cad: CADResult) -> list[str]:

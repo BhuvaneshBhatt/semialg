@@ -6,16 +6,13 @@ from dataclasses import dataclass
 import sympy as sp
 
 from .exact_arithmetic import compare_exact_reals
+from .normalization import normalize_symbol_sequence
 
 Point = tuple[sp.Expr, ...]
 
 
 def _sympify_point(point: Sequence[object]) -> Point:
     return tuple(sp.sympify(v) for v in point)
-
-
-def _as_symbols(names: Sequence[sp.Symbol | str]) -> tuple[sp.Symbol, ...]:
-    return tuple(sp.Symbol(v, real=True) if isinstance(v, str) else v for v in names)
 
 
 def _validate_same_dimension(points: Sequence[Point], *, label: str) -> int:
@@ -51,6 +48,211 @@ def _validate_interval(lower: sp.Expr, upper: sp.Expr, *, label: str = "bounds")
         raise ValueError(f"{label} have lower endpoint greater than upper endpoint")
 
 
+def _provably_zero(value: sp.Expr) -> bool:
+    """Return whether an exact symbolic quantity can be certified as zero."""
+
+    simplified = sp.simplify(value)
+    if simplified == 0 or simplified.is_zero is True:
+        return True
+    try:
+        return compare_exact_reals(simplified, sp.Integer(0)) == 0
+    except (TypeError, ValueError, NotImplementedError):
+        return False
+
+
+def _vector_rank(vectors: Sequence[Point]) -> int:
+    """Return the exact/generic rank of a finite family of coordinate vectors."""
+
+    if not vectors:
+        return 0
+    return int(sp.Matrix.hstack(*(sp.Matrix(vector) for vector in vectors)).rank())
+
+
+def _affine_dimension(points: Sequence[Point]) -> int:
+    """Return the affine dimension of a finite point set."""
+
+    if len(points) < 2:
+        return 0
+    anchor = sp.Matrix(points[0])
+    vectors = tuple(tuple(sp.Matrix(point) - anchor) for point in points[1:])
+    return _vector_rank(vectors)
+
+
+def _independent_vectors(vectors: Sequence[Point]) -> tuple[Point, ...]:
+    """Return a deterministic maximal independent subfamily."""
+
+    basis: list[Point] = []
+    rank = 0
+    for vector in vectors:
+        candidate = (*basis, vector)
+        new_rank = _vector_rank(candidate)
+        if new_rank > rank:
+            basis.append(vector)
+            rank = new_rank
+    return tuple(basis)
+
+
+def _effective_parametric_data(
+    parameters: Sequence[sp.Symbol],
+    limits: Sequence[tuple[sp.Symbol, sp.Expr, sp.Expr]],
+    mapping: Sequence[sp.Expr],
+    assumptions: sp.Expr,
+) -> tuple[
+    tuple[sp.Symbol, ...],
+    tuple[tuple[sp.Symbol, sp.Expr, sp.Expr], ...],
+    tuple[sp.Expr, ...],
+    sp.Expr,
+]:
+    """Remove parameters whose integration interval is identically a point.
+
+    Fixed values are substituted into all remaining bounds, the mapping, and
+    assumptions.  Repeating to a fixed point handles chains such as ``v=u``
+    followed by a fixed ``u`` limit.
+    """
+
+    fixed: dict[sp.Symbol, sp.Expr] = {}
+    remaining = list(limits)
+    changed = True
+    while changed:
+        changed = False
+        kept: list[tuple[sp.Symbol, sp.Expr, sp.Expr]] = []
+        for param, lower, upper in remaining:
+            lo = sp.simplify(lower.subs(fixed))
+            hi = sp.simplify(upper.subs(fixed))
+            if _provably_zero(hi - lo):
+                fixed[param] = lo
+                fixed = {key: sp.simplify(value.subs(fixed)) for key, value in fixed.items()}
+                changed = True
+            else:
+                kept.append((param, lo, hi))
+        remaining = kept
+
+    free = tuple(param for param in parameters if param not in fixed)
+    final_limits = tuple(
+        (param, sp.simplify(lower.subs(fixed)), sp.simplify(upper.subs(fixed)))
+        for param, lower, upper in remaining
+    )
+    final_mapping = tuple(sp.simplify(expr.subs(fixed)) for expr in mapping)
+    final_assumptions = sp.simplify(assumptions.subs(fixed))
+    return free, final_limits, final_mapping, final_assumptions
+
+
+def _orientation(a: Point, b: Point, c: Point) -> int:
+    """Return the certified orientation sign of three exact planar points."""
+
+    cross = sp.expand((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+    try:
+        return compare_exact_reals(cross, sp.Integer(0))
+    except (TypeError, ValueError, NotImplementedError) as exc:
+        raise ValueError("polygon orientation could not be certified exactly") from exc
+
+
+def _on_segment(a: Point, b: Point, p: Point) -> bool:
+    if _orientation(a, b, p) != 0:
+        return False
+    for u, v, w in zip(a, b, p, strict=True):
+        if compare_exact_reals(u, v) <= 0:
+            lower, upper = u, v
+        else:
+            lower, upper = v, u
+        if compare_exact_reals(lower, w) > 0 or compare_exact_reals(w, upper) > 0:
+            return False
+    return True
+
+
+def _segments_intersect(a: Point, b: Point, c: Point, d: Point) -> bool:
+    ab_c = _orientation(a, b, c)
+    ab_d = _orientation(a, b, d)
+    cd_a = _orientation(c, d, a)
+    cd_b = _orientation(c, d, b)
+    if ab_c * ab_d < 0 and cd_a * cd_b < 0:
+        return True
+    return (
+        (ab_c == 0 and _on_segment(a, b, c))
+        or (ab_d == 0 and _on_segment(a, b, d))
+        or (cd_a == 0 and _on_segment(c, d, a))
+        or (cd_b == 0 and _on_segment(c, d, b))
+    )
+
+
+def _validate_simple_polygon(vertices: Sequence[Point]) -> None:
+    """Reject repeated vertices, zero edges, and self intersections."""
+
+    if len(set(vertices)) != len(vertices):
+        raise ValueError("polygon vertices must be distinct")
+    count = len(vertices)
+    for index in range(count):
+        a, b = vertices[index], vertices[(index + 1) % count]
+        if a == b:
+            raise ValueError("polygon edges must have nonzero length")
+        for other in range(index + 1, count):
+            if other in {index, (index + 1) % count}:
+                continue
+            if index in {other, (other + 1) % count}:
+                continue
+            c, d = vertices[other], vertices[(other + 1) % count]
+            if _segments_intersect(a, b, c, d):
+                raise ValueError("polygon edges must not self-intersect")
+
+
+def _signed_polygon_orientation(vertices: Sequence[Point]) -> int:
+    twice_area = sp.expand(
+        sum(
+            a[0] * b[1] - b[0] * a[1]
+            for a, b in zip(vertices, (*vertices[1:], vertices[0]), strict=True)
+        )
+    )
+    try:
+        orientation = compare_exact_reals(twice_area, sp.Integer(0))
+    except (TypeError, ValueError, NotImplementedError) as exc:
+        raise ValueError("polygon area could not be certified exactly") from exc
+    if orientation == 0:
+        raise ValueError("polygon vertices must enclose nonzero area")
+    return orientation
+
+
+def _point_in_triangle(point: Point, triangle: tuple[Point, Point, Point], sign: int) -> bool:
+    a, b, c = triangle
+    return all(
+        sign * orient >= 0
+        for orient in (
+            _orientation(a, b, point),
+            _orientation(b, c, point),
+            _orientation(c, a, point),
+        )
+    )
+
+
+def _triangulate_polygon(vertices: Sequence[Point]) -> tuple[tuple[Point, Point, Point], ...]:
+    """Triangulate a certified simple polygon by exact ear clipping."""
+
+    sign = _signed_polygon_orientation(vertices)
+    remaining = list(range(len(vertices)))
+    triangles: list[tuple[Point, Point, Point]] = []
+    while len(remaining) > 3:
+        ear_found = False
+        for pos, current in enumerate(remaining):
+            previous = remaining[pos - 1]
+            following = remaining[(pos + 1) % len(remaining)]
+            triangle = (vertices[previous], vertices[current], vertices[following])
+            if sign * _orientation(*triangle) <= 0:
+                continue
+            if any(
+                _point_in_triangle(vertices[index], triangle, sign)
+                for index in remaining
+                if index not in {previous, current, following}
+            ):
+                continue
+            triangles.append(triangle)
+            del remaining[pos]
+            ear_found = True
+            break
+        if not ear_found:
+            raise ValueError("polygon could not be triangulated as a simple polygon")
+    triangles.append(tuple(vertices[index] for index in remaining))  # type: ignore[arg-type]
+    return tuple(triangles)
+
+
 class StandardRegion:
     """Base class for explicit region objects supported by semialg."""
 
@@ -59,6 +261,20 @@ class StandardRegion:
 
     def ambient_dimension(self) -> int:
         raise NotImplementedError
+
+    def as_semialgebraic_region(self, variables=None):
+        """Return the unified symbolic-region representation of this region."""
+
+        from .symbolic_regions import as_semialgebraic_region
+
+        return as_semialgebraic_region(self, variables)
+
+    def bounded_parametric_cover(self, variables=None, bounds=None):
+        """Return a certified bounded parametric cover when structurally available."""
+
+        from .parametric_geometry import bounded_parametric_cover
+
+        return bounded_parametric_cover(self, variables, bounds)
 
 
 @dataclass(frozen=True)
@@ -74,7 +290,7 @@ class PointRegion(StandardRegion):
         object.__setattr__(self, "points", pts)
 
     def dimension(self) -> int:
-        return 0
+        return 0 if self.points else -1
 
     def ambient_dimension(self) -> int:
         return len(self.points[0]) if self.points else 0
@@ -99,7 +315,9 @@ class IntervalRegion(StandardRegion):
         object.__setattr__(self, "upper_closed", upper_closed)
 
     def dimension(self) -> int:
-        return 1 if sp.simplify(self.upper - self.lower) != 0 else 0
+        if not _provably_zero(self.upper - self.lower):
+            return 1
+        return 0 if self.lower_closed and self.upper_closed else -1
 
     def ambient_dimension(self) -> int:
         return 1
@@ -116,7 +334,7 @@ class BoxRegion(StandardRegion):
         object.__setattr__(self, "bounds", normalized)
 
     def dimension(self) -> int:
-        return len(self.bounds)
+        return sum(not _provably_zero(upper - lower) for lower, upper in self.bounds)
 
     def ambient_dimension(self) -> int:
         return len(self.bounds)
@@ -128,11 +346,13 @@ class SimplexRegion(StandardRegion):
 
     def __init__(self, vertices: Sequence[Sequence[object]]):
         verts = tuple(_sympify_point(v) for v in vertices)
+        if not verts:
+            raise ValueError("a simplex requires at least one vertex")
         _validate_same_dimension(verts, label="simplex vertices")
         object.__setattr__(self, "vertices", verts)
 
     def dimension(self) -> int:
-        return max(0, len(self.vertices) - 1)
+        return _affine_dimension(self.vertices)
 
     def ambient_dimension(self) -> int:
         return len(self.vertices[0]) if self.vertices else 0
@@ -144,10 +364,14 @@ class PolygonRegion(StandardRegion):
 
     def __init__(self, vertices: Sequence[Sequence[object]]):
         verts = tuple(_sympify_point(v) for v in vertices)
+        if len(verts) > 1 and verts[0] == verts[-1]:
+            verts = verts[:-1]
         if len(verts) < 3:
             raise ValueError("a polygon requires at least three vertices")
         if len({len(v) for v in verts}) != 1 or len(verts[0]) != 2:
-            raise ValueError("PolygonRegion currently represents 2D polygons")
+            raise ValueError("PolygonRegion represents 2D polygons")
+        _validate_simple_polygon(verts)
+        _signed_polygon_orientation(verts)
         object.__setattr__(self, "vertices", verts)
 
     def dimension(self) -> int:
@@ -157,11 +381,7 @@ class PolygonRegion(StandardRegion):
         return 2
 
     def triangulation(self) -> tuple[SimplexRegion, ...]:
-        p0 = self.vertices[0]
-        return tuple(
-            SimplexRegion((p0, self.vertices[i], self.vertices[i + 1]))
-            for i in range(1, len(self.vertices) - 1)
-        )
+        return tuple(SimplexRegion(triangle) for triangle in _triangulate_polygon(self.vertices))
 
 
 @dataclass(frozen=True)
@@ -170,6 +390,8 @@ class TetrahedronRegion(SimplexRegion):
         if len(vertices) != 4:
             raise ValueError("a tetrahedron requires four vertices")
         super().__init__(vertices)
+        if self.ambient_dimension() != 3:
+            raise ValueError("a tetrahedron requires three-dimensional vertices")
 
 
 @dataclass(frozen=True)
@@ -185,7 +407,7 @@ class PolyhedronRegion(StandardRegion):
         object.__setattr__(self, "tetrahedra", tets)
 
     def dimension(self) -> int:
-        return 3
+        return max((tet.dimension() for tet in self.tetrahedra), default=-1)
 
     def ambient_dimension(self) -> int:
         return 3
@@ -207,7 +429,7 @@ class ParallelogramRegion(StandardRegion):
         object.__setattr__(self, "vectors", vecs)
 
     def dimension(self) -> int:
-        return 2
+        return _vector_rank(self.vectors)
 
     def ambient_dimension(self) -> int:
         return len(self.origin)
@@ -227,7 +449,7 @@ class ParallelepipedRegion(StandardRegion):
         object.__setattr__(self, "vectors", vecs)
 
     def dimension(self) -> int:
-        return len(self.vectors)
+        return _vector_rank(self.vectors)
 
     def ambient_dimension(self) -> int:
         return len(self.origin)
@@ -251,7 +473,15 @@ class PrismRegion(StandardRegion):
         object.__setattr__(self, "vector", vec)
 
     def dimension(self) -> int:
-        return self.base.dimension() + 1
+        if isinstance(self.base, PolygonRegion):
+            points = self.base.vertices
+        else:
+            points = self.base.vertices
+        anchor = points[0]
+        span = tuple(tuple(sp.Matrix(point) - sp.Matrix(anchor)) for point in points[1:]) + (
+            self.vector,
+        )
+        return _vector_rank(span)
 
     def ambient_dimension(self) -> int:
         return len(self.vector)
@@ -275,7 +505,12 @@ class PyramidRegion(StandardRegion):
         object.__setattr__(self, "apex", apex_pt)
 
     def dimension(self) -> int:
-        return self.base.dimension() + 1
+        points = self.base.vertices
+        anchor = points[0]
+        span = tuple(tuple(sp.Matrix(point) - sp.Matrix(anchor)) for point in points[1:]) + (
+            tuple(sp.Matrix(self.apex) - sp.Matrix(anchor)),
+        )
+        return _vector_rank(span)
 
     def ambient_dimension(self) -> int:
         return len(self.apex)
@@ -293,7 +528,7 @@ class BallRegion(StandardRegion):
         object.__setattr__(self, "radius", radius_expr)
 
     def dimension(self) -> int:
-        return len(self.center)
+        return 0 if _provably_zero(self.radius) else len(self.center)
 
     def ambient_dimension(self) -> int:
         return len(self.center)
@@ -305,6 +540,8 @@ class SphereRegion(BallRegion):
         super().__init__(center, radius)
 
     def dimension(self) -> int:
+        if _provably_zero(self.radius):
+            return 0
         return max(0, len(self.center) - 1)
 
 
@@ -325,6 +562,10 @@ class SphericalShellRegion(StandardRegion):
         object.__setattr__(self, "outer_radius", outer)
 
     def dimension(self) -> int:
+        if _provably_zero(self.outer_radius - self.inner_radius):
+            if _provably_zero(self.outer_radius):
+                return 0
+            return max(0, len(self.center) - 1)
         return len(self.center)
 
     def ambient_dimension(self) -> int:
@@ -349,7 +590,10 @@ class CylinderRegion(StandardRegion):
         object.__setattr__(self, "radius", radius_expr)
 
     def dimension(self) -> int:
-        return len(self.start)
+        axis_zero = all(_provably_zero(b - a) for a, b in zip(self.start, self.end, strict=True))
+        if not _provably_zero(self.radius):
+            return len(self.start)
+        return 0 if axis_zero else 1
 
     def ambient_dimension(self) -> int:
         return len(self.start)
@@ -372,6 +616,8 @@ class StadiumRegion(StandardRegion):
         end_pt = _sympify_point(end)
         if len(start_pt) != len(end_pt):
             raise ValueError("region endpoints must have the same dimension")
+        if len(start_pt) != 2:
+            raise ValueError("StadiumRegion requires two-dimensional endpoints")
         radius_expr = sp.sympify(radius)
         _validate_nonnegative(radius_expr, label="radius")
         object.__setattr__(self, "start", start_pt)
@@ -379,7 +625,10 @@ class StadiumRegion(StandardRegion):
         object.__setattr__(self, "radius", radius_expr)
 
     def dimension(self) -> int:
-        return 2
+        axis_zero = all(_provably_zero(b - a) for a, b in zip(self.start, self.end, strict=True))
+        if not _provably_zero(self.radius):
+            return 2
+        return 0 if axis_zero else 1
 
     def ambient_dimension(self) -> int:
         return 2
@@ -388,10 +637,21 @@ class StadiumRegion(StandardRegion):
 @dataclass(frozen=True)
 class CapsuleRegion(StadiumRegion):
     def __init__(self, start: Sequence[object], end: Sequence[object], radius: object = 1):
-        super().__init__(start, end, radius)
+        start_pt = _sympify_point(start)
+        end_pt = _sympify_point(end)
+        if len(start_pt) != len(end_pt):
+            raise ValueError("region endpoints must have the same dimension")
+        radius_expr = sp.sympify(radius)
+        _validate_nonnegative(radius_expr, label="radius")
+        object.__setattr__(self, "start", start_pt)
+        object.__setattr__(self, "end", end_pt)
+        object.__setattr__(self, "radius", radius_expr)
 
     def dimension(self) -> int:
-        return len(self.start)
+        axis_zero = all(_provably_zero(b - a) for a, b in zip(self.start, self.end, strict=True))
+        if not _provably_zero(self.radius):
+            return len(self.start)
+        return 0 if axis_zero else 1
 
     def ambient_dimension(self) -> int:
         return len(self.start)
@@ -414,7 +674,8 @@ class ParametricRegion(StandardRegion):
         multiplicity: object = 1,
         assumptions: object = True,
     ):
-        params = _as_symbols(parameters)
+        """Validate the parameter map, limits, multiplicity, and assumptions before freezing the region."""
+        params = normalize_symbol_sequence(parameters)
         if len(set(params)) != len(params):
             raise ValueError("parametric region parameters must be unique")
         by_name = {param.name: param for param in params}
@@ -460,10 +721,28 @@ class ParametricRegion(StandardRegion):
         object.__setattr__(self, "assumptions", sp.sympify(assumptions))
 
     def dimension(self) -> int:
-        return len(self.parameters)
+        free, _limits, mapping, assumptions = _effective_parametric_data(
+            self.parameters, self.limits, self.mapping, self.assumptions
+        )
+        if assumptions not in (True, sp.true):
+            from .regions.operations import region_dimension
+            from .symbolic_regions import as_semialgebraic_region
+
+            output = tuple(sp.Dummy(f"image{i + 1}", real=True) for i in range(len(mapping)))
+            return region_dimension(as_semialgebraic_region(self, output), output)
+        if not free:
+            return 0
+        return int(sp.Matrix(mapping).jacobian(free).rank())
 
     def ambient_dimension(self) -> int:
         return len(self.mapping)
+
+    def generic_map_degree(self):
+        """Return the generic algebraic fiber degree of this parametrization."""
+
+        from .map_degree import parametric_map_degree
+
+        return parametric_map_degree(self.mapping, self.parameters)
 
 
 @dataclass(frozen=True)
@@ -478,12 +757,75 @@ class TransformedRegion(StandardRegion):
         mapping: Sequence[object],
         base_variables: Sequence[sp.Symbol | str],
     ):
+        if not isinstance(base, StandardRegion):
+            raise TypeError("TransformedRegion base must be a StandardRegion")
+        variables = normalize_symbol_sequence(base_variables)
+        if len(variables) != base.ambient_dimension():
+            raise ValueError("base variable count must match the base ambient dimension")
         object.__setattr__(self, "base", base)
         object.__setattr__(self, "mapping", tuple(sp.sympify(e) for e in mapping))
-        object.__setattr__(self, "base_variables", _as_symbols(base_variables))
+        object.__setattr__(self, "base_variables", variables)
 
     def dimension(self) -> int:
-        return self.base.dimension()
+        """Compute the exact image dimension from the base tangent space and mapping Jacobian."""
+        base_dim = self.base.dimension()
+        if base_dim <= 0:
+            return max(base_dim, 0)
+
+        substitutions: dict[sp.Symbol, sp.Expr] = {}
+        tangent_vectors: tuple[Point, ...] | None = None
+        if isinstance(self.base, IntervalRegion):
+            if self.base.dimension() == 0:
+                return 0
+            tangent_vectors = ((sp.Integer(1),),)
+        elif isinstance(self.base, BoxRegion):
+            vectors: list[Point] = []
+            for index, (variable, (lower, upper)) in enumerate(
+                zip(self.base_variables, self.base.bounds, strict=True)
+            ):
+                if _provably_zero(upper - lower):
+                    substitutions[variable] = lower
+                else:
+                    vector = tuple(
+                        sp.Integer(1 if i == index else 0) for i in range(len(self.base_variables))
+                    )
+                    vectors.append(vector)
+            tangent_vectors = tuple(vectors)
+        elif isinstance(self.base, SimplexRegion):
+            anchor = self.base.vertices[0]
+            substitutions = dict(zip(self.base_variables, anchor, strict=True))
+            differences = tuple(
+                tuple(sp.Matrix(vertex) - sp.Matrix(anchor)) for vertex in self.base.vertices[1:]
+            )
+            tangent_vectors = _independent_vectors(differences)
+        elif isinstance(self.base, (ParallelogramRegion, ParallelepipedRegion)):
+            substitutions = dict(zip(self.base_variables, self.base.origin, strict=True))
+            tangent_vectors = _independent_vectors(self.base.vectors)
+        elif isinstance(self.base, PointRegion):
+            return 0
+
+        if tangent_vectors is not None:
+            if not tangent_vectors:
+                return 0
+            params = tuple(sp.Dummy(f"u{i + 1}", real=True) for i in range(len(tangent_vectors)))
+            base_point = tuple(substitutions.get(v, v) for v in self.base_variables)
+            restricted = []
+            for expr in self.mapping:
+                replacement = {}
+                for coord, variable in enumerate(self.base_variables):
+                    value = base_point[coord] + sum(
+                        param * vector[coord]
+                        for param, vector in zip(params, tangent_vectors, strict=True)
+                    )
+                    replacement[variable] = value
+                restricted.append(sp.simplify(expr.subs(replacement)))
+            return int(sp.Matrix(restricted).jacobian(params).rank())
+
+        from .regions.operations import region_dimension
+        from .symbolic_regions import as_semialgebraic_region
+
+        output = tuple(sp.Dummy(f"image{i + 1}", real=True) for i in range(len(self.mapping)))
+        return region_dimension(as_semialgebraic_region(self, output), output)
 
     def ambient_dimension(self) -> int:
         return len(self.mapping)
@@ -500,43 +842,88 @@ class BooleanRegion(StandardRegion):
     ):
         if op not in {"union", "intersection", "difference", "symmetric_difference", "complement"}:
             raise ValueError("unsupported BooleanRegion op")
+        region_tuple = tuple(regions)
+        if any(not isinstance(region, StandardRegion) for region in region_tuple):
+            raise TypeError("BooleanRegion members must be StandardRegion objects")
+        if op in {"difference", "symmetric_difference"} and len(region_tuple) != 2:
+            raise ValueError(f"{op} requires exactly two regions")
+        if op == "complement" and len(region_tuple) != 1:
+            raise ValueError("complement requires exactly one region")
+        ambient_dims = {region.ambient_dimension() for region in region_tuple}
+        if len(ambient_dims) > 1:
+            raise ValueError("Boolean regions must share one ambient dimension")
         object.__setattr__(self, "op", op)
-        object.__setattr__(self, "regions", tuple(regions))
+        object.__setattr__(self, "regions", region_tuple)
         object.__setattr__(self, "assume_disjoint", assume_disjoint)
 
     def dimension(self) -> int:
         if not self.regions:
             return -1
-        if self.op == "intersection":
-            return min(r.dimension() for r in self.regions)
-        return max(r.dimension() for r in self.regions)
+        if self.op == "union":
+            return max(r.dimension() for r in self.regions)
+        if self.op == "intersection" and all(
+            isinstance(region, IntervalRegion) for region in self.regions
+        ):
+            intervals = tuple(
+                region for region in self.regions if isinstance(region, IntervalRegion)
+            )
+            lower = intervals[0].lower
+            upper = intervals[0].upper
+            try:
+                for interval in intervals[1:]:
+                    if compare_exact_reals(interval.lower, lower) > 0:
+                        lower = interval.lower
+                    if compare_exact_reals(interval.upper, upper) < 0:
+                        upper = interval.upper
+                relation = compare_exact_reals(lower, upper)
+            except (TypeError, ValueError, NotImplementedError) as exc:
+                raise NotImplementedError(
+                    "interval-intersection dimension requires exactly comparable endpoints"
+                ) from exc
+            if relation > 0:
+                return -1
+            if relation < 0:
+                return 1
+            for interval in intervals:
+                try:
+                    at_lower = compare_exact_reals(lower, interval.lower) == 0
+                    at_upper = compare_exact_reals(upper, interval.upper) == 0
+                except (TypeError, ValueError, NotImplementedError) as exc:
+                    raise NotImplementedError(
+                        "interval-intersection dimension requires exactly comparable endpoints"
+                    ) from exc
+                if (at_lower and not interval.lower_closed) or (
+                    at_upper and not interval.upper_closed
+                ):
+                    return -1
+            return 0
+        raise NotImplementedError(
+            "exact dimension is not structurally determined for this BooleanRegion operation; "
+            "convert it to SemialgebraicRegion and use region_dimension()"
+        )
 
     def ambient_dimension(self) -> int:
         return self.regions[0].ambient_dimension() if self.regions else 0
 
 
 def RegionUnion(*regions: StandardRegion, assume_disjoint: bool = False) -> BooleanRegion:
+    """Return the Boolean union of standard regions."""
     return BooleanRegion("union", regions, assume_disjoint=assume_disjoint)
 
 
 def RegionIntersection(*regions: StandardRegion) -> BooleanRegion:
+    """Return the Boolean intersection of standard regions."""
     return BooleanRegion("intersection", regions)
 
 
 def RegionDifference(a: StandardRegion, b: StandardRegion) -> BooleanRegion:
+    """Return the Boolean difference of two standard regions."""
     return BooleanRegion("difference", (a, b))
 
 
 def RegionSymmetricDifference(a: StandardRegion, b: StandardRegion) -> BooleanRegion:
+    """Return the Boolean symmetric difference of two standard regions."""
     return BooleanRegion("symmetric_difference", (a, b))
-
-
-def _volume_unit_ball(n: int) -> sp.Expr:
-    return sp.pi ** sp.Rational(n, 2) / sp.gamma(sp.Rational(n, 2) + 1)
-
-
-def _surface_unit_sphere(n: int) -> sp.Expr:
-    return 2 * sp.pi ** sp.Rational(n, 2) / sp.gamma(sp.Rational(n, 2))
 
 
 def is_standard_region(obj: object) -> bool:

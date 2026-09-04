@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from ..._errors import EXACT_OPERATION_ERRORS
+from ...errors import SemialgStrategyFailure
 from .output_normalization import CanonIntSolveResult, canon_int_result
 
 
@@ -23,7 +25,7 @@ class IntSolverRegistration:
     priority: int = 100
 
 
-def _adapt_result(name: str, raw_result) -> CanonIntSolveResult:
+def _adapt_result(name: str, raw_result) -> CanonIntSolveResult | None:
     if raw_result is None:
         return None
     return canon_int_result(
@@ -76,15 +78,15 @@ def _run_factorization(req: IntegerSolveRequest):
 
 
 def run_factor_recursion(req: IntegerSolveRequest):
-    from .factorization import solve_int_recursion
+    from .factorization import solve_factorized_integer_equation
 
-    return solve_int_recursion(req.expr, req.variables)
+    return solve_factorized_integer_equation(req.expr, req.variables)
 
 
 def _run_groebner(req: IntegerSolveRequest):
-    from .diophantine import solve_int_recursion2
+    from .diophantine import solve_recursive_diophantine
 
-    return _adapt_result("groebner_recursion", solve_int_recursion2(req.expr, req.variables))
+    return _adapt_result("groebner_recursion", solve_recursive_diophantine(req.expr, req.variables))
 
 
 def _run_groebner_recursion(req: IntegerSolveRequest):
@@ -94,9 +96,11 @@ def _run_groebner_recursion(req: IntegerSolveRequest):
 
 
 def _run_modular_pruning(req: IntegerSolveRequest):
-    from .diophantine import solve_int_pruning
+    from .diophantine import solve_integer_with_modular_pruning
 
-    return _adapt_result("modular_pruning", solve_int_pruning(req.expr, req.variables))
+    return _adapt_result(
+        "modular_pruning", solve_integer_with_modular_pruning(req.expr, req.variables)
+    )
 
 
 def default_int_registry() -> list[IntSolverRegistration]:
@@ -133,7 +137,7 @@ def run_int_solver_pipeline(
     for reg in default_int_registry():
         try:
             result = reg.runner(req)
-        except Exception:
+        except (SemialgStrategyFailure, *EXACT_OPERATION_ERRORS):
             result = None
         if result is not None:
             return result

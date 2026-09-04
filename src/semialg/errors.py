@@ -9,6 +9,26 @@ class SemialgStrategyFailure(SemialgError):
     """A speculative exact/symbolic strategy could not handle the input."""
 
 
+class UnsupportedFragmentError(SemialgStrategyFailure, ValueError):
+    """The input is valid, but outside the symbolic fragment a strategy supports."""
+
+
+class BackendFailure(SemialgStrategyFailure):
+    """An optional or delegated backend failed after accepting an input."""
+
+
+class FormulaNormalizationError(SemialgError, ValueError):
+    """A formula cannot be normalized for a solver."""
+
+
+class AlgebraicSolvingError(SemialgStrategyFailure, ValueError):
+    """An exact algebraic solving backend could not solve an accepted problem."""
+
+
+class QuantifierEliminationError(SemialgStrategyFailure, ValueError):
+    """A quantifier-elimination backend could not eliminate an accepted formula."""
+
+
 class ReconstructionFailure(SemialgStrategyFailure):
     """A symbolic reconstruction strategy could not certify a representation."""
 
@@ -25,11 +45,31 @@ class ExactEvaluationFailure(SemialgStrategyFailure):
     """An exact backend could not evaluate an otherwise valid object."""
 
 
+class VarietyCADUnsupported(ExactEvaluationFailure):
+    """The specialized finite-variety CAD backend cannot certify a lifting step."""
+
+
+class InternalInvariantError(SemialgError):
+    """An internal algorithm invariant was violated."""
+
+
+class ResourceLimitError(SemialgStrategyFailure):
+    """A computation stopped because a configured resource limit was reached."""
+
+
 __all__ = [
     "SemialgError",
     "SemialgStrategyFailure",
+    "UnsupportedFragmentError",
+    "BackendFailure",
+    "FormulaNormalizationError",
+    "AlgebraicSolvingError",
+    "QuantifierEliminationError",
     "ReconstructionFailure",
     "DimensionMismatchError",
     "CertificationFailure",
     "ExactEvaluationFailure",
+    "VarietyCADUnsupported",
+    "InternalInvariantError",
+    "ResourceLimitError",
 ]

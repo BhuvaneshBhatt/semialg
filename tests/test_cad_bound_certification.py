@@ -3,13 +3,13 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg.cad.bounds import (
+from semialg.cad_algorithms.bounds import (
     AlgebraicRootFunction,
     DelineabilityCertificate,
     ExplicitCADBound,
     verify_cad_cell_bounds,
 )
-from semialg.cad.cells import (
+from semialg.cad_algorithms.cells import (
     CylindricalCoordinateConstraint,
     CylindricalDecompositionCertificate,
     CylindricalSolution,
@@ -17,7 +17,10 @@ from semialg.cad.cells import (
     extract_cylindrical_solution,
     extract_explicit_cylindrical_solution,
 )
-from semialg.cad.integration import full_dimensional_solution_integrals, intrinsic_cell_integral
+from semialg.cad_algorithms.integration import (
+    full_dimensional_solution_integrals,
+    intrinsic_cell_integral,
+)
 
 
 def test_negative_leading_quadratic_uses_correct_cad_root_branch():
@@ -169,9 +172,7 @@ def test_solution_integrators_reject_failed_decomposition_cert():
         full_dimensional_solution_integrals(failed)
 
 
-def test_programming_errors_in_root_presentation_are_not_swallowed(monkeypatch):
-    import semialg.reconstruct.radicals as radicals
-
+def test_programming_errors_in_root_presentation_are_not_swallowed():
     x, y = sp.symbols("x y", real=True)
     cert = DelineabilityCertificate(
         polynomial=y**2 - x,
@@ -189,9 +190,10 @@ def test_programming_errors_in_root_presentation_are_not_swallowed(monkeypatch):
     def broken(*args, **kwargs):
         raise NameError("programmer bug")
 
-    monkeypatch.setattr(radicals, "fiber_root_candidates", broken)
+    from semialg.cad_algorithms.bounds import _root_function_expr
+
     with pytest.raises(NameError, match="programmer bug"):
-        root.as_expr()
+        _root_function_expr(root, broken)
 
 
 def test_pytest_configuration_supports_src_layout(pytestconfig):

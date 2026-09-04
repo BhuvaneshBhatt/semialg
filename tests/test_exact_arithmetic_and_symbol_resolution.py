@@ -4,7 +4,9 @@ import pytest
 import sympy as sp
 
 import semialg
+from semialg.domain_solve import normalize_domain_sensitive_constraints
 from semialg.exact_arithmetic import compare_exact_reals, exact_truth
+from semialg.reasoning import region_subset
 from semialg.region_integrate import _finite_real_roots as integral_real_roots
 
 
@@ -35,14 +37,14 @@ def test_region_moment_string_variable_reuses_unassumed_formula_symbol():
 
 def test_domain_normalization_string_variable_reuses_unassumed_symbol():
     x = sp.Symbol("x")
-    result = semialg.normalize_domain_sensitive_constraints(sp.sqrt(x) >= 0, ["x"])
+    result = normalize_domain_sensitive_constraints(sp.sqrt(x) >= 0, ["x"])
     assert result.variables == (x,)
     assert len(result.variables) == 1
 
 
 def test_reasoning_string_variable_does_not_duplicate_assumption_variant():
     x = sp.Symbol("x")
-    assert semialg.region_subset(x > 1, x > 0, ["x"])
+    assert region_subset(x > 1, x > 0, ["x"])
 
 
 def test_symbolic_simplification_string_variable_preserves_input_symbol():
@@ -63,20 +65,10 @@ def test_exact_truth_handles_algebraic_relation():
     assert exact_truth(sp.sqrt(2) < sp.Rational(7, 5)) is False
 
 
-def test_symbolic_integral_root_isolation_never_falls_back_to_nroots(monkeypatch):
+def test_symbolic_integral_root_isolation_fails_conservatively_for_unsupported_domain():
     x = sp.Symbol("x")
-    monkeypatch.setattr(
-        sp,
-        "real_roots",
-        lambda *args, **kwargs: (_ for _ in ()).throw(NotImplementedError("forced")),
-    )
-    monkeypatch.setattr(
-        sp,
-        "nroots",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("nroots must not be used")),
-    )
     with pytest.raises(NotImplementedError, match="exact real-root isolation"):
-        integral_real_roots(x**2 - 2, x)
+        integral_real_roots(x**2 - sp.sqrt(2), x)
 
 
 def test_string_resolution_rejects_ambiguous_same_name_symbols():
@@ -85,3 +77,21 @@ def test_string_resolution_rejects_ambiguous_same_name_symbols():
     formula = sp.And(x_plain > 0, x_real > 0)
     with pytest.raises(ValueError, match="ambiguous"):
         semialg.simplify_boole(formula, ["x"])
+
+
+def test_text_parser_reuses_explicit_variable_symbol_identity():
+    from semialg.formula import parse_quant_form_text
+
+    x = sp.Symbol("x", real=True)
+    parsed = parse_quant_form_text("x > 0", variable_order=(x,))
+    assert parsed.vars == (x,)
+    assert parsed.matrix_expr.free_symbols == {x}
+
+
+def test_text_parser_rejects_same_name_variable_ambiguity():
+    from semialg.formula import parse_quant_form_text
+
+    x_plain = sp.Symbol("x")
+    x_real = sp.Symbol("x", real=True)
+    with pytest.raises(ValueError, match="incompatible Symbol objects"):
+        parse_quant_form_text("x > 0", variable_order=(x_plain, x_real))

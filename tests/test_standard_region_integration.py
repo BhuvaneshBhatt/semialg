@@ -15,8 +15,10 @@ from semialg import (
     SphereRegion,
     StadiumRegion,
     TetrahedronRegion,
-    integrate_over_parametric_region,
     integrate_over_region,
+)
+from semialg.parametric_integration import (
+    integrate_over_parametric_region,
     metric_jacobian_factor,
 )
 
@@ -84,7 +86,7 @@ def test_boolean_symmetric_difference_and_parametric_metric_jacobian():
     assert sp.simplify(integrate_over_region(1, RegionSymmetricDifference(a, b), [x]) - 2) == 0
     assert sp.simplify(integrate_over_region(1, RegionUnion(a, b), [x]) - 3) == 0
 
-    t, u, X, Y = sp.symbols("t u X Y", real=True)
+    t, _u, X, Y = sp.symbols("t u X Y", real=True)
     segment = ParametricRegion([t], [(t, 0, 1)], [t, t])
     assert (
         sp.simplify(metric_jacobian_factor(segment.mapping, segment.parameters) - sp.sqrt(2)) == 0

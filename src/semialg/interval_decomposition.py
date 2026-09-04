@@ -29,10 +29,10 @@ def finite_real_roots(poly_expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr,
     except (TypeError, ValueError, NotImplementedError, sp.PolynomialError) as exc:
         raise NotImplementedError("exact real-root isolation failed") from exc
     result: list[sp.Expr] = []
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     for root in roots:
         root_expr = sp.re(root) if not isinstance(root, sp.Expr) else root
-        key = sp.sstr(root_expr)
+        key = root_expr
         if key not in seen:
             result.append(root_expr)
             seen.add(key)
@@ -101,13 +101,13 @@ def one_dimensional_intervals(
 
     finite = [value for value in cuts if value not in (-sp.oo, sp.oo)]
     ordered: list[sp.Expr] = []
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     for root in sorted(finite, key=cmp_to_key(compare_exact_reals)):
         if lower != -sp.oo and compare_exact_reals(root, lower) < 0:
             continue
         if upper != sp.oo and compare_exact_reals(root, upper) > 0:
             continue
-        key = sp.sstr(root)
+        key = root
         if key not in seen:
             ordered.append(root)
             seen.add(key)

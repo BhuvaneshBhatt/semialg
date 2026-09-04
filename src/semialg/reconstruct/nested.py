@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.lifting.stack import CADCell
 from .cylindrical import _sector_bound_expr, level_cell_condition, section_value_expr
 
 
@@ -87,6 +87,7 @@ def _block_condition(
     cells_by_level: Mapping[int, Sequence[CADCell]],
     *,
     closed: bool,
+    base_variables: Sequence[sp.Symbol] = (),
 ) -> sp.Expr:
     """Return a compact condition for a consecutive stack block.
 
@@ -98,7 +99,9 @@ def _block_condition(
     if not block:
         return sp.false
     if len(block) == 1:
-        return level_cell_condition(block[0], variable, cells_by_level, closed=closed)
+        return level_cell_condition(
+            block[0], variable, cells_by_level, closed=closed, base_variables=base_variables
+        )
     first = block[0]
     last = block[-1]
     left_sample = first.interval[0] if first.interval is not None else None
@@ -106,16 +109,24 @@ def _block_condition(
     pieces: list[sp.Expr] = []
     if left_sample is not None:
         if first.kind == "section":
-            pieces.append(variable >= section_value_expr(first, variable))
+            pieces.append(
+                variable >= section_value_expr(first, variable, base_variables=base_variables)
+            )
         else:
-            lower = _sector_bound_expr(first, variable, cells_by_level, side="left")
+            lower = _sector_bound_expr(
+                first, variable, cells_by_level, side="left", base_variables=base_variables
+            )
             if lower is not None:
                 pieces.append(variable > lower)
     if right_sample is not None:
         if last.kind == "section":
-            pieces.append(variable <= section_value_expr(last, variable))
+            pieces.append(
+                variable <= section_value_expr(last, variable, base_variables=base_variables)
+            )
         else:
-            upper = _sector_bound_expr(last, variable, cells_by_level, side="right")
+            upper = _sector_bound_expr(
+                last, variable, cells_by_level, side="right", base_variables=base_variables
+            )
             if upper is not None:
                 pieces.append(variable < upper)
     return sp.And(*pieces) if pieces else sp.true
@@ -169,10 +180,16 @@ def nested_formula_from_cells(
         # Consecutive full subtrees can be emitted as a single interval block.
         for block in _blocks(full_cells):
             emitted += 1
-            formulas.append(_block_condition(block, var, cells_by_level, closed=closed))
+            formulas.append(
+                _block_condition(
+                    block, var, cells_by_level, closed=closed, base_variables=variables[: level - 1]
+                )
+            )
         for cell in partial_cells:
             emitted += 1
-            head = level_cell_condition(cell, var, cells_by_level, closed=closed)
+            head = level_cell_condition(
+                cell, var, cells_by_level, closed=closed, base_variables=variables[: level - 1]
+            )
             tail = rec(cell.index, level + 1)
             if tail is sp.false or tail == sp.false:
                 continue

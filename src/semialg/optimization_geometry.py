@@ -8,6 +8,8 @@ from itertools import combinations
 import sympy as sp
 from sympy.polys.polyerrors import PolynomialError
 
+from .algebraic.groebner_utils import compute_groebner_basis
+
 
 def polynomial_locus_dimension(
     equations: Sequence[sp.Expr],
@@ -18,11 +20,12 @@ def polynomial_locus_dimension(
     vars_ = tuple(variables)
     if not vars_:
         return 0 if all(sp.expand(eq) == 0 for eq in equations) else -1
-    eqs = tuple(sp.expand(eq) for eq in equations if sp.expand(eq) != 0)
+    expanded = tuple(sp.expand(eq) for eq in equations)
+    eqs = tuple(eq for eq in expanded if eq != 0)
     if not eqs:
         return len(vars_)
     try:
-        basis = sp.groebner(eqs, *vars_, order="grevlex", domain=sp.QQ)
+        basis = compute_groebner_basis(eqs, vars_, order="grevlex", domain=sp.QQ)
     except (PolynomialError, ValueError, TypeError):
         return None
     if any(

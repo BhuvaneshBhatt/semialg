@@ -1,3 +1,14 @@
+from ..symbolic_regions import (
+    RDisjoint,
+    RegionElement,
+    RegionNotElement,
+    REqual,
+    RSubset,
+    SemialgebraicRegion,
+    as_semialgebraic_region,
+    region_element_conditions,
+    region_relation_conditions,
+)
 from .boundary import qe_boundary
 from .closure import qe_closure
 from .component_samples import component_sample_points
@@ -17,6 +28,15 @@ from .operations import (
 )
 
 __all__ = [
+    "SemialgebraicRegion",
+    "as_semialgebraic_region",
+    "RegionElement",
+    "RegionNotElement",
+    "RSubset",
+    "RDisjoint",
+    "REqual",
+    "region_element_conditions",
+    "region_relation_conditions",
     "region_union",
     "region_intersection",
     "region_difference",

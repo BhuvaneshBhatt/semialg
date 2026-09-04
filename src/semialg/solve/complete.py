@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
 
 import sympy as sp
 
@@ -21,11 +20,11 @@ class CompleteSolveResult:
     result: sp.Expr
     status: str
     backend: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
     qe_result: CompleteQEResult | None = None
 
 
-def _result_metadata(qe: CompleteQEResult) -> dict[str, Any]:
+def _result_metadata(qe: CompleteQEResult) -> dict[str, object]:
     diag = qe.diagnostics
     return {
         "variables": tuple(map(sp.sstr, qe.variables)),
@@ -53,7 +52,11 @@ def reduce_complete_formula(
     free_variables: Sequence[sp.Symbol] | None = None,
 ) -> CompleteSolveResult:
     qe = qe_by_complete_cad(
-        parsed.vars, parsed.quantifiers, parsed.matrix, free_variables=free_variables
+        parsed.vars,
+        parsed.quantifiers,
+        parsed.matrix,
+        free_variables=free_variables,
+        return_result=True,
     )
     return CompleteSolveResult(
         method="complete_cad_qe",

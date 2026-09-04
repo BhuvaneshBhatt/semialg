@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import (
+from semialg import integrate_over_region, reduce_region_integral, region_boundary
+from semialg.implicit_geometry import (
     decompose_cylindrical_formula_to_vertical_bounds_2d,
     decompose_implicit_formula,
     extract_symbolic_box_bounds,
-    integrate_over_region,
-    reduce_region_integral,
-    region_boundary,
     semialgebraic_level_function,
 )
 

@@ -5,6 +5,14 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+)
+
 
 @dataclass(frozen=True)
 class SubresultantPRSResult:
@@ -43,7 +51,7 @@ def _infer_variable(
     symbols = sorted(
         set(getattr(sp.sympify(first), "free_symbols", set()))
         | set(getattr(sp.sympify(second), "free_symbols", set())),
-        key=lambda sym: sym.sort_key(),
+        key=symbol_identity_key,
     )
     if len(symbols) != 1:
         raise ValueError("subresultant_prs needs a univariate variable when it cannot be inferred")
@@ -80,13 +88,13 @@ def _native_subresultants(first: sp.Poly, second: sp.Poly) -> tuple[sp.Poly, ...
     except AttributeError:
         try:
             from sympy.polys.polytools import subresultants
-        except Exception:
+        except (ImportError, AttributeError):
             return None
         try:
             subresultants = subresultants(first, second)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             return None
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     try:
         return tuple(
@@ -97,7 +105,7 @@ def _native_subresultants(first: sp.Poly, second: sp.Poly) -> tuple[sp.Poly, ...
             )
             for item in subresultants
         )
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return tuple(
             sp.Poly(item.as_expr() if isinstance(item, sp.Poly) else item, first.gens[0])
             for item in subresultants
@@ -209,3 +217,4 @@ __all__ = [
     "subresultant_prs",
     "principal_subresultant_coefficients",
 ]
+from ..structural_keys import symbol_identity_key

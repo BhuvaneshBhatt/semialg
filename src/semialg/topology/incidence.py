@@ -6,8 +6,9 @@ import sympy as sp
 
 from ..algebraic.roots import isolate_real_roots
 from ..algebraic.samples import sample_to_expr
-from ..cad.decomposition import CompleteCAD
-from ..cad.lifting.stack import CADCell
+from ..cad_algorithms.decomposition import CompleteCAD
+from ..cad_algorithms.lifting.stack import CADCell
+from ..cad_algorithms.polynomial_utils import exact_univariate_poly
 from ..exact_arithmetic import exact_truth
 from ..reconstruct.cylindrical import path_condition
 from ..reconstruct.root_functions import root_of
@@ -92,12 +93,34 @@ def _specialize_root_functions(expr: sp.Expr, assignments: Mapping[sp.Symbol, sp
         if not isinstance(fiber, sp.Symbol) or not index.is_Integer:
             raise ValueError("malformed root_of expression in CAD topology formula")
         base_subs = {var: value for var, value in assignments.items() if var != fiber}
-        specialized = sp.expand(polynomial.subs(base_subs))
-        roots = isolate_real_roots(sp.Poly(specialized, fiber, domain="EX"))
+        # Root functions are determined by the primitive part in the fibre
+        # variable.  Removing parameter content *before* specialization avoids
+        # false degeneration at a boundary such as root_of(x*y, y, 0) at x=0,
+        # whose continuous root branch is the root of y, not an undefined root
+        # of the identically-zero specialized polynomial.
+        try:
+            primitive = sp.Poly(polynomial, fiber).primitive()[1].as_expr()
+        except (sp.PolynomialError, TypeError, ValueError):
+            primitive = polynomial
+        specialized = sp.expand(primitive.subs(base_subs))
         root_index = int(index)
+        try:
+            # ``real_roots`` repeats roots according to multiplicity.  That is
+            # essential on closure boundaries where distinct delineable root
+            # branches may coalesce (e.g. +/-sqrt(1-x**2) at x=+/-1).
+            roots = tuple(sp.real_roots(sp.Poly(specialized, fiber).as_expr(), fiber))
+        except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+            isolated = isolate_real_roots(
+                exact_univariate_poly(specialized, fiber, algebraic_extension=False)
+            )
+            roots = tuple(
+                root.as_expr()
+                for root in isolated
+                for _ in range(max(1, int(getattr(root, "multiplicity", 1))))
+            )
         if root_index < 0 or root_index >= len(roots):
             raise ValueError("root_of index is invalid after exact specialization")
-        replacements[node] = roots[root_index].as_expr()
+        replacements[node] = sp.sympify(roots[root_index])
     return expr.xreplace(replacements) if replacements else expr
 
 

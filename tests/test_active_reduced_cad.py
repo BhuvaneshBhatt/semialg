@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg.cad.reduced import ReducedCertificate, decomp_form_reduced_safe, decompose_reduced_safe
+from semialg.cad_algorithms.reduced import (
+    ReducedCertificate,
+    decomp_form_reduced_safe,
+    decompose_reduced_safe,
+)
 from semialg.formula import parse_formula
 from semialg.tticad.safe import decompose_tticad_safe
 

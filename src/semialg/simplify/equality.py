@@ -5,6 +5,9 @@ from sympy.core.relational import Equality
 from sympy.logic.boolalg import And as SymAnd
 from sympy.logic.boolalg import Or as SymOr
 
+from .._linear_relations import safe_equality_solution
+from ..structural_keys import symbol_identity_key
+
 
 def _direct_symbol_solution(eq: Equality) -> tuple[sp.Symbol, sp.Expr] | None:
     lhs, rhs = eq.lhs, eq.rhs
@@ -13,17 +16,10 @@ def _direct_symbol_solution(eq: Equality) -> tuple[sp.Symbol, sp.Expr] | None:
     if isinstance(rhs, sp.Symbol) and rhs not in lhs.free_symbols:
         return rhs, lhs
     diff = sp.expand(lhs - rhs)
-    syms = sorted(diff.free_symbols, key=lambda s: s.name)
-    for sym in syms:
-        try:
-            poly = sp.Poly(diff, sym, domain="EX")
-        except Exception:
-            continue
-        if poly.degree() == 1:
-            coeff = poly.coeff_monomial(sym)
-            rest = sp.expand(diff - coeff * sym)
-            if coeff != 0 and sym not in rest.free_symbols:
-                return sym, sp.simplify(-rest / coeff)
+    for sym in sorted(diff.free_symbols, key=symbol_identity_key):
+        value = safe_equality_solution(eq, sym)
+        if value is not None and sym not in value.free_symbols:
+            return sym, value
     return None
 
 

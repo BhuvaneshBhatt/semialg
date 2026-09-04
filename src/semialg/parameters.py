@@ -8,11 +8,22 @@ from sympy.logic.boolalg import Boolean
 
 from .conditional import ConditionalBranch, ParameterStratifiedResult, conditional_result
 from .formula import parse_formula
-from .normalization import normalize_formula as _normalize_formula
+from .formulas.boolean import is_false_expr, is_true_expr
+from .normalization import normalize_formula, normalize_parameters
 from .qe import qe_by_complete_cad
 from .root_classification import RootClassificationResult, classify_real_roots
+from .simplify.boolean import simplify_boolean
+from .structural_keys import symbol_identity_key
 
 FormulaLike = sp.Expr | Boolean | bool
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+)
 
 
 @dataclass(frozen=True)
@@ -45,8 +56,27 @@ class SolvabilityConditionsResult:
             diagnostics=self.diagnostics,
         )
 
+    @property
+    def is_never_solvable(self) -> bool:
+        return is_false_expr(self.formula)
+
+    @property
+    def is_unconditionally_solvable(self) -> bool:
+        return is_true_expr(self.formula)
+
+    @property
+    def is_conditional(self) -> bool:
+        return not self.is_never_solvable and not self.is_unconditionally_solvable
+
     def __bool__(self) -> bool:
-        return self.formula is not sp.false and self.formula != sp.false
+        if self.is_unconditionally_solvable:
+            return True
+        if self.is_never_solvable:
+            return False
+        raise TypeError(
+            "parameter-dependent solvability has no unambiguous truth value; "
+            "inspect .formula, .is_conditional, or .as_stratified_result()"
+        )
 
 
 @dataclass(frozen=True)
@@ -62,22 +92,28 @@ class RootCountConditionsResult:
     diagnostics: Mapping[str, object] = field(default_factory=dict)
 
     def as_stratified_result(self) -> ParameterStratifiedResult:
-        """Return the exact real-root count as a parameter-stratified value."""
+        """Return certified real-root-count strata, excluding explicitly unknown cells."""
 
-        branches = [
-            ConditionalBranch(condition, count)
+        known = [
+            (count, condition)
             for count, condition in self.conditions_by_count.items()
-            if condition is not sp.false and condition != sp.false
+            if count != -1 and condition is not sp.false and condition != sp.false
         ]
+        branches = [ConditionalBranch(condition, count) for count, condition in known]
+        coverage = sp.Or(*(condition for _, condition in known)) if known else sp.false
+        unknown = self.conditions_by_count.get(sp.Integer(-1), sp.false)
+        complete = is_false_expr(unknown)
+        diagnostics = dict(self.diagnostics)
+        diagnostics["unknown_condition"] = unknown
         return conditional_result(
             self.parameters,
             branches,
-            coverage_condition=sp.true,
-            complete=True,
+            coverage_condition=coverage,
+            complete=complete,
             disjoint=True,
             certified=True,
             method=f"{self.method}+root_count_strata",
-            diagnostics=self.diagnostics,
+            diagnostics=diagnostics,
         )
 
     def condition_for_count(self, count: int | sp.Expr) -> sp.Expr:
@@ -93,26 +129,9 @@ def _normalize_symbols(
     *,
     expr: sp.Expr | None = None,
 ) -> tuple[sp.Symbol, ...]:
-    known = tuple(expr.free_symbols) if expr is not None else ()
-    by_name: dict[str, list[sp.Symbol]] = {}
-    for symbol in known:
-        by_name.setdefault(symbol.name, []).append(symbol)
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for item in symbols or ():
-        if isinstance(item, str):
-            matches = tuple(dict.fromkeys(by_name.get(item, ())))
-            if len(matches) > 1:
-                raise ValueError(
-                    f"symbol name {item!r} is ambiguous across symbols with different assumptions"
-                )
-            sym = matches[0] if matches else sp.Symbol(item, real=True)
-        else:
-            sym = item
-        if sym not in seen:
-            out.append(sym)
-            seen.add(sym)
-    return tuple(out)
+    """Normalize parameter names while preserving symbols already present in ``expr``."""
+
+    return normalize_parameters(symbols, *((expr,) if expr is not None else ()))
 
 
 def _ordered_free_parameters(
@@ -121,33 +140,38 @@ def _ordered_free_parameters(
     if parameters is not None:
         return _normalize_symbols(parameters, expr=expr)
     vset = set(variables)
-    return tuple(sorted(expr.free_symbols - vset, key=lambda sym: sym.name))
+    return tuple(sorted(expr.free_symbols - vset, key=symbol_identity_key))
 
 
 def _simplify_condition(expr: sp.Expr) -> sp.Expr:
-    if expr is sp.true or expr == sp.true:
+    if is_true_expr(expr):
         return sp.true
-    if expr is sp.false or expr == sp.false:
+    if is_false_expr(expr):
         return sp.false
+    if isinstance(expr, sp.logic.boolalg.Boolean):
+        return simplify_boolean(expr)
     try:
-        return sp.simplify_logic(sp.simplify(expr), form="dnf")
-    except Exception:
         return sp.simplify(expr)
+    except (TypeError, ValueError, NotImplementedError, AttributeError):
+        return expr
 
 
 def _root_count_positive_condition(
     poly: sp.Expr, var: sp.Symbol, params: tuple[sp.Symbol, ...]
-) -> sp.Expr:
+) -> sp.Expr | None:
     grouped = root_count_conditions(poly, var, params)
+    unknown = grouped.get(sp.Integer(-1), sp.false)
+    if unknown is not sp.false and unknown != sp.false:
+        return None
     pieces: list[sp.Expr] = []
     for count, condition in grouped.items():
-        if count is sp.oo or count == sp.oo:
+        if count == sp.oo:
             pieces.append(condition)
             continue
         try:
             if int(count) > 0:
                 pieces.append(condition)
-        except Exception:
+        except _RECOVERABLE_ERRORS:
             continue
     return _simplify_condition(sp.Or(*pieces)) if pieces else sp.false
 
@@ -169,7 +193,7 @@ def _single_relational_existential_condition(
     lhs = sp.expand(expr.lhs - expr.rhs)  # type: ignore[attr-defined]
     try:
         poly = sp.Poly(lhs, var)
-    except Exception:
+    except _RECOVERABLE_ERRORS:
         return None
     if any(sym not in set(params) | {var} for sym in lhs.free_symbols):
         return None
@@ -259,18 +283,18 @@ def solvability_conditions(
     """Return parameter conditions for real solvability of a constraint system."""
 
     if domain.lower() not in {"real", "reals", "r", "rr"}:
-        raise NotImplementedError("solvability_conditions currently supports only the real domain")
-    expr = _normalize_formula(constraints)
+        raise NotImplementedError("solvability_conditions supports only the real domain")
+    expr = normalize_formula(constraints)
     vars_ = _normalize_symbols(variables, expr=expr)
     params = _ordered_free_parameters(expr, vars_, parameters)
 
-    if expr is sp.true or expr == sp.true:
+    if is_true_expr(expr):
         condition = sp.true
         result = SolvabilityConditionsResult(condition, expr, vars_, params, "trivial")
         if return_stratified:
             return result.as_stratified_result()
         return result if return_result else condition
-    if expr is sp.false or expr == sp.false:
+    if is_false_expr(expr):
         condition = sp.false
         result = SolvabilityConditionsResult(condition, expr, vars_, params, "trivial")
         if return_stratified:
@@ -291,11 +315,11 @@ def solvability_conditions(
         dict.fromkeys(
             tuple(params)
             + tuple(vars_)
-            + tuple(sorted(expr.free_symbols - set(params) - set(vars_), key=lambda s: s.name))
+            + tuple(sorted(expr.free_symbols - set(params) - set(vars_), key=symbol_identity_key))
         )
     )
     qe_result = qe_by_complete_cad(
-        all_vars, quantifiers, parse_formula(expr), free_variables=params
+        all_vars, quantifiers, parse_formula(expr), free_variables=params, return_result=True
     )
     condition = _simplify_condition(qe_result.formula)
     result = SolvabilityConditionsResult(
@@ -338,7 +362,7 @@ def root_count_conditions(
     params = (
         _normalize_symbols(parameters, expr=expr)
         if parameters is not None
-        else tuple(sorted(expr.free_symbols - {var}, key=lambda sym: sym.name))
+        else tuple(sorted(expr.free_symbols - {var}, key=symbol_identity_key))
     )
     classification = classify_real_roots(expr, var, parameters=params)
     grouped: dict[sp.Expr, list[sp.Expr]] = {}

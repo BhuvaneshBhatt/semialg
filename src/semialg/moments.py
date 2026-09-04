@@ -5,8 +5,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
-from .normalization import normalize_formula as _normalize_formula
-from .normalization import normalize_variables as _normalize_variables
+from .normalization import normalize_formula, normalize_variables
 from .region_integrate import integrate_over_region
 
 
@@ -120,9 +119,9 @@ def region_moment(
     may pass an explicit ``integrand`` for a general raw moment.
     """
 
-    formula = _normalize_formula(condition)
+    formula = normalize_formula(condition)
     explicit_integrand = None if integrand is None else sp.sympify(integrand)
-    vars_ = _normalize_variables(variables, formula, explicit_integrand)
+    vars_ = normalize_variables(variables, formula, explicit_integrand)
     moment_integrand, power_tuple = _moment_integrand(vars_, powers, integrand)
     value = integrate_over_region(
         moment_integrand,
@@ -165,8 +164,8 @@ def region_centroid(
 ) -> Mapping[sp.Symbol, sp.Expr] | RegionCentroidResult:
     """Return the centroid of a finite-measure semialgebraic region."""
 
-    formula = _normalize_formula(condition)
-    vars_ = _normalize_variables(variables, formula)
+    formula = normalize_formula(condition)
+    vars_ = normalize_variables(variables, formula)
     measure = integrate_over_region(
         sp.Integer(1),
         formula,
@@ -229,8 +228,8 @@ def region_covariance(
 ) -> sp.Matrix | RegionCovarianceResult:
     """Return the covariance matrix of the uniform measure on a region."""
 
-    formula = _normalize_formula(condition)
-    vars_ = _normalize_variables(variables, formula)
+    formula = normalize_formula(condition)
+    vars_ = normalize_variables(variables, formula)
     centroid_result = region_centroid(
         formula,
         vars_,
@@ -240,7 +239,8 @@ def region_covariance(
         measure_dimension=measure_dimension,
         return_result=True,
     )
-    assert isinstance(centroid_result, RegionCentroidResult)
+    if not isinstance(centroid_result, RegionCentroidResult):
+        raise TypeError("centroid computation returned an unexpected result type")
     measure = centroid_result.measure
     _validate_finite_nonzero_measure(measure)
 

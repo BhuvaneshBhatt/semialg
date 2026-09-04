@@ -1,0 +1,366 @@
+"""Shared exact graph construction for real semialgebraic functions.
+
+This module deliberately distinguishes SymPy's principal ``Pow`` semantics
+from explicit real-root expressions produced by :func:`sympy.real_root`.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import sympy as sp
+from sympy.core.relational import Relational
+from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+
+from .internal_symbols import fresh_real_dummy
+
+
+@dataclass(frozen=True)
+class SemialgebraicFunctionGraph:
+    """Exact real graph representation of a supported expression."""
+
+    expression: sp.Expr
+    target: sp.Symbol
+    formula: sp.Expr
+    auxiliary_variables: tuple[sp.Symbol, ...] = ()
+    supported: bool = True
+    diagnostics: tuple[str, ...] = ()
+
+
+class UnsupportedFunctionGraph(ValueError):
+    """Raised when an expression has no implemented exact real graph encoding."""
+
+
+@dataclass(frozen=True)
+class SemialgebraicFormulaGraph:
+    """Exact polynomial/Boolean encoding of a supported semialgebraic formula."""
+
+    formula: sp.Expr
+    auxiliary_variables: tuple[sp.Symbol, ...] = ()
+    diagnostics: tuple[str, ...] = ()
+
+
+def _match_real_root_power(expr: sp.Expr) -> tuple[sp.Expr, sp.Rational] | None:
+    """Recognize SymPy forms equivalent to an odd-denominator real-root power.
+
+    SymPy represents ``real_root(base, q)**p`` using powers of ``sign(base)``
+    and ``Abs(base)``.  Matching that representation directly avoids building
+    separate graph nodes for ``sign`` and ``Abs`` and preserves real-root
+    semantics for positive and negative integer powers.
+    """
+
+    factors = expr.args if isinstance(expr, sp.Mul) else (expr,)
+    sign_factor: sp.Expr | None = None
+    absolute_power: sp.Pow | None = None
+    for factor in factors:
+        if factor.func is sp.sign:
+            if sign_factor is not None:
+                return None
+            sign_factor = factor
+            continue
+        if (
+            isinstance(factor, sp.Pow)
+            and factor.base.func is sp.Abs
+            and factor.exp.is_Rational is True
+            and factor.exp.is_integer is False
+        ):
+            if absolute_power is not None:
+                return None
+            absolute_power = factor
+            continue
+        if (
+            isinstance(factor, sp.Pow)
+            and factor.base.func is sp.sign
+            and factor.exp.is_integer is True
+        ):
+            if sign_factor is not None:
+                return None
+            sign_factor = factor
+            continue
+        return None
+
+    if sign_factor is None or absolute_power is None:
+        return None
+    sign_base = sign_factor.args[0] if sign_factor.func is sp.sign else sign_factor.base.args[0]
+    sign_exponent = sp.Integer(1) if sign_factor.func is sp.sign else sp.Integer(sign_factor.exp)
+    absolute_base = absolute_power.base.args[0]
+    if sign_base != absolute_base:
+        return None
+    exponent = sp.Rational(absolute_power.exp)
+    if int(exponent.q) % 2 == 0 or sign_exponent != exponent.p:
+        return None
+    return sign_base, exponent
+
+
+def _relation_for_rational_expression(expr: sp.Expr, target: sp.Symbol) -> tuple[sp.Expr, sp.Expr]:
+    numerator, denominator = sp.fraction(sp.together(expr))
+    numerator = sp.expand(numerator)
+    denominator = sp.expand(denominator)
+    relation = sp.Eq(sp.expand(target * denominator - numerator), 0)
+    domain = sp.true if denominator == 1 else sp.Ne(denominator, 0)
+    return relation, domain
+
+
+def _is_noninteger_rational_pow(expr: sp.Expr) -> bool:
+    return (
+        isinstance(expr, sp.Pow) and expr.exp.is_Rational is True and expr.exp.is_integer is False
+    )
+
+
+def _is_graph_special(expr: sp.Expr) -> bool:
+    return (
+        expr.func in {sp.Abs, sp.Heaviside, sp.Max, sp.Min, sp.sign}
+        or isinstance(expr, sp.Piecewise)
+        or _is_noninteger_rational_pow(expr)
+    )
+
+
+def has_semialgebraic_graph_special(expr: sp.Expr) -> bool:
+    """Return whether ``expr`` contains a graph head needing auxiliaries."""
+
+    return any(_is_graph_special(item) for item in sp.preorder_traversal(sp.sympify(expr)))
+
+
+def _rational_power_graph(expr: sp.Pow, target: sp.Symbol) -> tuple[sp.Expr, tuple[sp.Symbol, ...]]:
+    """Encode the real-valued locus of SymPy's principal rational power.
+
+    For a noninteger rational exponent, SymPy ``Pow`` uses the principal
+    complex branch.  On real inputs that principal value is real on the
+    nonnegative base locus (strictly positive for negative exponents).
+    """
+
+    exponent = sp.Rational(expr.exp)
+    p, q = int(exponent.p), int(exponent.q)
+    base_value = fresh_real_dummy("semialg_graph_aux")
+    base_graph = semialgebraic_function_graph(expr.base, base_value)
+    if p > 0:
+        base_domain = base_value >= 0
+        relation = sp.Eq(target**q, base_value**p)
+        target_domain = target >= 0
+    else:
+        base_domain = base_value > 0
+        relation = sp.Eq(target**q * base_value ** (-p), 1)
+        target_domain = target > 0
+    return (
+        sp.And(base_graph.formula, base_domain, target_domain, relation),
+        (base_value, *base_graph.auxiliary_variables),
+    )
+
+
+def semialgebraic_function_graph(
+    expression: sp.Expr,
+    target: sp.Symbol,
+) -> SemialgebraicFunctionGraph:
+    """Construct an exact real semialgebraic graph for a supported expression.
+
+    Supported non-rational heads include ``Abs``, ``sign``, ``Heaviside``,
+    rational principal powers, ``Min``, ``Max``, and finite ``Piecewise`` expressions with
+    semialgebraic branch conditions.  Ordinary ``x**(p/q)`` keeps SymPy's
+    principal-branch semantics.  ``sympy.real_root`` expressions are supported
+    through SymPy's canonical ``sign(x)*Abs(x)**(p/q)`` representation.
+    """
+
+    expr = sp.sympify(expression)
+    target = sp.sympify(target)
+    if not isinstance(target, sp.Symbol):
+        raise TypeError("target must be a Symbol")
+
+    real_root_match = _match_real_root_power(expr)
+    if real_root_match is not None:
+        base, exponent = real_root_match
+        base_value = fresh_real_dummy("semialg_graph_aux")
+        base_graph = semialgebraic_function_graph(base, base_value)
+        numerator = int(exponent.p)
+        denominator = int(exponent.q)
+        if numerator > 0:
+            power_relation = sp.Eq(target**denominator, base_value**numerator)
+            domain_condition = sp.true
+        else:
+            power_relation = sp.Eq(target**denominator * base_value ** (-numerator), 1)
+            domain_condition = sp.Ne(base_value, 0)
+        return SemialgebraicFunctionGraph(
+            expr,
+            target,
+            sp.And(base_graph.formula, domain_condition, power_relation),
+            (base_value, *base_graph.auxiliary_variables),
+            diagnostics=(
+                ("explicit_real_root_semantics",)
+                if numerator == 1
+                else ("explicit_real_root_power_semantics",)
+            ),
+        )
+
+    if expr.func is sp.Abs:
+        arg_value = fresh_real_dummy("semialg_graph_aux")
+        arg_graph = semialgebraic_function_graph(expr.args[0], arg_value)
+        formula = sp.And(
+            arg_graph.formula,
+            target >= 0,
+            sp.Or(sp.Eq(target, arg_value), sp.Eq(target, -arg_value)),
+        )
+        return SemialgebraicFunctionGraph(
+            expr, target, formula, (arg_value, *arg_graph.auxiliary_variables)
+        )
+
+    if expr.func is sp.Heaviside:
+        arg_value = fresh_real_dummy("semialg_graph_aux")
+        zero_value = fresh_real_dummy("semialg_graph_aux")
+        arg_graph = semialgebraic_function_graph(expr.args[0], arg_value)
+        zero_graph = semialgebraic_function_graph(expr.args[1], zero_value)
+        branches = sp.Or(
+            sp.And(arg_value < 0, sp.Eq(target, 0)),
+            sp.And(sp.Eq(arg_value, 0), sp.Eq(target, zero_value)),
+            sp.And(arg_value > 0, sp.Eq(target, 1)),
+        )
+        return SemialgebraicFunctionGraph(
+            expr,
+            target,
+            sp.And(arg_graph.formula, zero_graph.formula, branches),
+            tuple(
+                dict.fromkeys(
+                    (
+                        arg_value,
+                        *arg_graph.auxiliary_variables,
+                        zero_value,
+                        *zero_graph.auxiliary_variables,
+                    )
+                )
+            ),
+        )
+
+    if expr.func is sp.sign:
+        arg_value = fresh_real_dummy("semialg_graph_aux")
+        arg_graph = semialgebraic_function_graph(expr.args[0], arg_value)
+        branches = sp.Or(
+            sp.And(arg_value < 0, sp.Eq(target, -1)),
+            sp.And(sp.Eq(arg_value, 0), sp.Eq(target, 0)),
+            sp.And(arg_value > 0, sp.Eq(target, 1)),
+        )
+        return SemialgebraicFunctionGraph(
+            expr,
+            target,
+            sp.And(arg_graph.formula, branches),
+            (arg_value, *arg_graph.auxiliary_variables),
+        )
+
+    if _is_noninteger_rational_pow(expr):
+        formula, auxiliaries = _rational_power_graph(expr, target)
+        return SemialgebraicFunctionGraph(expr, target, formula, auxiliaries)
+
+    if expr.func in {sp.Max, sp.Min}:
+        values: list[sp.Symbol] = []
+        formulas: list[sp.Expr] = []
+        auxiliaries: list[sp.Symbol] = []
+        for arg in expr.args:
+            value = fresh_real_dummy("semialg_graph_aux")
+            graph = semialgebraic_function_graph(arg, value)
+            values.append(value)
+            formulas.append(graph.formula)
+            auxiliaries.extend((value, *graph.auxiliary_variables))
+        branches = []
+        for value in values:
+            ordering = sp.And(
+                *((value >= other) if expr.func is sp.Max else (value <= other) for other in values)
+            )
+            branches.append(sp.And(sp.Eq(target, value), ordering))
+        return SemialgebraicFunctionGraph(
+            expr, target, sp.And(*formulas, sp.Or(*branches)), tuple(dict.fromkeys(auxiliaries))
+        )
+
+    if isinstance(expr, sp.Piecewise):
+        branches: list[sp.Expr] = []
+        previous: list[sp.Expr] = []
+        auxiliaries: list[sp.Symbol] = []
+        for branch_expr, condition in expr.args:
+            effective = sp.And(condition, *(sp.Not(old) for old in previous))
+            condition_graph = semialgebraic_formula_graph(effective)
+            graph = semialgebraic_function_graph(branch_expr, target)
+            branches.append(sp.And(condition_graph.formula, graph.formula))
+            auxiliaries.extend(condition_graph.auxiliary_variables)
+            auxiliaries.extend(graph.auxiliary_variables)
+            previous.append(condition)
+        return SemialgebraicFunctionGraph(
+            expr, target, sp.Or(*branches), tuple(dict.fromkeys(auxiliaries))
+        )
+
+    # Reject unhandled symbolic functions before rational-expression fallback.
+    if expr.is_Function and not expr.is_Pow:
+        raise UnsupportedFunctionGraph(f"unsupported function head: {expr.func}")
+
+    constraints: list[sp.Expr] = []
+    replacements: dict[sp.Expr, sp.Symbol] = {}
+    auxiliaries: list[sp.Symbol] = []
+
+    def replace_specials(item: sp.Expr) -> sp.Expr:
+        item = sp.sympify(item)
+        if _is_graph_special(item):
+            if item in replacements:
+                return replacements[item]
+            aux = fresh_real_dummy("semialg_graph_aux")
+            graph = semialgebraic_function_graph(item, aux)
+            replacements[item] = aux
+            constraints.append(graph.formula)
+            auxiliaries.extend((aux, *graph.auxiliary_variables))
+            return aux
+        if item.is_Function:
+            raise UnsupportedFunctionGraph(f"unsupported function head: {item.func}")
+        if not item.args:
+            return item
+        args = tuple(replace_specials(arg) for arg in item.args)
+        return item if args == item.args else item.func(*args)
+
+    transformed = replace_specials(expr)
+    relation, domain = _relation_for_rational_expression(transformed, target)
+    formula = sp.And(*(constraints + [domain, relation]))
+    return SemialgebraicFunctionGraph(expr, target, formula, tuple(dict.fromkeys(auxiliaries)))
+
+
+def semialgebraic_formula_graph(formula: sp.Expr | bool) -> SemialgebraicFormulaGraph:
+    """Algebraize supported semialgebraic function heads inside a Boolean formula.
+
+    Relational residuals are represented by fresh graph variables, so formulas
+    such as ``Abs(x) <= a``, ``sqrt(x + 1) > y``, and Boolean combinations of
+    nested ``Min``/``Max``/``Piecewise`` expressions become ordinary polynomial
+    relations plus exact graph constraints.  Unsupported transcendental heads
+    still raise :class:`UnsupportedFunctionGraph`.
+    """
+
+    node = sp.sympify(formula)
+    if node is sp.true or isinstance(node, BooleanTrue):
+        return SemialgebraicFormulaGraph(sp.true)
+    if node is sp.false or isinstance(node, BooleanFalse):
+        return SemialgebraicFormulaGraph(sp.false)
+
+    if isinstance(node, Relational):
+        residual = fresh_real_dummy("semialg_formula_residual")
+        graph = semialgebraic_function_graph(sp.expand(node.lhs - node.rhs), residual)
+        relation = node.func(residual, sp.Integer(0))
+        return SemialgebraicFormulaGraph(
+            sp.And(graph.formula, relation),
+            graph.auxiliary_variables + (residual,),
+            ("relational_residual_graph",),
+        )
+
+    if isinstance(node, (sp.And, sp.Or, sp.Xor, sp.Equivalent, sp.Implies)):
+        children = [semialgebraic_formula_graph(arg) for arg in node.args]
+        combined = node.func(*(child.formula for child in children))
+        auxiliaries = tuple(
+            dict.fromkeys(aux for child in children for aux in child.auxiliary_variables)
+        )
+        return SemialgebraicFormulaGraph(combined, auxiliaries)
+
+    if isinstance(node, sp.Not):
+        child = semialgebraic_formula_graph(node.args[0])
+        return SemialgebraicFormulaGraph(sp.Not(child.formula), child.auxiliary_variables)
+
+    raise UnsupportedFunctionGraph(f"unsupported Boolean formula node: {node.func}")
+
+
+__all__ = [
+    "SemialgebraicFormulaGraph",
+    "SemialgebraicFunctionGraph",
+    "UnsupportedFunctionGraph",
+    "has_semialgebraic_graph_special",
+    "semialgebraic_formula_graph",
+    "semialgebraic_function_graph",
+]

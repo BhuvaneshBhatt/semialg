@@ -7,6 +7,7 @@ from math import floor
 
 import sympy as sp
 
+from ..._errors import EXACT_OPERATION_ERRORS
 from .families import detect_binary_homog_fam
 from .output_normalization import canon_int_result
 
@@ -35,14 +36,14 @@ def alg_height_surr(value: sp.Expr) -> sp.Expr:
         mp = sp.minpoly(sp.nsimplify(value))
         coeffs = [sp.Abs(c) for c in sp.Poly(mp).all_coeffs()]
         return sp.log(1 + max(coeffs))
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         return sp.log(1 + sp.Abs(sp.nsimplify(value)))
 
 
 def cont_frac_convs(alpha, max_terms: int = 20) -> list[Fraction]:
     try:
         a = float(alpha)
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         return []
     convs = []
     x = a
@@ -80,7 +81,7 @@ def _root_slopes_form(poly: sp.Expr, x: sp.Symbol, y: sp.Symbol):
         univariate = sp.expand(poly.subs({x: t, y: 1}))
         roots = sp.nroots(univariate, n=30, maxsteps=100)
         return [complex(r) for r in roots if abs(complex(r).imag) < 1e-8]
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         return []
 
 
@@ -124,6 +125,7 @@ def solve_binary_lll(
     search_bound: int = 200,
     cf_terms: int = 24,
 ):
+    """Solve the supported binary-form equation using lattice reduction and exact candidate verification."""
     descriptor = detect_binary_fam(expr, variables)
     if descriptor is None:
         return None

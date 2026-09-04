@@ -5,14 +5,16 @@ from semialg import (
     prove_nonnegative,
     prove_nonpositive,
     prove_positive,
+    simplify_system,
+    simplify_under_assumptions,
+)
+from semialg.reasoning import (
     region_bounded,
     region_closed,
     region_compact,
     region_disjoint,
     region_equal,
     region_subset,
-    simplify_system,
-    simplify_under_assumptions,
 )
 
 
@@ -64,3 +66,13 @@ def test_simplify_under_assumptions_abs_sqrt_minmax_piecewise():
     assert simplify_under_assumptions(sp.Min(x, y), x >= y, [x, y]) == y
     expr = sp.Piecewise((x, x >= 0), (-x, True))
     assert simplify_under_assumptions(expr, x >= 0, [x]) == x
+
+
+def test_symbolic_radial_subset_shortcut_does_not_force_boolean_truth_value():
+    x, y, r, s = sp.symbols("x y r s", real=True)
+    left = x**2 + y**2 <= r**2
+    right = x**2 + y**2 <= s**2
+    # With symbolic radii the radial shortcut is inconclusive; the general
+    # implication machinery must remain in control rather than raising from
+    # bool(r**2 <= s**2).  Quantifying the radii makes the answer definite.
+    assert region_subset(left, right, (x, y, r, s)) is False

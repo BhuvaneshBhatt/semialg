@@ -2,6 +2,33 @@
 
 semialg follows an **exact-first** policy. This does not mean every symbolic-looking object is automatically a proof. The package distinguishes four ideas that users should keep separate.
 
+## Public exactness contract
+
+For exact/certified APIs, `semialg` does **not** silently replace an unsupported exact computation with a fixed-precision numerical approximation. A specialized exact backend may decline; the planner may then try another exact backend or a complete CAD path. If the requested exact operation is unsupported or cannot be certified by the implemented method, the operation should fail explicitly or return a result whose incomplete/candidate status is explicit in that API's contract.
+
+**Exact does not mean inexpensive.** Complete real quantifier elimination can be extremely costly even when the final answer is simple.
+
+The package uses several exact computational representations: ordinary SymPy rational/algebraic expressions, exact algebraic-root objects and isolating data, rational-univariate representations for finite systems, and semialgebraic Boolean formulas for sets and relations. Quadratic virtual substitution is also an exact low-degree QE/witness backend; it is not a numerical approximation.
+
+
+## Exactness contract by operation
+
+Numerical computation is permitted in different roles depending on the API. The decisive rule is whether a numerical value is allowed to establish the mathematical claim.
+
+| Operation family | Numerical candidates allowed? | Exact validation required for an exact result? |
+|---|---:|---:|
+| CAD projection/lifting sign decisions | No fixed-precision proof substitute | Yes |
+| Exact `find_instance` / exact sampling | Yes, as candidate generation only | Yes |
+| Algebraic bound ordering | A numerical proposal may seed a rational candidate | Yes, by exact comparison |
+| RUR / zero-dimensional solving | Heuristics may choose representation/order | Yes |
+| Exact optimization | Candidate generation may use structural heuristics | Yes, for feasibility/value/global certification |
+| Exact range / QE reconstruction | Heuristics may choose a backend or presentation | Yes |
+| Plotting / discretization | Yes | No; these are presentation APIs |
+| `exact=False` sampling/integration modes | Yes | No; inexactness is explicit |
+| Certified transcendental root intervals, where supported | Numerical interval arithmetic may be part of the certified algorithm | Yes, through the backend's interval/certificate rules |
+
+A useful implementation principle follows: **numerics may suggest; they may not silently certify an exact API.**
+
 ## Exact representation
 
 An object is exact when it denotes a mathematical value or set without finite-precision approximation. Examples include rational numbers, `sqrt(2)`, exact `RootOf`/algebraic-root objects, polynomial relations, and certified isolating intervals.
@@ -24,7 +51,7 @@ Structured result objects expose certification information where the distinction
 
 Some algorithms first generate candidates using KKT systems, active sets, structural heuristics, variable-order estimates, or pilot lifting. A candidate may be exact as a point while the statement “this is the global optimum” is not yet certified.
 
-semialg should not silently upgrade candidate generation into a proof. Certification is a separate stage.
+semialg should not silently upgrade candidate generation into a proof. Certification is a separate operation.
 
 ## Numerical approximation
 

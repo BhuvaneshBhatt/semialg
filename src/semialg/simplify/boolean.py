@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sympy as sp
+from sympy.core.relational import Relational
 
 from .atoms import normalize_atoms
 
@@ -37,21 +38,31 @@ def _merge_point_with_strict_ray(expr: sp.Expr) -> sp.Expr:
     return expr
 
 
-def simplify_boolean(expr: sp.Expr) -> sp.Expr:
-    """Deterministically simplify a Boolean combination of SymPy relations.
-
-    Keep Boolean formulas in SymPy's logic simplifier. Calling scalar
-    ``sp.simplify`` on Boolean ``And``/``Or`` formulas can route through
-    arithmetic simplifiers such as ``radsimp`` and trigger deprecation
-    warnings about non-expression arguments in ``Mul``.
-    """
+def simplify_boolean_form(expr: sp.Expr, *, form: str = "dnf") -> sp.Expr:
+    """Simplify Boolean structure in DNF/CNF while treating relations atomically."""
 
     expr = normalize_atoms(expr)
+    relations = tuple(sorted(expr.atoms(Relational), key=sp.default_sort_key))
+    if not relations:
+        try:
+            return sp.simplify_logic(expr, form=form, deep=False)
+        except (TypeError, ValueError, NotImplementedError, AttributeError):
+            return expr
+    symbols = tuple(sp.Dummy(f"rel_{index}", boolean=True) for index in range(len(relations)))
+    forward = dict(zip(relations, symbols, strict=True))
+    reverse = dict(zip(symbols, relations, strict=True))
+    propositional = expr.xreplace(forward)
     try:
-        simplified = sp.simplify_logic(expr, form="dnf")
-    except Exception:
-        simplified = expr
-    return _merge_point_with_strict_ray(simplified)
+        simplified = sp.simplify_logic(propositional, form=form, deep=False)
+    except (TypeError, ValueError, NotImplementedError, AttributeError):
+        simplified = propositional
+    return simplified.xreplace(reverse)
 
 
-__all__ = ["simplify_boolean"]
+def simplify_boolean(expr: sp.Expr) -> sp.Expr:
+    """Simplify Boolean structure without recursively simplifying relations."""
+
+    return _merge_point_with_strict_ray(simplify_boolean_form(expr, form="dnf"))
+
+
+__all__ = ["simplify_boolean", "simplify_boolean_form"]

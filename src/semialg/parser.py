@@ -13,6 +13,7 @@ from sympy.parsing.sympy_parser import (
 )
 
 from .formula import And, Atom, BoolConst, Formula, Not, Or, ParsedPrenexFormula
+from .structural_keys import symbol_identity_key
 
 Quantifier = tuple[str, sp.Symbol]
 _TRANSFORMS = standard_transformations + (implicit_mul, convert_equals_signs)
@@ -26,7 +27,7 @@ def parse_quantified_formula(
     quantifiers, matrix_text = _split_quantifier_prefix(text, local_symbols)
     matrix = _parse_form_order(matrix_text, local_symbols)
     matrix_expr = _formula_to_sympy(matrix)
-    matrix_symbols = tuple(sorted(matrix_expr.free_symbols, key=lambda s: s.name))
+    matrix_symbols = tuple(sorted(matrix_expr.free_symbols, key=symbol_identity_key))
     quantified_vars = tuple(var for _, var in quantifiers)
     free_vars = tuple(sym for sym in matrix_symbols if sym not in quantified_vars)
     if variable_order is not None:

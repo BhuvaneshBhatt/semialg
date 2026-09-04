@@ -18,15 +18,12 @@ from ...formulas.boolean import (
     make_or as _shared_or,
 )
 from ...formulas.boolean import (
-    negate_relation as _shared_negate_relation,
-)
-from ...formulas.boolean import (
     relation_from_residual as _shared_relation,
 )
 from ...formulas.boolean import (
     to_negation_normal_form as _shared_to_negation_normal_form,
 )
-from .types import VirtualSubstitutionError
+from .results import VirtualSubstitutionError
 
 
 def _and(*args: sp.Expr) -> sp.Expr:
@@ -47,13 +44,6 @@ def _relation(expr: sp.Expr, operator: str) -> sp.Expr:
 def _canonical_atom(atom: Relational) -> tuple[sp.Expr, str]:
     try:
         return _shared_canonical_relation(atom)
-    except ValueError as exc:
-        raise VirtualSubstitutionError(str(exc)) from exc
-
-
-def _negate_atom(atom: Relational) -> sp.Expr:
-    try:
-        return _shared_negate_relation(atom)
     except ValueError as exc:
         raise VirtualSubstitutionError(str(exc)) from exc
 
@@ -82,5 +72,4 @@ def _polynomial_degree(expr: sp.Expr, variable: sp.Symbol) -> int:
 
 def _coefficient_list(expr: sp.Expr, variable: sp.Symbol, length: int) -> list[sp.Expr]:
     poly = sp.Poly(sp.expand(expr), variable, domain="EX")
-    coeffs = [sp.expand(poly.nth(i)) for i in range(length)]
-    return coeffs
+    return [sp.expand(poly.nth(i)) for i in range(length)]

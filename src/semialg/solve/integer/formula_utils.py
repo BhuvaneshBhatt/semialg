@@ -10,7 +10,6 @@ _RECOVERABLE_ROOT_ERRORS = (
     TypeError,
     ValueError,
     NotImplementedError,
-    RuntimeError,
     sp.PolynomialError,
 )
 
@@ -62,11 +61,10 @@ def integer_roots_with_completeness(
 
 
 def integer_roots(poly_expr: sp.Expr, var: sp.Symbol) -> list[sp.Expr]:
-    """Return exactly identified integer roots of a univariate polynomial.
+    """Return integer roots identified exactly, without a completeness claim.
 
-    This compatibility wrapper omits the completeness flag.  Code that uses an
-    empty list as a proof of unsatisfiability should call
-    :func:`integer_roots_with_completeness` instead.
+    Use :func:`integer_roots_with_completeness` when an empty result must be
+    distinguished from an incomplete search.
     """
 
     roots, _complete = integer_roots_with_completeness(poly_expr, var)

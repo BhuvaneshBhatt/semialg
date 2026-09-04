@@ -1,7 +1,7 @@
-"""Experimental transcendental preprocessing and solving helpers.
+"""Transcendental preprocessing and solving helpers.
 
-These routines implement sound fragments and heuristics outside the certified
-real-polynomial CAD/QE core.
+These routines cover explicitly documented exact fragments and bounded numerical
+searches outside the real-polynomial CAD/QE core.
 """
 
 from .cleanup import (
@@ -32,8 +32,8 @@ from .preprocess import (
     QuantifierDispatchPlan,
     TransPrepResult,
     build_quantifier_plan,
-    prep_trans_problem,
-    replace_function_auxilia,
+    preprocess_transcendental_problem,
+    replace_function_families,
     simp_piecewise_subexprs,
 )
 from .quantifier_elimination import QuantElimResult, eliminate_lead_block
@@ -56,8 +56,6 @@ from .system_roots import (
     solve_bounded_trans_sys,
 )
 
-EXPERIMENTAL = True
-
 __all__ = [
     "QuantifierBlock",
     "TransProblemState",
@@ -68,8 +66,8 @@ __all__ = [
     "TransPrepResult",
     "simp_piecewise_subexprs",
     "build_quantifier_plan",
-    "replace_function_auxilia",
-    "prep_trans_problem",
+    "replace_function_families",
+    "preprocess_transcendental_problem",
     "CertifiedIntervalRoot",
     "RootIsolationResult",
     "SampledTruthDecomp",

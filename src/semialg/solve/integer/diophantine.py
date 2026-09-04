@@ -9,7 +9,7 @@ from sympy import Eq
 
 from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
 from .congruence import solve_quant_free_mod_sys
-from .factorization import solve_int_recursion
+from .factorization import solve_factorized_integer_equation
 from .formula_utils import (
     conjuncts as _conjuncts,
 )
@@ -131,7 +131,7 @@ def reduce_int_divis(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSol
 
 
 def solve_int_branches(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSolveResult | None:
-    result = solve_int_recursion(expr, variables)
+    result = solve_factorized_integer_equation(expr, variables)
     if result is None:
         return None
     return IntEqnSolveResult(
@@ -145,9 +145,14 @@ def solve_int_branches(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnS
 
 
 def solve_int_sys_via_factor(
-    expr: sp.Expr, variables: Sequence[sp.Symbol]
+    expr: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    branch_solver=None,
 ) -> IntEqnSolveResult | None:
+    """Solve a factorizable integer equation branchwise without claiming completeness for unresolved factors."""
     variables = tuple(variables)
+    solve_branch = branch_solver or solve_int_methods
     atoms = _conjuncts(expr)
     eqs = [a for a in atoms if isinstance(a, Eq)]
     others = [a for a in atoms if not isinstance(a, Eq)]
@@ -164,7 +169,7 @@ def solve_int_sys_via_factor(
     all_branches_complete = True
     for factor in {factor for factor, _exponent in factors}:
         subexpr = sp.And(*(others + [sp.Eq(factor, 0)]))
-        sub = solve_int_methods(subexpr, variables)
+        sub = solve_branch(subexpr, variables)
         if sub is None:
             all_branches_complete = False
             branch_formulas.append(subexpr)
@@ -209,8 +214,12 @@ def solve_int_branch(
     )
 
 
-def solve_int_recursion2(
-    expr: sp.Expr, variables: Sequence[sp.Symbol], *, max_branch_points: int = 200
+def solve_recursive_diophantine(
+    expr: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    max_branch_points: int = 200,
+    root_solver=None,
 ) -> IntEqnSolveResult | None:
     """Solve an integer polynomial system by bounded recursive elimination and branching."""
     variables = tuple(variables)
@@ -221,7 +230,8 @@ def solve_int_recursion2(
     polys = [sp.expand(eq.lhs - eq.rhs) for eq in eqs]
     try:
         gb = sp.groebner(polys, *reversed(variables), order="lex")
-        basis = [sp.expand(p.as_expr()) for p in gb.polys if sp.expand(p.as_expr()) != 0]
+        expanded = [sp.expand(p.as_expr()) for p in gb.polys]
+        basis = [poly for poly in expanded if poly != 0]
     except _RECOVERABLE_ERRORS:
         basis = polys
 
@@ -237,7 +247,8 @@ def solve_int_recursion2(
     if chosen_var is None:
         return None
 
-    roots, roots_complete = _integer_roots_complete(chosen_poly, chosen_var)
+    solve_roots = root_solver or _integer_roots_complete
+    roots, roots_complete = solve_roots(chosen_poly, chosen_var)
     if not roots and roots_complete:
         return IntEqnSolveResult(
             variables=variables,
@@ -308,25 +319,29 @@ def mod_res_cands(
     if not residue_sets:
         return None
     # Incrementally CRT-combine residue classes.
-    combined = [tuple([0] * len(tuple(variables)))]
     from .congruence import combine_mod_crt
 
     try:
-        combined = combine_mod_crt(
+        return combine_mod_crt(
             [pts for _m, pts in residue_sets], variables, [m for m, _pts in residue_sets]
         )
-        return combined
     except _RECOVERABLE_ERRORS:
         return None
 
 
-def solve_int_pruning(
+def solve_integer_with_modular_pruning(
     expr: sp.Expr,
     variables: Sequence[sp.Symbol],
     *,
     search_radius: int = 10,
     moduli: Sequence[int] = (2, 3, 5, 7),
 ) -> IntEqnSolveResult | None:
+    """Search integer solutions after pruning impossible modular residue classes.
+
+    The bounded lift is intentionally incomplete: modular inconsistency proves
+    unsatisfiability, while discovered lattice points are witnesses and an empty
+    bounded search does not prove that no larger solution exists.
+    """
     variables = tuple(variables)
     residues = mod_res_cands(expr, variables, moduli)
     if residues == []:
@@ -499,8 +514,8 @@ def solve_int_methods(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSo
         lambda e, vs: solve_int_branches(e, vs),
         lambda e, vs: solve_int_sys_via_factor(e, vs),
         lambda e, vs: solve_int_branch(e, vs),
-        lambda e, vs: solve_int_recursion2(e, vs),
-        lambda e, vs: solve_int_pruning(e, vs),
+        lambda e, vs: solve_recursive_diophantine(e, vs),
+        lambda e, vs: solve_integer_with_modular_pruning(e, vs),
     ):
         try:
             result = solver(expr, variables)
@@ -520,8 +535,8 @@ __all__ = [
     "solve_int_branches",
     "solve_int_sys_via_factor",
     "solve_int_branch",
-    "solve_int_recursion2",
-    "solve_int_pruning",
+    "solve_recursive_diophantine",
+    "solve_integer_with_modular_pruning",
     "detect_sum_eqn",
     "solve_sum_of_two_squares",
     "detect_binary_homog_eqn",

@@ -17,6 +17,7 @@ class CellOutput(tuple):
 
 
 def select_solution_output(result: SemialgebraicSolution, output: str | None) -> object:
+    """Convert a certified decision result into the requested public output representation."""
     if output is None:
         return result
     key = output.lower().replace("-", "_")
@@ -74,6 +75,7 @@ def add_standard_solver_diagnostics(
     parameter_decomposition: object | None = None,
     solved: object | None = None,
 ) -> dict[str, object]:
+    """Attach normalized solver diagnostics to a structured decision result."""
     metadata = metadata or {}
     diagnostics.setdefault("backend", method)
     diagnostics.setdefault("normalization_steps", ())

@@ -11,9 +11,11 @@ from .heuristics import (
     candidate_variable_orders,
     choose_best_variable_order,
     choose_formula_variable_order,
+    clear_variable_order_cache,
     ndrr_score,
     score_variable_order,
     sotd_score,
+    variable_order_cache_info,
 )
 from .select import StrategySelection, build_qe_config, select_strat_analysis, select_strat_for_form
 from .strategy_memory import StrategyMemory, StrategyMemoryEntry
@@ -31,8 +33,10 @@ __all__ = [
     "sotd_score",
     "ndrr_score",
     "candidate_variable_orders",
+    "clear_variable_order_cache",
     "choose_best_variable_order",
     "choose_formula_variable_order",
+    "variable_order_cache_info",
     "StrategyMemory",
     "StrategyMemoryEntry",
     "feature_signature",

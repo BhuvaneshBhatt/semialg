@@ -29,5 +29,5 @@ def groebner_precondition(
         G = sp.groebner(polys, *vars_, order=order)
         reduced = tuple(sp.expand(g) for g in G.polys)
         return GroebnerPrecondResult(polys, reduced, reduced != polys, order, vars_)
-    except Exception:
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         return GroebnerPrecondResult(polys, polys, False, order, vars_)

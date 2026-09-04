@@ -7,6 +7,7 @@ from enum import Enum
 import sympy as sp
 
 from ..formula import Formula, parse_formula, to_sympy
+from ..structural_keys import symbol_identity_key
 from .auxiliary import AuxiliaryDef, AuxiliaryFactory
 
 
@@ -40,7 +41,7 @@ def _replace_float_literals(expr: sp.Expr) -> tuple[sp.Expr, bool]:
 
 
 def _branch_points_for_abs_arg(arg: sp.Expr) -> tuple[sp.Expr, ...]:
-    if arg.is_polynomial(*sorted(arg.free_symbols, key=lambda s: s.name)):
+    if arg.is_polynomial(*sorted(arg.free_symbols, key=symbol_identity_key)):
         return (sp.Eq(sp.expand(arg), 0),)
     return tuple()
 
@@ -86,6 +87,7 @@ def _replace_rational_powers(
     *,
     policy: PowerPolicy,
 ) -> tuple[sp.Expr, list[AuxiliaryDef], dict[sp.Expr, sp.Expr], list[str]]:
+    """Replace supported rational powers with polynomial auxiliary constraints under the chosen real branch policy."""
     if policy == PowerPolicy.STRICT_POLYNOMIAL:
         return expr, [], {}, []
     aux_defs: list[AuxiliaryDef] = []

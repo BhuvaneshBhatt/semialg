@@ -1,7 +1,7 @@
 import pytest
 import sympy as sp
 
-from semialg.cad.cells import (
+from semialg.cad_algorithms.cells import (
     CylindricalCoordinateConstraint,
     CylindricalSolution,
     CylindricalSolutionCell,

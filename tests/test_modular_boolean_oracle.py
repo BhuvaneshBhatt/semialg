@@ -3,6 +3,7 @@ import itertools
 import pytest
 import sympy as sp
 
+from semialg.errors import ResourceLimitError
 from semialg.solve.integer.congruence import combine_mod_crt, solve_quant_free_mod_sys
 
 
@@ -60,7 +61,7 @@ def test_invalid_modulus_is_not_truncated():
 
 
 def test_crt_recombination_enforces_budget():
-    with pytest.raises(RuntimeError, match="CRT recombination exceeds"):
+    with pytest.raises(ResourceLimitError, match="CRT recombination exceeds"):
         combine_mod_crt(
             [[(0,), (1,)], [(0,), (1,), (2,)]],
             (sp.Symbol("x"),),

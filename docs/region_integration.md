@@ -90,6 +90,38 @@ integrate_over_region(x**2, sp.Eq(x**2 + y**2, 1), [x, y], measure_dimension=1)
 # pi in supported cases
 ```
 
+## General Boolean regions
+
+For multidimensional formulas containing `Or` or `Not`, ambient-measure integration first evaluates the entire Boolean formula on an adapted CAD and selects the resulting disjoint full-dimensional cells. Each selected cell is converted to certified nested cylindrical bounds and integrated exactly once. This prevents overlap double-counting and supports general Boolean unions and bounded complements whenever the CAD cell bounds are integrable by the existing exact adapter.
+
+Explicit `bounds=` are conjoined to the Boolean formula before CAD decomposition. This makes expressions such as the complement of a bounded hole integrable over a finite ambient box without incorrectly treating the complement as globally unbounded. `semialgebraic_measure` uses the same path because it delegates to `integrate_over_region` with integrand `1`.
+
+## Parameter-dependent semialgebraic regions
+
+This is distinct from `integrate_over_parametric_region`, which integrates over an explicitly parametrized curve, surface, or volume. `integrate_over_region(..., parameters=[...], return_stratified=True)` instead treats selected free symbols in the *region formula* as parameters and returns a certified `ParameterStratifiedResult`.
+
+```python
+a = sp.Symbol("a", real=True)
+
+result = integrate_over_region(
+    x,
+    sp.And(x >= 0, x <= a),
+    [x],
+    parameters=[a],
+    return_stratified=True,
+)
+
+result.select({a: 2})
+# 2
+
+result.select({a: -1})
+# 0
+```
+
+The parameter-space CAD separates feasible fibers from empty fibers. The integration reducer then keeps the parameter symbols in certified symbolic bounds; empty fibers receive integral zero, so the result covers the full parameter space. The supported symbolic reductions remain valid over an entire parameter stratum, including parameter-dependent axis-aligned intervals/boxes. General nonlinear parameter-dependent CAD root-function bounds and intrinsic parameter-dependent measure are outside the supported integration fragment.
+
+`semialgebraic_measure` accepts the same `parameters=` and `return_stratified=True` options because it delegates to region integration with integrand `1`.
+
 ## Supported standard shapes and forms
 
 The current exact layer supports many common cases, including:
@@ -100,6 +132,8 @@ The current exact layer supports many common cases, including:
 - origin-centered disks and annuli;
 - axis-aligned ellipses;
 - selected vertical-slice regions;
+- arbitrary-dimensional full-dimensional regions whose selected CAD cells expose certified triangular bounds;
+- automatic coordinate permutation when another CAD lifting order gives simpler certified iterated bounds;
 - selected graph curves and circles for intrinsic one-dimensional measure.
 
 
@@ -109,7 +143,7 @@ Public region APIs accept either SymPy symbols or string variable names. A strin
 
 ## Limitations
 
-Arbitrary-dimensional CAD cells can be converted to typed nested cylindrical bounds. Variable-dependent algebraic sections are represented by certified `AlgebraicRootFunction` objects, and full-dimensional cells have direct iterated-integral adapters. Lower-dimensional cells use a separate intrinsic adapter based on the induced metric of verified triangular graph cells; singular or non-graph strata that cannot be certified still fail conservatively.
+Arbitrary-dimensional CAD cells can be converted to typed nested cylindrical bounds. Variable-dependent algebraic sections are represented by certified `AlgebraicRootFunction` objects, and full-dimensional cells have direct iterated-integral adapters. Ambient integration performs a bounded variable-order search instead of assuming the caller's coordinate order: inexpensive explicit cylindrical permutations are considered first, followed by a small CAD-order set including the original order and Brown-style suggestions. Candidate decompositions are ranked by cell count and symbolic boundary complexity. Lower-dimensional cells use a separate intrinsic adapter based on the induced metric of verified triangular graph cells; singular or non-graph strata that cannot be certified still fail conservatively.
 
 ## Typed CAD bounds
 
@@ -156,3 +190,10 @@ SymPy symbol identity and assumptions.
 Boolean-region integration uses exact intersection semantics. In particular,
 `RegionDifference(A, B)` integrates over `A \ B`, equivalently subtracting the
 integral over `A ∩ B`; it does not assume that `B` is contained in `A`.
+
+
+## Parameter-dependent algebraic endpoints
+
+For one integration variable, parameter-dependent polynomial boundaries no longer have to reduce to explicit affine bounds. If the symbolic box/interval reducer declines, `integrate_over_region(..., parameters=..., return_stratified=True)` can build a complete CAD in `(parameters..., x)`. Parameter-level cells are induced by the full projection tower, so the real roots defining each fiber sector are delineable and retain a fixed order on the stratum. The exact antiderivative is then evaluated at the reconstructed algebraic root functions.
+
+For example, `x**2 <= a` yields zero measure on `a <= 0` and an algebraic-root endpoint difference on `a > 0`, specializing exactly to `2*sqrt(a)` at concrete nonnegative algebraic/rational parameter values. Multidimensional nonlinear parametric cell bounds are outside the supported integration fragment.

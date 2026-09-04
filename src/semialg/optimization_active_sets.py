@@ -8,18 +8,10 @@ from itertools import combinations
 import sympy as sp
 from sympy.polys.polyerrors import PolynomialError
 
+from .algebraic.groebner_utils import compute_groebner_basis
+from .internal_symbols import fresh_real_dummy
+from .normalization import conjuncts
 from .relations import split_relation
-
-
-def _atoms(condition: sp.Expr) -> tuple[sp.Expr, ...]:
-    if condition is sp.true or condition == sp.true:
-        return ()
-    if isinstance(condition, sp.And):
-        result: list[sp.Expr] = []
-        for arg in condition.args:
-            result.extend(_atoms(arg))
-        return tuple(result)
-    return (condition,)
 
 
 def jacobian_rank_equations(
@@ -59,7 +51,7 @@ def active_equations_consistent(active: Sequence[sp.Expr], variables: Sequence[s
     if not active:
         return True
     try:
-        basis = sp.groebner(tuple(active), *variables, order="grevlex", domain=sp.QQ)
+        basis = compute_groebner_basis(active, variables, order="grevlex", domain=sp.QQ)
     except (PolynomialError, ValueError, TypeError):
         return True
     var_set = set(variables)
@@ -85,14 +77,14 @@ def constant_gradient_rank(equalities: Sequence[sp.Expr], variables: Sequence[sp
     return 0
 
 
-def strict_boundary_keys(condition: sp.Expr | None, variables: Sequence[sp.Symbol]) -> set[str]:
+def strict_boundary_keys(condition: sp.Expr | None, variables: Sequence[sp.Symbol]) -> set[sp.Expr]:
     """Return canonical keys for strict-inequality boundaries."""
 
     if condition is None:
         return set()
-    keys: set[str] = set()
+    keys: set[sp.Expr] = set()
     var_set = set(variables)
-    for atom in _atoms(condition):
+    for atom in conjuncts(condition):
         try:
             residual, op = split_relation(atom)
         except (TypeError, ValueError, NotImplementedError):
@@ -103,7 +95,7 @@ def strict_boundary_keys(condition: sp.Expr | None, variables: Sequence[sp.Symbo
             residual = canonical_residual(residual, variables)
         except (PolynomialError, ValueError, TypeError):
             residual = sp.expand(residual)
-        keys.add(sp.srepr(residual))
+        keys.add(residual)
     return keys
 
 
@@ -116,13 +108,13 @@ def pruned_active_subsets(
     """Return nonredundant, algebraically consistent inequality active sets."""
 
     canonical_eqs: list[sp.Expr] = []
-    equality_keys: set[str] = set()
+    equality_keys: set[sp.Expr] = set()
     for eq in equalities:
         try:
             canon = canonical_residual(eq, variables)
         except (PolynomialError, ValueError, TypeError):
             canon = sp.expand(eq)
-        key = sp.srepr(canon)
+        key = canon
         if canon != 0 and key not in equality_keys:
             canonical_eqs.append(canon)
             equality_keys.add(key)
@@ -130,11 +122,13 @@ def pruned_active_subsets(
     equality_basis = None
     if canonical_eqs:
         try:
-            equality_basis = sp.groebner(canonical_eqs, *variables, order="grevlex", domain=sp.QQ)
+            equality_basis = compute_groebner_basis(
+                canonical_eqs, variables, order="grevlex", domain=sp.QQ
+            )
         except (PolynomialError, ValueError, TypeError):
             equality_basis = None
     filtered: list[sp.Expr] = []
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
     for inequality in inequalities:
         try:
             canon = canonical_residual(inequality, variables)
@@ -149,7 +143,7 @@ def pruned_active_subsets(
                     continue
             except (PolynomialError, ValueError, TypeError):
                 pass
-        key = sp.srepr(canon)
+        key = canon
         if key not in seen:
             filtered.append(canon)
             seen.add(key)
@@ -158,10 +152,10 @@ def pruned_active_subsets(
     max_active = min(max(0, len(variables) - eq_rank), len(filtered))
     strict_keys = strict_boundary_keys(condition, variables)
     subsets: list[tuple[sp.Expr, ...]] = []
-    infeasible: list[frozenset[str]] = []
+    infeasible: list[frozenset[sp.Expr]] = []
     for size in range(max_active + 1):
         for subset in combinations(filtered, size):
-            keys = frozenset(sp.srepr(item) for item in subset)
+            keys = frozenset(subset)
             if keys & strict_keys or any(bad <= keys for bad in infeasible):
                 continue
             active = tuple(canonical_eqs) + tuple(subset)
@@ -179,7 +173,7 @@ def kkt_system(
 ) -> tuple[tuple[sp.Expr, ...], tuple[sp.Symbol, ...]]:
     """Construct polynomial KKT equations for one active set."""
 
-    multipliers = tuple(sp.Symbol(f"_semialg_lambda_{i}", real=True) for i in range(len(active)))
+    multipliers = tuple(fresh_real_dummy(f"semialg_lambda_{i}") for i in range(len(active)))
     stationarity: list[sp.Expr] = []
     for var in variables:
         rhs = sum(

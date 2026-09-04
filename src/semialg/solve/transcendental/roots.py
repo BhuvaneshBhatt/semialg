@@ -15,7 +15,6 @@ _RECOVERABLE_ERRORS = (
     TypeError,
     ValueError,
     NotImplementedError,
-    RuntimeError,
     sp.PolynomialError,
 )
 
@@ -86,6 +85,7 @@ def _real_eval(func, x: float):
 
 
 def _bisect_sign_change(func, left: float, right: float, *, tol: float = 1e-10, max_iter: int = 80):
+    """Bisect a certified real sign-change bracket without assuming floating-point equality."""
     fl = _real_eval(func, left)
     fr = _real_eval(func, right)
     if fl is None or fr is None:
@@ -132,6 +132,7 @@ def _bisect_sign_change(func, left: float, right: float, *, tol: float = 1e-10, 
 def _certified_brackets(
     expr: sp.Expr, variable: sp.Symbol, lo: float, hi: float, *, samples: int = 160
 ):
+    """Construct disjoint sign-change brackets for roots detected on an ordered sample grid."""
     func = _numeric_function(expr, variable)
     if func is None:
         return ()
@@ -163,7 +164,6 @@ def _certified_brackets(
                 if bracket is not None:
                     intervals.append(bracket)
         prev_x, prev_v = x, cur_v
-    # de-duplicate by midpoint
     uniq = []
     seen = set()
     for ci in intervals:
@@ -182,6 +182,39 @@ def _support_points_intvs(intervals: Sequence[CertifiedIntervalRoot], lo: float,
         if b - a > 1e-8:
             support.append(sp.nsimplify((a + b) / 2.0))
     return tuple(support)
+
+
+def _polynomial_root_result(
+    equation: sp.Expr,
+    variable: sp.Symbol,
+    domain: object,
+) -> RootIsolationResult | None:
+    """Return a complete exact polynomial-root result when the input is univariate."""
+
+    if domain not in (S.Reals, S.Complexes):
+        return None
+    try:
+        poly = sp.Poly(equation, variable)
+        if not poly.is_univariate:
+            return None
+        all_roots = tuple(sorted(poly.all_roots(), key=sp.default_sort_key))
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        return None
+    roots = (
+        tuple(root for root in all_roots if root.is_real is True)
+        if domain == S.Reals
+        else all_roots
+    )
+    return RootIsolationResult(
+        variable=variable,
+        equation=equation,
+        domain=domain,
+        roots=roots,
+        representative_roots=roots,
+        complete=True,
+        method="poly_all_roots",
+        result_semantics=ResultSemantics.EXACT,
+    )
 
 
 def isolate_univar_roots(
@@ -242,28 +275,9 @@ def isolate_univar_roots(
             metadata={"period": period},
         )
 
-    if domain in (S.Reals, S.Complexes):
-        try:
-            poly = sp.Poly(equation, variable)
-            if poly.is_univariate:
-                all_roots = tuple(sorted(poly.all_roots(), key=sp.default_sort_key))
-                roots = (
-                    tuple(root for root in all_roots if root.is_real is True)
-                    if domain == S.Reals
-                    else all_roots
-                )
-                return RootIsolationResult(
-                    variable=variable,
-                    equation=equation,
-                    domain=domain,
-                    roots=roots,
-                    representative_roots=roots,
-                    complete=True,
-                    method="poly_all_roots",
-                    result_semantics=ResultSemantics.EXACT,
-                )
-        except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
-            pass
+    poly_result = _polynomial_root_result(equation, variable, domain)
+    if poly_result is not None:
+        return poly_result
 
     if domain == S.Reals:
         certified = _certified_brackets(equation, variable, -10.0, 10.0)
@@ -340,7 +354,6 @@ def decomp_univar_inequality(
     for expr in boundary_exprs:
         for ci in _certified_brackets(expr, variable, search_window[0], search_window[1]):
             certified_roots.append(ci)
-    # unique by midpoint
     uniq = []
     seen = set()
     for ci in certified_roots:

@@ -1,0 +1,342 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
+from itertools import combinations
+
+import sympy as sp
+
+from ..._immutable import freeze_mapping
+from ..performance_cache import PROJECTION_STEPS, PROJECTION_TOWERS, SQUAREFREE_BASES, STATS
+from ..polynomial_utils import (
+    PolynomialKey,
+    discriminant_expression,
+    lower_polynomial,
+    normalize_poly,
+    polynomial_family_key,
+    polynomial_key,
+    polynomial_sort_key,
+    polynomial_structural_key,
+    resultant_expression,
+    univariate_coefficients,
+)
+
+
+@dataclass(frozen=True)
+class ProjectionPolynomial:
+    """One polynomial in a projection tower with auditable provenance."""
+
+    poly: sp.Poly
+    level: int
+    source: str
+    parents: tuple[str, ...] = ()
+    operation_variable: sp.Symbol | None = None
+    expression: sp.Expr | None = None
+
+    @property
+    def key(self) -> str:
+        return polynomial_key(self.poly)
+
+
+@dataclass(frozen=True)
+class ProjectionLevel:
+    """Projection data for one CAD level."""
+
+    level: int
+    variable: sp.Symbol | None
+    polynomials: tuple[sp.Poly, ...]
+    entries: tuple[ProjectionPolynomial, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.entries:
+            entries = tuple(
+                ProjectionPolynomial(poly=poly, level=self.level, source="unspecified")
+                for poly in self.polynomials
+            )
+            object.__setattr__(self, "entries", entries)
+
+    @property
+    def provenance_by_key(self) -> dict[str, ProjectionPolynomial]:
+        return {entry.key: entry for entry in self.entries}
+
+
+@dataclass(frozen=True)
+class ProjectionTower:
+    """Complete Collins projection tower."""
+
+    variables: tuple[sp.Symbol, ...]
+    levels: tuple[ProjectionLevel, ...]
+    original_polynomials: tuple[sp.Poly, ...]
+    metadata: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "metadata", freeze_mapping(self.metadata))
+
+    def level(self, level: int) -> ProjectionLevel:
+        return self.levels[level - 1]
+
+    @property
+    def by_level(self) -> dict[int, tuple[sp.Poly, ...]]:
+        return {item.level: item.polynomials for item in self.levels}
+
+    def entries_by_level(self) -> dict[int, tuple[ProjectionPolynomial, ...]]:
+        return {item.level: item.entries for item in self.levels}
+
+    def poly_count_by_level(self) -> dict[int, int]:
+        return {item.level: len(item.polynomials) for item in self.levels}
+
+
+def _squarefree_factors(poly: sp.Poly) -> tuple[sp.Poly, ...]:
+    normalized = normalize_poly(poly)
+    if normalized is None or normalized.total_degree() == 0:
+        return tuple()
+    factors: list[sp.Poly] = [normalized]
+    try:
+        raw_factors = sp.factor_list(normalized.as_expr(), *normalized.gens)[1]
+    except (sp.PolynomialError, TypeError, ValueError, NotImplementedError, ArithmeticError):
+        raw_factors = []
+    for factor_expr, _mult in raw_factors:
+        factor = normalize_poly(sp.Poly(factor_expr, *normalized.gens))
+        if factor is not None and factor.total_degree() > 0:
+            factors.append(factor)
+    return tuple(factors)
+
+
+def squarefree_basis(polys: Iterable[sp.Poly]) -> tuple[sp.Poly, ...]:
+    polys = tuple(polys)
+    cache_key = polynomial_family_key(polys)
+    cached = SQUAREFREE_BASES.get(cache_key)
+    if cached is not None:
+        STATS.squarefree_hits += 1
+        return cached  # type: ignore[return-value]
+    STATS.squarefree_misses += 1
+    seen: set[PolynomialKey] = set()
+    out: list[sp.Poly] = []
+    for poly in polys:
+        for factor in _squarefree_factors(poly):
+            key = polynomial_structural_key(factor)
+            if key not in seen:
+                seen.add(key)
+                out.append(factor)
+    result = tuple(sorted(out, key=polynomial_sort_key))
+    SQUAREFREE_BASES.put(cache_key, result)
+    return result
+
+
+def _entry(
+    poly: sp.Poly | None,
+    *,
+    level: int,
+    source: str,
+    parents: tuple[str, ...],
+    var: sp.Symbol | None,
+    expr: sp.Expr | None = None,
+) -> ProjectionPolynomial | None:
+    if poly is None:
+        return None
+    return ProjectionPolynomial(
+        poly=poly,
+        level=level,
+        source=source,
+        parents=parents,
+        operation_variable=var,
+        expression=expr,
+    )
+
+
+def _dedupe_entries(entries: Iterable[ProjectionPolynomial]) -> tuple[ProjectionPolynomial, ...]:
+    by_key: dict[PolynomialKey, ProjectionPolynomial] = {}
+    for item in entries:
+        key = polynomial_structural_key(item.poly)
+        if key not in by_key:
+            by_key[key] = item
+            continue
+        old = by_key[key]
+        source = old.source if item.source == old.source else f"{old.source}|{item.source}"
+        parents = tuple(dict.fromkeys((*old.parents, *item.parents)))
+        by_key[key] = ProjectionPolynomial(
+            poly=old.poly,
+            level=old.level,
+            source=source,
+            parents=parents,
+            operation_variable=old.operation_variable,
+            expression=old.expression,
+        )
+    return tuple(sorted(by_key.values(), key=lambda entry: polynomial_sort_key(entry.poly)))
+
+
+def _content(
+    poly: sp.Poly, var: sp.Symbol, lower_gens: Sequence[sp.Symbol], level: int
+) -> list[ProjectionPolynomial]:
+    content = sp.Poly(poly.as_expr(), var).content()
+    item = _entry(
+        lower_polynomial(content, lower_gens),
+        level=level,
+        source="content",
+        parents=(polynomial_key(poly),),
+        var=var,
+        expr=content,
+    )
+    return [] if item is None else [item]
+
+
+def _coefficients(
+    poly: sp.Poly, var: sp.Symbol, lower_gens: Sequence[sp.Symbol], level: int
+) -> list[ProjectionPolynomial]:
+    out: list[ProjectionPolynomial] = []
+    parent = polynomial_key(poly)
+    for coeff in univariate_coefficients(poly, var):
+        projected = lower_polynomial(coeff, lower_gens)
+        item = _entry(
+            projected, level=level, source="coefficient", parents=(parent,), var=var, expr=coeff
+        )
+        if item is not None:
+            out.append(item)
+    return out
+
+
+def _discriminant(
+    poly: sp.Poly, var: sp.Symbol, lower_gens: Sequence[sp.Symbol], level: int
+) -> list[ProjectionPolynomial]:
+    if poly.degree(var) <= 1:
+        return []
+    expr = discriminant_expression(poly, var)
+    item = _entry(
+        lower_polynomial(expr, lower_gens),
+        level=level,
+        source="discriminant",
+        parents=(polynomial_key(poly),),
+        var=var,
+        expr=expr,
+    )
+    return [] if item is None else [item]
+
+
+def _resultant(
+    left: sp.Poly, right: sp.Poly, var: sp.Symbol, lower_gens: Sequence[sp.Symbol], level: int
+) -> list[ProjectionPolynomial]:
+    expr = resultant_expression(left, right, var)
+    item = _entry(
+        lower_polynomial(expr, lower_gens),
+        level=level,
+        source="resultant",
+        parents=(polynomial_key(left), polynomial_key(right)),
+        var=var,
+        expr=expr,
+    )
+    return [] if item is None else [item]
+
+
+def collins_proj_entries(
+    polys: Sequence[sp.Poly], var: sp.Symbol, lower_gens: Sequence[sp.Symbol], level: int
+) -> tuple[ProjectionPolynomial, ...]:
+    """Compute one Collins projection step with provenance for coefficients, resultants, and discriminants."""
+    cache_key = (
+        polynomial_family_key(tuple(polys)),
+        var,
+        tuple(lower_gens),
+        int(level),
+    )
+    cached = PROJECTION_STEPS.get(cache_key)
+    if cached is not None:
+        STATS.projection_step_hits += 1
+        return cached  # type: ignore[return-value]
+    STATS.projection_step_misses += 1
+    basis = squarefree_basis(polys)
+    active = [poly for poly in basis if poly.degree(var) > 0]
+    inactive = [poly for poly in basis if poly.degree(var) == 0]
+    projected: list[ProjectionPolynomial] = []
+    # Polynomials that do not contain the eliminated variable remain constraints
+    # on the lower-dimensional base and must be carried downward. Dropping
+    # them loses parameter-only bounds such as x <= 4 in exists y. y^2 = x.
+    if lower_gens:
+        for poly in inactive:
+            item = _entry(
+                lower_polynomial(poly.as_expr(), lower_gens),
+                level=level,
+                source="inactive",
+                parents=(polynomial_key(poly),),
+                var=var,
+                expr=poly.as_expr(),
+            )
+            if item is not None:
+                projected.append(item)
+    for poly in active:
+        projected.extend(_content(poly, var, lower_gens, level))
+        projected.extend(_coefficients(poly, var, lower_gens, level))
+        projected.extend(_discriminant(poly, var, lower_gens, level))
+    for left, right in combinations(active, 2):
+        projected.extend(_resultant(left, right, var, lower_gens, level))
+    result = _dedupe_entries(projected)
+    PROJECTION_STEPS.put(cache_key, result)
+    return result
+
+
+def collins_projection_step(
+    polys: Sequence[sp.Poly], var: sp.Symbol, lower_gens: Sequence[sp.Symbol]
+) -> tuple[sp.Poly, ...]:
+    return tuple(
+        entry.poly for entry in collins_proj_entries(polys, var, lower_gens, len(lower_gens))
+    )
+
+
+def _input_entries(polys: Sequence[sp.Poly], level: int) -> tuple[ProjectionPolynomial, ...]:
+    return _dedupe_entries(
+        ProjectionPolynomial(poly=poly, level=level, source="input")
+        for poly in squarefree_basis(polys)
+    )
+
+
+def build_collins_proj_set(
+    polys: Sequence[sp.Expr | sp.Poly], variables: Sequence[sp.Symbol]
+) -> ProjectionTower:
+    """Build and cache the complete Collins projection tower for a polynomial set.
+
+    Projection proceeds from the highest variable to the lowest. Each level
+    retains provenance entries as well as normalized polynomials so lifting and
+    certificate diagnostics can refer to the originating projection operation.
+    """
+    vars_tuple = tuple(variables)
+    if not vars_tuple:
+        raise ValueError("at least one variable is required")
+    input_polys = tuple(
+        poly
+        if isinstance(poly, sp.Poly) and tuple(poly.gens) == vars_tuple
+        else sp.Poly(poly.as_expr() if isinstance(poly, sp.Poly) else poly, *vars_tuple)
+        for poly in polys
+    )
+    tower_key = (polynomial_family_key(input_polys), vars_tuple)
+    cached = PROJECTION_TOWERS.get(tower_key)
+    if cached is not None:
+        STATS.projection_tower_hits += 1
+        return cached  # type: ignore[return-value]
+    STATS.projection_tower_misses += 1
+    current = squarefree_basis(input_polys)
+    poly_levels: dict[int, tuple[sp.Poly, ...]] = {len(vars_tuple): current}
+    entry_levels: dict[int, tuple[ProjectionPolynomial, ...]] = {
+        len(vars_tuple): _input_entries(current, len(vars_tuple))
+    }
+    for level in range(len(vars_tuple), 1, -1):
+        entries = collins_proj_entries(
+            current, vars_tuple[level - 1], vars_tuple[: level - 1], level - 1
+        )
+        current = tuple(entry.poly for entry in entries)
+        poly_levels[level - 1] = current
+        entry_levels[level - 1] = entries
+    levels = tuple(
+        ProjectionLevel(
+            i,
+            vars_tuple[i - 1],
+            poly_levels.get(i, ()),
+            entry_levels.get(i, ()),
+        )
+        for i in range(1, len(vars_tuple) + 1)
+    )
+    result = ProjectionTower(
+        variables=vars_tuple,
+        levels=levels,
+        original_polynomials=poly_levels[len(vars_tuple)],
+        metadata={"projection": "collins", "complete": True, "provenance": True},
+    )
+    PROJECTION_TOWERS.put(tower_key, result)
+    return result

@@ -1,11 +1,8 @@
 import pytest
 import sympy as sp
 
-from semialg import (
-    CylindricalSolution,
-    extract_cylindrical_solution,
-    solve_semialgebraic,
-)
+from semialg import solve_semialgebraic
+from semialg.cad_algorithms.cells import CylindricalSolution, extract_cylindrical_solution
 
 pytestmark = pytest.mark.slow
 

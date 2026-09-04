@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from .domains import SolveDomain
 
@@ -10,10 +9,10 @@ from .domains import SolveDomain
 class SolveResult:
     method: str
     domain: SolveDomain
-    result: Any
+    result: object
     normalized_text: str | None = None
     preprocess_changed: bool = False
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 __all__ = ["SolveResult"]

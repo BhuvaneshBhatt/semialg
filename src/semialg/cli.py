@@ -195,6 +195,7 @@ def _add_common_formula_args(cmd: argparse.ArgumentParser) -> None:
 
 
 def main() -> None:
+    """Parse command-line arguments, dispatch the requested operation, and render the result."""
     parser = argparse.ArgumentParser(description="Semialgebraic CAD/QE tools")
     subparsers = parser.add_subparsers(dest="command")
 

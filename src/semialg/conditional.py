@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
-from typing import Any
 
 import sympy as sp
 from sympy.logic.boolalg import Boolean
+
+from .formulas.boolean import is_false_expr, is_true_expr
+from .normalization import normalize_parameters
+from .simplify.boolean import simplify_boolean
 
 FormulaLike = sp.Expr | Boolean | bool
 
@@ -16,14 +19,16 @@ def _normalize_condition(condition: FormulaLike) -> sp.Expr:
     if condition is False:
         return sp.false
     expr = condition if isinstance(condition, (sp.Basic, Boolean)) else sp.sympify(condition)
-    if expr is sp.true or expr == sp.true:
+    if is_true_expr(expr):
         return sp.true
-    if expr is sp.false or expr == sp.false:
+    if is_false_expr(expr):
         return sp.false
+    if isinstance(expr, Boolean):
+        return simplify_boolean(expr)
     try:
-        return sp.simplify_logic(sp.simplify(expr), form="dnf")
-    except (TypeError, ValueError, NotImplementedError, AttributeError):
         return sp.simplify(expr)
+    except (TypeError, ValueError, NotImplementedError, AttributeError):
+        return expr
 
 
 def _normalize_parameters(
@@ -31,35 +36,9 @@ def _normalize_parameters(
     *,
     known_symbols: Iterable[sp.Symbol] = (),
 ) -> tuple[sp.Symbol, ...]:
-    """Normalize parameters without inventing assumption-incompatible symbols.
+    """Normalize parameter names against the symbols already present in the problem."""
 
-    String names are resolved against symbols already present in the guarded
-    expressions whenever possible.  This matters because ``Symbol("a")`` and
-    ``Symbol("a", real=True)`` are distinct SymPy objects.
-    """
-
-    by_name: dict[str, list[sp.Symbol]] = {}
-    for symbol in known_symbols:
-        by_name.setdefault(symbol.name, []).append(symbol)
-
-    out: list[sp.Symbol] = []
-    seen: set[sp.Symbol] = set()
-    for item in parameters:
-        if isinstance(item, str):
-            matches = tuple(dict.fromkeys(by_name.get(item, ())))
-            if len(matches) > 1:
-                raise ValueError(
-                    f"parameter name {item!r} is ambiguous across symbols with different assumptions"
-                )
-            symbol = matches[0] if matches else sp.Symbol(item, real=True)
-        else:
-            symbol = item
-        if not isinstance(symbol, sp.Symbol):
-            raise TypeError("parameters must be SymPy symbols or symbol names")
-        if symbol not in seen:
-            out.append(symbol)
-            seen.add(symbol)
-    return tuple(out)
+    return normalize_parameters(parameters, *tuple(known_symbols))
 
 
 def _resolve_assignment_keys(
@@ -97,9 +76,9 @@ def _substitute_truth(
 ) -> bool | None:
     substitutions = _resolve_assignment_keys(assignments, condition.free_symbols)
     reduced = sp.simplify(condition.subs(substitutions))
-    if reduced is sp.true or reduced == sp.true:
+    if is_true_expr(reduced):
         return True
-    if reduced is sp.false or reduced == sp.false:
+    if is_false_expr(reduced):
         return False
     try:
         if reduced == True:  # noqa: E712
@@ -118,7 +97,7 @@ def _values_equal(left: object, right: object) -> bool:
         eq = left == right
         if isinstance(eq, bool):
             return eq
-    except Exception:
+    except (TypeError, ValueError, NotImplementedError):
         pass
     if isinstance(left, sp.Basic) or isinstance(right, sp.Basic):
         try:
@@ -139,7 +118,7 @@ class ConditionalBranch:
     """
 
     condition: sp.Expr
-    value: Any
+    value: object
     sample: Mapping[sp.Symbol, sp.Expr] = field(default_factory=dict)
     certified: bool = True
     metadata: Mapping[str, object] = field(default_factory=dict)
@@ -149,7 +128,7 @@ class ConditionalBranch:
 
     @property
     def empty(self) -> bool:
-        return self.condition is sp.false or self.condition == sp.false
+        return is_false_expr(self.condition)
 
     def applies(self, assignments: Mapping[sp.Symbol | str, object]) -> bool | None:
         """Return whether this branch applies after substituting parameters.
@@ -228,7 +207,7 @@ class ParameterStratifiedResult:
         return tuple(branch.condition for branch in self.branches)
 
     @property
-    def values(self) -> tuple[Any, ...]:
+    def values(self) -> tuple[object, ...]:
         return tuple(branch.value for branch in self.branches)
 
     def normalize(self, *, merge_equal_values: bool = True) -> ParameterStratifiedResult:
@@ -265,7 +244,7 @@ class ParameterStratifiedResult:
         assignments: Mapping[sp.Symbol | str, object],
         *,
         require_unique: bool = True,
-    ) -> Any:
+    ) -> object:
         """Return the value selected by exact parameter substitution.
 
         Raises ``ValueError`` when no branch is known to apply, when the
@@ -416,7 +395,7 @@ def verify_parameter_stratification(
     for i, left in enumerate(result.branches):
         for right in result.branches[i + 1 :]:
             overlap = _normalize_condition(sp.And(domain, left.condition, right.condition))
-            if overlap is sp.false or overlap == sp.false:
+            if is_false_expr(overlap):
                 continue
             try:
                 satisfiable = bool(is_satisfiable(overlap, result.parameters))
@@ -432,7 +411,7 @@ def verify_parameter_stratification(
         else sp.false
     )
     uncovered = _normalize_condition(sp.And(domain, sp.Not(union)))
-    if uncovered is sp.false or uncovered == sp.false:
+    if is_false_expr(uncovered):
         coverage = True
     else:
         try:

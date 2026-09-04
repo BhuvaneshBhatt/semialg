@@ -7,7 +7,7 @@ from semialg.instances import (
     fast_factor_list,
     find_real_witnesses,
     is_bounded_solution_set,
-    normalize_relations,
+    relations_to_zero_rhs,
     sample_bounded_witnesses,
     satisfies_formula,
     try_fast_witness,
@@ -17,7 +17,7 @@ from semialg.solve import find_instance
 
 def test_zero_rhs_normalization_uses_descriptive_api():
     x, y = sp.symbols("x y")
-    normalized = normalize_relations(sp.And(x + 1 <= y, x > 0))
+    normalized = relations_to_zero_rhs(sp.And(x + 1 <= y, x > 0))
     assert sp.Le(x - y + 1, 0) in normalized.args
     assert sp.Lt(-x, 0) in normalized.args
 
@@ -66,7 +66,7 @@ def test_coordinate_bounds_and_boundedness_helpers():
 
 def test_linear_equation_elimination_helper():
     x, y = sp.symbols("x y")
-    result = eliminate_linear_equations((x + y - 1, y - 2), (x, y), {x: 0, y: 2})
+    result = eliminate_linear_equations((x + y - 1, y - 2), (x, y))
     assert len(result.replacements) >= 1
     assert result.variables != (x, y)
 

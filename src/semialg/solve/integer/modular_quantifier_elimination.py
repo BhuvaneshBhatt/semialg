@@ -6,6 +6,7 @@ from itertools import product
 
 import sympy as sp
 
+from ..._errors import EXACT_OPERATION_ERRORS
 from .congruence import (
     ModularSolveResult,
     combine_mod_crt,
@@ -14,7 +15,7 @@ from .congruence import (
     solve_mod_lin_sys,
     solve_mod_poly_sys,
     solve_quant_free_mod_sys,
-    solve_quant_mod_sys,
+    solve_quantified_modular_system,
 )
 
 
@@ -98,6 +99,7 @@ def cart_prod_form(
 def _factorized_formula(
     points: Sequence[Sequence[int]], variables: Sequence[sp.Symbol], modulus: int
 ) -> sp.Expr | None:
+    """Split a modular formula into variable-coupled factors suitable for block elimination."""
     variables = tuple(variables)
     pts = sorted(set(tuple(int(v) % modulus for v in pt) for pt in points))
     if not pts:
@@ -245,6 +247,7 @@ def nonenum_block_elim(
     *,
     max_points: int,
 ) -> tuple[sp.Expr | None, dict]:
+    """Eliminate a modular quantifier block using symbolic structure before finite enumeration."""
     current_variables = tuple(current_variables)
     remaining = tuple(v for v in current_variables if v not in set(block.variables))
     meta = {"strategy": None}
@@ -263,7 +266,7 @@ def nonenum_block_elim(
                 meta["strategy"] = "linear_projection"
                 meta["source_method"] = lin.method
                 return _points_to_formula(proj, remaining, modulus), meta
-        except Exception:
+        except EXACT_OPERATION_ERRORS:
             pass
 
         try:
@@ -279,7 +282,7 @@ def nonenum_block_elim(
                 meta["strategy"] = "quantified_groebner_projection"
                 meta["source_method"] = poly.method
                 return _points_to_formula(proj, remaining, modulus), meta
-        except Exception:
+        except EXACT_OPERATION_ERRORS:
             pass
     return None, meta
 
@@ -292,6 +295,7 @@ def _eliminate_single_form(
     *,
     max_points: int,
 ) -> tuple[sp.Expr, tuple[sp.Symbol, ...], dict]:
+    """Eliminate one normalized modular formula using specialized and finite-domain methods."""
     current_variables = tuple(current_variables)
     working = norm_mod_form(formula, modulus)
     metadata = {"block": (block.quantifier, tuple(map(str, block.variables))), "steps": []}
@@ -337,6 +341,7 @@ def _apply_blocks_power(
     *,
     max_points: int,
 ) -> ModularQeResult:
+    """Apply modular quantifier blocks by repeated exact elimination over residue classes."""
     free_variables = tuple(free_variables)
     blocks = tuple(blocks)
     working = norm_mod_form(expr, modulus)
@@ -348,7 +353,7 @@ def _apply_blocks_power(
     if len(blocks) == 1:
         block = blocks[0]
         try:
-            base_result = solve_quant_mod_sys(
+            base_result = solve_quantified_modular_system(
                 working,
                 free_variables,
                 block.variables,
@@ -366,7 +371,7 @@ def _apply_blocks_power(
                 complete=base_result.complete,
                 metadata={"base_method": base_result.method, **base_result.metadata},
             )
-        except Exception:
+        except EXACT_OPERATION_ERRORS:
             pass
 
     for block in reversed(blocks):

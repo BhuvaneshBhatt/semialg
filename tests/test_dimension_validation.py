@@ -3,13 +3,13 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import (
-    DimensionMismatchError,
+from semialg import sign_at
+from semialg.dimension_validation import (
     require_point_dimension,
     require_same_length,
-    sign_at,
     zip_equal,
 )
+from semialg.errors import DimensionMismatchError
 
 
 def test_require_same_length_reports_named_dimensions():

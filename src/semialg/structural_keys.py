@@ -1,0 +1,56 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping
+
+import sympy as sp
+
+
+def symbol_identity_key(symbol: sp.Symbol) -> tuple[str, str]:
+    """Return a deterministic key that preserves full SymPy Symbol identity.
+
+    SymPy's default sort key intentionally ignores assumptions for Symbols, so
+    same-name Symbols with different assumptions can compare equal as sort
+    keys.  ``srepr`` includes assumptions and therefore provides a stable
+    identity-aware tie breaker while retaining the familiar name-first order.
+    """
+
+    if not isinstance(symbol, sp.Symbol):
+        raise TypeError("symbol_identity_key expects a SymPy Symbol")
+    return symbol.name, sp.srepr(symbol)
+
+
+def ordered_symbols(symbols: Iterable[sp.Symbol]) -> tuple[sp.Symbol, ...]:
+    """Return symbols in deterministic, full-identity-aware order."""
+
+    return tuple(sorted(symbols, key=symbol_identity_key))
+
+
+def expression_identity_key(expr: sp.Basic) -> sp.Basic:
+    """Return an exact hashable structural identity key for a SymPy expression.
+
+    Unlike pretty-printer text such as ``sstr(expr)``, the expression object
+    itself preserves same-name Symbol assumptions and all structural details.
+    """
+
+    if not isinstance(expr, sp.Basic):
+        raise TypeError("expression_identity_key expects a SymPy expression")
+    return expr
+
+
+def point_key(point: Mapping[sp.Symbol, sp.Expr]) -> tuple[tuple[sp.Symbol, sp.Expr], ...]:
+    """Return an exact structural key for a symbolic point.
+
+    Symbol objects are retained rather than serialized so same-name symbols
+    with different assumptions remain distinct. Mapping insertion order does
+    not affect the key.
+    """
+
+    return tuple(
+        sorted(
+            ((symbol, sp.simplify(value)) for symbol, value in point.items()),
+            key=lambda item: symbol_identity_key(item[0]),
+        )
+    )
+
+
+__all__ = ["expression_identity_key", "ordered_symbols", "point_key", "symbol_identity_key"]

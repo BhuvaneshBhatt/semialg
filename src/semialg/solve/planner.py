@@ -1,0 +1,314 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+
+import sympy as sp
+
+from ..algebraic.groebner_utils import compute_groebner_basis
+from ..incidence import decompose_conjunctive_formula, sparse_variable_order
+from ..normalization import conjuncts
+from ..presolve import PresolveResult, fourier_motzkin_eliminate, presolve_semialgebraic
+
+
+@dataclass(frozen=True)
+class SystemProfile:
+    """Cheap structural description used by the exact solve planner."""
+
+    variables: tuple[sp.Symbol, ...]
+    atom_count: int
+    equality_count: int
+    inequality_count: int
+    polynomial: bool
+    linear: bool
+    max_total_degree: int | None
+    conjunctive: bool
+    variable_blocks: tuple[tuple[sp.Symbol, ...], ...]
+    suggested_order: tuple[sp.Symbol, ...]
+
+    @property
+    def potentially_zero_dimensional(self) -> bool:
+        # Krull's principal ideal theorem gives this as a necessary condition
+        # for a finite algebraic set; using it avoids pointless RUR attempts on
+        # obviously positive-dimensional systems without computing a Groebner basis.
+        return self.polynomial and self.equality_count >= len(self.variables) > 0
+
+
+@dataclass(frozen=True)
+class PlannerStep:
+    method: str
+    accepted: bool
+    reason: str
+    metadata: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class PlannerDiagnostics:
+    profile: SystemProfile
+    steps: tuple[PlannerStep, ...]
+    presolve: PresolveResult | None = None
+
+    @property
+    def attempted_methods(self) -> tuple[str, ...]:
+        return tuple(step.method for step in self.steps)
+
+    @property
+    def selected_method(self) -> str | None:
+        for step in reversed(self.steps):
+            if step.accepted:
+                return step.method
+        return None
+
+
+def _relation_residual(atom: sp.Expr) -> sp.Expr | None:
+    if not getattr(atom, "is_Relational", False):
+        return None
+    try:
+        return sp.expand(atom.lhs - atom.rhs)
+    except (AttributeError, TypeError, ValueError, ArithmeticError):
+        return None
+
+
+def profile_semialgebraic_system(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+) -> SystemProfile:
+    """Classify a real semialgebraic system without invoking CAD/QE."""
+
+    vars_ = tuple(variables)
+    atoms = conjuncts(formula) if isinstance(formula, sp.And) else (formula,)
+    conjunctive = isinstance(formula, sp.And) or getattr(formula, "is_Relational", False)
+    equality_count = 0
+    inequality_count = 0
+    polynomial = True
+    linear = True
+    max_degree = 0
+    residuals: list[sp.Expr] = []
+    for atom in atoms:
+        if isinstance(atom, sp.Equality):
+            equality_count += 1
+        elif getattr(atom, "is_Relational", False):
+            inequality_count += 1
+        else:
+            polynomial = False
+            linear = False
+            continue
+        residual = _relation_residual(atom)
+        if residual is None:
+            polynomial = False
+            linear = False
+            continue
+        residuals.append(residual)
+        try:
+            poly = sp.Poly(residual, *vars_, domain="EX")
+        except (sp.PolynomialError, TypeError, ValueError):
+            polynomial = False
+            linear = False
+            continue
+        degree = int(poly.total_degree())
+        max_degree = max(max_degree, degree)
+        if degree > 1:
+            linear = False
+    if residuals and vars_:
+        try:
+            order = sparse_variable_order(residuals, vars_)
+        except (sp.PolynomialError, TypeError, ValueError, ArithmeticError):
+            order = vars_
+    else:
+        order = vars_
+    blocks = ()
+    if conjunctive and vars_:
+        try:
+            decomposition = decompose_conjunctive_formula(formula, vars_)
+            blocks = tuple(block_vars for _, block_vars in decomposition)
+        except (sp.PolynomialError, TypeError, ValueError, ArithmeticError):
+            blocks = ()
+    return SystemProfile(
+        variables=vars_,
+        atom_count=len(atoms),
+        equality_count=equality_count,
+        inequality_count=inequality_count,
+        polynomial=polynomial,
+        linear=linear and polynomial,
+        max_total_degree=max_degree if polynomial else None,
+        conjunctive=conjunctive,
+        variable_blocks=blocks,
+        suggested_order=order,
+    )
+
+
+def affine_presolve(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+) -> PresolveResult:
+    """Eliminate globally safe affine equalities while recording reconstruction data."""
+
+    vars_ = tuple(variables)
+    return presolve_semialgebraic(formula, vars_, eliminate=vars_)
+
+
+def backsubstituted_affine_equalities(
+    substitutions: Sequence[tuple[sp.Symbol, sp.Expr]],
+) -> tuple[sp.Expr, ...]:
+    """Turn a presolve substitution chain into equations in original coordinates."""
+
+    if not substitutions:
+        return ()
+    resolved: dict[sp.Symbol, sp.Expr] = {}
+    for var, rhs in reversed(tuple(substitutions)):
+        rhs_resolved = sp.simplify(sp.sympify(rhs).xreplace(resolved))
+        resolved[var] = rhs_resolved
+    # Preserve elimination order for deterministic reconstructed formulas.
+    return tuple(sp.Eq(var, resolved[var]) for var, _ in substitutions)
+
+
+def reconstruct_affine_assignment(
+    presolve: PresolveResult,
+    assignment: dict[sp.Symbol, sp.Expr],
+) -> dict[sp.Symbol, sp.Expr]:
+    """Back-substitute eliminated affine variables into one exact assignment."""
+
+    out = dict(assignment)
+    for var, rhs in reversed(presolve.substitutions):
+        out[var] = sp.simplify(sp.sympify(rhs).subs(out))
+    return out
+
+
+def reconstruct_affine_solution_formula(presolve: PresolveResult, reduced: sp.Expr) -> sp.Expr:
+    """Reinsert eliminated output variables into a reduced exact set formula."""
+
+    equalities = backsubstituted_affine_equalities(presolve.substitutions)
+    if not equalities:
+        return reduced
+    return sp.And(*equalities, reduced)
+
+
+def exact_linear_feasibility(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+) -> tuple[bool, sp.Expr] | None:
+    """Prove feasibility of a linear conjunction by Fourier--Motzkin elimination.
+
+    The second return value is the fully eliminated truth condition.  This is a
+    decision certificate only; callers retain the original/reconstructed linear
+    formula as the solution-set representation.
+    """
+
+    vars_ = tuple(variables)
+    try:
+        eliminated = fourier_motzkin_eliminate(formula, vars_)
+    except (sp.PolynomialError, TypeError, ValueError, ArithmeticError, NotImplementedError):
+        return None
+    if eliminated is None:
+        return None
+    condition, removed = eliminated
+    if len(removed) != len(vars_):
+        return None
+    condition = sp.simplify(condition)
+    if condition in (sp.true, True):
+        return True, sp.true
+    if condition in (sp.false, False):
+        return False, sp.false
+    # A fully eliminated system should be constant.  Refuse to guess if a
+    # symbolic condition escaped (normally parameters, which are handled by the
+    # parameter solver before reaching this planner).
+    if getattr(condition, "free_symbols", set()):
+        return None
+    try:
+        return bool(condition), condition
+    except TypeError:
+        return None
+
+
+def _replace_relation_residual(atom: sp.Expr, residual: sp.Expr) -> sp.Expr:
+    """Rebuild a relational atom from an equivalent residual ``residual ? 0``."""
+
+    zero = sp.Integer(0)
+    if isinstance(atom, sp.Equality):
+        return sp.Eq(residual, zero)
+    if isinstance(atom, sp.Unequality):
+        return sp.Ne(residual, zero)
+    if isinstance(atom, sp.StrictLessThan):
+        return residual < zero
+    if isinstance(atom, sp.LessThan):
+        return residual <= zero
+    if isinstance(atom, sp.StrictGreaterThan):
+        return residual > zero
+    if isinstance(atom, sp.GreaterThan):
+        return residual >= zero
+    return atom
+
+
+def groebner_reduce_conjunction(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    order: Sequence[sp.Symbol] | None = None,
+) -> tuple[sp.Expr, dict[str, object]] | None:
+    """Reduce a polynomial conjunction modulo its equality ideal.
+
+    This is equivalence-preserving on the equality variety: each inequality
+    residual is replaced by its normal form modulo the Groebner basis.  The
+    method is deliberately restricted to exact rational coefficients so that it
+    remains a cheap algebraic presolver rather than another general QE route.
+    """
+
+    if not (isinstance(formula, sp.And) or getattr(formula, "is_Relational", False)):
+        return None
+    vars_ = tuple(order or variables)
+    atoms = tuple(formula.args) if isinstance(formula, sp.And) else (formula,)
+    equations: list[sp.Expr] = []
+    for atom in atoms:
+        if isinstance(atom, sp.Equality):
+            residual = _relation_residual(atom)
+            if residual is not None and residual != 0:
+                equations.append(residual)
+    if not equations or not vars_:
+        return None
+    # Avoid using a Groebner basis as a generic first-line simplifier for large
+    # systems.  RUR/CAD remain available after the planner's cheap stages.
+    if len(equations) > 8:
+        return None
+    try:
+        for residual in equations:
+            sp.Poly(residual, *vars_, domain=sp.QQ)
+        basis = compute_groebner_basis(equations, vars_, order="grevlex", domain=sp.QQ)
+    except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
+        return None
+    if basis.polys == [sp.Poly(1, *vars_, domain=sp.QQ)]:
+        return sp.false, {
+            "groebner_basis": (sp.Integer(1),),
+            "zero_dimensional": True,
+        }
+    reduced_atoms: list[sp.Expr] = [sp.Eq(poly.as_expr(), 0) for poly in basis.polys]
+    for atom in atoms:
+        if isinstance(atom, sp.Equality):
+            continue
+        residual = _relation_residual(atom)
+        if residual is None:
+            return None
+        try:
+            _, remainder = basis.reduce(residual)
+        except (sp.PolynomialError, TypeError, ValueError):
+            return None
+        reduced_atoms.append(_replace_relation_residual(atom, sp.expand(remainder)))
+    result = sp.And(*reduced_atoms) if reduced_atoms else sp.true
+    return result, {
+        "groebner_basis": tuple(poly.as_expr() for poly in basis.polys),
+        "zero_dimensional": bool(basis.is_zero_dimensional),
+        "variable_order": vars_,
+    }
+
+
+__all__ = [
+    "PlannerDiagnostics",
+    "PlannerStep",
+    "SystemProfile",
+    "affine_presolve",
+    "backsubstituted_affine_equalities",
+    "exact_linear_feasibility",
+    "groebner_reduce_conjunction",
+    "profile_semialgebraic_system",
+    "reconstruct_affine_assignment",
+    "reconstruct_affine_solution_formula",
+]

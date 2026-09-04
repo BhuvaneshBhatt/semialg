@@ -16,7 +16,7 @@ pytestmark = pytest.mark.slow
 
 def test_minimize_univariate_closed_endpoint() -> None:
     x = sp.symbols("x", real=True)
-    result = semialgebraic_minimize(x**2, [x >= 2], [x])
+    result = semialgebraic_minimize(x**2, [x >= 2], [x], return_result=True)
     assert isinstance(result, OptimizationResult)
     assert result.value == 4
     assert result.attained is True
@@ -25,7 +25,7 @@ def test_minimize_univariate_closed_endpoint() -> None:
 
 def test_minimize_univariate_open_endpoint_reports_infimum() -> None:
     x = sp.symbols("x", real=True)
-    result = semialgebraic_minimize(x, [x > 0], [x])
+    result = semialgebraic_minimize(x, [x > 0], [x], return_result=True)
     assert isinstance(result, OptimizationResult)
     assert result.value == 0
     assert result.attained is False
@@ -35,7 +35,7 @@ def test_minimize_univariate_open_endpoint_reports_infimum() -> None:
 def test_maximize_triangle_product() -> None:
     x, y = sp.symbols("x y", real=True)
     region = [x >= 0, y >= 0, x + y <= 1]
-    result = semialgebraic_maximize(x * y, region, [x, y])
+    result = semialgebraic_maximize(x * y, region, [x, y], return_result=True)
     assert isinstance(result, OptimizationResult)
     assert result.value == sp.Rational(1, 4)
     assert result.attained is True
@@ -44,7 +44,7 @@ def test_maximize_triangle_product() -> None:
 
 def test_minimize_distance_to_origin_over_halfplane() -> None:
     x, y = sp.symbols("x y", real=True)
-    result = semialgebraic_minimize(x**2 + y**2, [x + y >= 1], [x, y])
+    result = semialgebraic_minimize(x**2 + y**2, [x + y >= 1], [x, y], return_result=True)
     assert result.value == sp.Rational(1, 2)
     assert result.attained is True
     assert result.point == {x: sp.Rational(1, 2), y: sp.Rational(1, 2)}

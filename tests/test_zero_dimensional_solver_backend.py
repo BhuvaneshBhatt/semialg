@@ -12,6 +12,7 @@ def test_public_zero_dimensional_solver_uses_rur_and_filters_inequalities():
         [sp.Eq(x**2 + y**2, 1), sp.Eq(x - y, 0)],
         inequalities=x > 0,
         vars=[x, y],
+        return_result=True,
     )
 
     assert result.backend == "rational_univariate"
@@ -30,16 +31,30 @@ def test_public_zero_dimensional_detection_rejects_positive_dimensional_curve():
     assert not is_zero_dimensional([x**2 + y**2 - 1], [x, y])
 
     with pytest.raises(RationalUnivariateError, match="zero-dimensional"):
-        solve_zero_dimensional_system([x**2 + y**2 - 1], vars=[x, y], backend="rur")
+        solve_zero_dimensional_system(
+            [x**2 + y**2 - 1], vars=[x, y], backend="rur", return_result=True
+        )
 
 
 def test_rur_backend_exposes_quotient_and_geometric_solution_metadata_for_nonradical_system():
     x, y = sp.symbols("x y")
 
-    result = solve_zero_dimensional_system([x**2, y - 1], vars=[x, y])
+    result = solve_zero_dimensional_system([x**2, y - 1], vars=[x, y], return_result=True)
 
     assert result.points == ((0, 1),)
     assert result.representation is not None
     assert result.representation.dimension == 2
     assert result.representation.solution_count == 1
     assert result.representation.separating_linear_form == x + y
+
+
+def test_zero_dimensional_solver_uses_radical_simplification_before_enumeration():
+    x = sp.symbols("x", real=True)
+    result = solve_zero_dimensional_system(
+        [x**2], inequalities=sp.Ne(x, 0), vars=[x], return_result=True
+    )
+    assert result.points == tuple()
+    assert result.status == "unsat"
+    assert result.backend == "groebner_ideal+rational_univariate"
+    assert result.ideal_analysis is not None
+    assert result.ideal_analysis.quotient_dimension == 2

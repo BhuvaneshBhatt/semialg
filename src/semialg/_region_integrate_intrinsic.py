@@ -1,0 +1,341 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+
+import sympy as sp
+from sympy.core.relational import Equality
+
+from ._linear_relations import safe_linear_solution
+from .exact_arithmetic import compare_exact_reals
+from .interval_decomposition import finite_real_roots as _finite_real_roots
+from .interval_decomposition import one_dimensional_intervals as _one_dimensional_intervals
+from .interval_decomposition import truth_at as _truth_at
+from .normalization import require_conjunction
+from .region_integral_results import ReducedRegionIntegral
+from .relations import make_zero_relation
+from .relations import split_relation as _relation_parts
+
+_RECOVERABLE_ERRORS = (
+    ArithmeticError,
+    TypeError,
+    ValueError,
+    NotImplementedError,
+    sp.PolynomialError,
+)
+
+
+def _normalize_measure_dimension(
+    measure_dimension: object, variables: Sequence[sp.Symbol], condition: sp.Expr
+) -> int | str:
+    """Normalize measure-dimension options for the first intrinsic layer."""
+
+    ambient_dimension = len(variables)
+    if measure_dimension in (None, "ambient"):
+        return ambient_dimension
+    if measure_dimension == "top":
+        return _infer_region_dimension(condition, variables)
+    if measure_dimension == "intrinsic":
+        return _infer_region_dimension(condition, variables)
+    if isinstance(measure_dimension, int):
+        if measure_dimension < 0 or measure_dimension > ambient_dimension:
+            raise ValueError("measure_dimension must be between 0 and the ambient dimension")
+        return measure_dimension
+    raise ValueError('measure_dimension must be None, "ambient", "intrinsic", "top", or an integer')
+
+
+def _infer_region_dimension(condition: sp.Expr, variables: Sequence[sp.Symbol]) -> int:
+    """Return the exact real dimension used for intrinsic measure."""
+
+    from .regions.operations import region_dimension
+
+    return region_dimension(condition, variables)
+
+
+def _zero_dimensional_points(
+    condition: sp.Expr, variables: Sequence[sp.Symbol]
+) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
+    """Return finite real points for common zero-dimensional formulas."""
+
+    try:
+        atoms = require_conjunction(
+            condition, message="this reconstruction path supports conjunctions only"
+        )
+    except _RECOVERABLE_ERRORS as exc:
+        raise NotImplementedError(
+            "zero-dimensional integration supports conjunctions of relations"
+        ) from exc
+
+    equalities: list[sp.Expr] = []
+    for atom in atoms:
+        if isinstance(atom, Equality):
+            expr, _ = _relation_parts(atom)
+            if sp.simplify(expr) != 0:
+                equalities.append(expr)
+    if not equalities:
+        raise NotImplementedError(
+            "zero-dimensional integration requires at least one nontrivial equality"
+        )
+
+    if len(variables) == 1:
+        var = variables[0]
+        roots: set[str] = set()
+        points: list[dict[sp.Symbol, sp.Expr]] = []
+        for eq in equalities:
+            if not eq.free_symbols <= {var}:
+                raise NotImplementedError(
+                    "zero-dimensional univariate formulas must only use the integration variable"
+                )
+            for root in _finite_real_roots(eq, var):
+                subs = {var: root}
+                if _truth_at(condition, subs):
+                    key = sp.simplify(root)
+                    if key not in roots:
+                        roots.add(key)
+                        points.append(subs)
+        return tuple(points)
+
+    if len(variables) == 2:
+        if len(equalities) == 1:
+            from .cad_algorithms.selected_samples import extract_selected_cad_samples
+
+            samples = extract_selected_cad_samples(condition, variables)
+            return tuple(dict(sample.point) for sample in samples)
+        try:
+            raw = sp.solve(equalities, tuple(variables), dict=True)
+        except _RECOVERABLE_ERRORS as exc:
+            raise NotImplementedError(
+                "could not solve the zero-dimensional equality system"
+            ) from exc
+        points = []
+        seen: set[tuple[sp.Expr, ...]] = set()
+        for sol in raw:
+            if not all(var in sol for var in variables):
+                continue
+            subs = {var: sp.simplify(sol[var]) for var in variables}
+            nonreal = False
+            for value in subs.values():
+                reality = value.is_real
+                if reality is False:
+                    nonreal = True
+                    break
+                if reality is None:
+                    try:
+                        if compare_exact_reals(sp.im(value), sp.Integer(0)) != 0:
+                            nonreal = True
+                            break
+                    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError) as exc:
+                        raise NotImplementedError(
+                            "could not certify whether a zero-dimensional solution is real"
+                        ) from exc
+            if nonreal:
+                continue
+            if _truth_at(condition, subs):
+                key = tuple(subs[var] for var in variables)
+                if key not in seen:
+                    seen.add(key)
+                    points.append(subs)
+        return tuple(points)
+
+    from .cad_algorithms.selected_samples import extract_selected_cad_samples
+
+    samples = extract_selected_cad_samples(condition, variables)
+    return tuple(dict(sample.point) for sample in samples)
+
+
+def _integrate_zero_dimensional(
+    integrand: sp.Expr, condition: sp.Expr, variables: Sequence[sp.Symbol]
+) -> sp.Expr:
+    total = sp.Integer(0)
+    for point in _zero_dimensional_points(condition, variables):
+        total += sp.simplify(integrand.subs(point))
+    return sp.simplify(total)
+
+
+def _circle_radius_squared(condition: sp.Expr, x: sp.Symbol, y: sp.Symbol) -> sp.Expr | None:
+    """Recognize x**2 + y**2 == r**2 centered at the origin."""
+
+    try:
+        atoms = require_conjunction(
+            condition, message="this reconstruction path supports conjunctions only"
+        )
+    except _RECOVERABLE_ERRORS:
+        return None
+    radius_sq: sp.Expr | None = None
+    other_atoms: list[sp.Expr] = []
+    for atom in atoms:
+        if isinstance(atom, Equality):
+            expr, _ = _relation_parts(atom)
+            try:
+                poly = sp.Poly(expr, x, y)
+            except _RECOVERABLE_ERRORS:
+                return None
+            coeff_x2 = poly.coeff_monomial(x**2)
+            coeff_y2 = poly.coeff_monomial(y**2)
+            if (
+                coeff_x2 != 0
+                and sp.simplify(coeff_x2 - coeff_y2) == 0
+                and all(monom in {(2, 0), (0, 2), (0, 0)} for monom in poly.monoms())
+            ):
+                candidate = sp.simplify(-poly.coeff_monomial(1) / coeff_x2)
+                radius_sq = candidate if radius_sq is None else radius_sq
+            else:
+                other_atoms.append(atom)
+        else:
+            other_atoms.append(atom)
+    if radius_sq is None or other_atoms:
+        return None
+    if bool(radius_sq < 0):
+        return sp.Integer(0)
+    return sp.simplify(radius_sq)
+
+
+def _integrate_circle_intrinsic(
+    integrand: sp.Expr, condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
+) -> sp.Expr | None:
+    radius_sq = _circle_radius_squared(condition, x, y)
+    if radius_sq is None:
+        return None
+    if radius_sq == 0:
+        return sp.simplify(integrand.subs({x: 0, y: 0}))
+    radius = sp.sqrt(radius_sq)
+    theta = sp.Symbol("theta", real=True)
+    expr = sp.simplify(
+        radius * integrand.subs({x: radius * sp.cos(theta), y: radius * sp.sin(theta)})
+    )
+    value = sp.integrate(expr, (theta, 0, 2 * sp.pi))
+    if isinstance(value, sp.Integral) or value.has(sp.Integral):
+        raise NotImplementedError("SymPy could not evaluate the circle intrinsic integral")
+    return sp.simplify(value)
+
+
+def _graph_curve_data(
+    condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
+) -> tuple[sp.Expr, tuple[tuple[sp.Expr, sp.Expr], ...]] | None:
+    """Recognize a plane graph y = g(x) together with x-conditions."""
+
+    try:
+        atoms = require_conjunction(
+            condition, message="this reconstruction path supports conjunctions only"
+        )
+    except _RECOVERABLE_ERRORS:
+        return None
+    graph: sp.Expr | None = None
+    x_conditions: list[sp.Expr] = []
+    for atom in atoms:
+        if isinstance(atom, Equality):
+            expr, _ = _relation_parts(atom)
+            if y not in expr.free_symbols:
+                x_conditions.append(sp.Eq(expr, 0))
+                continue
+            try:
+                poly_y = sp.Poly(expr, y)
+            except _RECOVERABLE_ERRORS:
+                return None
+            if poly_y.degree() != 1:
+                return None
+            candidate = safe_linear_solution(expr, y)
+            if candidate is None or candidate.free_symbols - {x}:
+                return None
+            graph = candidate if graph is None else graph
+            if sp.simplify(graph - candidate) != 0:
+                return None
+        elif getattr(atom, "is_Relational", False):
+            expr, op = _relation_parts(atom)
+            if y in expr.free_symbols:
+                # Graph-curve integration requires equality-defined strata.
+                return None
+            x_conditions.append(make_zero_relation(expr, op))
+        else:
+            return None
+    if graph is None:
+        return None
+    x_condition = sp.And(*x_conditions) if x_conditions else sp.true
+    intervals = _one_dimensional_intervals(x_condition, x, None)
+    return graph, intervals
+
+
+def _integrate_graph_curve_intrinsic(
+    integrand: sp.Expr, condition: sp.Expr, x: sp.Symbol, y: sp.Symbol
+) -> sp.Expr | None:
+    data = _graph_curve_data(condition, x, y)
+    if data is None:
+        return None
+    graph, intervals = data
+    if not intervals:
+        return sp.Integer(0)
+    speed = sp.sqrt(1 + sp.diff(graph, x) ** 2)
+    expr = sp.simplify(integrand.subs(y, graph) * speed)
+    total = sp.Integer(0)
+    for lo, hi in intervals:
+        if lo == -sp.oo or hi == sp.oo:
+            raise NotImplementedError(
+                "unbounded intrinsic graph integrals are outside the supported fragment"
+            )
+        value = sp.integrate(expr, (x, lo, hi))
+        if isinstance(value, sp.Integral) or value.has(sp.Integral):
+            raise NotImplementedError("SymPy could not evaluate the intrinsic graph integral")
+        total += value
+    return sp.simplify(total)
+
+
+def _integrate_intrinsic_dimension(
+    integrand: sp.Expr,
+    condition: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    measure_dimension: int,
+    *,
+    bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]],
+) -> tuple[sp.Expr, str]:
+    """Evaluate an intrinsic-dimensional integral with certified geometry."""
+
+    ambient = len(variables)
+    if measure_dimension == ambient:
+        from .region_integrate import _evaluate_reduced_integral, reduce_region_integral
+
+        reduced = reduce_region_integral(integrand, condition, variables, bounds=bounds)
+        if not isinstance(reduced, ReducedRegionIntegral):
+            raise TypeError("region reduction returned an unexpected result type")
+        value, _, _ = _evaluate_reduced_integral(reduced, method="symbolic", precision=50)
+        return value, reduced.method
+    if measure_dimension == 0:
+        return _integrate_zero_dimensional(
+            integrand, condition, variables
+        ), "zero_dimensional_counting_measure"
+    if ambient == 2 and measure_dimension == 1:
+        x, y = variables
+        circle = _integrate_circle_intrinsic(integrand, condition, x, y)
+        if circle is not None:
+            return circle, "circle_intrinsic_length_measure"
+        graph = _integrate_graph_curve_intrinsic(integrand, condition, x, y)
+        if graph is not None:
+            return graph, "graph_curve_intrinsic_length_measure"
+    # Section cells use the induced Hausdorff metric, so they cannot be treated
+    # as zero-width limits of ambient Lebesgue integrals.
+    try:
+        from .cad_algorithms.cells import extract_cylindrical_solution
+        from .cad_algorithms.integration import intrinsic_solution_integrals
+
+        solution = extract_cylindrical_solution(condition, variables, selected_only=True)
+        pieces = intrinsic_solution_integrals(
+            solution, integrand, dimension=measure_dimension, evaluate=False, require_verified=True
+        )
+        if pieces:
+            values = []
+            for piece in pieces:
+                value = piece.doit()
+                if isinstance(value, sp.Integral) or getattr(value, "has", lambda *_: False)(
+                    sp.Integral
+                ):
+                    raise NotImplementedError(
+                        "SymPy could not evaluate an intrinsic CAD-cell integral"
+                    )
+                values.append(value)
+            return sp.simplify(sum(values, sp.Integer(0))), "cylindrical_solution_intrinsic_measure"
+    except NotImplementedError:
+        raise
+    except _RECOVERABLE_ERRORS:
+        pass
+    raise NotImplementedError(
+        "intrinsic integration supports finite point sets and verified cylindrical CAD graph cells; "
+        "unsupported singular/non-graph strata fail conservatively"
+    )

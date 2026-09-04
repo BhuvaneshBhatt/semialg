@@ -80,7 +80,7 @@ def _certify_point(
             if residual != 0 and residual.is_zero is not True and residual.equals(0) is not True:
                 exact_zero = False
             residuals.append(abs(complex(sp.N(residual, 30))))
-        except (ArithmeticError, TypeError, ValueError, NotImplementedError, RuntimeError):
+        except (ArithmeticError, TypeError, ValueError, NotImplementedError):
             exact_zero = False
             residuals.append(float("inf"))
     residual_norm = max(residuals) if residuals else 0.0
@@ -100,6 +100,42 @@ def _unique_points(points):
             seen.add(key)
             out.append(key)
     return tuple(out)
+
+
+def _direct_solution_result(
+    equations: Sequence[sp.Expr],
+    variables: tuple[sp.Symbol, ...],
+    direct: object,
+) -> SystemRootFallbackResult | None:
+    """Interpret a finite symbolic system solution without overstating completeness."""
+
+    if not isinstance(direct, sp.FiniteSet) or not direct:
+        return None
+    points = tuple(tuple(sp.simplify(value) for value in point) for point in direct)
+    certs = tuple(_certify_point(equations, variables, point) for point in points)
+    zero_dim = False
+    try:
+        polys = [sp.Poly(eq, *variables) for eq in equations]
+        basis = sp.groebner([poly.as_expr() for poly in polys], *variables)
+        zero_dim = bool(basis.is_zero_dimensional)
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        pass
+    cert = CompletenessCertificate(
+        zero_dim,
+        "finite_zero_dimensional_polynomial_solution"
+        if zero_dim
+        else "finite_symbolic_solution_without_completeness_proof",
+        "nonlinsolve",
+        {"point_count": len(points)},
+    )
+    return SystemRootFallbackResult(
+        variables=variables,
+        points=points,
+        certified_points=certs,
+        completeness_certificate=cert,
+        complete=zero_dim,
+        method="nonlinsolve",
+    )
 
 
 def orchestrate_trans_search(
@@ -132,45 +168,14 @@ def orchestrate_trans_search(
 
     try:
         direct = sp.nonlinsolve(eqs, variables)
-        if isinstance(direct, sp.FiniteSet) and direct:
-            pts = tuple(tuple(sp.simplify(v) for v in pt) for pt in direct)
-            certs = tuple(_certify_point(eqs, variables, pt) for pt in pts)
-            poly_zero_dim = False
-            try:
-                polys = [sp.Poly(eq, *variables) for eq in eqs]
-                gb = sp.groebner([poly.as_expr() for poly in polys], *variables)
-                poly_zero_dim = bool(gb.is_zero_dimensional)
-            except (
-                ArithmeticError,
-                TypeError,
-                ValueError,
-                NotImplementedError,
-                sp.PolynomialError,
-            ):
-                pass
-            complete = poly_zero_dim
-            cert = CompletenessCertificate(
-                complete,
-                "finite_zero_dimensional_polynomial_solution"
-                if complete
-                else "finite_symbolic_solution_without_completeness_proof",
-                "nonlinsolve",
-                {"point_count": len(pts)},
-            )
-            return SystemRootFallbackResult(
-                variables=variables,
-                points=pts,
-                certified_points=certs,
-                completeness_certificate=cert,
-                complete=complete,
-                method="nonlinsolve",
-            )
+        direct_result = _direct_solution_result(eqs, variables, direct)
+        if direct_result is not None:
+            return direct_result
     except (
         ArithmeticError,
         TypeError,
         ValueError,
         NotImplementedError,
-        RuntimeError,
         sp.PolynomialError,
     ):
         pass
@@ -204,7 +209,6 @@ def orchestrate_trans_search(
             TypeError,
             ValueError,
             NotImplementedError,
-            RuntimeError,
             sp.PolynomialError,
         ):
             continue

@@ -8,6 +8,7 @@ from sympy.calculus.util import periodicity
 
 from semialg.quantifiers import Exists
 
+from ..._errors import EXACT_OPERATION_ERRORS
 from .state import TransProblemState
 
 
@@ -23,7 +24,7 @@ class PeriodicBoundingResult:
 def detect_real_period(expr: sp.Expr, variable: sp.Symbol) -> sp.Expr | None:
     try:
         per = periodicity(expr, variable)
-    except Exception:
+    except EXACT_OPERATION_ERRORS:
         return None
     if per in (None, sp.S.ComplexInfinity):
         return None

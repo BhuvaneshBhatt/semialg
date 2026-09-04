@@ -5,18 +5,10 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from .._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
 from ..cache_utils import BoundedLRU
 from ..normalization import conjuncts
 from .solution import IntervalComponent
-
-_RECOVERABLE_ERRORS = (
-    ArithmeticError,
-    TypeError,
-    ValueError,
-    NotImplementedError,
-    RuntimeError,
-    sp.PolynomialError,
-)
 
 
 @dataclass(frozen=True)
@@ -211,7 +203,7 @@ def _update_from_vertical_cells(
         cells_all = tuple(decompose_cylindrical_formula_to_vertical_bounds_2d(formula, variables))
     except _RECOVERABLE_ERRORS:
         try:
-            from ..cad.cells import extract_vertical_bounds_from_cad_2d
+            from ..cad_algorithms.cells import extract_vertical_bounds_from_cad_2d
 
             cells_all = tuple(
                 extract_vertical_bounds_from_cad_2d(formula, variables, full_dimensional_only=False)
@@ -257,7 +249,10 @@ def _update_from_cylindrical(
     if len(variables) < 2 or _has_nonlinear_second_level(formula, variables, metadata):
         return
     try:
-        from ..cad.cells import extract_cylindrical_solution, extract_explicit_cylindrical_solution
+        from ..cad_algorithms.cells import (
+            extract_cylindrical_solution,
+            extract_explicit_cylindrical_solution,
+        )
 
         cyl = extract_explicit_cylindrical_solution(formula, variables)
         if cyl is None:
@@ -284,15 +279,52 @@ def _update_from_cylindrical(
         metadata["components"] = connectivity.components
 
 
+def _affine_equality_dimension(formula: sp.Expr, variables: tuple[sp.Symbol, ...]) -> int | None:
+    """Return exact dimension for a pure consistent affine equality system."""
+
+    atoms = conjuncts(formula)
+    if not atoms or any(not isinstance(atom, sp.Equality) for atom in atoms):
+        return None
+    rows: list[list[sp.Expr]] = []
+    constants: list[sp.Expr] = []
+    variable_set = set(variables)
+    for atom in atoms:
+        expr = sp.expand(atom.lhs - atom.rhs)
+        try:
+            poly = sp.Poly(expr, *variables, domain="EX") if variables else sp.Poly(expr)
+        except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+            return None
+        if poly.total_degree() > 1:
+            return None
+        row = [sp.simplify(sp.diff(expr, var)) for var in variables]
+        constant = sp.simplify(
+            expr - sum(coeff * var for coeff, var in zip(row, variables, strict=True))
+        )
+        # Parameter-dependent coefficients or constants can change rank or
+        # consistency across strata; cheap metadata must not report a generic
+        # dimension as though it were globally exact.
+        if any(coeff.free_symbols for coeff in row) or (constant.free_symbols - variable_set):
+            return None
+        rows.append(row)
+        constants.append(constant)
+    coefficient_matrix = sp.Matrix(rows)
+    augmented = coefficient_matrix.row_join(sp.Matrix([[-value] for value in constants]))
+    try:
+        rank = int(coefficient_matrix.rank())
+        augmented_rank = int(augmented.rank())
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError):
+        return None
+    if augmented_rank != rank:
+        return None
+    return len(variables) - rank
+
+
 def _infer_dimension(
     metadata: dict[str, object], formula: sp.Expr, variables: tuple[sp.Symbol, ...]
 ) -> None:
     if metadata["dimension"] is not None:
         return
-    equalities = [atom for atom in conjuncts(formula) if isinstance(atom, sp.Equality)]
-    metadata["dimension"] = (
-        max(0, len(variables) - len(equalities)) if equalities else len(variables)
-    )
+    metadata["dimension"] = _affine_equality_dimension(formula, variables)
 
 
 def collect_solution_metadata(

@@ -1,0 +1,376 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
+
+import sympy as sp
+from sympy.logic.boolalg import Boolean
+
+from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
+from ._linear_relations import certified_sign, safe_linear_solution
+from .decision import equivalent, implies, is_satisfiable
+from .formula import parse_formula
+from .normalization import conjuncts, normalize_formula, normalize_variables
+from .presolve import fourier_motzkin_eliminate
+from .qe import qe_by_complete_cad
+from .quantifiers import Exists, ForAll, split_quantifiers
+from .regions.operations import region_closure
+
+FormulaLike = sp.Expr | Boolean | bool
+
+
+def _coerce_region_pair(lhs, rhs, variables):
+    """Lower unified/explicit region inputs while preserving formula callers."""
+
+    from .standard_regions import StandardRegion
+    from .symbolic_regions import SemialgebraicRegion, as_semialgebraic_region
+
+    region_types = (SemialgebraicRegion, StandardRegion)
+    if not isinstance(lhs, region_types) and not isinstance(rhs, region_types):
+        return None
+    left = as_semialgebraic_region(lhs, variables) if isinstance(lhs, region_types) else None
+    right = as_semialgebraic_region(rhs, variables) if isinstance(rhs, region_types) else None
+    base = left or right
+    if left is None:
+        left = as_semialgebraic_region(lhs, base.variables)
+    if right is None:
+        right = as_semialgebraic_region(rhs, base.variables)
+    if left.ambient_dimension != right.ambient_dimension:
+        raise ValueError("region ambient dimensions do not match")
+    return left.quantifier_free_formula(), right.quantifier_free_formula(), left.variables
+
+
+def _radial_ball_radius(condition: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Expr | None:
+    atoms = conjuncts(condition)
+    if len(atoms) != 1 or not getattr(atoms[0], "is_Relational", False):
+        return None
+    atom = atoms[0]
+    if not isinstance(atom, (sp.StrictLessThan, sp.LessThan, sp.StrictGreaterThan, sp.GreaterThan)):
+        return None
+    expr = sp.expand(atom.lhs - atom.rhs)
+    try:
+        poly = sp.Poly(expr, *variables)
+    except _RECOVERABLE_ERRORS:
+        return None
+    if not variables:
+        return None
+    coeff = sp.simplify(poly.coeff_monomial(variables[0] ** 2))
+    if coeff == 0:
+        return None
+    for var in variables:
+        if sp.simplify(poly.coeff_monomial(var**2) - coeff) != 0:
+            return None
+    allowed = {
+        tuple(2 if i == j else 0 for i in range(len(variables))) for j in range(len(variables))
+    }
+    allowed.add(tuple(0 for _ in variables))
+    if set(poly.monoms()) - allowed:
+        return None
+    radius_sq = sp.simplify(-poly.coeff_monomial(1) / coeff)
+    if coeff.is_positive and isinstance(atom, (sp.StrictLessThan, sp.LessThan)):
+        return radius_sq
+    if coeff.is_negative and isinstance(atom, (sp.StrictGreaterThan, sp.GreaterThan)):
+        return radius_sq
+    return None
+
+
+def region_subset(
+    lhs: FormulaLike | Iterable[FormulaLike],
+    rhs: FormulaLike | Iterable[FormulaLike],
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether the left semialgebraic region is a subset of the right region."""
+    coerced = _coerce_region_pair(lhs, rhs, variables)
+    if coerced is None:
+        left = normalize_formula(lhs)
+        right = normalize_formula(rhs)
+        vars_ = normalize_variables(variables, sp.And(left, right))
+    else:
+        left, right, vars_ = coerced
+    left_radius = _radial_ball_radius(left, vars_)
+    right_radius = _radial_ball_radius(right, vars_)
+    if left_radius is not None and right_radius is not None:
+        comparison = sp.simplify(left_radius <= right_radius)
+        if comparison is sp.true or comparison == sp.true:
+            return True
+        if comparison is sp.false or comparison == sp.false:
+            return False
+        # Symbolic radii can leave the shortcut undecided.  Do not force
+        # Python truth-testing of a symbolic inequality; use the exact general
+        # implication path instead.
+    return implies(left, right, vars_, strategy=strategy)
+
+
+def region_equal(
+    lhs: FormulaLike | Iterable[FormulaLike],
+    rhs: FormulaLike | Iterable[FormulaLike],
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether two semialgebraic regions are equal."""
+    coerced = _coerce_region_pair(lhs, rhs, variables)
+    if coerced is None:
+        left = normalize_formula(lhs)
+        right = normalize_formula(rhs)
+        vars_ = normalize_variables(variables, sp.And(left, right))
+    else:
+        left, right, vars_ = coerced
+    return equivalent(left, right, vars_, strategy=strategy)
+
+
+def region_disjoint(
+    lhs: FormulaLike | Iterable[FormulaLike],
+    rhs: FormulaLike | Iterable[FormulaLike],
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether two semialgebraic regions are disjoint."""
+    coerced = _coerce_region_pair(lhs, rhs, variables)
+    if coerced is None:
+        left = normalize_formula(lhs)
+        right = normalize_formula(rhs)
+        vars_ = normalize_variables(variables, sp.And(left, right))
+    else:
+        left, right, vars_ = coerced
+    return not is_satisfiable(sp.And(left, right), vars_, strategy=strategy)
+
+
+def _linear_box_bounds(
+    condition: sp.Expr, variables: Sequence[sp.Symbol]
+) -> dict[sp.Symbol, tuple[sp.Expr, sp.Expr]] | None:
+    """Derive exact coordinate bounds from affine inequalities when a box description is available."""
+    atoms = conjuncts(condition)
+    if not atoms:
+        return None
+    bounds = {var: (-sp.oo, sp.oo) for var in variables}
+    for atom in atoms:
+        if not getattr(atom, "is_Relational", False):
+            return None
+        if isinstance(atom, (sp.Equality, sp.Unequality)):
+            return None
+        lhs, rhs = atom.lhs, atom.rhs
+        expr = sp.expand(lhs - rhs)
+        involved = [var for var in variables if var in expr.free_symbols]
+        if len(involved) != 1:
+            return None
+        var = involved[0]
+        try:
+            poly = sp.Poly(expr, var)
+        except _RECOVERABLE_ERRORS:
+            return None
+        if poly.degree() > 1 or expr.free_symbols - {var}:
+            return None
+        coeff = sp.simplify(poly.coeff_monomial(var))
+        sign = certified_sign(coeff)
+        if sign == 0:
+            continue
+        point = safe_linear_solution(expr, var)
+        if point is None or sign not in (-1, 1):
+            return None
+        relation = atom
+        if sign < 0:
+            if isinstance(atom, sp.StrictGreaterThan):
+                relation = sp.StrictLessThan(var, point)
+            elif isinstance(atom, sp.GreaterThan):
+                relation = sp.LessThan(var, point)
+            elif isinstance(atom, sp.StrictLessThan):
+                relation = sp.StrictGreaterThan(var, point)
+            elif isinstance(atom, sp.LessThan):
+                relation = sp.GreaterThan(var, point)
+            else:
+                return None
+        else:
+            if isinstance(atom, sp.StrictGreaterThan):
+                relation = sp.StrictGreaterThan(var, point)
+            elif isinstance(atom, sp.GreaterThan):
+                relation = sp.GreaterThan(var, point)
+            elif isinstance(atom, sp.StrictLessThan):
+                relation = sp.StrictLessThan(var, point)
+            elif isinstance(atom, sp.LessThan):
+                relation = sp.LessThan(var, point)
+            else:
+                return None
+        lo, hi = bounds[var]
+        if isinstance(relation, (sp.StrictGreaterThan, sp.GreaterThan)):
+            lo = point if lo == -sp.oo or bool(point > lo) else lo
+        elif isinstance(relation, (sp.StrictLessThan, sp.LessThan)):
+            hi = point if hi == sp.oo or bool(point < hi) else hi
+        bounds[var] = (lo, hi)
+    return bounds
+
+
+def _affine_projection_bounds(
+    condition: sp.Expr, variables: Sequence[sp.Symbol]
+) -> dict[sp.Symbol, tuple[sp.Expr, sp.Expr]] | None:
+    """Project an affine conjunction to each coordinate and recover exact bounds."""
+
+    atoms = conjuncts(condition)
+    if not atoms:
+        return None
+    for atom in atoms:
+        if not getattr(atom, "is_Relational", False):
+            return None
+        residual = sp.expand(atom.lhs - atom.rhs)
+        try:
+            poly = sp.Poly(residual, *variables)
+        except _RECOVERABLE_ERRORS:
+            return None
+        if poly.total_degree() > 1:
+            return None
+    projected: dict[sp.Symbol, tuple[sp.Expr, sp.Expr]] = {}
+    for variable in variables:
+        eliminate = tuple(var for var in variables if var != variable)
+        result = fourier_motzkin_eliminate(condition, eliminate)
+        if result is None:
+            return None
+        formula, _ = result
+        bounds = _linear_box_bounds(formula, (variable,))
+        if bounds is None:
+            return None
+        projected[variable] = bounds[variable]
+    return projected
+
+
+def _syntactically_closed_polynomial_formula(expr: sp.Expr) -> bool:
+    """Recognize finite Boolean combinations that are manifestly closed."""
+
+    if expr is sp.true or expr is sp.false:
+        return True
+    if isinstance(expr, (sp.And, sp.Or)):
+        return all(_syntactically_closed_polynomial_formula(arg) for arg in expr.args)
+    if isinstance(expr, (sp.Equality, sp.LessThan, sp.GreaterThan)):
+        residual = sp.expand(expr.lhs - expr.rhs)
+        try:
+            return bool(residual.is_polynomial(*tuple(residual.free_symbols)))
+        except (TypeError, ValueError):
+            return False
+    return False
+
+
+def _radial_upper_bound(condition: sp.Expr, variables: Sequence[sp.Symbol]) -> bool | None:
+    if len(variables) == 0:
+        return True
+    norm = sp.Add(*[var**2 for var in variables])
+    for atom in conjuncts(condition):
+        if not getattr(atom, "is_Relational", False):
+            continue
+        if isinstance(atom, (sp.StrictLessThan, sp.LessThan, sp.StrictGreaterThan, sp.GreaterThan)):
+            expr = sp.expand(atom.lhs - atom.rhs)
+            if sp.simplify(expr - (norm - 1)) == 0 and isinstance(
+                atom, (sp.StrictLessThan, sp.LessThan)
+            ):
+                return True
+            if sp.simplify(expr + (norm - 1)) == 0 and isinstance(
+                atom, (sp.StrictGreaterThan, sp.GreaterThan)
+            ):
+                return True
+    return None
+
+
+def _unbounded_by_qe(condition: sp.Expr, variables: Sequence[sp.Symbol]) -> bool | None:
+    if not variables:
+        return False
+    radius = sp.Symbol("_semialg_radius_bound", real=True)
+    norm_sq = sp.Add(*[var**2 for var in variables])
+    # Unbounded iff for every positive radius threshold there is a point in the
+    # region outside that squared-radius threshold.
+    matrix = sp.Or(radius <= 0, sp.And(condition, norm_sq > radius))
+    quantified = ForAll(radius, Exists(tuple(variables), matrix))
+    quantifiers, matrix = split_quantifiers(quantified)
+    try:
+        result = qe_by_complete_cad(
+            (radius, *variables), quantifiers, parse_formula(matrix), return_result=True
+        )
+    except _RECOVERABLE_ERRORS:
+        return None
+    if result.is_sentence:
+        return bool(result.truth_value)
+    reduced = sp.simplify(result.formula)
+    if reduced is sp.true or reduced == sp.true:
+        return True
+    if reduced is sp.false or reduced == sp.false:
+        return False
+    return None
+
+
+def region_bounded(
+    region: FormulaLike | Iterable[FormulaLike],
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether a semialgebraic region is bounded over the reals.
+
+    The implementation first recognizes common interval/box/radial cases, then
+    falls back to a CAD/QE sentence expressing unboundedness.
+    """
+
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
+    if not is_satisfiable(expr, vars_, strategy=strategy):
+        return True
+    if len(vars_) == 0:
+        return True
+    if len(vars_) == 1:
+        try:
+            reduced = sp.reduce_inequalities(list(conjuncts(expr)), vars_[0])
+            bounds = _linear_box_bounds(reduced, vars_) or _linear_box_bounds(expr, vars_)
+        except _RECOVERABLE_ERRORS:
+            bounds = _linear_box_bounds(expr, vars_)
+        if bounds is not None:
+            lo, hi = bounds[vars_[0]]
+            return lo != -sp.oo and hi != sp.oo
+    box = _linear_box_bounds(expr, vars_)
+    if box is not None:
+        return all(lo != -sp.oo and hi != sp.oo for lo, hi in box.values())
+    affine_bounds = _affine_projection_bounds(expr, vars_)
+    if affine_bounds is not None:
+        return all(lo != -sp.oo and hi != sp.oo for lo, hi in affine_bounds.values())
+    radial = _radial_upper_bound(expr, vars_)
+    if radial is True:
+        return True
+    unbounded = _unbounded_by_qe(expr, vars_)
+    if unbounded is not None:
+        return not unbounded
+    raise NotImplementedError("could not determine boundedness for this semialgebraic region")
+
+
+def region_closed(
+    region: FormulaLike | Iterable[FormulaLike],
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether a semialgebraic region is closed."""
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
+    if _syntactically_closed_polynomial_formula(expr):
+        return True
+    return equivalent(expr, region_closure(expr, vars_), vars_, strategy=strategy)
+
+
+def region_compact(
+    region: FormulaLike | Iterable[FormulaLike],
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    strategy: str | None = None,
+) -> bool:
+    """Return whether a semialgebraic region is compact."""
+    expr = normalize_formula(region)
+    vars_ = normalize_variables(variables, expr)
+    return region_bounded(expr, vars_, strategy=strategy) and region_closed(
+        expr, vars_, strategy=strategy
+    )
+
+
+__all__ = [
+    "region_subset",
+    "region_equal",
+    "region_disjoint",
+    "region_bounded",
+    "region_closed",
+    "region_compact",
+]

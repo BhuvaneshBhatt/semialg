@@ -1,0 +1,433 @@
+from __future__ import annotations
+
+from collections.abc import Iterable, Mapping, Sequence
+from itertools import product
+
+import sympy as sp
+from sympy.core.relational import Relational
+
+from .random_sections import find_random_section_wit
+from .real_utils import (
+    _RECOVERABLE_ERRORS,
+    FallbackAttempt,
+    FallbackInstanceResult,
+    _atoms,
+    _relation_delta,
+    is_reliably_zero,
+    relation_to_zero_rhs,
+    relations_to_zero_rhs,
+    satisfies_formula,
+)
+from .witness_generation import sample_free_assignments
+
+
+def _dedupe_instances(
+    instances: Iterable[Mapping[sp.Symbol, object]], variables: Sequence[sp.Symbol]
+) -> list[dict[sp.Symbol, sp.Expr]]:
+    seen: set[tuple[str, ...]] = set()
+    out: list[dict[sp.Symbol, sp.Expr]] = []
+    for inst in instances:
+        full = {var: sp.sympify(inst.get(var, 0)) for var in variables}
+        key = tuple(sp.simplify(full[var]) for var in variables)
+        if key not in seen:
+            seen.add(key)
+            out.append(full)
+    return out
+
+
+def find_nonzero_polynomial_witness(
+    poly: sp.Expr, variables: Sequence[sp.Symbol]
+) -> dict[sp.Symbol, sp.Expr] | None:
+    """Find a small integer point where a nonzero polynomial is nonzero."""
+
+    poly = sp.expand(poly)
+    used = tuple(var for var in variables if var in poly.free_symbols)
+    if not used:
+        return {var: sp.Integer(0) for var in variables} if not is_reliably_zero(poly) else None
+    for radius in range(0, 6):
+        grid = range(-radius, radius + 1)
+        for values in product(grid, repeat=len(used)):
+            assn = dict(zip(used, map(sp.Integer, values), strict=True))
+            try:
+                if not is_reliably_zero(poly.subs(assn)):
+                    return {var: sp.sympify(assn.get(var, 0)) for var in variables}
+            except _RECOVERABLE_ERRORS:
+                continue
+    return None
+
+
+def _solve_univariate_rel(rel: Relational, var: sp.Symbol) -> list[sp.Expr]:
+    """Return candidate sample values for a univariate real relation."""
+
+    rel = relation_to_zero_rhs(rel)
+    poly = _relation_delta(rel)
+    candidates: list[sp.Expr] = []
+    try:
+        solveset = sp.solveset(rel, var, domain=sp.S.Reals)
+    except _RECOVERABLE_ERRORS:
+        solveset = None
+    if isinstance(solveset, sp.FiniteSet):
+        candidates.extend(list(solveset))
+    elif solveset is not None:
+        candidates.extend([sp.Integer(0), sp.Integer(1), -sp.Integer(1)])
+    try:
+        roots = sp.solve(sp.Eq(poly, 0), var)
+    except _RECOVERABLE_ERRORS:
+        roots = []
+    for root in roots:
+        if root.is_real is not False:
+            candidates.extend([root, root + sp.Rational(1, 3), root - sp.Rational(1, 3)])
+    candidates.extend(
+        [sp.Integer(0), sp.Integer(1), -sp.Integer(1), sp.Rational(1, 2), -sp.Rational(1, 2)]
+    )
+    out: list[sp.Expr] = []
+    seen: set[sp.Expr] = set()
+    for candidate in candidates:
+        try:
+            candidate = sp.nsimplify(candidate)
+        except _RECOVERABLE_ERRORS:
+            candidate = sp.sympify(candidate)
+        key = candidate
+        if key not in seen:
+            seen.add(key)
+            out.append(candidate)
+    return out
+
+
+def _single_atom_instance(
+    atom: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    strict: bool,
+) -> tuple[dict[sp.Symbol, sp.Expr] | None, str]:
+    """Construct a small exact witness for one supported relational atom."""
+    if atom is sp.true or atom is True:
+        return {var: sp.Integer(0) for var in variables}, "tautology"
+    if atom is sp.false or atom is False:
+        return None, "contradiction"
+    if not isinstance(atom, Relational) or len(variables) == 0:
+        return None, "unsupported_atom"
+    rel = relation_to_zero_rhs(atom)
+    poly = _relation_delta(rel)
+    if isinstance(rel, sp.Unequality):
+        witness = find_nonzero_polynomial_witness(poly, variables)
+        if witness is not None and satisfies_formula(atom, witness, strict=strict):
+            return witness, "nonzero_polynomial"
+        return None, "unequal_no_small_witness"
+    if len(variables) == 1:
+        var = variables[0]
+        for value in _solve_univariate_rel(rel, var):
+            witness = {var: value}
+            if satisfies_formula(atom, witness, strict=strict):
+                return witness, "univariate_relation"
+    if isinstance(rel, (sp.StrictLessThan, sp.LessThan, sp.StrictGreaterThan, sp.GreaterThan)):
+        poly = sp.expand(poly)
+        for var in variables:
+            degree = sp.degree(poly, gen=var)
+            if degree is not None and degree >= 0 and degree % 2 == 1:
+                for value in (-4, -2, -1, 0, 1, 2, 4):
+                    partial = {var: sp.Integer(value)}
+                    rest = [v for v in variables if v != var]
+                    base = find_nonzero_polynomial_witness(poly.subs(partial), rest) if rest else {}
+                    candidate = {**partial, **(base or {})}
+                    candidate = {v: sp.sympify(candidate.get(v, 0)) for v in variables}
+                    if satisfies_formula(atom, candidate, strict=strict):
+                        return candidate, "odd_degree_inequality"
+        witness = find_nonzero_polynomial_witness(poly, variables)
+        if witness is not None and satisfies_formula(atom, witness, strict=strict):
+            return witness, "nonzero_probe"
+    if isinstance(rel, sp.Equality) and len(variables) > 1:
+        for value in (0, 1, -1, 2, -2):
+            candidate = {var: sp.Integer(0) for var in variables}
+            candidate[variables[0]] = sp.Integer(value)
+            if satisfies_formula(atom, candidate, strict=strict):
+                return candidate, "axis_probe"
+    return None, "no_single_atom_witness"
+
+
+def try_fast_witness(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    count: int = 1,
+    strict: bool = True,
+) -> FallbackInstanceResult:
+    """Try cheap symbolic and algebraic real-instance heuristics."""
+
+    variables = tuple(variables)
+    attempts: list[FallbackAttempt] = []
+    normalized = relations_to_zero_rhs(formula)
+    atoms = _atoms(normalized)
+    if len(atoms) == 1:
+        inst, reason = _single_atom_instance(atoms[0], variables, strict=strict)
+        status = (
+            "satisfied"
+            if inst is not None
+            else ("unsat" if reason == "contradiction" else "unknown")
+        )
+        attempts.append(FallbackAttempt("single_atom", status, {"reason": reason}))
+        return FallbackInstanceResult(
+            tuple([inst] if inst else []), status, "fast_real_heuristics", tuple(attempts)
+        )
+    equations = [atom for atom in atoms if isinstance(atom, sp.Equality)]
+    instances: list[dict[sp.Symbol, sp.Expr]] = []
+    if equations:
+        try:
+            sol = sp.solve(equations, variables, dict=True)
+        except _RECOVERABLE_ERRORS as exc:
+            sol = []
+            attempts.append(FallbackAttempt("solve_equations", "unknown", {"error": str(exc)}))
+        for raw in sol[: max(count * 4, 8)]:
+            candidate = {var: sp.sympify(raw.get(var, 0)) for var in variables}
+            if satisfies_formula(normalized, candidate, strict=strict):
+                instances.append(candidate)
+                if len(instances) >= count:
+                    break
+        if instances:
+            attempts.append(
+                FallbackAttempt("solve_equations", "satisfied", {"candidate_count": len(instances)})
+            )
+            return FallbackInstanceResult(
+                tuple(_dedupe_instances(instances, variables)),
+                "satisfied",
+                "fast_real_heuristics",
+                tuple(attempts),
+            )
+    origin = {var: sp.Integer(0) for var in variables}
+    if satisfies_formula(normalized, origin, strict=strict):
+        attempts.append(FallbackAttempt("origin_probe", "satisfied"))
+        return FallbackInstanceResult(
+            (origin,), "satisfied", "fast_real_heuristics", tuple(attempts)
+        )
+    attempts.append(FallbackAttempt("origin_probe", "unknown"))
+    return FallbackInstanceResult((), "unknown", "fast_real_heuristics", tuple(attempts))
+
+
+def sample_bounded_witnesses(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    count: int = 1,
+    seed: int | None = None,
+    strict: bool = True,
+    sample_count: int = 96,
+) -> FallbackInstanceResult:
+    """Try deterministic grid probes followed by bounded random rational samples."""
+
+    variables = tuple(variables)
+    attempts: list[FallbackAttempt] = []
+    candidates: list[dict[sp.Symbol, sp.Expr]] = []
+    grid_values = [
+        sp.Integer(0),
+        sp.Integer(1),
+        -sp.Integer(1),
+        sp.Integer(2),
+        -sp.Integer(2),
+        sp.Rational(1, 2),
+        -sp.Rational(1, 2),
+    ]
+    max_grid = min(len(grid_values) ** max(len(variables), 1), 512)
+    if variables:
+        for idx, values in enumerate(product(grid_values, repeat=len(variables))):
+            if idx >= max_grid:
+                break
+            assn = dict(zip(variables, values, strict=True))
+            if satisfies_formula(formula, assn, strict=strict):
+                candidates.append(assn)
+                if len(candidates) >= count:
+                    attempts.append(FallbackAttempt("small_grid", "satisfied", {"tested": idx + 1}))
+                    return FallbackInstanceResult(
+                        tuple(_dedupe_instances(candidates, variables)),
+                        "satisfied",
+                        "bounded_sampling",
+                        tuple(attempts),
+                        exact=True,
+                    )
+    else:
+        if satisfies_formula(formula, {}, strict=strict):
+            return FallbackInstanceResult(
+                ({},), "satisfied", "bounded_sampling", tuple(attempts), exact=True
+            )
+    attempts.append(FallbackAttempt("small_grid", "unknown", {"tested": max_grid}))
+    rng_seed = seed if seed is not None else 1234
+    for batch in range(4):
+        assignments = sample_free_assignments(
+            variables, sample_count=sample_count // 4, seed=rng_seed + batch
+        )
+        for assn in assignments:
+            if satisfies_formula(formula, assn, strict=strict):
+                candidates.append({var: sp.sympify(assn[var]) for var in variables})
+                if len(candidates) >= count:
+                    attempts.append(
+                        FallbackAttempt(
+                            "bounded_random", "satisfied", {"batches": batch + 1, "seed": rng_seed}
+                        )
+                    )
+                    return FallbackInstanceResult(
+                        tuple(_dedupe_instances(candidates, variables)),
+                        "satisfied",
+                        "bounded_sampling",
+                        tuple(attempts),
+                        exact=False,
+                    )
+    attempts.append(
+        FallbackAttempt(
+            "bounded_random", "unknown", {"seed": rng_seed, "sample_count": sample_count}
+        )
+    )
+    return FallbackInstanceResult((), "unknown", "bounded_sampling", tuple(attempts), exact=False)
+
+
+def sample_section_witnesses(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    count: int = 1,
+    seed: int = 7,
+    attempts: int = 7,
+    strict: bool = True,
+) -> FallbackInstanceResult:
+    """Search for witnesses on random one-dimensional affine sections."""
+
+    variables = tuple(variables)
+    wit = find_random_section_wit(formula, variables, seed=seed, attempts=attempts)
+    if wit.assignment is None:
+        return FallbackInstanceResult(
+            (),
+            "unknown",
+            "random_section_sampling",
+            (
+                FallbackAttempt(
+                    "random_section", "unknown", {"attempts": wit.attempts, "seed": seed}
+                ),
+            ),
+            exact=False,
+        )
+    candidate = {var: sp.sympify(wit.assignment[var]) for var in variables}
+    if satisfies_formula(formula, candidate, strict=strict):
+        return FallbackInstanceResult(
+            (candidate,),
+            "satisfied",
+            "random_section_sampling",
+            (
+                FallbackAttempt(
+                    "random_section", "satisfied", {"attempts": wit.attempts, "seed": seed}
+                ),
+            ),
+            exact=False,
+        )
+    return FallbackInstanceResult(
+        (),
+        "unknown",
+        "random_section_sampling",
+        (FallbackAttempt("random_section", "rejected", {"attempts": wit.attempts, "seed": seed}),),
+        exact=False,
+    )
+
+
+def solve_univar_witness(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    strict: bool = True,
+) -> FallbackInstanceResult:
+    """Try one-variable candidates from roots and decomposed factors."""
+
+    variables = tuple(variables)
+    if len(variables) != 1:
+        return FallbackInstanceResult(
+            (), "unknown", "univariate_decomposition", (FallbackAttempt("arity_check", "skipped"),)
+        )
+    var = variables[0]
+    atoms = _atoms(relations_to_zero_rhs(formula))
+    candidates: list[sp.Expr] = []
+    for atom in atoms:
+        if isinstance(atom, Relational):
+            candidates.extend(_solve_univariate_rel(atom, var))
+            delta = _relation_delta(atom)
+            try:
+                for component in sp.decompose(delta, var):
+                    if component != delta:
+                        try:
+                            candidates.extend(sp.solve(sp.Eq(component, 0), var))
+                        except _RECOVERABLE_ERRORS:
+                            pass
+            except _RECOVERABLE_ERRORS:
+                pass
+    for value in candidates:
+        candidate = {var: sp.nsimplify(value)}
+        if satisfies_formula(formula, candidate, strict=strict):
+            return FallbackInstanceResult(
+                (candidate,),
+                "satisfied",
+                "univariate_decomposition",
+                (FallbackAttempt("candidate_validation", "satisfied"),),
+            )
+    return FallbackInstanceResult(
+        (),
+        "unknown",
+        "univariate_decomposition",
+        (FallbackAttempt("candidate_validation", "unknown", {"candidate_count": len(candidates)}),),
+    )
+
+
+def find_real_witnesses(
+    formula: sp.Expr,
+    variables: Sequence[sp.Symbol],
+    *,
+    count: int = 1,
+    seed: int | None = None,
+    strict: bool = True,
+) -> FallbackInstanceResult:
+    """Layered non-CAD real instance pipeline."""
+
+    variables = tuple(variables)
+    collected: list[dict[sp.Symbol, sp.Expr]] = []
+    attempts: list[FallbackAttempt] = []
+    normalized = relations_to_zero_rhs(formula)
+    methods = (
+        lambda: try_fast_witness(normalized, variables, count=count, strict=strict),
+        lambda: sample_bounded_witnesses(
+            normalized, variables, count=count, seed=seed, strict=strict
+        ),
+        lambda: sample_section_witnesses(
+            normalized, variables, count=count, seed=seed if seed is not None else 7, strict=strict
+        ),
+        lambda: solve_univar_witness(normalized, variables, strict=strict),
+    )
+    for method in methods:
+        result = method()
+        attempts.extend(result.attempts)
+        if result.instances:
+            collected.extend(result.instances)
+            collected = _dedupe_instances(collected, variables)
+            return FallbackInstanceResult(
+                tuple(collected[:count]),
+                "satisfied",
+                result.method,
+                tuple(attempts),
+                exact=result.exact,
+            )
+        if result.status == "unsat":
+            return FallbackInstanceResult(
+                (), "unsat", result.method, tuple(attempts), exact=result.exact
+            )
+    return FallbackInstanceResult(
+        tuple(collected),
+        "satisfied" if collected else "unknown",
+        "real_instance_fallback_pipeline",
+        tuple(attempts),
+        exact=False,
+    )
+
+
+# ---------------------------------------------------------------------------
+
+__all__ = [
+    "find_nonzero_polynomial_witness",
+    "try_fast_witness",
+    "sample_bounded_witnesses",
+    "sample_section_witnesses",
+    "solve_univar_witness",
+    "find_real_witnesses",
+]

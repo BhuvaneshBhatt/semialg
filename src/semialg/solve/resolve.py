@@ -24,6 +24,7 @@ def resolve_formula(
     return_result: bool = False,
     strategy: str | None = "lazy",
 ):
+    """Resolve a parsed formula and return its exact solution representation."""
     dom = normalize_domain(domain)
     strategy_name = (strategy or "lazy").lower()
     if (
@@ -67,6 +68,7 @@ def resolve_text(
     return_result: bool = False,
     strategy: str | None = "lazy",
 ):
+    """Parse and resolve a textual formula into an exact solution representation."""
     if variable_order is not None:
         variable_order = [sp.Symbol(v) if isinstance(v, str) else v for v in variable_order]
     parsed = parse_quant_form_text(text, symbols=symbols, variable_order=variable_order)

@@ -3,12 +3,12 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import GenericCADFunction, generic_cad, generic_cad_text
+from semialg.decomposition import GenericCADFunction, generic_cad, generic_cad_text
 
 
 def test_generic_cad_01():
     a, x = sp.symbols("a x", real=True)
-    result = generic_cad(sp.Eq(a * x - 1, 0), variables=[x], parameters=[a])
+    result = generic_cad(sp.Eq(a * x - 1, 0), variables=[x], parameters=[a], return_result=True)
     assert result.status == "complete"
     assert bool(result.generic_formula.subs({a: 2}))
     assert not bool(result.generic_formula.subs({a: 0}))
@@ -40,6 +40,4 @@ def test_generic_cad_03():
 
 
 def test_generic_cad_04():
-    import semialg
-
-    assert semialg.generic_cad is generic_cad
+    assert callable(generic_cad)

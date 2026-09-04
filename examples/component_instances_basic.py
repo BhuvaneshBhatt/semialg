@@ -1,8 +1,10 @@
+"""Inspect connected-component metadata from the expert decomposition API."""
+
 import sympy as sp
 
-from semialg import component_instances
+from semialg.decomposition import component_instances
 
 x = sp.Symbol("x", real=True)
-res = component_instances((x < -1) | (x > 1), [x])
-for comp in res.components:
-    print(comp.id, comp.dimension, comp.sample_exact)
+result = component_instances((x < -1) | (x > 1), [x], return_result=True)
+for component in result.components:
+    print(component.id, component.dimension, component.sample_exact)

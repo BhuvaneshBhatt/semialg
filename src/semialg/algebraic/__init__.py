@@ -9,14 +9,23 @@ from .border_basis import (
 )
 from .cache import (
     CACHE,
-    CACHE_VERSION,
+    CACHE_FORMAT,
+    AlgebraicCacheLimits,
     RootIsolationCache,
     RootIsolationStats,
     algebraic_cache_stats,
     clear_algebraic_caches,
+    configure_algebraic_cache_limits,
     root_isolation_costs,
 )
 from .comparison import compare_samples, sort_samples
+from .equality_ideal import (
+    EqualityIdealAnalysis,
+    EqualityIdealContext,
+    LinearVariableElimination,
+    ZeroDimensionalFilterResult,
+    analyze_equality_ideal,
+)
 from .intervals import RationalInterval
 from .rational_univariate import (
     FilteredRationalUnivariateSolutions,
@@ -68,12 +77,13 @@ def get_isolating_interval(root: AlgebraicRoot):
 __all__ = [
     "algebraic_cache_stats",
     "clear_algebraic_caches",
+    "configure_algebraic_cache_limits",
+    "AlgebraicCacheLimits",
     "root_isolation_costs",
     "CACHE",
-    "CACHE_VERSION",
+    "CACHE_FORMAT",
     "RootIsolationCache",
     "RootIsolationStats",
-    "root_isolation_costs",
     "RationalInterval",
     "RationalSample",
     "AlgebraicRoot",
@@ -94,6 +104,11 @@ __all__ = [
     "BorderBasisResult",
     "compute_border_basis",
     "compute_border_basis_linear",
+    "EqualityIdealAnalysis",
+    "EqualityIdealContext",
+    "LinearVariableElimination",
+    "ZeroDimensionalFilterResult",
+    "analyze_equality_ideal",
     "RationalUnivariateError",
     "RationalUnivariateRepresentation",
     "RationalUnivariatePoint",

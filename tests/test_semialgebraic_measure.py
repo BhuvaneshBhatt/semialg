@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import MeasureResult, semialgebraic_measure
+from semialg import semialgebraic_measure
+from semialg.measure import MeasureResult
 
 
 def test_measure_1d_interval_from_polynomial_inequality() -> None:

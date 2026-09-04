@@ -6,16 +6,16 @@ from .eliminate import (
     eliminate_quadratic_variable,
     try_quadratic_virtual_substitution_qe,
 )
-from .substitution import (
-    substitute_infinity,
-    substitute_perturbed_quadratic_root,
-    substitute_quadratic_root,
-)
-from .types import (
+from .results import (
     QuadraticVirtualSubstitutionResult,
     VirtualSubstitutionError,
     VirtualSubstitutionQEResult,
     VirtualSubstitutionWitnessResult,
+)
+from .substitution import (
+    substitute_infinity,
+    substitute_perturbed_quadratic_root,
+    substitute_quadratic_root,
 )
 from .witness import (
     reconstruct_vs_value,

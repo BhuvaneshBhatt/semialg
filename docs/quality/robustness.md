@@ -82,9 +82,9 @@ without allowing a single solve to retain unbounded state.
 
 Expected strategy failure, unavailable exact arithmetic, and failed
 certification should be represented explicitly. Internal programming errors
-must not be converted into successful fallback results. Some heuristic
-subsystems still contain broad exception handlers; these should be narrowed as
-their failure contracts are made explicit.
+must not be converted into successful fallback results. Production code catches only explicit expected failure classes at fallback
+boundaries; unexpected programming errors propagate instead of being converted
+into ordinary strategy failures.
 
 ## Validation
 
@@ -102,7 +102,7 @@ positive multiplicity. Deterministic metamorphic tests verify interval measure
 identities for union, intersection, and difference.
 
 A public-function coverage test scans the test suite and compares direct function
-calls with the exported function set. This is a release guard against adding public
+calls with the exported function set. This prevents adding public
 functions without at least one behavioral contract test.
 
 
@@ -113,3 +113,29 @@ native `RootOf` over an algebraic coefficient domain, semialg keeps the ordered
 root as an exact isolating-interval object. A readable radical is returned only
 when exactly one certified real radical candidate lies in that interval. This
 prevents presentation logic from changing CAD root identity.
+
+## Exactness safeguards
+
+Integer witness bounds use exact `floor`/`ceiling`. Exact real interval sampling constructs rational candidates whose membership is certified with exact real comparison, so sub-machine-precision intervals are not collapsed by binary floats or epsilon perturbations. Rational lower/upper bounds may use numerical evaluation to propose a compact candidate, but the bound relation is accepted only after exact comparison. Algebraic sign certification uses symbolic/algebraic-number reasoning only and raises when it cannot certify a sign. CAD implication caches retain immutable SymPy expressions and symbol objects, preserving assumptions and same-name symbol identity.
+
+
+## Conservative affine fast paths
+
+Affine recognition is deliberately separated from permission to divide. For
+example, `a*x <= 1` is syntactically linear in `x`, but without assumptions on
+`a` there is no globally valid orientation: the inequality reverses for
+`a < 0` and has a separate `a = 0` stratum. The inexpensive bound extractor
+therefore returns an incomplete result instead of guessing. Callers that need a
+complete answer may continue to exact CAD/QE.
+
+`coordinate_bounds` retains endpoint openness. Equal lower and upper endpoints
+are inconsistent whenever either endpoint is strict, so `(x > 0) & (x < 0)`
+is recognized as empty. The explicit false formula is likewise an empty, and
+hence bounded, solution set.
+
+## Structural symbol identity
+
+Canonical cache/order keys distinguish SymPy Symbols with the same printed name
+but different assumptions. Do not replace the package's assumption-aware symbol
+key with `Symbol.name` or `sympy.default_sort_key`: those can tie for
+assumption-distinct Symbols and make cache identity depend on insertion order.

@@ -2,6 +2,20 @@
 
 Several very different outcomes can look like “the solver did not return the answer I expected.” Distinguishing them is important.
 
+
+
+
+## Primary API overview
+
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+
+| API | Kind | Role / return |
+|---|---|---|
+| `ResourceLimitError` | class | A computation stopped because a configured resource limit was reached. |
+| `SemialgError` | class | Base class for semialg-specific failures. |
+| `SemialgStrategyFailure` | class | A speculative exact/symbolic strategy could not handle the input. |
+| `UnsupportedFragmentError` | class | The input is valid, but outside the symbolic fragment a strategy supports. |
+
 ## Invalid input
 
 Examples include malformed bounds, bounds on undeclared variables, provably reversed intervals, negative geometric radii, inconsistent ambient dimensions, duplicate/missing parametric limits, and ambiguous same-name symbols.
@@ -20,7 +34,7 @@ Check structured optimization fields such as `value`, `attained`, and `certified
 
 ## Unsupported exact case
 
-Some valid semialgebraic problems lie outside a specialized fast path or exact representation currently implemented by semialg. Certified code should decline such a step rather than silently substitute a floating-point decision.
+Some valid semialgebraic problems lie outside a specialized fast path or exact representation implemented by semialg. Certified code should decline such a step rather than silently substitute a floating-point decision.
 
 A different backend, a simpler formulation, or complete CAD may still solve the problem.
 
@@ -42,15 +56,26 @@ Exact root and bound logic can encounter expressions whose order cannot be estab
 
 Some sampling/plotting paths allow explicitly numerical operation. These results are appropriate for exploration but should not be interpreted as exact certificates.
 
+
+## Exception hierarchy
+
+Package-specific failures derive from `semialg.errors.SemialgError`. Important subclasses distinguish unsupported fragments/strategy failure, backend failure, formula normalization, algebraic solving, quantifier elimination, reconstruction, certification, exact evaluation, dimension mismatches, and configured resource limits. `semialg.exceptions` provides the same exception classes as a dedicated exception import surface.
+
+Fallback code should catch the narrowest expected strategy exceptions it can justify. Programming defects such as `AssertionError` should propagate rather than being converted into an apparently harmless fallback.
+
 ## Debugging checklist
 
 When reporting a failure, include:
 
 - the exact SymPy formula and variable objects;
-- semialg and SymPy versions;
+- the installed semialg and SymPy versions;
 - the API and options used;
 - whether strings or `Symbol` objects were supplied;
 - the structured result/diagnostics if available;
 - whether the problem succeeds under a different certification policy or variable order.
 
 See also [Exactness and certification](../concepts/exactness_and_certification.md) and [Performance](performance.md).
+
+## Exception reference
+
+See the complete [exception hierarchy](../reference/exceptions.md) for the canonical classes and guidance on which level to catch.

@@ -1,4 +1,4 @@
-# $Id: __init__.py 10266 2025-11-28 13:52:09Z milde $
+# $Id: __init__.py 10331 2026-05-08 14:57:28Z milde $
 # Author: Engelbert Gruber, Günter Milde
 # Maintainer: docutils-develop@lists.sourceforge.net
 # Copyright: This module has been placed in the public domain.
@@ -226,12 +226,15 @@ class Writer(writers.Writer):
           {'dest': 'legacy_column_widths',
            'action': 'store_false',
            'validator': frontend.validate_boolean}),
-         # TODO: implement "latex footnotes" alternative
-         ('Footnotes with numbers/symbols by Docutils. (default) '
-          '(The alternative, --latex-footnotes, is not implemented yet.)',
+         ('Footnotes with numbers/symbols by Docutils. (default)',
           ['--docutils-footnotes'],
-          {'default': True,
-           'action': 'store_true',
+          {'dest': 'latex_footnotes',
+           'action': 'store_false',
+           'validator': frontend.validate_boolean}),
+         ('Footnotes with numbers by LaTeX.',
+          ['--latex-footnotes'],
+          {'action': 'store_true',
+           'default': False,
            'validator': frontend.validate_boolean}),
          ),
         )
@@ -621,7 +624,7 @@ with open(LATEX_WRITER_DIR/'docutils.sty', encoding='utf-8') as fp:
         block_name = line.rstrip(':')
         if not block_name:
             continue
-        definitions = _read_block(fp)
+        definitions = _read_block(fp)  # all lines up to the next empty one
         if block_name in ('color', 'float', 'table', 'textcomp'):
             definitions = definitions.strip()
         # print('Block: `%s`'% block_name)
@@ -1188,6 +1191,13 @@ class LaTeXTranslator(writers.DoctreeTranslator):
         self.warn = self.document.reporter.warning
         self.error = self.document.reporter.error
 
+        # Set of IDs that are actually used in <reference>'s "refid" attribute
+        # (see `ids_to_labels()`):
+        self.refids = set()
+        for node in document.findall(nodes.reference):
+            if 'refid' in node:
+                self.refids.add(node['refid'])
+
         # Settings
         # ~~~~~~~~
         settings = self.settings
@@ -1253,12 +1263,10 @@ class LaTeXTranslator(writers.DoctreeTranslator):
         else:
             self.graphicx_package = (r'\usepackage[%s]{graphicx}' %
                                      settings.graphicx_option)
-        # footnotes: TODO: implement LaTeX footnotes
-        self.docutils_footnotes = settings.docutils_footnotes
+        self.latex_footnotes = settings.latex_footnotes
 
         # Output collection stacks
         # ~~~~~~~~~~~~~~~~~~~~~~~~
-
         # Document parts
         self.head_prefix = [f'\\documentclass[{self.documentoptions}]'
                             f'{{{settings.documentclass}}}']
@@ -1319,6 +1327,10 @@ class LaTeXTranslator(writers.DoctreeTranslator):
         self.out = self.body
         self.out_stack = []  # stack of output collectors
 
+        # LaTeX footnotes (see `visit_footnote_reference()`)
+        self.footnote_queue = []  # FIFO queue of footnote IDs
+        self.processed_footnotes = set()  # IDs of already set footnotes
+
         # Process settings
         # ~~~~~~~~~~~~~~~~
         # Encodings:
@@ -1354,19 +1366,21 @@ class LaTeXTranslator(writers.DoctreeTranslator):
         if self.fallback_stylesheet:
             stylesheet_list.remove('docutils')
             if settings.legacy_class_functions:
-                # docutils.sty is incompatible with legacy functions
+                # docutils.sty is incompatible with legacy class functions
                 self.fallback_stylesheet = False
             else:
                 # require a minimal version:
                 self.fallbacks['_docutils.sty'] = (
-                    r'\usepackage{docutils}[2025-08-06]')
+                    r'\usepackage{docutils}[2026-05-06]')
 
         self.stylesheet = [self.stylesheet_call(path)
                            for path in stylesheet_list]
 
         # PDF setup
+        self.hyperref_options = []
         # avoid warnings about empty anchors with \DUfootnotetext:
-        self.hyperref_options = ['hyperfootnotes=false']
+        if not self.latex_footnotes:
+            self.hyperref_options = ['hyperfootnotes=false']
         # link color (default is "blue"):
         if self.hyperlink_color.lower() not in ('0', 'off', 'no', 'false', ''):
             self.hyperref_options.append('colorlinks=true,'
@@ -1562,7 +1576,10 @@ class LaTeXTranslator(writers.DoctreeTranslator):
 
     def ids_to_labels(self, node, set_anchor=True, protect=False,
                       newline=False, pre_nl=False) -> list[str]:
-        """Return label definitions for all ids of `node`.
+        """Return label definitions for IDs of `node`.
+
+        Make labels for all IDs that are either explicit or referenced in
+        the document (i.e. not for section headings that are not referenced).
 
         If `set_anchor` is True, an anchor is set with \\phantomsection.
         If `protect` is True, the \\label cmd is made robust.
@@ -1571,8 +1588,12 @@ class LaTeXTranslator(writers.DoctreeTranslator):
 
         Provisional.
         """
+        explicit_IDs = set(self.document.nameids[name]
+                           for name in node['names']
+                           if self.document.nametypes[name])
         prefix = '\\protect' if protect else ''
-        labels = [f'{prefix}\\label{{{id}}}' for id in node['ids']]
+        labels = [f'{prefix}\\label{{{ID}}}' for ID in node['ids']
+                  if ID in explicit_IDs.union(self.refids)]
         if labels:
             if set_anchor:
                 labels.insert(0, '\\phantomsection')
@@ -2340,53 +2361,99 @@ class LaTeXTranslator(writers.DoctreeTranslator):
         self.pop_output_collector()
 
     def visit_footnote(self, node) -> None:
-        try:
-            backref = node['backrefs'][0]
-        except IndexError:
-            backref = node['ids'][0]  # no backref, use self-ref instead
-        if self.docutils_footnotes:
+        if not self.latex_footnotes:
+            try:
+                backref = node['backrefs'][0]
+            except IndexError:
+                backref = ''  # no backref, keep empty
             self.provide_fallback('footnotes')
-            num = node[0].astext()
+            label = self.encode(node[0].astext())
             if self.settings.footnote_references == 'brackets':
-                num = '[%s]' % num
-            self.out.append('%%\n\\DUfootnotetext{%s}{%s}{%s}{' %
-                            (node['ids'][0], backref, self.encode(num)))
-            # prevent spurious whitespace if footnote starts with paragraph:
-            if len(node) > 1 and isinstance(node[1], nodes.paragraph):
-                self.out.append('%')
-        # TODO: "real" LaTeX \footnote{}s (see visit_footnotes_reference())
+                label = '[%s]' % label
+            self.out.append('%%\n\\DUfootnotetext{%s}{%s}{%s}{%%' %
+                            (node['ids'][0], backref, label))
+        elif not self.footnote_queue:
+            # latex-footnotes: set only scheduled footnotes
+            # (see `visit_footnote_reference()`)
+            raise nodes.SkipNode
 
     def depart_footnote(self, node) -> None:
-        self.out.append('}\n')
+        # prevent overlap with next note if footnote ends with "admonition":
+        if isinstance(node[-1], nodes.Admonition):
+            self.out.append('\\smallskip')
+        if not self.latex_footnotes:
+            self.out.append('}\n')
 
     def visit_footnote_reference(self, node) -> None:
-        href = ''
-        if 'refid' in node:
-            href = node['refid']
-        elif 'refname' in node:
-            href = self.document.nameids[node['refname']]
-        # if not self.docutils_footnotes:
-        #     # TODO: insert footnote content at (or near) this place
-        #     #       see also docs/dev/todo.rst
-        #     try:
-        #         referenced_node = self.document.ids[node['refid']]
-        #     except (AttributeError, KeyError):
-        #         self.document.reporter.error(
-        #             'unresolved footnote-reference %s' % node)
-        #     print('footnote-ref to %s' % referenced_node)
-        format = self.settings.footnote_references
-        if format == 'brackets':
-            self.append_hypertargets(node)
-            self.out.append('\\hyperlink{%s}{[' % href)
-            self.context.append(']}')
-        else:
-            self.provide_fallback('footnotes')
-            self.out.append(r'\DUfootnotemark{%s}{%s}{' %
-                            (node['ids'][0], href))
-            self.context.append('}')
+        href = node['refid']
+        if not self.latex_footnotes:
+            if isinstance(node.parent, nodes.title):
+                if isinstance(node.parent.parent, nodes.section):
+                    self.out.append('\\texorpdfstring{')
+                self.out.append('\\protect')
+            if self.settings.footnote_references == 'brackets':
+                self.provide_fallback('bracket_footnoterefs')
+                cmd = r'\DUbracketfootnotemark'
+            else:
+                self.provide_fallback('footnotes')
+                cmd = r'\DUfootnotemark'
+            self.out.append(r'%s{%s}{%s}{' % (cmd, node['ids'][0], href))
+        else:  # latex-footnotes
+            target = self.document.ids[href]
+            if not isinstance(target, nodes.footnote):
+                self.out.append(r'\textsuperscript{')
+                self.visit_reference(node)
+                return
+            if href in self.processed_footnotes:
+                # footnote is already set, just insert a reference:
+                self.out.append(r'\footref{%s}' % href)
+                raise nodes.SkipNode
+            if self.footnote_queue:
+                # nested footnote: insert reference now and text later
+                self.out.append(r'\footref{%s}' % href)
+                self.footnote_queue.append(href)
+                raise nodes.SkipNode
+            # `target` is a new top-level footnote:
+            self.footnote_queue.append(href)
+            footnote_cmd = '%\n\\footnote'
+            if isinstance(node.parent, nodes.title):
+                if isinstance(node.parent.parent, nodes.section):
+                    self.out.append('%\n\\texorpdfstring{')
+                footnote_cmd = '%\n \\protect\\footnote'
+            add_label = target['names'] and self.document.refnames.get(
+                                                target['names'][0], [])
+            while self.footnote_queue:
+                ID = self.footnote_queue[0]
+                footnote = self.document.ids[ID]
+                self.processed_footnotes.add(ID)  # keep ID for re-references
+                self.out += [footnote_cmd, '{']
+                if add_label:
+                    self.out += [r'\label{', ID, '}']
+                self.out.append('%')
+                # get footnote content
+                self.push_output_collector([])
+                footnote.walkabout(self)  # visit/depart footnote & content
+                note = ''.join(self.pop_output_collector())
+                # indent lines
+                note = '\n  '.join(note.splitlines())
+                self.out.append(note)
+                self.out.append('\n}')
+                self.footnote_queue.pop(0)
+                # subsequent items have their reference already set:
+                footnote_cmd = '%\n\\refstepcounter{footnote}\\footnotetext'
+                add_label = True
+            raise nodes.SkipChildren  # ignore content (footnote number/symbol)
 
     def depart_footnote_reference(self, node) -> None:
-        self.out.append(self.context.pop())
+        if not self.latex_footnotes:
+            self.out.append('}')
+        elif not isinstance(self.document.ids[node['refid']], nodes.footnote):
+            self.depart_reference(node)
+            self.out.append('}')
+            return
+        if isinstance(node.parent.parent, nodes.section
+                      ) and isinstance(node.parent, nodes.title):
+            self.out.append('}{}')
 
     # footnote/citation label
     def label_delim(self, node, bracket, superscript):
@@ -2543,6 +2610,12 @@ class LaTeXTranslator(writers.DoctreeTranslator):
                     self.out.append(r'\foreignlanguage{%s}{' % language)
             else:
                 self.provide_fallback('inline')
+                if hasattr(PreambleCmds, f'inline role {cls}'):
+                    self.provide_fallback(f'inline role {cls}')
+                if cls in ('del', 'ins', 'mark', 's', 'u'):
+                    self.requirements['soul'] = r'\usepackage{soul}'
+                if cls == 'mark':
+                    self.requirements['color'] = PreambleCmds.color
                 self.out.append(r'\DUrole{%s}{' % cls)
 
     def depart_inline(self, node) -> None:
@@ -3254,15 +3327,12 @@ class LaTeXTranslator(writers.DoctreeTranslator):
             else:
                 self.out.append(r'\%s{' % section_name)
 
-            # label and ToC entry:
-            bookmark = ['']
-            # add sections with unsupported level to toc and pdfbookmarks?
-            ## if level > len(self.d_class.sections):
-            ##     section_title = self.encode(node.astext())
-            ##     bookmark.append(r'\addcontentsline{toc}{%s}{%s}' %
-            ##               (section_name, section_title))
-            bookmark += self.ids_to_labels(node.parent, set_anchor=False)
-            self.context.append('%\n  '.join(bookmark) + '%\n}\n')
+            # label(s) and ToC entry:
+            labels = self.ids_to_labels(node.parent, set_anchor=False)
+            if labels:
+                self.context.append('%\n  '.join(('', *labels)) + '%\n}\n')
+            else:
+                self.context.append('}\n')
             if (level > len(self.d_class.sections)
                 and not self.settings.legacy_class_functions):
                 self.context[-1] += '\\end{DUclass}\n'
@@ -3298,8 +3368,7 @@ class LaTeXTranslator(writers.DoctreeTranslator):
 
         # labels and PDF bookmark (sidebar entry)
         self.out.append('\n')  # start new paragraph
-        if len(node['names']) > 1:  # don't add labels just for the auto-id
-            self.out += self.ids_to_labels(node, newline=True)
+        self.out += self.ids_to_labels(node, newline=True)
         if (isinstance(node.next_node(), nodes.title)
             and 'local' not in node['classes']
             and self.settings.documentclass != 'memoir'):

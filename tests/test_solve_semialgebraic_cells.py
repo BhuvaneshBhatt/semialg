@@ -1,7 +1,8 @@
 import pytest
 import sympy as sp
 
-from semialg import VerticalBoundCell2D, solve_semialgebraic
+from semialg import solve_semialgebraic
+from semialg.implicit_geometry import VerticalBoundCell2D
 
 pytestmark = pytest.mark.slow
 

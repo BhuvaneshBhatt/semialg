@@ -10,10 +10,15 @@ from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 from sympy.logic.boolalg import Not as SymNot
 from sympy.logic.boolalg import Or as SymOr
 
-from .exact_arithmetic import compare_exact_reals, exact_truth
+from ._linear_relations import certified_sign, safe_linear_solution
+from .exact_arithmetic import compare_extended_reals, exact_truth
 from .interval_decomposition import finite_real_roots as _finite_real_roots
-from .normalization import normalize_formula
-from .normalization import normalize_problem_variables as _shared_variables
+from .normalization import (
+    conjuncts,
+    normalize_formula,
+    normalize_problem_variables,
+    normalize_variables,
+)
 from .relations import make_zero_relation
 from .relations import split_relation as _relational_difference
 
@@ -156,22 +161,6 @@ class VerticalBoundCell2D:
         return {self.x_variable: x_value, self.y_variable: y_value}
 
 
-def _normalize_formula(condition: object) -> sp.Expr:
-    """Normalize a geometry condition using the shared public-API rules."""
-
-    return normalize_formula(condition)
-
-
-def _normalize_variables(
-    variables: Sequence[sp.Symbol | str] | None,
-    formula: sp.Expr | None = None,
-) -> tuple[sp.Symbol, ...]:
-    """Resolve geometry variables and append symbols from the formula."""
-
-    context = () if formula is None else (formula,)
-    return _shared_variables(variables, *context)
-
-
 def _as_leq_expression(expr: sp.Expr, op: str) -> sp.Expr | None:
     if op in ("<", "<="):
         return sp.simplify(expr)
@@ -239,14 +228,6 @@ def _as_disjuncts(expr: sp.Expr) -> tuple[sp.Expr, ...]:
     return (dnf,)
 
 
-def _as_conjuncts(expr: sp.Expr) -> tuple[sp.Expr, ...]:
-    if expr is sp.true or isinstance(expr, BooleanTrue):
-        return ()
-    if isinstance(expr, SymAnd):
-        return tuple(expr.args)
-    return (expr,)
-
-
 def semialgebraic_level_function(
     condition: object, variables: Sequence[sp.Symbol | str] | None = None
 ) -> sp.Expr:
@@ -261,8 +242,8 @@ def semialgebraic_level_function(
     semialgebraic region utilities.
     """
 
-    expr = _normalize_formula(condition)
-    _normalize_variables(variables, expr)  # validates symbols and preserves API symmetry
+    expr = normalize_formula(condition)
+    normalize_problem_variables(variables, expr)  # validates symbols and preserves API symmetry
 
     def rec(node: sp.Expr) -> sp.Expr:
         if node is sp.true or isinstance(node, BooleanTrue):
@@ -286,7 +267,8 @@ def semialgebraic_level_function(
             if op == "!=":
                 return sp.Integer(0)
             leq = _as_leq_expression(diff, op)
-            assert leq is not None
+            if leq is None:
+                raise TypeError(f"unsupported inequality relation: {node!r}")
             return sp.simplify(leq)
         raise TypeError(f"unsupported Boolean expression in level function: {node!r}")
 
@@ -303,14 +285,14 @@ def decompose_implicit_formula(
     structural utility for closure/boundary/integration code, not a prettifier.
     """
 
-    expr = _normalize_formula(condition)
-    _normalize_variables(variables, expr)
+    expr = normalize_formula(condition)
+    normalize_problem_variables(variables, expr)
     pieces: list[ImplicitFormulaPiece] = []
     for disjunct in _as_disjuncts(expr):
         inequalities: list[sp.Expr] = []
         equalities: list[sp.Expr] = []
         impossible = False
-        for atom in _as_conjuncts(disjunct):
+        for atom in conjuncts(disjunct):
             if atom is sp.true or isinstance(atom, BooleanTrue):
                 continue
             if atom is sp.false or isinstance(atom, BooleanFalse):
@@ -356,21 +338,20 @@ def _linear_bound_from_relation(
         return None
     try:
         poly = sp.Poly(diff, variable)
-    except Exception:
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         return None
     if poly.degree() != 1:
         return None
     coeff = sp.simplify(poly.coeff_monomial(variable))
-    rest = sp.simplify(poly.as_expr() - coeff * variable)
-    if coeff == 0:
+    sign = certified_sign(coeff)
+    if sign not in (-1, 1):
         return None
-    boundary = sp.simplify(-rest / coeff)
+    boundary = safe_linear_solution(diff, variable)
+    if boundary is None:
+        return None
     normalized_op = op
-    if coeff.is_negative:
+    if sign < 0:
         normalized_op = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}[op]
-    elif not coeff.is_positive:
-        # Keep symbolic-sign handling conservative.
-        return None
     if normalized_op in ("<", "<="):
         return "upper", boundary
     if normalized_op in (">", ">="):
@@ -388,8 +369,8 @@ def extract_symbolic_box_bounds(
     Raises ``NotImplementedError`` when the formula is not an explicit box.
     """
 
-    expr = _normalize_formula(condition)
-    vars_ = _normalize_variables(variables, expr)
+    expr = normalize_formula(condition)
+    vars_ = normalize_variables(variables, expr, append_context_symbols=False)
     if isinstance(expr, SymOr):
         raise NotImplementedError(
             "explicit box extraction expects one conjunctive cell, not a disjunction"
@@ -397,7 +378,7 @@ def extract_symbolic_box_bounds(
     lower = {var: -sp.oo for var in vars_}
     upper = {var: sp.oo for var in vars_}
     used_atoms: set[sp.Expr] = set()
-    atoms = _as_conjuncts(_formula_to_nnf(expr))
+    atoms = conjuncts(_formula_to_nnf(expr))
     for i, var in enumerate(vars_):
         later = vars_[i:]
         for atom in atoms:
@@ -437,11 +418,12 @@ def _truth_at(condition: sp.Expr, subs: Mapping[sp.Symbol, sp.Expr]) -> bool:
 def _x_intervals_from_condition(
     x_condition: sp.Expr, x: sp.Symbol
 ) -> tuple[tuple[sp.Expr, sp.Expr], ...]:
+    """Recover exact one-dimensional base intervals implied by a semialgebraic condition."""
     if x_condition is sp.true or isinstance(x_condition, BooleanTrue):
         return ((-sp.oo, sp.oo),)
     if x_condition is sp.false or isinstance(x_condition, BooleanFalse):
         return ()
-    atoms = _as_conjuncts(_formula_to_nnf(x_condition))
+    atoms = conjuncts(_formula_to_nnf(x_condition))
     cuts: list[sp.Expr] = [-sp.oo, sp.oo]
     for atom in atoms:
         if not getattr(atom, "is_Relational", False):
@@ -452,19 +434,13 @@ def _x_intervals_from_condition(
         if x in diff.free_symbols:
             cuts.extend(_finite_real_roots(diff, x))
     ordered: list[sp.Expr] = []
-    seen: set[str] = set()
+    seen: set[sp.Expr] = set()
 
     def compare_cuts(left: sp.Expr, right: sp.Expr) -> int:
-        if left == right:
-            return 0
-        if left == -sp.oo or right == sp.oo:
-            return -1
-        if left == sp.oo or right == -sp.oo:
-            return 1
-        return compare_exact_reals(left, right)
+        return compare_extended_reals(left, right)
 
     for cut in sorted(cuts, key=cmp_to_key(compare_cuts)):
-        key = sp.sstr(cut)
+        key = cut
         if key not in seen:
             ordered.append(cut)
             seen.add(key)
@@ -493,6 +469,12 @@ def _x_intervals_from_condition(
 def _vertical_bound_from_atom(
     atom: sp.Expr, x: sp.Symbol, y: sp.Symbol
 ) -> tuple[str, sp.Expr] | sp.Expr | None:
+    """Extract a supported vertical boundary or residual base condition.
+
+    Linear inequalities in ``y`` become lower or upper graph bounds. Symmetric
+    positive quadratic inequalities become two-sided square-root bounds.
+    Unsupported atoms return ``None`` so callers can choose another exact path.
+    """
     if not getattr(atom, "is_Relational", False):
         return None
     diff, op = _relational_difference(atom)
@@ -502,7 +484,7 @@ def _vertical_bound_from_atom(
         return make_zero_relation(diff, op)
     try:
         poly_y = sp.Poly(diff, y)
-    except Exception:
+    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         return None
     if poly_y.degree() == 2:
         a2 = sp.simplify(poly_y.coeff_monomial(y**2))
@@ -517,15 +499,23 @@ def _vertical_bound_from_atom(
     if poly_y.degree() != 1:
         return None
     coeff = sp.simplify(poly_y.coeff_monomial(y))
-    rest = sp.simplify(poly_y.as_expr() - coeff * y)
-    bound = sp.simplify(-rest / coeff)
+    if op == "==":
+        bound = safe_linear_solution(diff, y)
+        if bound is None:
+            return None
+        sign = certified_sign(coeff)
+    else:
+        sign = certified_sign(coeff)
+        if sign not in (-1, 1):
+            return None
+        bound = safe_linear_solution(diff, y)
+        if bound is None:
+            return None
     if bound.free_symbols - {x}:
         return None
     normalized_op = op
-    if coeff.is_negative:
+    if sign == -1:
         normalized_op = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}.get(op, op)
-    elif not coeff.is_positive:
-        return None
     if normalized_op == "==":
         return "equal", bound
     if normalized_op in ("<", "<="):
@@ -548,8 +538,8 @@ def decompose_cylindrical_formula_to_vertical_bounds_2d(
     extraction utility; unsupported formulas raise ``NotImplementedError``.
     """
 
-    expr = _normalize_formula(condition)
-    vars_ = _normalize_variables(variables, expr)
+    expr = normalize_formula(condition)
+    vars_ = normalize_problem_variables(variables, expr)
     if len(vars_) != 2:
         raise ValueError("vertical-bound decomposition requires exactly two variables")
     x, y = vars_
@@ -559,7 +549,7 @@ def decompose_cylindrical_formula_to_vertical_bounds_2d(
         upper: list[sp.Expr] = []
         equal: list[sp.Expr] = []
         x_conditions: list[sp.Expr] = []
-        for atom in _as_conjuncts(disjunct):
+        for atom in conjuncts(disjunct):
             if atom is sp.true or isinstance(atom, BooleanTrue):
                 continue
             parsed = _vertical_bound_from_atom(atom, x, y)
@@ -600,7 +590,13 @@ def decompose_cylindrical_formula_to_vertical_bounds_2d(
                     if getattr(width_condition, "is_Relational", False)
                     else None
                 )
-            except Exception:
+            except (
+                ArithmeticError,
+                TypeError,
+                ValueError,
+                NotImplementedError,
+                sp.PolynomialError,
+            ):
                 width_condition = sp.true
             if width_condition is not sp.true and not isinstance(width_condition, BooleanTrue):
                 x_conditions.append(width_condition)

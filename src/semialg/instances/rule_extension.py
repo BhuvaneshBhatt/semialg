@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from .._errors import EXACT_OPERATION_ERRORS
 from .witness_generation import sample_free_assignments
 
 
@@ -50,7 +51,7 @@ def extend_partial_cons(
     if len(missing) == 1 and modulus is None:
         try:
             solved = sp.solve(constraint.subs(partial_assignment), missing[0], dict=True)
-        except Exception:
+        except EXACT_OPERATION_ERRORS:
             solved = []
         for sol in solved:
             valid.append({**partial_assignment, missing[0]: sp.simplify(sol[missing[0]])})
@@ -66,7 +67,7 @@ def extend_partial_cons(
         for assignment in candidates:
             try:
                 reduced = sp.simplify(constraint.subs(assignment))
-            except Exception:
+            except EXACT_OPERATION_ERRORS:
                 continue
             if reduced is sp.true or reduced is True:
                 valid.append(assignment)

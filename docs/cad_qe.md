@@ -1,16 +1,15 @@
 # CAD and quantifier elimination
 
-Many `semialg` operations reduce questions to first-order formulas over the real numbers. Examples include satisfiability, implication, range/image computation, optimization certificates, subset checks, and parameter conditions.
+This page is the practical bridge between the conceptual and reference documentation.
 
-## Exactness
-
-CAD/QE is used as a correctness engine for polynomial equations and inequalities over the reals. Fast paths may avoid CAD, but exact public paths should not replace an unresolved algebraic sign/order with a fixed-precision numerical guess.
-
+- New to CAD? Read [CAD concepts](concepts/cad.md).
+- Want to understand dispatch among presolve, virtual substitution, RUR, and CAD? Read [How semialg chooses an algorithm](concepts/algorithm_selection.md).
+- Looking up functions and result types? Use the [Decision and QE reference](reference/decision_and_qe.md) and [CAD reference](reference/cad.md).
+- Tuning a slow computation? See the [Performance guide](guides/performance.md).
 
 ## First-class quantified expressions
 
-For programmatic formulas, prefer semialg's `Exists` and `ForAll` nodes rather
-than manually building quantifier-prefix tuples.
+For programmatic formulas, prefer `Exists` and `ForAll` nodes rather than manually encoding quantifier-prefix tuples.
 
 ```python
 import sympy as sp
@@ -24,38 +23,45 @@ reduce_complete_expr(formula)
 # True
 ```
 
-Text interfaces such as `reduce_complete_text("forall x. ...")` remain
-supported.  The solver lowers both forms to the same internal prenex blocks.
+Text interfaces remain supported, but programmatic quantifier nodes preserve Symbol identity and compose more safely.
+
+## Virtual substitution before CAD
+
+Quadratic virtual substitution is an exact backend for the supported low-degree fragment. The high-level planner can try it before CAD for QE and witness tasks. If it declines, that is not a mathematical failure; another exact backend can still solve the formula.
 
 ## Variable ordering
 
-CAD is highly sensitive to variable ordering. The current planner combines inexpensive Brown/SOTD/NDRR-style scores with more expensive scoring on a small candidate shortlist. For small problems it considers the actual projection tower and estimates lifting cost using real fiber-root counts and an estimated cell count, not projection size alone. The shortlist score also records projected coefficient-height growth and an algebraic-degree proxy. The two best projection-scored orders receive a bounded pilot lift over a few representative stacks; the measured result refines rather than replaces the cheaper estimate.
+CAD is highly order-sensitive. Automatic planning preserves quantifier-block semantics while reordering variables only where logically legal. Use `suggest_variable_order` / `suggest_cad_variable_order` for diagnostics rather than guessing an order solely from printed expression size.
 
-## Caching
+## Finite equality varieties
 
-Repeated exact work is memoized at two levels. `ExactComputationContext` is a transient per-operation cache automatically shared by nested CAD/QE/optimization calls, so repeated projection, root, sign, comparison, specialization, and RUR queries within one solve are reused without polluting global state. Existing bounded process-local LRUs remain a second-level cache. CAD caches cover projection towers, projection steps, and squarefree bases; algebraic caches cover root isolation, exact signs, sample/root comparisons, algebraic-root specialization/evaluation, and RUR construction. Use `computation_context()` explicitly when several related public calls should share one solve-local context.
+When common polynomial equalities define a finite complex variety, automatic CAD may use the [Gröbner variety CAD](concepts/groebner_variety_cad.md) backend. It follows only compatible algebraic sections and reconstructs the exact finite solution set. Use `return_result=True` to inspect `result.cad.backend` and the `variety_only`, `equality_dimension`, and `quotient_dimension` diagnostics.
 
-## Equational constraints and partial CAD
+```python
+import sympy as sp
+from semialg import cad
 
-Lazy CAD performs prefix truth evaluation and short-circuits subtrees whose truth value is already determined. Conjunctively necessary equations can produce lower-level necessary resultants; these derived ECs may prune prefixes before later variables are lifted. For existential variables, a necessary EC can justify section-only lifting. Universal levels remain conservative and are not restricted to equality sections.
+x, y = sp.symbols("x y", real=True)
+formula = sp.And(sp.Eq(x - y, 0), sp.Eq(x**2 + y**2, 2), x > 0)
 
-The implementation intentionally uses only logically necessary derived constraints. A projection polynomial or resultant is not treated as an EC merely because it appears algebraically.
+auto = cad(formula, (x, y), return_result=True)
+full = cad(formula, (x, y), strategy="collins", return_result=True)
+
+assert auto.cad.backend == "groebner-variety"
+assert full.cad.backend == "collins-complete"
+assert auto.formula == sp.And(sp.Eq(x, 1), sp.Eq(y, 1))
+```
+
+The specialized backend has an exact fallback contract: inability to certify a fiber or algebraic sign causes a complete-CAD retry, not rejection of a candidate section. Pure existential QE may use this specialization; universal and mixed prefixes retain full-space CAD semantics.
 
 ## Reduced projection and fallback
 
-Reduced/EC-aware projection paths carry side-condition/certification information. If the reduced path cannot establish the required invariance, the solver falls back to the complete Collins-style path rather than assuming the reduced decomposition is complete.
+Reduced/equational-constraint paths are used only when their logical and invariance requirements are established. The package falls back to the complete Collins-style path rather than treating a merely algebraic resultant as a logically necessary equality.
 
-## Practical implication
+## Caching
 
-A common execution pattern is:
+Exact computation contexts and bounded process-local caches reuse projection, root, sign, specialization, comparison, and RUR work. Cache identity uses structural SymPy/polynomial keys rather than string serialization.
 
-```text
-normalize formula
-  -> specialized solver/virtual substitution/RUR if applicable
-  -> choose CAD order using structural + arithmetic + estimated lifting cost
-  -> bounded pilot lift of the top orders
-  -> context-scoped + bounded cached projection
-  -> lazy/EC-aware lifting and prefix pruning
-  -> certification
-  -> conservative fallback to complete CAD when needed
-```
+## Exactness
+
+CAD/QE correctness depends on exact root ordering and sign/truth invariance. Fixed-precision numerical comparisons are not used as hidden substitutes on certified paths. See [Exactness and certification](concepts/exactness_and_certification.md).

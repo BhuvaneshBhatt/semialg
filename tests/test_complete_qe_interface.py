@@ -16,7 +16,7 @@ def test_complete_qe_01():
         symbols={"x": x, "y": y},
         variable_order=[y, x],
     )
-    result = qe_by_complete_cad(parsed.vars, parsed.quantifiers, parsed.matrix)
+    result = qe_by_complete_cad(parsed.vars, parsed.quantifiers, parsed.matrix, return_result=True)
     assert result.variables == (x, y)
     assert result.free_variables == (x,)
     assert result.quantified_variables == (y,)

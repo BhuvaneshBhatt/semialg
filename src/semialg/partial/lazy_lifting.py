@@ -17,6 +17,7 @@ def ensure_children(
     projection_config: ProjectionConfig,
     collins_projection_sets=None,
 ):
+    """Lazily lift and cache the child stack required for a CAD prefix."""
     vars_ = tuple(vars_)
     if parent.index in cad.children_by_parent:
         return cad.children_by_parent[parent.index]
