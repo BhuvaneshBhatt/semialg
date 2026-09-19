@@ -23,6 +23,7 @@ x, y = sp.symbols("x y", real=True)
 formula = x**2 + y**2 <= 1
 
 from semialg import is_satisfiable
+
 is_satisfiable(formula, [x, y])
 ```
 

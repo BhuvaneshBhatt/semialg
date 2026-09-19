@@ -99,7 +99,7 @@ full.cad.backend
 A positive-dimensional equality set falls back automatically:
 
 ```python
-formula = sp.And(sp.Eq(x**2, 0), sp.Eq(x*y, 0), y > 0)
+formula = sp.And(sp.Eq(x**2, 0), sp.Eq(x * y, 0), y > 0)
 result = cad(formula, (x, y), return_result=True)
 result.cad.backend
 # 'collins-complete'

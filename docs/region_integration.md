@@ -59,7 +59,6 @@ from semialg import semialgebraic_measure
 
 semialgebraic_measure(x**2 + y**2 <= 1, [x, y])
 # pi
-
 ```
 
 
@@ -95,6 +94,12 @@ integrate_over_region(x**2, sp.Eq(x**2 + y**2, 1), [x, y], measure_dimension=1)
 For multidimensional formulas containing `Or` or `Not`, ambient-measure integration first evaluates the entire Boolean formula on an adapted CAD and selects the resulting disjoint full-dimensional cells. Each selected cell is converted to certified nested cylindrical bounds and integrated exactly once. This prevents overlap double-counting and supports general Boolean unions and bounded complements whenever the CAD cell bounds are integrable by the existing exact adapter.
 
 Explicit `bounds=` are conjoined to the Boolean formula before CAD decomposition. This makes expressions such as the complement of a bounded hole integrable over a finite ambient box without incorrectly treating the complement as globally unbounded. `semialgebraic_measure` uses the same path because it delegates to `integrate_over_region` with integrand `1`.
+
+### Explicit bounds and empty intrinsic regions
+
+`bounds=` is part of the geometric domain, not merely an ambient-integration hint. For intrinsic and zero-dimensional integration the bounds are conjoined with the semialgebraic formula before dimension inference, point extraction, curve recognition, or CAD-cell integration. This means, for example, that bounds can select only some points of a finite set or restrict an equality-defined curve.
+
+Certified empty intrinsic regions have measure zero. This includes formulas that are explicitly false, empty regions whose inferred dimension is negative, and certified cylindrical decompositions with no selected cells. Unsupported nonempty singular geometry still raises `NotImplementedError`; emptiness is not treated as an unsupported geometry case.
 
 ## Parameter-dependent semialgebraic regions
 
@@ -154,7 +159,7 @@ The typed form distinguishes explicit/infinite endpoints from delineable
 root certificates, adjacent-root ordering, and sample containment.
 
 For direct cell integration, use `full_dimensional_cell_integral(...)`.
-Lower-dimensional cells are intentionally handled by the separate
+Lower-dimensional cells are handled by the separate
 `intrinsic_cell_integral(...)` adapter, which uses the induced metric
 `sqrt(det(J.T*J))` for verified triangular graph cells.
 

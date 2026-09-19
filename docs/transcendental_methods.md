@@ -1,5 +1,11 @@
 # Transcendental solving
 
+> **Scope.** This page documents the behavior of the existing transcendental solver.
+> The canonical distinction between polynomial root certification, exact algebraization,
+> and transcendental solving is documented in
+> [Transcendental and algebraic solving scope](guides/transcendental_scope.md).
+
+
 The `semialg.solve.transcendental` package handles selected real problems that
 contain functions outside the first-order theory of real closed fields. Its
 results distinguish exact reductions from bounded or heuristic search; symbolic

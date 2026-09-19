@@ -53,7 +53,7 @@ def test_cad_integration_selects_polynomial_coordinate_order_in_2d():
     condition = sp.And(y >= 0, y <= 1, x >= y**2, x <= y)
     reduced = reduce_region_integral(1, condition, [x, y])
 
-    assert reduced.method == "cad_variable_order_cell_integration"
+    assert reduced.method == "coordinate_permuted_cylindrical_integration"
     assert len(reduced.pieces) == 1
     piece = reduced.pieces[0]
     assert piece.limits == ((x, y**2, y), (y, 0, 1))
@@ -73,7 +73,7 @@ def test_cad_integration_order_search_extends_to_nested_3d_regions():
     )
     reduced = reduce_region_integral(1, condition, [x, y, z])
 
-    assert reduced.method == "cad_variable_order_cell_integration"
+    assert reduced.method == "coordinate_permuted_cylindrical_integration"
     assert len(reduced.pieces) == 1
     piece = reduced.pieces[0]
     assert piece.limits == ((x, y**2, y), (y, z**2, z), (z, 0, 1))

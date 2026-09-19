@@ -3,8 +3,9 @@ from dataclasses import FrozenInstanceError
 import pytest
 import sympy as sp
 
-from semialg import SemialgebraicContext, SemialgebraicRegion
+from semialg import SemialgebraicRegion
 from semialg.cad_algorithms.point_location import locate_cad_point
+from semialg.context import SemialgebraicContext
 from semialg.decomposition.cylindrical import cad
 from semialg.symbolic_regions import REqual
 

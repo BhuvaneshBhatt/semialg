@@ -27,7 +27,7 @@ def test_active_reduced_01():
     assert result.certificate.valid is True
     assert result.validity.valid is True
     assert result.validity.complete_if_used is True
-    assert result.fallback_cad is not None
+    assert result.fallback_cad is None
 
 
 def test_active_reduced_02():
@@ -42,7 +42,7 @@ def test_active_reduced_02():
     assert result.certificate is not None
     assert result.certificate.valid is True
     assert result.certificate.invariant == "truth"
-    assert result.fallback_cad is not None
+    assert result.fallback_cad is None
 
 
 def test_active_reduced_03():

@@ -77,7 +77,7 @@ Use `.as_piecewise()` only when the result type supports it and a plain symbolic
 
 ## Metadata is certified when present
 
-Cheap metadata fields are intentionally conservative. In particular, a numeric
+Cheap metadata fields are conservative. In particular, a numeric
 `dimension` value means that the dimension has been established exactly by the
 metadata path (for example by affine rank or a certified cylindrical
 decomposition). `dimension=None` means that this inexpensive layer did not

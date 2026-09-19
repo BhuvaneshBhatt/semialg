@@ -335,3 +335,28 @@ def test_initial_split_strategy_is_recorded_in_replayable_certificate():
     assert decomposition.certificate is not None
     assert "initial_split" in decomposition.certificate.methods
     assert verify_decomposition_certificate(decomposition.certificate)
+
+
+def test_squarefree_regular_chain_certifies_monomial_curve_branch():
+    x, y, z = sp.symbols("x y z", real=True)
+    result = equidimensional_decomposition((x**2 - y, x * y - z), (x, y, z))
+
+    assert result.complete
+    assert result.dimensions == (1,)
+    assert len(result.pieces) == 1
+    assert result.pieces[0].equidimensional
+    assert result.certificate is not None
+    assert "squarefree_regular_chain" in result.certificate.methods
+    assert verify_decomposition_certificate(result.certificate)
+
+
+def test_squarefree_regular_chain_does_not_trust_triangular_shape_without_same_ideal():
+    from semialg.algebraic.equality_ideal import EqualityIdealContext
+    from semialg.algebraic_decomposition import _squarefree_regular_chain_certified
+
+    x, y, z = sp.symbols("x y z", real=True)
+    # Triangular shape alone is insufficient: y**2 has vanishing separant on
+    # its reduced component.  Exact saturation by the separant must therefore
+    # reject this as a squarefree regular-chain certificate.
+    context = EqualityIdealContext.build((y**2, z - x), (x, y, z))
+    assert not _squarefree_regular_chain_certified(context)

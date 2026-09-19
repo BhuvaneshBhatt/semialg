@@ -2,9 +2,8 @@ import pickle
 
 import sympy as sp
 
-from semialg import is_satisfiable, solve_semialgebraic
+from semialg import is_satisfiable, solvability_conditions, solve_semialgebraic
 from semialg.errors import UnsupportedFragmentError
-from semialg.parameters import SolvabilityConditionsResult
 
 
 def test_solution_result_formula_and_membership_contract():
@@ -17,12 +16,14 @@ def test_solution_result_formula_and_membership_contract():
         assert result.contains(dict(result.samples[0]))
 
 
-def test_parameter_result_dataclass_is_picklable_and_stable():
-    a = sp.Symbol("a", real=True)
-    result = SolvabilityConditionsResult(a >= 0, a >= 0, (), (a,))
+def test_parameter_result_from_public_operation_is_picklable_and_stable():
+    x, a = sp.symbols("x a", real=True)
+    result = solvability_conditions(sp.Eq(x, a), (x,), (a,), return_result=True)
     restored = pickle.loads(pickle.dumps(result))
     assert restored == result
     assert restored.parameters == (a,)
+    assert restored.variables == (x,)
+    assert restored.formula is sp.true
 
 
 def test_public_unsupported_exception_is_distinct_from_bad_math_answer():

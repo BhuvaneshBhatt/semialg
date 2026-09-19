@@ -1,10 +1,15 @@
+import os
 import subprocess
 import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_affine_box_clip_stays_independent_of_cad_imports():
     code = r"""
 import sys
+from pathlib import Path
 from semialg.polyhedral_clipping import clip_affine_subspace_to_box
 assert "semialg.decomposition" not in sys.modules
 result = clip_affine_subspace_to_box(
@@ -13,7 +18,14 @@ result = clip_affine_subspace_to_box(
 assert len(result.vertices) == 4
 assert "semialg.decomposition" not in sys.modules
 """
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(ROOT / "src")
     completed = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+        [sys.executable, "-c", code],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     assert completed.returncode == 0, completed.stderr

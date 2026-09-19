@@ -3,11 +3,6 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg import Exists, ForAll
-from semialg.solve.transcendental.periodic import (
-    periodic_intv_form,
-    recon_periodic_domain,
-    recon_periodic_represent,
-)
 
 
 def test_quantifier_free_symbols_and_bound_symbols():
@@ -71,43 +66,6 @@ def test_nested_quantifiers_preserve_lexical_scope():
     assert isinstance(replaced.variables[0], sp.Dummy)
 
 
-def test_periodic_interval_form_uses_explicit_existential_integer_index():
-    x = sp.Symbol("x", real=True)
-    formula = periodic_intv_form(x, sp.And(x > 0, x < sp.pi), 2 * sp.pi)
-
-    assert isinstance(formula, Exists)
-    assert formula.free_symbols == {x}
-    k = formula.variables[0]
-    assert formula.formula.has(sp.Contains(k, sp.S.Integers))
-    assert formula.formula.has(x - 2 * sp.pi * k)
-
-
-def test_periodic_root_reconstruction_uses_exists_instead_of_imageset():
-    x = sp.Symbol("x", real=True)
-    formula = recon_periodic_represent(x, (sp.Integer(0), sp.pi), 2 * sp.pi)
-
-    assert isinstance(formula, Exists)
-    assert formula.free_symbols == {x}
-    assert not formula.has(sp.ImageSet)
-
-
-def test_periodic_domain_reconstruction_uses_exists_and_has_no_mod():
-    x = sp.Symbol("x", real=True)
-    formula = recon_periodic_domain(x, ((sp.Integer(0), sp.pi),), 2 * sp.pi)
-
-    assert isinstance(formula, Exists)
-    assert formula.free_symbols == {x}
-    assert not formula.has(sp.Mod)
-
-
-def test_periodic_reconstruction_accepts_python_numeric_endpoints():
-    x = sp.Symbol("x", real=True)
-    formula = recon_periodic_domain(x, ((0, 1),), 2)
-
-    assert isinstance(formula, Exists)
-    assert formula.free_symbols == {x}
-
-
 def test_apply_and_split_quantifiers_round_trip():
     from semialg import apply_quantifiers
     from semialg.quantifiers import split_quantifiers
@@ -132,17 +90,6 @@ def test_parsed_prenex_formula_exposes_quantified_expression():
     reparsed = parse_quantified_expr(parsed.quantified_expr)
     assert reparsed.quantifiers == (("forall", x), ("exists", y))
     assert reparsed.matrix_expr == sp.Eq(x + y, 0)
-
-
-def test_transcendental_state_accepts_quantified_expression_prefix():
-    from semialg.solve.transcendental import build_trans_state
-
-    x, y = sp.symbols("x y", real=True)
-    state = build_trans_state(ForAll(x, Exists(y, sp.Eq(sp.sin(x), y))), ())
-
-    assert state.formula == sp.Eq(y, sp.sin(x))
-    assert [block.quantifier for block in state.quantifier_blocks] == ["forall", "exists"]
-    assert [block.variables for block in state.quantifier_blocks] == [(x,), (y,)]
 
 
 def test_complete_qe_accepts_quantified_expression():

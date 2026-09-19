@@ -42,7 +42,18 @@ A different backend, a simpler formulation, or complete CAD may still solve the 
 
 `certification="auto"` may decline an expensive range-CAD fallback based on its cost model. That does not mean the mathematical claim is false. It means the requested global certificate was not attempted under the current cost policy.
 
-Use `certification="complete"` only when you intentionally accept the potentially much larger computation.
+Use `certification="complete"` only when you accept the potentially much larger computation.
+
+For `cad`, `max_preprocess_aux_vars` is an enforced preprocessing limit. Exceeding it
+raises `ResourceLimitError` for direct or strict calls. A non-strict call with
+`return_result=True` instead returns `status="unknown"`, preserves the input formula,
+and records the limit in diagnostics. This formula is not a completed decomposition;
+converting the result with `as_function()` raises `ResourceLimitError`.
+
+The CAD backend does not implement the `max_cells` and `timeout` controls. Supplying
+either control raises `NotImplementedError` for direct or strict calls, or returns an
+unknown structured result with an explanatory diagnostic. These controls must not be
+interpreted as enforced computation budgets. Cached results do not bypass this validation.
 
 ## Candidate found, certification incomplete
 

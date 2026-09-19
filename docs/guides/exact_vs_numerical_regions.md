@@ -1,6 +1,6 @@
 # Exact versus numerical region results
 
-The region subsystem intentionally mixes exact symbolic computation with numerical geometry. The boundary between those layers is explicit.
+The region subsystem mixes exact symbolic computation with numerical geometry. The boundary between those layers is explicit.
 
 ## Exact layers
 

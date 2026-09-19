@@ -10,7 +10,7 @@ The root package exports concise names for the main workflows:
 - `find_instance` and `find_instance_text` for satisfying assignments
 - `reduce_text` and `resolve_text` for text-based symbolic queries.
 
-Long-form decomposition names are intentionally not exported.
+Long-form decomposition names are not exported.
 
 ## Algorithmic notes
 
@@ -18,7 +18,7 @@ Reduced CAD paths use explicit side-condition reports and certification. If a re
 
 ## Performance constraints
 
-Maintainability changes should not add dispatch or allocation overhead to CAD,
+Maintainbility changes should not add dispatch or allocation overhead to CAD,
 root isolation, exact sign determination, algebraic comparison, projection, or
 RUR inner loops. Prefer direct module-level helpers for repeated normalization,
 relation parsing, interval decomposition, canonical keys, and orchestration.
@@ -102,19 +102,6 @@ their import errors specifically.
 The source-quality verifier and Ruff enforce this rule across the full package.
 
 ## Source hygiene
-
-`python scripts/verify_source_quality.py` checks repository rules that are not
-covered by Ruff:
-
-- module/class bindings must not silently override earlier definitions or imports;
-- production code must not rewrite an object's `__module__` metadata;
-- tests must use observable state or explicit seams instead of runtime monkeypatching;
-- bound variable and parameter names are limited to 24 characters;
-- source identifiers and filenames describe mathematical purpose rather than development history;
-- Python, Markdown, YAML, TOML, and documentation sources contain no trailing whitespace;
-- README Markdown links are absolute URLs when they point outside the README, so the PyPI rendering remains valid;
-- public material does not encode development chronology or package-version prose;
-- package text does not carry references to unrelated computer-algebra products.
 
 Comments should explain invariants, mathematical assumptions, certification
 conditions, performance-sensitive choices, or non-obvious failure behavior.

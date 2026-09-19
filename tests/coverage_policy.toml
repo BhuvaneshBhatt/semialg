@@ -1,0 +1,157 @@
+schema_version = 1
+source_root = "src/semialg"
+require_branches = true
+
+[overall]
+# Preserve the Phase-5 gate until a fresh full branch-coverage run justifies a raise.
+floor_combined = 74.5
+next_combined_target = 76.0
+
+[subsystems.decision_parameters_roots]
+directories = ["src/semialg/decision"]
+files = [
+  "src/semialg/conditional.py",
+  "src/semialg/decision_diagnostics.py",
+  "src/semialg/decision_portfolio.py",
+  "src/semialg/parameters.py",
+  "src/semialg/root_classification.py",
+  "src/semialg/reasoning.py",
+  "src/semialg/reasoning_assumptions.py",
+  "src/semialg/reasoning_regions.py",
+  "src/semialg/reasoning_results.py",
+  "src/semialg/reasoning_signs.py",
+  "src/semialg/reasoning_system.py",
+]
+floor_combined = 85.0
+target_combined = 85.0
+
+[subsystems.algebraic_certification]
+directories = ["src/semialg/algebraic", "src/semialg/proof", "src/semialg/univariate"]
+patterns = [
+  "src/semialg/algebraic_*.py",
+]
+files = [
+  "src/semialg/_flint_arithmetic.py",
+  "src/semialg/_zero_testing.py",
+  "src/semialg/certificates.py",
+  "src/semialg/exact_arithmetic.py",
+  "src/semialg/polynomial_positivity.py",
+  "src/semialg/real_algebraic.py",
+  "src/semialg/sos_certificates.py",
+]
+floor_combined = 80.0
+target_combined = 80.0
+
+[subsystems.geometry_topology]
+directories = ["src/semialg/regions", "src/semialg/topology"]
+files = [
+  "src/semialg/affine_geometry.py",
+  "src/semialg/affine_reduction.py",
+  "src/semialg/cad_region.py",
+  "src/semialg/connectivity.py",
+  "src/semialg/derived_geometry.py",
+  "src/semialg/geometry_queries.py",
+  "src/semialg/geometry_validity.py",
+  "src/semialg/implicit_geometry.py",
+  "src/semialg/incidence.py",
+  "src/semialg/parametric_geometry.py",
+  "src/semialg/polyhedral.py",
+  "src/semialg/polyhedral_clipping.py",
+  "src/semialg/region_analysis.py",
+  "src/semialg/region_coercion.py",
+  "src/semialg/region_predicates.py",
+  "src/semialg/region_sampling.py",
+  "src/semialg/region_structural.py",
+  "src/semialg/region_transformations.py",
+  "src/semialg/topology/semialgebraic.py",
+  "src/semialg/solution_geometry.py",
+  "src/semialg/standard_regions.py",
+  "src/semialg/symbolic_regions.py",
+  "src/semialg/topology/invariants.py",
+]
+floor_combined = 80.0
+target_combined = 80.0
+
+[subsystems.cad_decomposition]
+directories = [
+  "src/semialg/cad_algorithms",
+  "src/semialg/decomposition",
+  "src/semialg/ec",
+  "src/semialg/generic",
+  "src/semialg/tticad",
+]
+files = ["src/semialg/model.py", "src/semialg/tti.py"]
+
+[subsystems.qe_formula]
+directories = [
+  "src/semialg/formulas",
+  "src/semialg/partial",
+  "src/semialg/preprocess",
+  "src/semialg/qe",
+  "src/semialg/reconstruct",
+  "src/semialg/simplify",
+]
+files = [
+  "src/semialg/formula.py",
+  "src/semialg/inequality_reduction.py",
+  "src/semialg/normalization.py",
+  "src/semialg/parser.py",
+  "src/semialg/quantifiers.py",
+  "src/semialg/symbolic_simplify.py",
+]
+
+[subsystems.optimization_range]
+patterns = ["src/semialg/_optimization_*.py", "src/semialg/optimization*.py", "src/semialg/_range_*.py"]
+files = ["src/semialg/sdp_backends.py", "src/semialg/strict_feasibility.py"]
+
+[subsystems.integration_moments]
+patterns = ["src/semialg/_region_integrate_*.py"]
+files = [
+  "src/semialg/measure.py",
+  "src/semialg/moments.py",
+  "src/semialg/parametric_integration.py",
+  "src/semialg/region_integral_results.py",
+  "src/semialg/region_integrate.py",
+  "src/semialg/region_measurement.py",
+  "src/semialg/standard_region_integrate.py",
+]
+
+[subsystems.solving_sampling]
+directories = ["src/semialg/instances", "src/semialg/solve"]
+files = [
+  "src/semialg/domain_solve.py",
+  "src/semialg/sampling.py",
+  "src/semialg/witness_heuristics.py",
+]
+
+[subsystems.function_analysis]
+patterns = ["src/semialg/_function_*.py", "src/semialg/function_*.py"]
+files = [
+  "src/semialg/_critical_loci.py",
+  "src/semialg/convexity.py",
+  "src/semialg/map_degree.py",
+  "src/semialg/matrix_analysis.py",
+]
+
+[subsystems.planning_performance]
+directories = ["src/semialg/benchmarks", "src/semialg/planner"]
+patterns = ["src/semialg/cache_*.py"]
+files = [
+  "src/semialg/context.py",
+  "src/semialg/heuristics.py",
+  "src/semialg/presolve.py",
+]
+
+[subsystems.applications_validation]
+directories = ["src/semialg/applications", "src/semialg/reports", "src/semialg/validation"]
+files = ["src/semialg/diagnostics.py", "src/semialg/invariants.py"]
+
+[subsystems.convenience_optional]
+directories = ["src/semialg/backends", "src/semialg/docs"]
+files = ["src/semialg/cli.py"]
+
+[subsystems.core]
+# Direct children not owned above are the package's shared plumbing. New nested
+# subsystems are deliberately *not* caught here and therefore fail the checker
+# until they receive an explicit coverage owner.
+top_level = true

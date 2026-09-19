@@ -30,6 +30,18 @@ If you supply an order manually, benchmark it on the actual problem family rathe
 
 A formula containing an equation such as `f == 0` can often be decomposed more cheaply than a fully sign-invariant CAD for every polynomial. semialg propagates equational constraints across levels and can avoid lifting cells that cannot affect the formula's truth.
 
+Existential satisfiability now uses exhaustive lazy CAD before materializing a full
+cell decomposition. It stops immediately on a certified true branch, while UNSAT is
+returned only after all relevant branches have been exhausted. Inside a single
+quantifier block the lazy driver may reorder variables with the measured CAD order
+planner because such reordering preserves semantics.
+
+Collins projection also works with exact squarefree factors rather than projecting a
+reducible product and all of its factors simultaneously. Factor signs plus pairwise
+resultants retain the required sign/root events and reduce redundant coefficients and
+discriminants. Reduced McCallum/Lazard paths retain their conservative certification
+and Collins fallback contract.
+
 Write logical structure explicitly rather than hiding useful equalities inside opaque transformations.
 
 ## Reuse within a solve
@@ -104,3 +116,27 @@ sign, comparison, specialization, and RUR caches, and
 squarefree-base, projection-step, and complete-CAD caches. Resizing a cache keeps
 its newest entries up to the new capacity and does not change mathematical
 semantics.
+
+## Cache lifecycle and teardown
+
+Long-running workers and large test processes can release every process-local
+`semialg` performance cache through `clear_caches()`. The call clears the
+algebraic root/sign/RUR caches, CAD projection caches, GTZ canonical-basis
+caches, optimization/planner/convexity/integration LRUs, integer Groebner
+recursion cache, simplification implication cache, and solution-metadata cache.
+It runs Python garbage collection by default. Set `include_sympy=True` only at
+an explicit process lifecycle boundary when it is also appropriate to clear
+SymPy's global expression cache.
+
+`cache_report()` returns cache sizes, configured bounds, and available hit/miss
+statistics without exposing cached mathematical objects. Cache state is a
+performance detail only: clearing it must not change exact results or
+certificate validity. The cache lifecycle tests exercise repeated workloads,
+checks every bounded cache stays within its declared capacity, clears all
+caches through the unified hook, and then replays the same certificates.
+
+## Performance regression testing
+
+Prefer structural assertions for routine regression tests. A test that proves a Sturm fallback was not entered, that a projection cache gained a hit, or that a specialized backend avoided generic QE is more portable than a narrow elapsed-time bound. Use wall-clock tests only for coarse end-to-end regressions and keep them in the opt-in performance suite.
+
+If an accelerated backend bypasses a fallback cache, test the accelerated backend and the fallback cache as separate contracts. Do not require cache counters to move on a path that no longer uses that cache.

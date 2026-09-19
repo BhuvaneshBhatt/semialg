@@ -14,7 +14,7 @@ from semialg.instances import (
 )
 from semialg.univariate import (
     find_univar_decomp_wit,
-    intv_wits_for_form,
+    intvl_wits_for_form,
     witness_from_interval,
 )
 from semialg.validation import (
@@ -59,7 +59,7 @@ def test_instance_support_05():
     witness = find_univar_decomp_wit(x**2 - 1, sp.true, x)
     assert witness.witness in {-1, 1, sp.Integer(-1), sp.Integer(1)} or sp.Abs(witness.witness) == 1
     assert witness_from_interval((0, 2)) == 1
-    interval_candidates = intv_wits_for_form(sp.And(x > 0, x < 2), x, [(0, 2)])
+    interval_candidates = intvl_wits_for_form(sp.And(x > 0, x < 2), x, [(0, 2)])
     assert interval_candidates[0].witness == 1
 
 

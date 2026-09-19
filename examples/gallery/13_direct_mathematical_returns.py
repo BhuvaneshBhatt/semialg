@@ -2,7 +2,8 @@
 
 import sympy as sp
 
-from semialg import cad, find_instance, semialgebraic_minimize, solve_zero_dimensional_system
+from semialg import cad, find_instance, semialgebraic_minimize
+from semialg.solve.zero_dimensional import solve_zero_dimensional_system
 
 x = sp.Symbol("x", real=True)
 

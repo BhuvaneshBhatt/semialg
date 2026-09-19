@@ -6,20 +6,21 @@ Root classification is a natural use of CAD/QE because root-existence and root-c
 
 - `classify_real_roots`
 - `solvability_conditions`
-- `root_count_conditions`
+- `semialg.parameters.root_count_conditions`
 
 ## Examples
 
 ```python
 import sympy as sp
-from semialg import solvability_conditions, root_count_conditions
+from semialg import solvability_conditions
+from semialg.parameters import root_count_conditions
 
 x, a, b = sp.symbols("x a b", real=True)
 
-solvability_conditions(sp.Eq(x**2 + a*x + b, 0), [x], [a, b])
+solvability_conditions(sp.Eq(x**2 + a * x + b, 0), [x], [a, b])
 # a**2 - 4*b >= 0
 
-root_count_conditions(x**2 + a*x + b, x, [a, b])
+root_count_conditions(x**2 + a * x + b, x, [a, b])
 # 2 roots if a**2 - 4*b > 0
 # 1 root if a**2 - 4*b == 0
 # 0 roots if a**2 - 4*b < 0

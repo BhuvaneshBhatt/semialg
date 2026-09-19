@@ -42,8 +42,11 @@ def test_lazy_partial_04():
 
 def test_lazy_partial_05():
     result = find_instance_text("x**2 - 1 = 0", return_result=True)
-    assert result.method == "partial_cad_instance"
+    assert result.method == "rational_univariate_instance"
+    assert result.status == "sat"
     assert result.result is not None
+    x = result.variables[0]
+    assert sp.simplify(result.result[x] ** 2 - 1) == 0
 
 
 def test_lazy_partial_06():

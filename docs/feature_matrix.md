@@ -25,7 +25,7 @@ This matrix separates three questions that are easy to conflate in symbolic soft
 | Polynomial optimization | Exact | Partial | Active-set/KKT, singular and positive-dimensional loci, RUR candidates, exact comparison, CAD global certification. |
 | Region Boolean operations | Exact | Partial | Unified formula/`SemialgebraicRegion` operations plus reusable shared-CAD Boolean combination through `CADRegion`. |
 | Region predicates | Exact | Partial | Subset/equality/disjointness and supported boundedness/closedness/compactness paths; convexity has exact affine, 1-D, quadratic, polynomial-Hessian, domain-relative, topology/witness, and complete-QE stages. |
-| Topology | Exact | Partial | Connected components, exact CAD cell complexes with codimension-one incidence, local dimension, compact-support Euler characteristic, and certified CAD connector chains; oriented homology/Betti numbers and full algebraic roadmaps are not implemented. |
+| Topology | Exact | Partial | Connected components, exact CAD cell complexes with codimension-one incidence, local dimension, compact-support Euler characteristic, certified zero/one-dimensional and compact-convex BPR roadmaps, b0 generally, b1 for compact sets of dimension at most one, and trivial positive Betti numbers for certified compact convex sets; oriented higher homology and higher-dimensional critical-point roadmaps remain unimplemented. |
 | Explicit path construction | Exact where returned | Partial | Explicit in one dimension; higher-dimensional output is a certified cell/connector chain rather than a full roadmap parameterization. |
 | Region integration | Exact geometry; evaluation may be symbolic or explicitly numeric | Partial | Standard shapes and typed CAD-cell iterated integrals; exact symbolic antiderivatives may remain unevaluated. |
 | Intrinsic measure | Exact | Partial | Certified regular CAD graph strata with induced Hausdorff metric; singular/uncertified strata are explicitly declined. |
@@ -68,7 +68,7 @@ This matrix separates three questions that are easy to conflate in symbolic soft
 | CAD performance planning | Heuristic cost model; exact solver remains authoritative | Not applicable | Structural scores, projection-aware estimates, bounded pilot lifting, and process/solve-scoped caches. |
 | Gröbner finite-variety CAD | Exact | Zero-dimensional common polynomial equality ideals | FGLM triangular projection, compatible-section lifting, exact residual-constraint pruning; full Collins fallback otherwise. |
 | General transcendental QE | — | Not implemented | Outside the real-closed-field scope. Specialized transcendental solvers are separate and partial. |
-| SOS / SDP certificate search | — | Outside scope | Search backends are not part of the exact certificate API. |
+| SOS certificate verification / optional search | Exact verification; optional heuristic search | Rational/algebraic Gram certificates | `semialg` verifies Gram identities and PSD exactly; optional `symbopt` search is accepted only after exact reconstruction and independent verification, with Zeng/ARS/CAD fallback otherwise. |
 
 ## Presolve and backend selection
 
@@ -76,7 +76,7 @@ Complete QE applies conservative affine substitution and exact Fourier–Motzkin
 
 ## Parameter-dependent computation
 
-First-class stratified results are available for several parameter-dependent operations. Some results intentionally retain exact quantified relations rather than launching a second expensive QE solely to produce a compact `Piecewise` expression.
+First-class stratified results are available for several parameter-dependent operations. Some results retain exact quantified relations rather than launching a second expensive QE solely to produce a compact `Piecewise` expression.
 
 For operational details, see [Exactness and certification](concepts/exactness_and_certification.md), [How semialg chooses an algorithm](concepts/algorithm_selection.md), and [Limitations](limitations.md).
 

@@ -15,7 +15,7 @@ Region tests are organized by mathematical contract under `tests/regions/` rathe
 
 Metamorphic/Hypothesis tests live in `tests/properties/test_region_metamorphic.py`. Reuse contracts live with the performance tests because they protect algorithm selection and prevent accidental decomposition rebuilding without relying on fragile wall-clock thresholds.
 
-The curated corpus intentionally includes both compact and noncompact/open examples because compact-support Euler characteristic differs from ordinary homotopy Euler characteristic on open cells.
+The curated corpus includes both compact and noncompact/open examples because compact-support Euler characteristic differs from ordinary homotopy Euler characteristic on open cells.
 
 ## Long-session isolation
 

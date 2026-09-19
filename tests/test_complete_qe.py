@@ -40,5 +40,5 @@ def test_complete_qe_04():
     x = sp.Symbol("x", real=True)
     solved = reduce_complete_text("exists x. x^2 = 1", symbols={"x": x}, return_result=True)
     assert solved.status == "complete"
-    assert solved.backend == "collins-complete-qe"
+    assert solved.result == sp.true
     assert solved.metadata["is_sentence"] is True

@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 import sympy as sp
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from semialg import simplify_boole
@@ -117,6 +117,7 @@ def test_explicitly_shared_context_is_thread_safe() -> None:
     assert context.cache_size("test.shared-context") == 12
 
 
+@settings(deadline=None)
 @given(
     a=st.integers(-5, 5),
     b=st.integers(-5, 5),

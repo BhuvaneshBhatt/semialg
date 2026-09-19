@@ -87,7 +87,7 @@ A set is **regular closed** when \(S=\overline{S^\circ}\), and **regular open** 
 
 Semialgebraic sets have finitely many connected components, and for semialgebraic sets connectedness and path connectedness coincide componentwise. CAD adjacency therefore provides a finite combinatorial object from which connectivity questions can be answered.
 
-More generally, semialgebraic sets admit triangulations and finite stratifications. Their homotopy type is finite in a strong sense. This is the foundation for Euler characteristics, homology, Betti numbers, roadmaps, and eventually certified simplicial models.
+More generally, semialgebraic sets admit triangulations and finite stratifications. Their homotopy type is finite in a strong sense. This is the foundation for Euler characteristics, homology, Betti numbers, and roadmaps. `semialg` already constructs certified simplicial models for the compact polyhedral and compact one-dimensional regions handled by its exact triangulation backend; broader curved semialgebraic triangulation remains outside that certified fragment.
 
 ## Euler characteristic
 

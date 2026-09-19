@@ -7,10 +7,11 @@ hypothesis = pytest.importorskip("hypothesis")
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from semialg import connected_components, root_count_conditions
+from semialg import connected_components
 from semialg.algebraic.rational_univariate import compute_rational_univariate_representation
 from semialg.cad_algorithms.decomposition import decomp_from_proj_tower
 from semialg.cad_algorithms.reduced import _scan_reduced_conditions, build_reduced_proj
+from semialg.parameters import root_count_conditions
 
 x = sp.Symbol("x", real=True)
 a, b, c, d, e = sp.symbols("a b c d e", real=True)

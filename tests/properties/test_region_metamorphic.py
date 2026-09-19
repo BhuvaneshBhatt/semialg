@@ -9,6 +9,8 @@ from hypothesis import strategies as st
 
 from semialg import SemialgebraicRegion
 
+pytestmark = pytest.mark.slow
+
 small = st.integers(min_value=-3, max_value=3)
 
 

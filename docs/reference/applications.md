@@ -60,7 +60,7 @@ Returns a `ResponseSurfaceResult` containing exact minima/maxima, function range
 
 ## Core/application boundary
 
-The following remain core APIs and are intentionally not re-exported as applications:
+The following remain core APIs and are not re-exported as applications:
 
 - `function_range`
 - `semialgebraic_measure`

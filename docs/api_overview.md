@@ -2,7 +2,7 @@
 
 For an exhaustive, machine-checked list of every root-level export, see the [Public API index](reference/public_api.md).
 
-This page is a map of the public API. It is intentionally navigational; signatures, contracts, result semantics, and examples live in the family reference pages.
+This page is a map of the public API. It is navigational; signatures, contracts, result semantics, and examples live in the family reference pages.
 
 ## Decision and quantifier elimination
 
@@ -50,7 +50,7 @@ Use these when the primary question is whether a real formula is true, feasible,
 - Extrema sets: `argmin_set`, `argmax_set`, `extrema_set`
 - Level families: `level_set`, `sublevel_set`, `superlevel_set`
 
-- Boolean operations: `region_union`, `region_intersection`, `region_difference`, `region_complement`
+- Region relations/operations: `is_subset`, `is_equal`, `is_disjoint`, `intersects`, `region_union`, `region_intersection`, `region_difference`, `region_complement`, `region_product`
 - Topology: `region_closure`, `region_interior`, `region_boundary`, `is_path_connected`, `path_between`, `euler_characteristic`
 - Predicates and structure: `is_empty`, `is_bounded`, `is_compact`, `is_open`, `is_closed`, `is_subset`, `is_equal`, `is_disjoint`, `intersects`, `is_dense_in`, `contains_point`, `is_convex`, `is_connected`, `is_path_connected`, `is_full_dimensional`, `has_empty_interior`, plus the lower-level `region_*` operations
 - Maps and metric queries: `semialgebraic_projection`, `semialgebraic_image`, `semialgebraic_preimage`, `fiber`, `translate`, `scale`, `linear_image`, `affine_transform`, `minkowski_sum`, `squared_distance_range`, `distance_set`, `bounding_box`, `coordinate_range`, `distance_to_region`, `distance_between_regions`, `nearest_point`, `closest_points`, `diameter`, `support_function`, `width`
@@ -72,7 +72,7 @@ Use these when the primary question is whether a real formula is true, feasible,
 
 - `root_of`, `AlgebraicRootFunction`
 - `classify_real_roots`
-- `solve_zero_dimensional_system`
+- `semialg.solve.solve_zero_dimensional_system`
 - rational-univariate-representation and border-basis APIs
 
 → [Algebraic reference](reference/algebraic.md)
@@ -82,7 +82,7 @@ Use these when the primary question is whether a real formula is true, feasible,
 - `conditional_result`
 - `ParameterStratifiedResult`
 - `verify_parameter_stratification`
-- `solvability_conditions`, `root_count_conditions`
+- `solvability_conditions` (root); `semialg.parameters.root_count_conditions` (specialist namespace)
 - parametric optimization/range result types
 
 → [Parameters reference](reference/parameters.md)

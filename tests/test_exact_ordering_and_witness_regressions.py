@@ -4,7 +4,7 @@ from functools import cmp_to_key
 
 import sympy as sp
 
-from semialg._optimization_range import _compare_bounds
+from semialg._range_special_cases import _compare_bounds
 from semialg._region_integrate_intrinsic import _zero_dimensional_points
 from semialg.decision.sampling_helpers import _dedupe_samples
 from semialg.simplify.boolean import simplify_boolean

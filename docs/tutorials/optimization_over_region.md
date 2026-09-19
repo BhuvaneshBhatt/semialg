@@ -12,7 +12,7 @@ region = SemialgebraicRegion(
     (x, y),
 )
 
-result = semialgebraic_minimize(x + 2*y, region.formula, region.variables, return_result=True)
+result = semialgebraic_minimize(x + 2 * y, region.formula, region.variables, return_result=True)
 ```
 
 For bounded closed affine polytopes with an affine objective, semialg uses the exact vertex specialization before the general KKT/CAD pipeline. More complicated problems retain exact comparison and can use CAD for global certification.

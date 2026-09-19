@@ -1,7 +1,7 @@
 # Solving and sampling reference
 ## Family contract
 
-**Mathematical return.** Solving APIs return exact witnesses, finite algebraic solution representations, or samples from semialgebraic solution sets.
+**computer algebra systeml return.** Solving APIs return exact witnesses, finite algebraic solution representations, or samples from semialgebraic solution sets.
 
 **Exactness and certification.** Exact sampling/witness paths use algebraic values and certified sign checks. Explicit numerical sampling modes are inexact by design and are not proof substitutes.
 
@@ -31,6 +31,8 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `plot_solution` | function | Plot a 1D/2D solution using Matplotlib when available. |
 | `sample_point` | function | Return one satisfying real sample point for ``formula``, or ``None``. |
 | `sample_points` | function | Return satisfying real sample points for a quantifier-free formula. |
+| `random_point` | function | Return one random point, intrinsically uniform for supported canonical regions. |
+| `random_points` | function | Return seeded random points, intrinsically uniform for supported canonical regions. |
 | `sign_at` | function | Return the sign of a polynomial/expression at a point. |
 | `sign_vector` | function | Return the signs of ``polys`` at ``point`` in input order. |
 | `solve_zero_dimensional_system` | function | Solve a finite rational polynomial system exactly. |
@@ -55,6 +57,10 @@ Solves a real semialgebraic system and returns a `SemialgebraicSolution` by defa
 Representative sampling is exact by default. Supported workflows include representative/automatic, rational, grid, random, and CAD-cell sampling. Numerical random sampling is explicitly opt-in with `exact=False`.
 
 Returned public samples are checked against the original formula.
+
+## Canonical-region random sampling
+
+`random_point` and `random_points` are distributional APIs rather than witness finders. For supported bounded canonical regions they sample uniformly with respect to intrinsic Euclidean/Hausdorff measure: boxes use independent uniforms, balls use radial-volume sampling, spheres use normalized Gaussian directions, simplexes use Dirichlet barycentric weights, polygons/polyhedra use measure-weighted simplex decompositions, ellipsoids use affine images of unit-ball/unit-sphere samples, and shells use the correct radial volume law. Formula regions use bounded rejection sampling and therefore require a meaningful finite sampling box for distributional interpretation. Seeds are deterministic.
 
 ## `sign_at` and `sign_vector`
 
@@ -91,7 +97,7 @@ expressions, and rational powers.  Nested graph variables are projected away by
 QE when useful, so domain constraints can be simplified back to conditions on
 the requested input variables.
 
-Rational powers deliberately follow SymPy's own semantics.  Ordinary
+Rational powers follow SymPy's own semantics.  Ordinary
 `x**Rational(p, q)` is a principal-branch `Pow`; for a noninteger rational
 exponent its real-valued locus on a real base is therefore nonnegative (strictly
 positive for negative exponents).  Explicit real roots should be written with

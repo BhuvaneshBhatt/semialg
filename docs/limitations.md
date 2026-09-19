@@ -14,7 +14,7 @@
 
 The complete path uses structural presolve, safe affine substitution, exact Fourier–Motzkin elimination, quantifier-aware variable ordering, and specialized exact backends before general CAD. Reduced/equational-constraint CAD is used only when its side conditions are certified; otherwise the complete path remains authoritative.
 
-Pilot lifting is a bounded cost probe, not a proof procedure. It deliberately avoids full CAD sign/provenance work. A cheap heuristic score can therefore mispredict runtime without affecting correctness.
+Pilot lifting is a bounded cost probe, not a proof procedure. It avoids full CAD sign/provenance work. A cheap heuristic score can therefore mispredict runtime without affecting correctness.
 
 ## Parameter-dependent results
 
@@ -28,7 +28,7 @@ An exact result may remain a quantified first-order relation. Quantifier-free pr
 
 ## Intrinsic integration
 
-Regular triangular CAD graph strata can be integrated with the induced Hausdorff metric. General singular/non-graph stratification, multiple-chart geometry, and arbitrary singular manifolds remain incomplete. Uncertified algebraic sections are not silently treated as regular.
+Regular triangular CAD graph strata can be integrated with the induced Hausdorff metric, and disjoint regular CAD cells are summed as a multi-chart intrinsic decomposition. General singular/non-graph stratification, overlapping chart covers, and arbitrary singular manifolds remain incomplete. Uncertified algebraic sections are not silently treated as regular.
 
 ## Formula simplification
 
@@ -45,9 +45,9 @@ Ambient-measure integration supports standard regions and typed CAD-cell bounds,
 ## Topology and geometry
 
 - Connected components, connectivity/path-connectivity decisions, Euler characteristic, and certified CAD connector chains are available for supported semialgebraic sets.
-- `path_between` does not construct a general Canny/Basu–Pollack–Roy algebraic roadmap parameterization in dimensions above one.
-- Homology and Betti numbers are not implemented. `CADCellComplex` provides unsigned codimension-one incidence, not oriented cellular boundary operators.
-- The optimization backend can analyze a positive-dimensional projected KKT or singular active-boundary locus through exact function-range/image-CAD computation when recursive coordinate elimination stops, and can recover an exact witness for an attained endpoint. The higher-level `critical_values` API still does not return a complete symbolic decomposition of every varying critical-value image.
+- `roadmap` certifies the BPR roadmap conditions for sets of dimension at most one and for compact convex sets through a projection-spanning segment; the recursive pseudo-critical-value construction for general higher-dimensional roadmaps is outside the supported implementation. `path_between` therefore remains a CAD connector-chain API in higher dimensions.
+- Exact simplicial homology over `QQ` is implemented for every region handled by the certified triangulation backend (currently compact polyhedral regions and compact subsets of the real line). `b0` remains available generally and `b1` for compact one-dimensional sets. General curved higher-dimensional sets still need a certified triangulation or oriented CAD-cell boundary operators.
+- The optimization backend can analyze a positive-dimensional projected KKT or singular active-boundary locus through exact function-range/image-CAD computation when recursive coordinate elimination stops, and can recover an exact witness for an attained endpoint. `critical_values` returns discrete values; `critical_value_image` additionally retains exact supported images of varying positive-dimensional KKT and singular components.
 - `SemialgebraicRegion.singular_locus()` uses reduced-real component-relative Jacobian semantics and restricts inequality contributions to residuals realized on the actual boundary. Use `nonsmooth_locus()` for transverse corners/ridges on multi-active boundary strata and `active_boundary_strata()` for exact realized defining-inequality activity strata; these are not full Whitney stratifications.
 - CAD-cell triangulation is numerical. Conforming assembly checks sampled common-face triangulations, but ambient isotopy to the exact semialgebraic set is not certified.
 - Generic convexity can still be expensive because the complete fallback is a quantified semialgebraic problem with duplicated ambient variables and a segment parameter. The staged convexity engine handles complete one-dimensional connectivity, affine/polyhedral sets, basic quadratics, global and domain-relative polynomial Hessian certificates, selected topology-based rejections, and exact segment witnesses before that fallback. Representation-dependent cases that evade these certificates may still require full QE.
@@ -71,12 +71,12 @@ The remaining limitations fall into different categories and should not be inter
 | Limitation | Category | Near-term status |
 |---|---|---|
 | General CAD/QE scaling | Fundamental/algorithmic | Incremental planning, equational-constraint, decomposition, and cache improvements only; no general polynomial-time fix is expected. |
-| Semialgebraic function graph coverage | Missing implementation | Actively extensible. Current exact coverage includes nested rational/algebraic graphs, `Abs`, `sign`, `Heaviside`, `Min`, `Max`, finite `Piecewise`, and broader Boolean formula composition. |
+| Semialgebraic function graph coverage | Missing implementation | Actively extensible. Current exact coverage includes nested rational/algebraic graphs, `Abs`, `sign`, `Heaviside`, `Min`, `Max`, finite `Piecewise`, real `re`/`im`/`conjugate` wrappers, and broader Boolean formula composition. |
 | Parameterized real-root counts above quartic | Engineering/algorithmic | Improved: general subresultant/Sturm sign stratification is available, with conservative fallback when exact CAD construction fails. |
 | Closed-form antiderivatives after exact geometric decomposition | External symbolic-integration limitation | Exact geometry can be retained even when presentation as an elementary closed form fails; broader exact-unevaluated and certified-numerical result modes are feasible extensions. |
-| Positive-dimensional critical-value images | Partial implementation | Optimization uses exact range/image-CAD analysis as a terminal path on projected KKT and singular active-boundary loci and recovers attained endpoint witnesses; a complete symbolic image decomposition in `critical_values` is not implemented. |
+| Positive-dimensional critical-value images | Partial implementation | `critical_value_image` reuses exact function-range/image-CAD analysis on supported projected KKT and singular loci. Unsupported components are conservatively omitted rather than approximated. |
 | Corners/nonsmooth boundary strata | Partial implementation | `region_nonsmooth_locus` detects algebraic singularities plus transverse corners/ridges, and `region_active_boundary_strata` classifies active inequality sets. Full Whitney/regular stratification remains open. |
-| Betti numbers/homology | Missing subsystem | Oriented CAD incidence is a medium-sized extension; full roadmaps are substantially harder. |
+| Betti numbers/homology | Partial | `b0` is exact generally; compact one-dimensional sets have exact `b1`; and certified triangulations now provide all Betti numbers through exact rational boundary matrices. General curved higher-dimensional sets still need broader certified triangulation/cellular incidence. |
 | Globally minimal formula representation | Fundamental/representation-dependent | Local deterministic simplification can improve, but no globally minimal representation is promised. |
 
 ## Parametric geometry and affine specializations
@@ -94,6 +94,6 @@ map. It does not count only real fibers or impose semialgebraic parameter-domain
 restrictions; those are separate data needed by change-of-variables and
 intrinsic-integration code.
 
-Affine box clipping is intentionally restricted to one- and two-dimensional
+Affine box clipping is restricted to one- and two-dimensional
 affine subspaces. General polyhedral intersections continue to use the ordinary
 region/CAD machinery.

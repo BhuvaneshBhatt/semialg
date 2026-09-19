@@ -84,7 +84,7 @@ def test_symbol_identity_key_distinguishes_assumptions_and_mapping_order():
     assert point_key(first) == point_key(second)
 
 
-def test_same_kind_quantifier_canonicalization_is_assumption_aware_and_permutation_invariant():
+def test_quantifier_canonicalization_respects_assumptions():
     xr = sp.Symbol("x", real=True)
     xp = sp.Symbol("x", positive=True)
     q1 = (("exists", xr), ("exists", xp))

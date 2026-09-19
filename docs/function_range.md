@@ -13,7 +13,7 @@ from semialg import Exists
 image_relation = Exists(x, sp.And(C, graph_f))
 ```
 
-Mathematically this is $\exists x\,[C(x) \land \operatorname{graph}_f(x,t)]$,
+computer algebra systemlly this is $\exists x\,[C(x) \land \operatorname{graph}_f(x,t)]$,
 where `t` is a value symbol. Eliminating the original variables gives a condition on `t`.
 
 ```python
@@ -45,7 +45,7 @@ t*q(x) - p(x) == 0 and q(x) != 0
 Example:
 
 ```python
-function_range(1/x, x > 0, [x], value_symbol=t)
+function_range(1 / x, x > 0, [x], value_symbol=t)
 # t > 0
 ```
 
@@ -75,7 +75,7 @@ Use `return_result=True` for metadata.
 
 ```python
 r = function_range(
-    2*x + 1,
+    2 * x + 1,
     sp.And(x > 0, x < 1),
     [x],
     value_symbol=t,
@@ -95,7 +95,7 @@ The primary answer is `range_condition`; `lower_bound` and `upper_bound` are sum
 
 ## Parameter-stratified ranges
 
-When an expression or its domain depends on symbolic parameters, pass `parameters=[...]` and `return_stratified=True`. The result is a `ParameterStratifiedResult`; each branch contains an exact `ParametricFunctionRangeResult` guarded by a semialgebraic parameter condition. The branch relation is intentionally left quantified by default. Add `eliminate_quantifiers=True` when a quantifier-free formula is needed and the extra complete-CAD/QE cost is acceptable.
+When an expression or its domain depends on symbolic parameters, pass `parameters=[...]` and `return_stratified=True`. The result is a `ParameterStratifiedResult`; each branch contains an exact `ParametricFunctionRangeResult` guarded by a semialgebraic parameter condition. The branch relation is left quantified by default. Add `eliminate_quantifiers=True` when a quantifier-free formula is needed and the extra complete-CAD/QE cost is acceptable.
 
 ```python
 a = sp.Symbol("a", real=True)
@@ -112,7 +112,7 @@ r = function_range(
 `ParametricFunctionRangeResult.formula` is an exact first-order image relation.
 Expression-facing code, wrap that relation with `Exists` (or use
 `apply_quantifiers`) when a single first-class quantified expression is desired;
-`quantifiers` remains available as the normalized internal elimination prefix. The relation is intentionally not forced through a second potentially expensive CAD elimination: `quantifier_free` is therefore `False`. This preserves an exact first-class parametric answer without making a range query unexpectedly perform a much larger QE problem.
+`quantifiers` remains available as the normalized internal elimination prefix. The relation is not forced through a second potentially expensive CAD elimination: `quantifier_free` is therefore `False`. This preserves an exact first-class parametric answer without making a range query unexpectedly perform a much larger QE problem.
 
 ## Limitations
 
@@ -132,13 +132,13 @@ from semialg import function_range
 
 x, t = sp.symbols("x t", real=True)
 
-function_range(sp.sin(x) + sp.cos(2*x), variables=[x], value_symbol=t)
+function_range(sp.sin(x) + sp.cos(2 * x), variables=[x], value_symbol=t)
 # equivalent to -2 <= t <= 9/8
 
 function_range(sp.exp(x) + sp.exp(-x), variables=[x], value_symbol=t)
 # t >= 2
 
-function_range(sp.cosh(2*x), variables=[x], value_symbol=t)
+function_range(sp.cosh(2 * x), variables=[x], value_symbol=t)
 # t >= 1
 ```
 

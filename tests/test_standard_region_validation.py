@@ -109,7 +109,8 @@ def test_interval_measure_identity_for_small_rational_intervals():
         for upper in endpoints:
             if lower <= upper:
                 region = IntervalRegion(lower, upper)
-                assert integrate_over_standard_region(1, region, [x]) == upper - lower
+                expected = sp.Integer(1) if lower == upper else upper - lower
+                assert integrate_over_standard_region(1, region, [x]) == expected
 
 
 def test_interval_boolean_measure_identities():

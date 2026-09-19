@@ -1,8 +1,14 @@
 # semialg
 
-`semialg` is a Python package for exact symbolic computation with real polynomial and semialgebraic conditions. It combines cylindrical algebraic decomposition (CAD), quantifier elimination (QE), exact algebraic-number methods, and specialized solvers for decision problems, solving, regions, optimization, and integration.
+`semialg` is a Python package for exact computational semialgebraic  and real algebraic geometry. It combines cylindrical algebraic decomposition (CAD), quantifier elimination (QE), exact real-algebraic arithmetic, polynomial-system and algebraic-decomposition methods, and specialized algorithms for solving, decision problems, geometric analysis, optimization, and integration.
 
-The package has certified paths that prefer an exact answer (or an explicit conservative failure) over silently treating a numerical approximation as proof.
+The package has certified paths that prefer an exact answer (or an explicit failure) and a numerical approximation is not treated as proof.
+
+## Why use semialg?
+
+Use semialg when the distinction between a plausible numerical answer and a mathematically certified answer matters. It is especially useful when a problem mixes polynomial equations and inequalities, Boolean conditions, parameters, exact algebraic numbers, or global questions such as feasibility, equivalence, projection, optimization, topology, or measure. Specialized algebraic and geometric methods handle inexpensive cases first; CAD and QE provide exact fallback machinery for supported real-polynomial formulas.
+
+If you primarily need floating-point nonlinear optimization, general numerical transcendental solving, or large numerical geometry rather than exact semialgebraic computation, established numerical libraries will usually be a better fit. Consider SciPy for numerical optimization and nonlinear systems, SymPy/mpmath for numerical transcendental root finding, Shapely for planar computational geometry, and Trimesh for numerical 3-D mesh geometry. See the [capability matrix](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/feature_matrix.md) and [limitations](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/limitations.md) before choosing an algorithm.
 
 ## Install
 
@@ -24,24 +30,25 @@ from semialg import equivalent, implies, is_satisfiable
 
 x, y = sp.symbols("x y", real=True)
 
-is_satisfiable((x**2 + y**2 <= 1) & (x > 0) & (y > 0), [x, y])
+assert is_satisfiable((x**2 + y**2 <= 1) & (x > 0) & (y > 0), [x, y]) is True
 # True
 
-implies(x > 1, x**2 > 1, [x])
+assert implies(x > 1, x**2 > 1, [x]) is True
 # True
 
-equivalent(x**2 <= 1, (x >= -1) & (x <= 1), [x])
+assert equivalent(x**2 <= 1, (x >= -1) & (x <= 1), [x]) is True
 # True
 ```
 
-First-order formulas can also be built directly with semialg's symbolic quantifiers:
+First-order formulas can also be built directly with semialg's symbolic
+quantifiers:
 
 ```python
 from semialg import Exists, ForAll
 from semialg.solve import reduce_complete_expr
 
 statement = ForAll(x, Exists(y, sp.Eq(x + y, 0)))
-reduce_complete_expr(statement)
+assert reduce_complete_expr(statement) is sp.true
 # True
 ```
 
@@ -51,16 +58,16 @@ Optimization and integration use the same exact-first model:
 from semialg import semialgebraic_minimize, semialgebraic_measure
 
 opt = semialgebraic_minimize(x**2 + y**2, x + y >= 1, [x, y], return_result=True)
-opt.value
+assert opt.value == sp.Rational(1, 2)
 # 1/2
 
-semialgebraic_measure(x**2 + y**2 <= 1, [x, y])
+assert semialgebraic_measure(x**2 + y**2 <= 1, [x, y]) == sp.pi
 # pi
 ```
 
 Composite Boolean regions are interpreted geometrically through CAD rather than atom-by-atom rewriting. The same disjoint CAD-cell decomposition is used by multidimensional measure and integration, so overlapping unions are not double-counted and internal Boolean seams are not reported as boundaries.
 
-The canonical symbolic region API is `SemialgebraicRegion`; you should build a `CADRegion` only when repeated point-location, topology, cell-complex, or CAD-integration queries justify reusing one decomposition:
+The canonical symbolic region API is `SemialgebraicRegion`; build a `CADRegion` only when repeated point-location, topology, cell-complex, or CAD-integration queries justify reusing one decomposition:
 
 ```python
 from semialg import SemialgebraicRegion
@@ -83,12 +90,15 @@ a = sp.Symbol("a", real=True)
 from semialg import integrate_over_region
 
 parametric = integrate_over_region(
-    x, (x >= 0) & (x <= a), [x],
-    parameters=[a], return_stratified=True,
+    x,
+    (x >= 0) & (x <= a),
+    [x],
+    parameters=[a],
+    return_stratified=True,
 )
-parametric.select({a: 2})
+assert parametric.select({a: 2}) == 2
 # 2
-parametric.select({a: -1})
+assert parametric.select({a: -1}) == 0
 # 0
 ```
 
@@ -100,13 +110,12 @@ The complete-QE path also has a conservative structural presolver and automatic 
 from semialg.heuristics import suggest_cad_variable_order
 from semialg.presolve import presolve_semialgebraic
 
-presolved = presolve_semialgebraic(
-    sp.And(sp.Eq(y, x + 1), y > 0), [x, y], eliminate=[y]
-)
+presolved = presolve_semialgebraic(sp.And(sp.Eq(y, x + 1), y > 0), [x, y], eliminate=[y])
+assert presolved.formula == (x > -1)
 # presolved.formula == (x > -1)
 
-score = suggest_cad_variable_order([x**2 + y**4, x*y + 1], [x, y])
-score.order
+score = suggest_cad_variable_order([x**2 + y**4, x * y + 1], [x, y])
+assert set(score.order) == {x, y}
 ```
 
 Univariate parameter-dependent integrals can use algebraic CAD root functions as moving endpoints. For example, the measure of `x**2 <= a` is stratfied exactly as zero for `a <= 0` and the distance between the two ordered roots for `a > 0`; specialization gives `4` at `a=4` and `6` at `a=9`.
@@ -115,25 +124,36 @@ High-level geometric queries compose the same certified backends:
 
 ```python
 from semialg import (
-    argmin_set, bounding_box, centroid, connected_components,
-    diameter, distance_to_region, is_compact, minkowski_sum,
-    semialgebraic_image, singular_locus, tangent_cone, width,
+    argmin_set,
+    bounding_box,
+    centroid,
+    connected_components,
+    diameter,
+    distance_to_region,
+    is_compact,
+    minkowski_sum,
+    semialgebraic_image,
+    singular_locus,
+    tangent_cone,
+    width,
 )
 
 u = sp.Symbol("u", real=True)
-semialgebraic_image(x, (x >= -1) & (x <= 2), [x], image_variables=[u])
+assert semialgebraic_image(x, (x >= -1) & (x <= 2), [x], image_variables=[u]) == sp.And(
+    u >= -1, u <= 2
+)
 # (u >= -1) & (u <= 2)
 
-bounding_box((x >= -1) & (x <= 2), [x])
+assert bounding_box((x >= -1) & (x <= 2), [x]) == {x: (-1, 2)}
 # {x: (-1, 2)}
 
-distance_to_region((2,), (x >= 0) & (x <= 1), [x])
+assert distance_to_region((2,), (x >= 0) & (x <= 1), [x]) == 1
 # 1
 
-singular_locus(y**2 - x**3, [x, y])
-tangent_cone(y**2 - x**3, {x: 0, y: 0}, [x, y]).formula
+assert singular_locus(y**2 - x**3, [x, y]).subs({x: 0, y: 0}) is sp.true
+assert tangent_cone(y**2 - x**3, {x: 0, y: 0}, [x, y]).certified
 # Exact ideal-theoretic cone for multiple generators; cancellation terms are retained.
-tangent_cone((x**2 + y**3, x**2 - y**3), {x: 0, y: 0}, [x, y]).ideal_generators
+assert tangent_cone((x**2 + y**3, x**2 - y**3), {x: 0, y: 0}, [x, y]).ideal_generators
 # Eq(d_y**2, 0)
 ```
 
@@ -142,43 +162,31 @@ Derived geometry APIs expose common exact constructions without duplicating algo
 ```python
 interval = (x >= 0) & (x <= 2)
 
-argmin_set(x**2, interval, [x])
+assert argmin_set(x**2, interval, [x]) == sp.And(x >= 0, x <= 2, sp.Eq(x**2, 0))
 # (x >= 0) & (x <= 2) & Eq(x**2, 0)
 
-diameter(interval, [x])
+assert diameter(interval, [x]) == 2
 # 2
 
-width(interval, (1,), [x])
+assert width(interval, (1,), [x]) == 2
 # 2
 
-is_compact(interval, [x])
+assert is_compact(interval, [x]) is True
 # True
 
-connected_components((x < 0) | (x > 0), [x])
+assert connected_components((x < 0) | (x > 0), [x]) == (x < 0, x > 0)
 # (x < 0, x > 0)
 
-centroid(interval, [x])
+assert centroid(interval, [x]) == {x: 1}
 # {x: 1}
 ```
 
 The same layer includes set relations (`is_subset`, `is_equal`, `is_disjoint`, `intersects`), level/sublevel/superlevel sets, nearest/closest points, moment/covariance/inertia matrices, affine transforms and Minkowski sums, support functions, directional widths, and algebraic `is_smooth` / `is_singular` / `tangent_dimension` conveniences. Operations such as Minkowski sums and general affine images remain exact existential-QE problems and can therefore inherit CAD complexity.
 
+
 Region topology uses CAD semantics even for atomic polynomial inequalities; compact direct formulas are used only after cell-wise equivalence verification. `region_dimension` is likewise exact and is read from selected CAD-cell dimensions. Free parameters are preserved by `semialgebraic_image` when source variables are explicit, and all geometry point/string inputs use contextual symbol resolution.
 
 `is_path_connected` is an exact decision through CAD connectivity. `path_between` returns an explicit piecewise-linear path in the certified 1-D case and a certified CAD cell/connector chain in higher dimensions; full Canny/Basu-Pollack-Roy roadmap parameterization is outside this API.
-
-## What semialg provides
-
-- **Decision and QE:** satisfiability, tautology, implication, equivalence, CAD and quantifier elimination.
-- **Specialized real algebraic decisions:** certified positive-dimensional equality feasibility, replayable algebraic decomposition, exact polynomial nonnegativity, and one-sided exact witness search.
-- **Solving and sampling:** an exact solver with affine presolve, Boolean/incidence decomposition, univariate and linear fast paths, zero-dimensional RUR, Groebner presolve, and CAD/QE fallback, plus structured witnesses and samples.
-- **Algebraic roots and parameters:** exact root isolation, certified algebraic root functions, root classification, and parameter-stratified results.
-- **Regions:** Boolean region operations, exact set relations/properties, topology, CAD connected components, transforms, standard geometric regions, and CAD-derived geometry.
-- **Geometric queries:** exact projection/image/preimage/fibers, extrema sets, bounding boxes, distances/diameter, support/width, transforms/Minkowski sums, staged exact convexity certificates, connectivity/property predicates, Euler characteristic, moments, singular loci, tangent spaces, and tangent cones.
-- **Optimization and ranges:** exact polynomial optimization, KKT/active-set analysis, global certification, and semialgebraic image/range computation.
-- **Integration and moments:** ambient and intrinsic measure, region integrals, moments, centroids, and covariance.
-
-See [feature matrix](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/feature_matrix.md) for a more detailed capability summary and [limitations](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/limitations.md) for important scope boundaries.
 
 ## Applied workflows
 
@@ -196,13 +204,59 @@ See [feature matrix](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/fe
 
 See [`docs/applications.md`](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/applications.md). Core operations such as `function_range`, `semialgebraic_measure`, integration, optimization, CAD, and QE remain in the core namespace rather than being duplicated under `applications`.
 
-## Exact vs certified
+## Worked examples
 
-A result being symbolic is not by itself a certificate. semialg distinguishes exact representations, certified conclusions, candidate/heuristic information, and explicitly numerical approximations. See [Exactness and certification](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/concepts/exactness_and_certification.md).
+The documentation includes a [worked example gallery](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/examples/index.md) with executable examples for projection/QE, exact ranges and optimization, topology, moments, singular geometry, convex operations, distances, and parameterized algebraic integration.
+
+## What semialg provides
+
+- **Decision and QE:** satisfiability, tautology, implication, equivalence, CAD and quantifier elimination.
+- **Specialized real algebraic decisions:** certified positive-dimensional equality feasibility, replayable algebraic decomposition, exact polynomial nonnegativity, and one-sided exact witness search.
+- **Solving and sampling:** an exact solver with affine presolve, Boolean/incidence decomposition, univariate and linear fast paths, zero-dimensional RUR, Groebner presolve, and CAD/QE fallback, plus structured witnesses and samples.
+- **Algebraic roots and parameters:** exact root isolation, certified algebraic root functions, root classification, and parameter-stratified results.
+- **Toric and lattice algebra:** saturated integer kernels, lattice and toric ideals, Laurent-monomial elimination, and exact Markov bases.
+- **Regions:** Boolean region operations, exact set relations/properties, topology, CAD connected components, transforms, standard geometric regions, and CAD-derived geometry.
+- **Geometric queries:** exact projection/image/preimage/fibers, extrema sets, bounding boxes, distances/diameter, support/width, transforms/Minkowski sums, staged exact convexity certificates, connectivity/property predicates, Euler characteristic, moments, singular loci, tangent spaces, and tangent cones.
+- **Optimization and ranges:** exact polynomial optimization, KKT/active-set analysis, global certification, and semialgebraic image/range computation.
+- **Integration and moments:** ambient and intrinsic measure, region integrals, moments, centroids, and covariance.
+- **Computational algebraic geometry:** exact polynomial-system solving, Gröbner/elimination methods, rational univariate representations, algebraic decomposition, singular loci and tangent geometry, with toric and lattice-ideal constructions.
+
+See [feature matrix](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/feature_matrix.md) for more detailed capability summary and [limitations](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/limitations.md) for important scope boundaries.
+
+## Semialgebraic geometry
+
+`semialg` represents and analyzes sets defined by polynomial equations and inequalities and Boolean combinations of those constraints. Geometry operations use exact real-algebraic methods and specialized region algorithms where available, with CAD and quantifier elimination providing general exact machinery for supported polynomial problems.
+
+### Regions and geometric operations
+
+`SemialgebraicRegion` is the primary symbolic region abstraction. Canonical region classes provide structured representations for common geometries, while `CADRegion` supports repeated cell-level queries when reusing a decomposition is worthwhile. Region operations include Boolean set operations, membership and set relations, dimension, boundary/interior/closure queries, bounding boxes, distances, extrema sets, support and width, and derived moment quantities.
+
+### Region sampling, measure, and centroid
+
+Canonical geometry objects provide `sample_point()` and `sample_points()` for certified representative points, and `random_point()` and `random_points()` for seeded random sampling. Supported bounded canonical regions are sampled uniformly with respect to intrinsic Euclidean/Hausdorff measure. `Geometry.measure()` uses intrinsic measure by default; `measure(measure_dimension="ambient")` instead computes ambient Lebesgue measure. `Geometry.centroid()` uses the same uniform intrinsic measure.
+
+### Topology and connectivity
+
+Topology is computed from exact semialgebraic structure rather than numerical meshing. The package provides region dimension, connected components, connectivity and path-connectivity decisions, Euler characteristic, cell-complex access, singular loci, tangent spaces, and tangent cones. Higher-dimensional `path_between` results certify a CAD cell/connector chain rather than constructing a general roadmap parameterization.
+
+### Transformations
+
+Exact image, preimage, projection, and fiber operations are available for supported semialgebraic maps. Affine transformations preserve structured geometry when a canonical result can be certified; more general images and Minkowski sums are represented as existential semialgebraic problems and may require QE/CAD. Real-geometry affine entry points reject certifiably non-real map data at the input boundary.
+
+### Function analysis via function graphs
+
+Semialgebraic function analysis is composition-aware for functions whose graphs can be represented exactly by supported polynomial conditions. Nested radicals/rational powers, `Abs`, `sign`, `Heaviside`, `Min`/`Max`, finite `Piecewise`, and real `re`/`im`/`conjugate` wrappers can be algebraized when their real-domain side conditions are certifiable; unsupported graphs are declined.
+
+
+## Primary and specialist APIs
+
+The package root is the everyday mathematical interface, while expert-level/specialist algorithms and certificate-building workflows live in their owning namespaces instead of being duplicated at `semialg.*`. For example, use `semialg.parameters.root_count_conditions`, `semialg.roadmaps.roadmap`, `semialg.topology.semialgebraic.triangulate_region`, `semialg.parametric_geometry.bounded_parametric_cover`, and `semialg.map_degree.parametric_map_degree` when those lower-level functions are needed. See [API namespaces](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/api_namespaces.md).
 
 ## Documentation
 
-New users should start with [Getting started](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/getting_started.md) and then follow the task-oriented links in the [documentation index](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/index.md).
+- [Benchmark and conformance suite](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/benchmarks.md) — published Wilson CAD and TTICAD corpora plus parameterized Gröbner families; includes commands for reproducible conformance/performance runs.
+
+New users should start with **[Getting started](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/getting_started.md)** and then follow the task-oriented links in the **[documentation index](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/index.md)**.
 
 Important conceptual material:
 
@@ -213,12 +267,13 @@ Important conceptual material:
 - [Symbol handling](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/symbol_handling.md)
 - [Region invariants](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/region_invariants.md)
 - [API overview](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/api_overview.md)
+- [Toric and lattice algebra](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/toric_algebra.md)
 
 A progressive executable tutorial is available in [`notebooks/semialg_demo.ipynb`](https://github.com/BhuvaneshBhatt/semialg/blob/main/notebooks/semialg_demo.ipynb).
 
-## Worked examples
+## Exact vs certified
 
-The documentation includes a [worked example gallery](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/examples/index.md) with executable examples for projection/QE, exact ranges and optimization, topology, moments, singular geometry, convex operations, distances, and parameterized algebraic integration.
+A result being symbolic is not by itself a certificate. semialg distinguishes between exact representations, certified conclusions, candidate/heuristic information, and explicitly numerical approximations. See [Exactness and certification](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/concepts/exactness_and_certification.md).
 
 ## Development
 
@@ -241,4 +296,4 @@ See the [architecture guide](https://github.com/BhuvaneshBhatt/semialg/blob/main
 
 ## License
 
-See [LICENSE](https://github.com/BhuvaneshBhatt/semialg/blob/main/LICENSE).
+See the [LICENSE](https://github.com/BhuvaneshBhatt/semialg/blob/main/LICENSE).

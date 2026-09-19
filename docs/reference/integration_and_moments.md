@@ -1,15 +1,13 @@
 # Integration, measure, and moments reference
 ## Family contract
 
-**Mathematical return.** Integration APIs return exact symbolic integrals over supported semialgebraic regions; measure and moment APIs are derived exact integrals with dimension-aware semantics.
+**Common mathematical result.** Integration APIs return exact symbolic integrals over supported semialgebraic regions; measure and moment APIs are derived exact integrals with dimension-aware semantics.
 
 **Exactness and certification.** Bounds/cells used for exact integration are derived from certified semialgebraic decompositions. Numerical quadrature is not silently substituted for an unsupported exact integral.
 
 **Algorithm.** The implementation reduces regions to exact bounds/cells, supports Boolean decomposition and intrinsic regular strata, and can integrate univariate parameter fibers using CAD-controlled algebraic root-function endpoints.
 
 **Complexity and limitations.** Arbitrary singular mixed-dimensional stratification and fully general multidimensional parametric algebraic integration remain incomplete.
-
-
 
 
 ## Primary API overview
@@ -23,6 +21,7 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `region_centroid` | function | Return the centroid of a finite-measure semialgebraic region. |
 | `region_covariance` | function | Return the covariance matrix of the uniform measure on a region. |
 | `region_moment` | function | Return a raw moment integral over a semialgebraic region. |
+| `region_measure` | function | Return intrinsic or ambient measure for canonical geometry and formula regions. |
 | `semialgebraic_measure` | function | Return the exact measure of a supported semialgebraic set. |
 
 ## `integrate_over_region`
@@ -40,6 +39,10 @@ Integrates over a semialgebraic region. Exact symbolic paths use specialized red
 ## `reduce_region_integral`
 
 Returns a reduced integral representation without necessarily evaluating it immediately. Useful for inspecting how a region was decomposed. For CAD-derived pieces, diagnostics include the selected `integration_variable_order`, bound-verification status, and whether the order came from explicit cylindrical recognition or CAD order search.
+
+## `region_measure` and geometry methods
+
+`region_measure(region, measure_dimension="intrinsic")` is the geometry-oriented measure API. Canonical `Geometry.measure()` uses intrinsic Hausdorff measure by default, so curves and surfaces have their natural length/area while their higher-dimensional ambient measure is zero. `Geometry.centroid()` uses the same intrinsic measure. Structural formulas are used for standard regions, with intrinsic charts or semialgebraic integration as exact fallbacks.
 
 ## `semialgebraic_measure`
 

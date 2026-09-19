@@ -152,7 +152,7 @@ def test_nested_quantified_polygon_branches_are_eliminated_for_membership():
     assert region.contains((sp.Rational(3, 2), 2)) is False
 
 
-def test_region_element_conditions_eliminate_false_retains_unresolved_parametric_membership():
+def test_parametric_membership_survives_elimination():
     t = sp.Symbol("t", real=True)
     x, y = sp.symbols("x y", real=True)
     region = as_semialgebraic_region(ParametricRegion((t,), ((t, 0, 1),), (t, t**2)), (x, y))

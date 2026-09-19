@@ -3,13 +3,8 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import (
-    FunctionRangeResult,
-    OptimizationResult,
-    function_range,
-    semialgebraic_maximize,
-    semialgebraic_minimize,
-)
+from semialg import function_range, semialgebraic_maximize, semialgebraic_minimize
+from semialg.optimization_results import FunctionRangeResult, OptimizationResult
 
 pytestmark = pytest.mark.slow
 

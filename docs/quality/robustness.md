@@ -121,7 +121,7 @@ Integer witness bounds use exact `floor`/`ceiling`. Exact real interval sampling
 
 ## Conservative affine fast paths
 
-Affine recognition is deliberately separated from permission to divide. For
+Affine recognition is separated from permission to divide. For
 example, `a*x <= 1` is syntactically linear in `x`, but without assumptions on
 `a` there is no globally valid orientation: the inequality reverses for
 `a < 0` and has a separate `a = 0` stratum. The inexpensive bound extractor
@@ -139,3 +139,46 @@ Canonical cache/order keys distinguish SymPy Symbols with the same printed name
 but different assumptions. Do not replace the package's assumption-aware symbol
 key with `Symbol.name` or `sympy.default_sort_key`: those can tie for
 assumption-distinct Symbols and make cache identity depend on insertion order.
+
+## Certificate mutation and independent differential checks
+
+Replayable exact certificates are tested with a table-driven mutation harness.
+For each registered certificate family, every populated proof-relevant dataclass
+field—including fields nested inside component and recursive proof objects—is
+changed independently. Exact replay must reject every mutation. Search provenance
+such as modular prime history and method labels is classified separately because
+it is not part of the mathematical proof. Adding a populated proof field to a
+registered dataclass therefore expands the mutation surface automatically.
+
+The algebraic test strategy also includes an optional Singular differential
+oracle. Generated bounded rational ideals are decomposed independently by
+Singular's `primdecGTZ` and by `semialg`; the development harness compares source
+dimension, associated-prime supports, matched primary components, reconstruction,
+and component degree/multiplicity. `semialg` must replay its own certificate
+before any comparison is made. Agreement with Singular is diagnostic evidence,
+not a substitute for exact replay.
+
+## Installed-artifact testing
+
+CI builds a wheel and installs it outside the source checkout before running a
+public-API smoke test. The smoke also executes the core workflows used by the
+primary-decomposition, SOS-certification, and factorized-CAD tutorials. It
+asserts that `semialg.__file__` resolves to the installed artifact rather than
+`src/semialg`, preventing editable-tree path leakage from hiding packaging or
+subprocess-import defects.
+
+## Differential semantic testing
+
+When two exact backends solve the same mathematical problem, regression tests compare the resulting sets, formulas, or exact point sets rather than requiring identical printed expressions. Shared test helpers normalize finite point sets and use semialgebraic equivalence for formulas. Current differential contracts cover Gröbner-variety QE versus forced Collins QE, RUR versus direct finite algebraic solving, specialized polynomial nonnegativity versus complete formula truth, and exact algebraization versus its explicit polynomial formulation.
+
+## Assumption matrices
+
+Public symbolic decisions that consume assumptions are tested in neutral, sufficient, and incompatible/empty-domain regimes. The same symbolic problem is evaluated across those regimes so that assumptions must genuinely collapse or filter the result without replacing user symbols by assumption-weakened surrogates.
+
+## Property-based exact-root contracts
+
+Generated small rational polynomials exercise interval endpoint conventions, repeated factors, distinct-root counting, replay, and exact rational separation. These tests complement fixed regression examples: generated inputs broaden the mathematical state space while exact independent invariants keep the oracle deterministic.
+
+## Structural performance contracts
+
+Performance-sensitive fast paths are primarily guarded by deterministic structure rather than tight wall-clock thresholds. Tests assert facts such as Descartes-decisive intervals avoiding Sturm fallback, ambiguous intervals entering exact counting once, shared separator delegation, cache hits on the path that owns the cache, and specialized routes declining or bypassing generic fallbacks as designed. Wall-clock benchmarks remain opt-in evidence for end-to-end regressions.

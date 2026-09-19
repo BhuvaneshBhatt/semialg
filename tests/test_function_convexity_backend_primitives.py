@@ -4,6 +4,7 @@ import sympy as sp
 
 import semialg
 from semialg.affine_reduction import parametric_affine_reduction
+from semialg.context import SemialgebraicContext
 from semialg.matrix_analysis import (
     constant_symmetric_inertia,
     matrix_pd_on,
@@ -90,7 +91,7 @@ def test_parametric_affine_reduction_branches_on_pivot_exception():
 
 def test_semialgebraic_context_reuses_new_reasoning_interfaces():
     x = sp.symbols("x", real=True)
-    context = semialg.SemialgebraicContext(sp.And(x >= 0, x <= 1), (x,))
+    context = SemialgebraicContext(sp.And(x >= 0, x <= 1), (x,))
     assert context.function_sign(x) == "nonnegative"
     assert context.matrix_definiteness(sp.Matrix([[x]]))
     assert context.strict_feasible()

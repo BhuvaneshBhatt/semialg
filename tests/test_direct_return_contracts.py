@@ -6,7 +6,6 @@ from semialg import (
     path_between,
     semialgebraic_maximize,
     semialgebraic_minimize,
-    solve_zero_dimensional_system,
 )
 from semialg.decomposition import component_instances, generic_cad
 from semialg.formula import parse_formula
@@ -15,7 +14,7 @@ from semialg.optimization_results import OptimizationResult
 from semialg.qe import CompleteQEResult, qe_by_complete_cad
 from semialg.root_classification import RootClassificationResult
 from semialg.solve.find_instance import InstanceResult
-from semialg.solve.zero_dimensional import ZeroDimensionalSolveResult
+from semialg.solve.zero_dimensional import ZeroDimensionalSolveResult, solve_zero_dimensional_system
 
 
 def test_optimization_defaults_to_value_and_optimizer_points():
@@ -40,9 +39,9 @@ def test_instance_defaults_to_instances():
 
 def test_zero_dimensional_solver_defaults_to_exact_points():
     x = sp.Symbol("x", real=True)
-    assert solve_zero_dimensional_system([x**2 - 1], vars=[x]) == ((-1,), (1,))
+    assert solve_zero_dimensional_system([x**2 - 1], variables=[x]) == ((-1,), (1,))
     assert isinstance(
-        solve_zero_dimensional_system([x**2 - 1], vars=[x], return_result=True),
+        solve_zero_dimensional_system([x**2 - 1], variables=[x], return_result=True),
         ZeroDimensionalSolveResult,
     )
 

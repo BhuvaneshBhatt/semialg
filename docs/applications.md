@@ -2,7 +2,7 @@
 
 `semialg.applications` contains thin, domain-oriented workflows built on the certified core algorithms. The application layer translates a practical question into semialgebraic decision, quantifier-elimination, range, or optimization problems and packages the result in a domain-friendly form.
 
-Core mathematical operations such as `function_range`, `semialgebraic_measure`, `integrate_over_region`, `semialgebraic_minimize`, and CAD remain in the core package. They are reusable primitives rather than applications and are intentionally not duplicated under `semialg.applications`.
+Core mathematical operations such as `function_range`, `semialgebraic_measure`, `integrate_over_region`, `semialgebraic_minimize`, and CAD remain in the core package. They are reusable primitives rather than applications and are not duplicated under `semialg.applications`.
 
 ## Robust parameter and tolerance analysis
 
@@ -15,7 +15,7 @@ from semialg.applications import robust_parameter_analysis
 x, a, b = sp.symbols("x a b", real=True)
 
 result = robust_parameter_analysis(
-    x**2 + a*x + b >= 0,
+    x**2 + a * x + b >= 0,
     operating_variables=[x],
     parameters=[a, b],
 )
@@ -54,7 +54,7 @@ The validation helpers use exact semialgebraic reasoning rather than numerical s
 from semialg.applications import validate_identity
 
 x = sp.symbols("x", real=True)
-result = validate_identity((x + 1)**2, x**2 + 2*x + 1, [x])
+result = validate_identity((x + 1) ** 2, x**2 + 2 * x + 1, [x])
 assert result.valid
 ```
 
@@ -98,7 +98,7 @@ check = validate_numeric_optimization(
 assert check.within_tolerance
 ```
 
-The benchmark retains the full `OptimizationResult`, including exact optimizer points, attainment, method diagnostics, and the global-certification flag. The numeric check is intentionally lightweight: it compares the reported numerical objective value against the exact optimum. Solver-specific feasibility and KKT diagnostics can be layered on top when a numerical solver exposes them.
+The benchmark retains the full `OptimizationResult`, including exact optimizer points, attainment, method diagnostics, and the global-certification flag. The numeric check is lightweight: it compares the reported numerical objective value against the exact optimum. Solver-specific feasibility and KKT diagnostics can be layered on top when a numerical solver exposes them.
 
 ## Why core operations do not live here
 
@@ -120,7 +120,7 @@ import sympy as sp
 from semialg.applications import polynomial_stability_analysis
 
 s, a, b = sp.symbols("s a b", real=True)
-result = polynomial_stability_analysis(s**2 + a*s + b, s, [a, b])
+result = polynomial_stability_analysis(s**2 + a * s + b, s, [a, b])
 result.condition
 # (a > 0) & (a*b > 0), equivalent to (a > 0) & (b > 0)
 ```
@@ -181,9 +181,9 @@ analysis = analyze_response_surface(
     thresholds=[1],
 )
 
-analysis.minimum.value   # 0
-analysis.maximum.value   # 2
-analysis.gradient        # (2*x, 2*y)
+analysis.minimum.value  # 0
+analysis.maximum.value  # 2
+analysis.gradient  # (2*x, 2*y)
 ```
 
 The result contains exact minimum and maximum `OptimizationResult` objects, an exact `FunctionRangeResult`, the symbolic gradient and stationary condition, and exact superlevel-set formulas for requested thresholds. The application is intended for polynomial response surfaces with exact numeric/algebraic coefficients; undeclared symbolic coefficient parameters are rejected. Use the core parameter-stratified APIs when coefficient parameters must remain symbolic. Arbitrary statistical or machine-learning models should first be converted to a polynomial surrogate if an exact semialgebraic analysis is desired.
@@ -249,7 +249,7 @@ from semialg.applications import analyze_polynomial_sensitivity
 
 x, y = sp.symbols("x y", real=True)
 domain = sp.And(x >= 0, x <= 2, y >= -1, y <= 1)
-result = analyze_polynomial_sensitivity(x**2 + 3*y, [x, y], domain=domain)
+result = analyze_polynomial_sensitivity(x**2 + 3 * y, [x, y], domain=domain)
 
 result.directions[x].classification
 # 'nondecreasing'
@@ -306,7 +306,7 @@ x = sp.Symbol("x", real=True)
 domain = sp.And(x >= 0, x <= 1)
 result = compare_polynomial_models(x**2, x, [x], domain=domain)
 
-result.first_le_second          # True
+result.first_le_second  # True
 result.maximum_absolute_error  # 1/4
 ```
 
@@ -331,7 +331,7 @@ x, a = sp.symbols("x a", real=True)
 regimes = analyze_parameter_regimes(sp.Eq(x**2 + a, 0), [x], [a])
 
 regimes.select({a: -1})  # True
-regimes.select({a: 1})   # False
+regimes.select({a: 1})  # False
 ```
 
 `analyze_root_count_regimes()` partitions parameter space by the number of distinct real roots of a polynomial:
@@ -341,8 +341,8 @@ from semialg.applications import analyze_root_count_regimes
 
 root_regimes = analyze_root_count_regimes(x**2 + a, x, [a])
 root_regimes.select({a: -1})  # 2
-root_regimes.select({a: 0})   # 1
-root_regimes.select({a: 1})   # 0
+root_regimes.select({a: 0})  # 1
+root_regimes.select({a: 1})  # 0
 ```
 
 Both workflows wrap `ParameterStratifiedResult`; each branch has an exact guard, and `select()` evaluates the active regime under exact parameter substitution. The initial scope covers solvability and real-root-count regimes. More specialized regime quantities can be added without changing the result model.
@@ -358,13 +358,13 @@ x = sp.Symbol("x", real=True)
 result = polynomial_probability(
     x <= sp.Rational(1, 2),
     [x],
-    density=2*x,
+    density=2 * x,
     bounds={x: (0, 1)},
 )
 
 result.normalizing_mass  # 1
-result.event_mass        # 1/4
-result.probability       # 1/4
+result.event_mass  # 1/4
+result.probability  # 1/4
 ```
 
 Before integrating, semialg certifies that the polynomial density is nonnegative on the effective support. The support must have finite positive total mass. `geometric_probability()` is the uniform-density convenience API:

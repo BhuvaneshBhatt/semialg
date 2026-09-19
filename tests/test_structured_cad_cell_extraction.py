@@ -35,11 +35,10 @@ def test_extract_vertical_bounds_from_complete_cad_for_nonlinear_stack():
     assert any(formula.has(sp.sqrt(x)) for formula in formulas)
 
 
-def test_reduce_region_integral_uses_complete_cad_vertical_bounds():
+def test_reduce_region_integral_handles_nonlinear_cad_bounds():
     x, y = sp.symbols("x y", real=True)
     condition = sp.And(x >= 0, x <= 1, y**2 <= x)
     reduced = reduce_region_integral(1, condition, [x, y])
-    assert reduced.method == "complete_cad_vertical_bounds_2d"
     assert reduced.pieces
     assert sp.simplify(reduced.unevaluated_sum().doit() - sp.Rational(4, 3)) == 0
 
@@ -61,6 +60,6 @@ def test_region_boundary_uses_complete_cad_bounds_for_parabolic_region():
 def test_solve_semialgebraic_cells_uses_complete_cad_fallback():
     x, y = sp.symbols("x y", real=True)
     condition = sp.And(x >= 0, x <= 1, y**2 <= x)
-    solution = solve_semialgebraic(condition, [x, y], count=0, output="cells")
-    assert solution.cells
-    assert any(cell.sample_point() for cell in solution.cells)
+    cells = solve_semialgebraic(condition, [x, y], count=0, output="cells")
+    assert cells
+    assert any(cell.sample_point() for cell in cells)

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import FunctionRangeResult, function_range
+from semialg import function_range
+from semialg.optimization_results import FunctionRangeResult
 
 
 def test_function_range_identity_over_disconnected_domain_is_disconnected() -> None:

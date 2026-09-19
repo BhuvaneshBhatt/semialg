@@ -1,6 +1,6 @@
 # Region representations and when to use them
 
-`semialg` deliberately exposes several region representations because they serve different performance and usability roles. They are interoperable, but they are not interchangeable implementation details.
+`semialg` exposes several region representations because they serve different performance and usability roles. They are interoperable, but they are not interchangeable implementation details.
 
 | Representation | Best use | Builds CAD? | Structural identity |
 |---|---|---:|---|

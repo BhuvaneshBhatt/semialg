@@ -24,7 +24,7 @@ def test_foundation_con_01() -> None:
     base = {sp.factor(poly.as_expr()) for poly in tower.level(1).polynomials}
     assert sp.sstr(x - y**2) in {sp.sstr(p) for p in top}
     assert y - 1 in top
-    assert sp.sstr((x - y**2) * (y - 1)) in {sp.sstr(p) for p in top}
+    assert sp.sstr((x - y**2) * (y - 1)) not in {sp.sstr(p) for p in top}
     assert x + 2 in base
     sources = {entry.source for entry in tower.level(1).entries}
     assert {"coefficient", "discriminant", "resultant"} & sources

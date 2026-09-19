@@ -65,18 +65,3 @@ def test_modular_boolean_oracle_runtime():
 
     assert result.complete and result.points
     assert elapsed < _budget(5.0), f"modular Boolean solve took {elapsed:.3f}s"
-
-
-def test_periodic_transcendental_inequality_runtime():
-    from semialg.solve.transcendental import build_trans_state, reduce_trans_problem
-
-    x = sp.Symbol("x", real=True)
-    state = build_trans_state(sp.sin(x) > 0, (x,))
-
-    start = time.perf_counter()
-    result = reduce_trans_problem(state)
-    elapsed = time.perf_counter() - start
-
-    assert result.method == "periodic_interval_reconstruction"
-    assert result.result_semantics == "periodic_window_approximation"
-    assert elapsed < _budget(5.0), f"periodic transcendental reduction took {elapsed:.3f}s"

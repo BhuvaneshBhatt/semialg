@@ -21,7 +21,7 @@ print("selected order:", piece.diagnostics["integration_variable_order"])
 print("limits:", piece.limits)
 print("integral:", value)
 
-assert reduced.method == "cad_variable_order_cell_integration"
+assert reduced.method == "coordinate_permuted_cylindrical_integration"
 assert piece.diagnostics["integration_variable_order"] == (y, x)
 assert piece.limits == ((x, y**2, y), (y, 0, 1))
 assert value == sp.Rational(1, 6)

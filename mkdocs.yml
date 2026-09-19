@@ -1,5 +1,5 @@
 site_name: semialg documentation
-site_description: Exact CAD and real semialgebraic reasoning for Python
+site_description: Exact, certified real algebraic geometry in Python
 repo_url: https://github.com/BhuvaneshBhatt/semialg
 repo_name: BhuvaneshBhatt/semialg
 docs_dir: docs
@@ -25,39 +25,48 @@ nav:
       - Algorithms and techniques: semialgebraic_geometry/algorithms.md
       - Applications: semialgebraic_geometry/applications.md
   - Concepts:
+      - Overview: concepts/index.md
       - Exactness and certification: concepts/exactness_and_certification.md
+      - Certificate model: concepts/certificate_model.md
       - Algorithm selection: concepts/algorithm_selection.md
+      - Decision pipeline: concepts/decision_pipeline.md
+      - Assumptions and uncertainty: concepts/assumptions_and_uncertainty.md
       - CAD: concepts/cad.md
       - Gröbner variety CAD: concepts/groebner_variety_cad.md
       - Representations: concepts/representations.md
       - Result objects: concepts/result_objects.md
   - Guides:
-      - Choosing an API: guides/choosing_an_api.md
-      - Parameterized computation: guides/parameterized_computation.md
-      - Errors and failure modes: guides/errors_and_failure_modes.md
-      - Performance: guides/performance.md
-      - Symbol handling: guides/symbol_handling.md
-      - Region representations: guides/region_representations.md
-      - Region invariants: guides/region_invariants.md
-      - Reuse one CAD: guides/cad_reuse.md
-      - Exact versus numerical regions: guides/exact_vs_numerical_regions.md
-  - Core topics:
-      - CAD and QE: cad_qe.md
-      - Decision procedures: decision_procedures.md
-      - Quantified expressions: quantified_expressions.md
-      - Solving: solving.md
-      - Root classification: root_classification.md
-      - Convexity: convexity.md
-      - Optimization: optimization.md
-      - Function range: function_range.md
-      - Region operations: region_operations.md
-      - Geometry queries: geometry_queries.md
-      - Region integration: region_integration.md
-      - Moments: moments.md
-      - Implicit utilities: implicit_utilities.md
-      - Symbolic simplification: symbolic_simplification.md
-      - Transcendental methods: transcendental_methods.md
-      - Parameter stratification: parameter_stratification.md
+      - Overview: guides/index.md
+      - Workflow guides:
+          - Choosing an API: guides/choosing_an_api.md
+          - Parameterized computation: guides/parameterized_computation.md
+          - Errors and failure modes: guides/errors_and_failure_modes.md
+          - Performance: guides/performance.md
+          - Symbol handling: guides/symbol_handling.md
+          - Region representations: guides/region_representations.md
+          - Region invariants: guides/region_invariants.md
+          - Reuse one CAD: guides/cad_reuse.md
+          - Exact versus numerical regions: guides/exact_vs_numerical_regions.md
+          - Certified algebraic roots: guides/certified_algebraic_roots.md
+          - Transcendental and algebraic solving scope: guides/transcendental_scope.md
+      - Mathematical tasks:
+          - CAD and QE: cad_qe.md
+          - Decision procedures: decision_procedures.md
+          - Quantified expressions: quantified_expressions.md
+          - Solving: solving.md
+          - Root classification: root_classification.md
+          - Convexity: convexity.md
+          - Optimization: optimization.md
+          - Function range: function_range.md
+          - Region operations: region_operations.md
+          - Geometry queries: geometry_queries.md
+          - Region integration: region_integration.md
+          - Moments: moments.md
+          - Implicit utilities: implicit_utilities.md
+          - Symbolic simplification: symbolic_simplification.md
+          - Parameter stratification: parameter_stratification.md
+          - Toric algebra: toric_algebra.md
+          - Transcendental methods: transcendental_methods.md
   - Examples: examples/index.md
   - Region tutorials:
       - Analyze an annulus: tutorials/annulus.md
@@ -65,21 +74,34 @@ nav:
       - Singular curve and local dimension: tutorials/singular_curve.md
       - Parameterized region: tutorials/parameterized_region.md
       - Optimization over a region: tutorials/optimization_over_region.md
+      - Certified primary decomposition: tutorials/primary_decomposition.md
+      - Sparse SOS certification: tutorials/sos_certification.md
+      - Factorized and partial CAD: tutorials/cad_factorized_partial.md
   - Applications: applications.md
-  - Limitations and roadmap: limitations.md
+  - Benchmarks: benchmarks.md
+  - Limitations: limitations.md
+  - Known issues: known_issues.md
+  - Changelog: changelog.md
+  - References: references.md
   - Quality:
       - Decision contracts: quality/decision_contracts.md
+      - Certified zero/equality boundary: quality/certified_zero_equality_audit.md
       - Robustness: quality/robustness.md
       - Reference regression suite: quality/reference_regression_suite.md
       - Region testing strategy: quality/region_testing.md
       - Region capability matrix: quality/region_capability_matrix.md
       - Certificate matrix: quality/certificate_matrix.md
+      - Public API testing: quality/public_api_testing.md
+      - Coverage measurements: quality/coverage_measurements.md
   - Architecture:
+      - Ownership: architecture/ownership.md
       - Region computation: architecture/region_computation.md
       - Design: architecture/design.md
       - Code quality: architecture/code_quality.md
       - API surface policy: architecture/api_surface.md
   - Reference:
+      - Overview: reference/index.md
+      - Everyday API: reference/everyday_api.md
       - Public API: reference/public_api.md
       - High-level defaults: reference/defaults_contract.md
       - Decision and QE: reference/decision_and_qe.md
@@ -94,3 +116,5 @@ nav:
       - Applications: reference/applications.md
       - Exceptions: reference/exceptions.md
       - Package metadata: reference/package_metadata.md
+
+  - API namespaces: api_namespaces.md

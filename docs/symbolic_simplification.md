@@ -20,7 +20,7 @@ simplify_boole(sp.And(x**2 < 0, y > 0), [x, y])
 # False
 
 # Relational atom canonicalization
-simplify_boole(2*x - 2 >= 0, [x])
+simplify_boole(2 * x - 2 >= 0, [x])
 # x >= 1
 
 simplify_boole(-x <= -1, [x])
@@ -70,7 +70,7 @@ from semialg import simplify_under_assumptions
 simplify_under_assumptions(sp.Abs(x), x >= 0, [x])
 # x
 
-simplify_under_assumptions(sp.sqrt((x - 1)**2), x >= 1, [x])
+simplify_under_assumptions(sp.sqrt((x - 1) ** 2), x >= 1, [x])
 # x - 1
 
 simplify_under_assumptions(sp.Max(x, y), x >= y, [x, y])
@@ -79,7 +79,7 @@ simplify_under_assumptions(sp.Max(x, y), x >= y, [x, y])
 simplify_under_assumptions(sp.Min(x, y), x >= y, [x, y])
 # y
 
-simplify_under_assumptions(sp.sqrt(x**2*y**2), (x >= 0) & (y <= 0), [x, y])
+simplify_under_assumptions(sp.sqrt(x**2 * y**2), (x >= 0) & (y <= 0), [x, y])
 # -x*y
 
 simplify_under_assumptions(sp.log(sp.exp(x)), True, [x])
@@ -88,14 +88,14 @@ simplify_under_assumptions(sp.log(sp.exp(x)), True, [x])
 simplify_under_assumptions(sp.log(x**2), x > 0, [x])
 # 2*log(x)
 
-simplify_under_assumptions((x**2 - 1)/(x - 1), x > 1, [x])
+simplify_under_assumptions((x**2 - 1) / (x - 1), x > 1, [x])
 # x + 1
 ```
 
 Rational cancellation is domain-sensitive. By default, cancellation is applied only when the original denominator is provably nonzero under the active assumptions. If you want a conditional rewrite, request side conditions:
 
 ```python
-result = simplify_under_assumptions((x**2 - 1)/(x - 1), True, [x], return_conditions=True)
+result = simplify_under_assumptions((x**2 - 1) / (x - 1), True, [x], return_conditions=True)
 result.expression
 # x + 1
 result.conditions
@@ -108,7 +108,7 @@ The assumption simplifier handles `simplify_under_assumptions` with shifted and 
 
 ## Scope
 
-These simplifiers are semantic but not fully canonical. `simplify_boole` performs conservative relation canonicalization, exact univariate interval simplification, and implication-based redundancy removal, but it still does not attempt to compute a unique shortest formula for every semialgebraic set. `simplify_under_assumptions` intentionally avoids silent domain-changing rewrites unless the needed condition is already implied by the assumptions.
+These simplifiers are semantic but not fully canonical. `simplify_boole` performs conservative relation canonicalization, exact univariate interval simplification, and implication-based redundancy removal, but it still does not attempt to compute a unique shortest formula for every semialgebraic set. `simplify_under_assumptions` avoids silent domain-changing rewrites unless the needed condition is already implied by the assumptions.
 
 ## Piecewise and system simplification
 

@@ -2,7 +2,7 @@ import sympy as sp
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from semialg import root_count_conditions
+from semialg.parameters import root_count_conditions
 
 
 def _distinct_real_root_count(expr: sp.Expr, variable: sp.Symbol) -> int:

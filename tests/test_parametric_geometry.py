@@ -102,7 +102,7 @@ def test_level_function_relaxes_strict_and_handles_reversed_relations():
         semialgebraic_level_function(sp.Eq(x, 0), (x,))
 
 
-def test_implicit_decomposition_handles_disjunction_strictness_and_reversed_orientation():
+def test_implicit_decomposition_boolean_orientation():
     x = sp.symbols("x", real=True)
     pieces = decompose_implicit_formula(
         sp.Or(sp.And(x > 1, x != 2), sp.And(3 >= x, sp.Eq(x, 0))), (x,)

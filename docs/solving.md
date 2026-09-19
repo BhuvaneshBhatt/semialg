@@ -36,7 +36,7 @@ A `SemialgebraicSolution` contains:
 
 ## Automatic exact method planner
 
-`method="auto"` uses a structural planner.  The order is deliberately biased
+`method="auto"` uses a structural planner.  The order is biased
 toward cheap exact transformations and treats general CAD/QE as the final
 fallback:
 
@@ -158,3 +158,7 @@ parameter conditions, structural decomposition, and representative samples.
 It does not promise a globally human-minimal formula.  Positive-dimensional
 systems can naturally remain as exact equations/inequalities or cylindrical
 cells rather than being converted to point replacement rules.
+
+### Sum-of-two-squares specialization
+
+The integer sum-of-two-squares fast path recognizes only equations exactly equivalent, in the two declared integer variables, to `x**2 + y**2 = n` with a concrete integer target `n`. Extra linear, mixed, higher-degree, nonpolynomial, or symbolic-target terms are not routed through this specialization. The bounded enumeration uses exact integer square roots rather than symbolic square-root/floor evaluation.

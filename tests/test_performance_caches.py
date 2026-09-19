@@ -2,7 +2,12 @@ import sympy as sp
 
 from semialg.cad_algorithms import clear_cad_caches
 from semialg.cad_algorithms.decomposition import decomp_collins_complete
-from semialg.cad_algorithms.polynomial_utils import exact_univariate_poly, polynomial_key
+from semialg.cad_algorithms.polynomial_utils import (
+    _resultant_expression_cached,
+    exact_univariate_poly,
+    normalize_poly,
+    polynomial_key,
+)
 from semialg.planner.features import ProblemFeatures
 from semialg.planner.heuristics import (
     _count_distinct_real_roots,
@@ -28,6 +33,30 @@ def test_polynomial_key_memoizes_readable_key() -> None:
     after = polynomial_key.cache_info()
     assert first == second
     assert after.hits == before.hits + 1
+
+
+def test_projection_operation_caches_reuse_exact_work() -> None:
+    x, y = sp.symbols("x y", real=True)
+    left = sp.Poly(y**3 + x * y + 1, x, y)
+    right = sp.Poly(y**2 + x + 1, x, y)
+
+    normalize_poly.cache_clear()
+    first_normalized = normalize_poly(left)
+    normalize_before = normalize_poly.cache_info()
+    second_normalized = normalize_poly(left)
+    normalize_after = normalize_poly.cache_info()
+    assert first_normalized is second_normalized
+    assert normalize_after.hits == normalize_before.hits + 1
+
+    # Test the memoized fallback at the function that owns that cache. FLINT
+    # acceleration is a separate path and intentionally bypasses this cache.
+    _resultant_expression_cached.cache_clear()
+    first_resultant = _resultant_expression_cached(left.as_expr(), right.as_expr(), y)
+    resultant_before = _resultant_expression_cached.cache_info()
+    second_resultant = _resultant_expression_cached(left.as_expr(), right.as_expr(), y)
+    resultant_after = _resultant_expression_cached.cache_info()
+    assert sp.expand(first_resultant - second_resultant) == 0
+    assert resultant_after.hits == resultant_before.hits + 1
 
 
 def test_complete_cad_records_sign_invariance_diagnostics() -> None:

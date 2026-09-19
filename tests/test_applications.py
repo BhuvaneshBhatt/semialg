@@ -80,7 +80,7 @@ def test_numeric_check_rejects_negative_tolerance():
         validate_numeric_optimization(benchmark, 1.0, atol=-1)
 
 
-def test_robust_parameter_analysis_preserves_string_symbol_identity_and_rejects_overlap():
+def test_parameter_analysis_symbol_identity():
     x = sp.Symbol("x")
     a = sp.Symbol("a")
     result = robust_parameter_analysis(x <= a, ["x"], ["a"], operating_domain=x >= 0)

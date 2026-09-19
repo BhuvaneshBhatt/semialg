@@ -1,25 +1,26 @@
 # API surface policy
 
-`semialg` keeps a deliberately small root namespace. Primary names are stable,
-user-facing entry points. Expert names are public through their defining
-submodules but are not re-exported at the package root. Internal names are
+`semialg` exposes a curated root namespace for common and advanced mathematical operations.
+Low-level certificates, planners, diagnostics, result records, cache controls, and algorithm-specific
+machinery live in expert submodules instead of the package root. Internal names remain
 implementation details and are not supported as public API.
 
-The classification is enforced by `src/semialg/_api_policy.py`; the top-level
-lazy export registry is derived only from the primary group.
-
+The classification is enforced by `src/semialg/_api_policy.py`; the top-level lazy export
+registry is derived only from the primary group. `EVERYDAY_EXPORTS` identifies the smaller
+recommended discovery surface within that root API.
 
 ## Namespace behavior
 
-`dir(semialg)` lists only the primary API and standard module metadata. Importing
-an expert submodule may still create the normal Python package attribute for
-that submodule, but it does not add the submodule's functions or types to
-`semialg.__all__`. The primary `semialg.cad` name is always the decomposition
-function. CAD implementation modules live under `semialg.cad_algorithms`, so
-importing expert CAD internals cannot replace the root function.
+`dir(semialg)` lists only the primary API and standard module metadata. Expert functionality
+remains public from its defining namespace, but expert imports do not add those functions or
+types to `semialg.__all__`. The primary `semialg.cad` name is always the decomposition function.
+CAD implementation modules live under `semialg.cad_algorithms`, so importing expert CAD
+internals cannot replace the root function.
 
 | Tier | Name | Defining module | Supported access |
 |---|---|---|---|
+| expert | `AffineMapAnalysis` | `semialg.affine_geometry` | `semialg.affine_geometry.AffineMapAnalysis` |
+| expert | `parametric_affine_reduction` | `semialg.affine_reduction` | `semialg.affine_reduction.parametric_affine_reduction` |
 | expert | `BorderBasisError` | `semialg.algebraic` | `semialg.algebraic.BorderBasisError` |
 | expert | `BorderBasisResult` | `semialg.algebraic` | `semialg.algebraic.BorderBasisResult` |
 | expert | `compute_border_basis` | `semialg.algebraic` | `semialg.algebraic.compute_border_basis` |
@@ -27,8 +28,32 @@ importing expert CAD internals cannot replace the root function.
 | expert | `principal_subresultant_coefficients` | `semialg.algebraic` | `semialg.algebraic.principal_subresultant_coefficients` |
 | expert | `subresultant_prs` | `semialg.algebraic` | `semialg.algebraic.subresultant_prs` |
 | expert | `SubresultantPRSResult` | `semialg.algebraic` | `semialg.algebraic.SubresultantPRSResult` |
+| expert | `certified_independent_localization` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.certified_independent_localization` |
+| expert | `contract_localized_ideal` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.contract_localized_ideal` |
+| expert | `saturation_stabilization` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.saturation_stabilization` |
+| expert | `verify_independent_localization_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_independent_localization_certificate` |
+| expert | `verify_localization_contraction_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_localization_contraction_certificate` |
+| expert | `verify_saturation_stabilization_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_saturation_stabilization_certificate` |
+| expert | `verify_zero_dimensional_primary_certificate` | `semialg.algebraic.gtz_zero_dim` | `semialg.algebraic.gtz_zero_dim.verify_zero_dimensional_primary_certificate` |
+| expert | `zero_dimensional_primary_decomposition` | `semialg.algebraic.gtz_zero_dim` | `semialg.algebraic.gtz_zero_dim.zero_dimensional_primary_decomposition` |
+| expert | `ThomEncoding` | `semialg.algebraic.thom` | `semialg.algebraic.thom.ThomEncoding` |
+| expert | `associated_primes` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.associated_primes` |
+| expert | `certified_radical_minimal_prime_decomposition` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.certified_radical_minimal_prime_decomposition` |
+| expert | `primary_decomposition` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.primary_decomposition` |
+| expert | `radical_ideal` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.radical_ideal` |
+| expert | `recursive_regular_chain_decomposition` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.recursive_regular_chain_decomposition` |
+| expert | `verify_minimal_prime_decomposition_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_minimal_prime_decomposition_certificate` |
+| expert | `verify_primary_decomposition_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_primary_decomposition_certificate` |
+| expert | `verify_radical_ideal_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_radical_ideal_certificate` |
+| expert | `verify_regular_chain_decomposition_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_regular_chain_decomposition_certificate` |
+| expert | `verify_triangular_primality_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_triangular_primality_certificate` |
+| expert | `compress_primitive_element` | `semialg.algebraic_function_fields` | `semialg.algebraic_function_fields.compress_primitive_element` |
+| expert | `maybe_compress_primitive_element` | `semialg.algebraic_function_fields` | `semialg.algebraic_function_fields.maybe_compress_primitive_element` |
+| expert | `verify_primitive_element_compression` | `semialg.algebraic_function_fields` | `semialg.algebraic_function_fields.verify_primitive_element_compression` |
 | expert | `TangentConeResult` | `semialg.algebraic_geometry` | `semialg.algebraic_geometry.TangentConeResult` |
 | expert | `TangentSpaceResult` | `semialg.algebraic_geometry` | `semialg.algebraic_geometry.TangentSpaceResult` |
+| expert | `cache_report` | `semialg.cache_control` | `semialg.cache_control.cache_report` |
+| expert | `clear_caches` | `semialg.cache_control` | `semialg.cache_control.clear_caches` |
 | expert | `build_cad_cell_complex` | `semialg.cad_algorithms.cell_complex` | `semialg.cad_algorithms.cell_complex.build_cad_cell_complex` |
 | expert | `CADCellComplex` | `semialg.cad_algorithms.cell_complex` | `semialg.cad_algorithms.cell_complex.CADCellComplex` |
 | expert | `CADIncidence` | `semialg.cad_algorithms.cell_complex` | `semialg.cad_algorithms.cell_complex.CADIncidence` |
@@ -77,6 +102,7 @@ importing expert CAD internals cannot replace the root function.
 | expert | `triangulate_cad_cells` | `semialg.cad_region` | `semialg.cad_region.triangulate_cad_cells` |
 | expert | `triangulate_cad_region` | `semialg.cad_region` | `semialg.cad_region.triangulate_cad_region` |
 | expert | `CertificateReplayResult` | `semialg.certificates` | `semialg.certificates.CertificateReplayResult` |
+| expert | `result_diagnostics` | `semialg.certificates` | `semialg.certificates.result_diagnostics` |
 | expert | `ResultDiagnostics` | `semialg.certificates` | `semialg.certificates.ResultDiagnostics` |
 | expert | `conditional_result` | `semialg.conditional` | `semialg.conditional.conditional_result` |
 | expert | `ConditionalBranch` | `semialg.conditional` | `semialg.conditional.ConditionalBranch` |
@@ -88,8 +114,10 @@ importing expert CAD internals cannot replace the root function.
 | expert | `CADConnectedComponent` | `semialg.connectivity` | `semialg.connectivity.CADConnectedComponent` |
 | expert | `CADConnectivityGraph` | `semialg.connectivity` | `semialg.connectivity.CADConnectivityGraph` |
 | expert | `extract_cad_connectivity` | `semialg.connectivity` | `semialg.connectivity.extract_cad_connectivity` |
+| expert | `computation_context` | `semialg.context` | `semialg.context.computation_context` |
 | expert | `current_computation_context` | `semialg.context` | `semialg.context.current_computation_context` |
 | expert | `ExactComputationContext` | `semialg.context` | `semialg.context.ExactComputationContext` |
+| expert | `SemialgebraicContext` | `semialg.context` | `semialg.context.SemialgebraicContext` |
 | expert | `ConvexityCertificate` | `semialg.convexity` | `semialg.convexity.ConvexityCertificate` |
 | expert | `polynomial_convexity_certificate` | `semialg.convexity` | `semialg.convexity.polynomial_convexity_certificate` |
 | expert | `PolynomialConvexityCertificate` | `semialg.convexity` | `semialg.convexity.PolynomialConvexityCertificate` |
@@ -100,7 +128,10 @@ importing expert CAD internals cannot replace the root function.
 | expert | `ImplicationResult` | `semialg.decision` | `semialg.decision.ImplicationResult` |
 | expert | `IntervalComponent` | `semialg.decision` | `semialg.decision.IntervalComponent` |
 | expert | `TautologyResult` | `semialg.decision` | `semialg.decision.TautologyResult` |
-| primary | `cad` | `semialg.decomposition` | `semialg.cad` |
+| expert | `SatisfiabilityResult` | `semialg.decision.solution` | `semialg.decision.solution.SatisfiabilityResult` |
+| expert | `SemialgebraicSolution` | `semialg.decision.solution` | `semialg.decision.solution.SemialgebraicSolution` |
+| expert | `CertifiedDecisionAttempt` | `semialg.decision_portfolio` | `semialg.decision_portfolio.CertifiedDecisionAttempt` |
+| expert | `CertifiedDecisionResult` | `semialg.decision_portfolio` | `semialg.decision_portfolio.CertifiedDecisionResult` |
 | expert | `cad_text` | `semialg.decomposition` | `semialg.decomposition.cad_text` |
 | expert | `CADComponent` | `semialg.decomposition` | `semialg.decomposition.CADComponent` |
 | expert | `CADFunction` | `semialg.decomposition` | `semialg.decomposition.CADFunction` |
@@ -113,8 +144,12 @@ importing expert CAD internals cannot replace the root function.
 | expert | `generic_cad_text` | `semialg.decomposition` | `semialg.decomposition.generic_cad_text` |
 | expert | `GenericCADFunction` | `semialg.decomposition` | `semialg.decomposition.GenericCADFunction` |
 | expert | `GenericCADResult` | `semialg.decomposition` | `semialg.decomposition.GenericCADResult` |
+| expert | `CADOptions` | `semialg.decomposition.cylindrical` | `semialg.decomposition.cylindrical.CADOptions` |
+| expert | `CADResult` | `semialg.decomposition.cylindrical` | `semialg.decomposition.cylindrical.CADResult` |
 | expert | `DomainNormalizationResult` | `semialg.domain_solve` | `semialg.domain_solve.DomainNormalizationResult` |
 | expert | `normalize_domain_sensitive_constraints` | `semialg.domain_solve` | `semialg.domain_solve.normalize_domain_sensitive_constraints` |
+| expert | `SemialgOptions` | `semialg.domains` | `semialg.domains.SemialgOptions` |
+| expert | `SolveDomain` | `semialg.domains` | `semialg.domains.SolveDomain` |
 | expert | `AlgebraicSolvingError` | `semialg.errors` | `semialg.errors.AlgebraicSolvingError` |
 | expert | `BackendFailure` | `semialg.errors` | `semialg.errors.BackendFailure` |
 | expert | `CertificationFailure` | `semialg.errors` | `semialg.errors.CertificationFailure` |
@@ -123,6 +158,11 @@ importing expert CAD internals cannot replace the root function.
 | expert | `FormulaNormalizationError` | `semialg.errors` | `semialg.errors.FormulaNormalizationError` |
 | expert | `QuantifierEliminationError` | `semialg.errors` | `semialg.errors.QuantifierEliminationError` |
 | expert | `ReconstructionFailure` | `semialg.errors` | `semialg.errors.ReconstructionFailure` |
+| expert | `FunctionConvexityResult` | `semialg.function_analysis` | `semialg.function_analysis.FunctionConvexityResult` |
+| expert | `FunctionMonotonicityResult` | `semialg.function_analysis` | `semialg.function_analysis.FunctionMonotonicityResult` |
+| expert | `FunctionPropertyPartitionResult` | `semialg.function_analysis` | `semialg.function_analysis.FunctionPropertyPartitionResult` |
+| expert | `FunctionMappingPropertiesResult` | `semialg.function_properties` | `semialg.function_properties.FunctionMappingPropertiesResult` |
+| expert | `FunctionSmoothnessResult` | `semialg.function_properties` | `semialg.function_properties.FunctionSmoothnessResult` |
 | expert | `BoundingBoxResult` | `semialg.geometry_queries` | `semialg.geometry_queries.BoundingBoxResult` |
 | expert | `CADPathResult` | `semialg.geometry_queries` | `semialg.geometry_queries.CADPathResult` |
 | expert | `DistanceBetweenRegionsResult` | `semialg.geometry_queries` | `semialg.geometry_queries.DistanceBetweenRegionsResult` |
@@ -142,6 +182,12 @@ importing expert CAD internals cannot replace the root function.
 | expert | `IncidenceComponent` | `semialg.incidence` | `semialg.incidence.IncidenceComponent` |
 | expert | `independent_polynomial_components` | `semialg.incidence` | `semialg.incidence.independent_polynomial_components` |
 | expert | `sparse_variable_order` | `semialg.incidence` | `semialg.incidence.sparse_variable_order` |
+| expert | `ParametricMapDegree` | `semialg.map_degree` | `semialg.map_degree.ParametricMapDegree` |
+| expert | `constant_symmetric_inertia` | `semialg.matrix_analysis` | `semialg.matrix_analysis.constant_symmetric_inertia` |
+| expert | `leading_principal_minors` | `semialg.matrix_analysis` | `semialg.matrix_analysis.leading_principal_minors` |
+| expert | `MatrixDefinitenessResult` | `semialg.matrix_analysis` | `semialg.matrix_analysis.MatrixDefinitenessResult` |
+| expert | `MatrixRankResult` | `semialg.matrix_analysis` | `semialg.matrix_analysis.MatrixRankResult` |
+| expert | `principal_minors` | `semialg.matrix_analysis` | `semialg.matrix_analysis.principal_minors` |
 | expert | `MeasureResult` | `semialg.measure` | `semialg.measure.MeasureResult` |
 | expert | `RegionCentroidResult` | `semialg.moments` | `semialg.moments.RegionCentroidResult` |
 | expert | `RegionCovarianceResult` | `semialg.moments` | `semialg.moments.RegionCovarianceResult` |
@@ -150,6 +196,8 @@ importing expert CAD internals cannot replace the root function.
 | expert | `ParametricFunctionRangeResult` | `semialg.optimization` | `semialg.optimization.ParametricFunctionRangeResult` |
 | expert | `ParametricOptimizationResult` | `semialg.optimization` | `semialg.optimization.ParametricOptimizationResult` |
 | expert | `polynomial_locus_dimension` | `semialg.optimization` | `semialg.optimization.polynomial_locus_dimension` |
+| expert | `FunctionRangeResult` | `semialg.optimization_results` | `semialg.optimization_results.FunctionRangeResult` |
+| expert | `OptimizationResult` | `semialg.optimization_results` | `semialg.optimization_results.OptimizationResult` |
 | expert | `exceptional_parameter_analysis` | `semialg.parameter_stratification` | `semialg.parameter_stratification.exceptional_parameter_analysis` |
 | expert | `ParameterExceptionalAnalysis` | `semialg.parameter_stratification` | `semialg.parameter_stratification.ParameterExceptionalAnalysis` |
 | expert | `ParameterExceptionalPolynomial` | `semialg.parameter_stratification` | `semialg.parameter_stratification.ParameterExceptionalPolynomial` |
@@ -158,10 +206,20 @@ importing expert CAD internals cannot replace the root function.
 | expert | `ParameterStratum` | `semialg.parameter_stratification` | `semialg.parameter_stratification.ParameterStratum` |
 | expert | `RootCountConditionsResult` | `semialg.parameters` | `semialg.parameters.RootCountConditionsResult` |
 | expert | `SolvabilityConditionsResult` | `semialg.parameters` | `semialg.parameters.SolvabilityConditionsResult` |
+| expert | `ParametricChart` | `semialg.parametric_geometry` | `semialg.parametric_geometry.ParametricChart` |
+| expert | `ParametricCover` | `semialg.parametric_geometry` | `semialg.parametric_geometry.ParametricCover` |
 | expert | `integrate_over_parametric_region` | `semialg.parametric_integration` | `semialg.parametric_integration.integrate_over_parametric_region` |
 | expert | `metric_jacobian_factor` | `semialg.parametric_integration` | `semialg.parametric_integration.metric_jacobian_factor` |
 | expert | `ParametricIntegralResult` | `semialg.parametric_integration` | `semialg.parametric_integration.ParametricIntegralResult` |
 | expert | `reduce_parametric_integral` | `semialg.parametric_integration` | `semialg.parametric_integration.reduce_parametric_integral` |
+| expert | `HConstraintRedundancyCertificate` | `semialg.polyhedral` | `semialg.polyhedral.HConstraintRedundancyCertificate` |
+| expert | `PolytopeAdjacency` | `semialg.polyhedral` | `semialg.polyhedral.PolytopeAdjacency` |
+| expert | `PolytopeFace` | `semialg.polyhedral` | `semialg.polyhedral.PolytopeFace` |
+| expert | `PolytopeFaceLattice` | `semialg.polyhedral` | `semialg.polyhedral.PolytopeFaceLattice` |
+| expert | `PolytopeFacet` | `semialg.polyhedral` | `semialg.polyhedral.PolytopeFacet` |
+| expert | `PolytopeIncidence` | `semialg.polyhedral` | `semialg.polyhedral.PolytopeIncidence` |
+| expert | `verify_h_redundancy_certificate` | `semialg.polyhedral` | `semialg.polyhedral.verify_h_redundancy_certificate` |
+| expert | `PolynomialNegativityResult` | `semialg.polynomial_positivity` | `semialg.polynomial_positivity.PolynomialNegativityResult` |
 | expert | `PowerPolicy` | `semialg.preprocess` | `semialg.preprocess.PowerPolicy` |
 | expert | `PreprocessResult` | `semialg.preprocess` | `semialg.preprocess.PreprocessResult` |
 | expert | `semialgebraicize` | `semialg.preprocess` | `semialg.preprocess.semialgebraicize` |
@@ -171,6 +229,7 @@ importing expert CAD internals cannot replace the root function.
 | expert | `CompleteQEResult` | `semialg.qe` | `semialg.qe.CompleteQEResult` |
 | expert | `qe_by_complete_cad` | `semialg.qe` | `semialg.qe.qe_by_complete_cad` |
 | expert | `split_quantifiers` | `semialg.quantifiers` | `semialg.quantifiers.split_quantifiers` |
+| expert | `RealAlgebraicFeasibilityResult` | `semialg.real_algebraic` | `semialg.real_algebraic.RealAlgebraicFeasibilityResult` |
 | expert | `AssumptionSimplificationResult` | `semialg.reasoning` | `semialg.reasoning.AssumptionSimplificationResult` |
 | expert | `region_bounded` | `semialg.reasoning` | `semialg.reasoning.region_bounded` |
 | expert | `region_closed` | `semialg.reasoning` | `semialg.reasoning.region_closed` |
@@ -178,15 +237,28 @@ importing expert CAD internals cannot replace the root function.
 | expert | `region_disjoint` | `semialg.reasoning` | `semialg.reasoning.region_disjoint` |
 | expert | `region_equal` | `semialg.reasoning` | `semialg.reasoning.region_equal` |
 | expert | `region_subset` | `semialg.reasoning` | `semialg.reasoning.region_subset` |
+| expert | `SignClassificationResult` | `semialg.reasoning` | `semialg.reasoning.SignClassificationResult` |
 | expert | `SignProofResult` | `semialg.reasoning` | `semialg.reasoning.SignProofResult` |
 | expert | `SimplifiedSystem` | `semialg.reasoning` | `semialg.reasoning.SimplifiedSystem` |
 | expert | `root_of` | `semialg.reconstruct` | `semialg.reconstruct.root_of` |
 | expert | `RootFunction` | `semialg.reconstruct` | `semialg.reconstruct.RootFunction` |
+| expert | `BoundaryStratum` | `semialg.region_analysis` | `semialg.region_analysis.BoundaryStratum` |
+| expert | `RegionBoundaryResult` | `semialg.region_analysis` | `semialg.region_analysis.RegionBoundaryResult` |
+| expert | `SingularLocusResult` | `semialg.region_analysis` | `semialg.region_analysis.SingularLocusResult` |
 | expert | `ReducedRegionIntegral` | `semialg.region_integrate` | `semialg.region_integrate.ReducedRegionIntegral` |
 | expert | `RegionIntegralPiece` | `semialg.region_integrate` | `semialg.region_integrate.RegionIntegralPiece` |
 | expert | `RegionIntegralResult` | `semialg.region_integrate` | `semialg.region_integrate.RegionIntegralResult` |
+| expert | `SemialgebraicRoadmap` | `semialg.roadmaps` | `semialg.roadmaps.SemialgebraicRoadmap` |
 | expert | `RootClassificationCell` | `semialg.root_classification` | `semialg.root_classification.RootClassificationCell` |
 | expert | `RootClassificationResult` | `semialg.root_classification` | `semialg.root_classification.RootClassificationResult` |
+| expert | `ConnectedComponentDecomposition` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.ConnectedComponentDecomposition` |
+| expert | `DimensionDecomposition` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.DimensionDecomposition` |
+| expert | `DimensionStratum` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.DimensionStratum` |
+| expert | `HardtFiberPiece` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.HardtFiberPiece` |
+| expert | `HardtStratum` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.HardtStratum` |
+| expert | `HardtTrivialization` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.HardtTrivialization` |
+| expert | `SemialgebraicTriangulation` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.SemialgebraicTriangulation` |
+| expert | `SimplicialComplex` | `semialg.semialgebraic_topology` | `semialg.semialgebraic_topology.SimplicialComplex` |
 | expert | `SolutionPlotData` | `semialg.solution_geometry` | `semialg.solution_geometry.SolutionPlotData` |
 | expert | `find_instance_formula` | `semialg.solve` | `semialg.solve.find_instance_formula` |
 | expert | `find_instance_text` | `semialg.solve` | `semialg.solve.find_instance_text` |
@@ -195,22 +267,30 @@ importing expert CAD internals cannot replace the root function.
 | expert | `resolve_text` | `semialg.solve` | `semialg.solve.resolve_text` |
 | expert | `UnsupportedDomainError` | `semialg.solve` | `semialg.solve.UnsupportedDomainError` |
 | expert | `ZeroDimensionalSolveResult` | `semialg.solve` | `semialg.solve.ZeroDimensionalSolveResult` |
+| expert | `solve_zero_dimensional_system` | `semialg.solve.zero_dimensional` | `semialg.solve.zero_dimensional.solve_zero_dimensional_system` |
+| expert | `plan_sos_search` | `semialg.sos_certificates` | `semialg.sos_certificates.plan_sos_search` |
+| expert | `PSDVerification` | `semialg.sos_certificates` | `semialg.sos_certificates.PSDVerification` |
+| expert | `search_sos_certificate` | `semialg.sos_certificates` | `semialg.sos_certificates.search_sos_certificate` |
+| expert | `SOSCertificate` | `semialg.sos_certificates` | `semialg.sos_certificates.SOSCertificate` |
+| expert | `SOSSearchPlan` | `semialg.sos_certificates` | `semialg.sos_certificates.SOSSearchPlan` |
+| expert | `SOSSearchResult` | `semialg.sos_certificates` | `semialg.sos_certificates.SOSSearchResult` |
+| expert | `sparse_sos_monomial_basis` | `semialg.sos_certificates` | `semialg.sos_certificates.sparse_sos_monomial_basis` |
+| expert | `verify_psd_exact` | `semialg.sos_certificates` | `semialg.sos_certificates.verify_psd_exact` |
+| expert | `verify_sos_certificate` | `semialg.sos_certificates` | `semialg.sos_certificates.verify_sos_certificate` |
 | expert | `integrate_over_standard_region` | `semialg.standard_region_integrate` | `semialg.standard_region_integrate.integrate_over_standard_region` |
+| expert | `StrictFeasibilityResult` | `semialg.strict_feasibility` | `semialg.strict_feasibility.StrictFeasibilityResult` |
 | expert | `RDisjoint` | `semialg.symbolic_regions` | `semialg.symbolic_regions.RDisjoint` |
 | expert | `region_element_conditions` | `semialg.symbolic_regions` | `semialg.symbolic_regions.region_element_conditions` |
 | expert | `region_relation_conditions` | `semialg.symbolic_regions` | `semialg.symbolic_regions.region_relation_conditions` |
-| expert | `RegionElement` | `semialg.symbolic_regions` | `semialg.symbolic_regions.RegionElement` |
-| expert | `RegionNotElement` | `semialg.symbolic_regions` | `semialg.symbolic_regions.RegionNotElement` |
 | expert | `REqual` | `semialg.symbolic_regions` | `semialg.symbolic_regions.REqual` |
 | expert | `RSubset` | `semialg.symbolic_regions` | `semialg.symbolic_regions.RSubset` |
 | expert | `BooleanSimplificationResult` | `semialg.symbolic_simplify` | `semialg.symbolic_simplify.BooleanSimplificationResult` |
 | expert | `PiecewiseSimplificationResult` | `semialg.symbolic_simplify` | `semialg.symbolic_simplify.PiecewiseSimplificationResult` |
-| internal | `algebraic_cache_stats` | `semialg.algebraic` | implementation detail |
-| internal | `clear_algebraic_caches` | `semialg.algebraic` | implementation detail |
-| internal | `require_point_dimension` | `semialg.dimension_validation` | implementation detail |
-| internal | `require_same_length` | `semialg.dimension_validation` | implementation detail |
-| internal | `zip_equal` | `semialg.dimension_validation` | implementation detail |
-| internal | `GenericSplit` | `semialg.generic` | implementation detail |
+| expert | `TopologySummary` | `semialg.topological_invariants` | `semialg.topological_invariants.TopologySummary` |
+| expert | `WitnessSearchResult` | `semialg.witness_heuristics` | `semialg.witness_heuristics.WitnessSearchResult` |
+| primary | `analyze_affine_map` | `semialg.affine_geometry` | `semialg.analyze_affine_map` |
+| expert | `thom_encoding` | `semialg.algebraic` | `semialg.algebraic.thom_encoding` |
+| expert | `thom_encodings` | `semialg.algebraic` | `semialg.algebraic.thom_encodings` |
 | primary | `is_singular` | `semialg.algebraic_geometry` | `semialg.is_singular` |
 | primary | `is_smooth` | `semialg.algebraic_geometry` | `semialg.is_smooth` |
 | primary | `singular_locus` | `semialg.algebraic_geometry` | `semialg.singular_locus` |
@@ -220,32 +300,15 @@ importing expert CAD internals cannot replace the root function.
 | primary | `as_cad_region` | `semialg.cad_region` | `semialg.as_cad_region` |
 | primary | `CADRegion` | `semialg.cad_region` | `semialg.CADRegion` |
 | primary | `replay_certificate` | `semialg.certificates` | `semialg.replay_certificate` |
-| primary | `result_diagnostics` | `semialg.certificates` | `semialg.result_diagnostics` |
-| primary | `computation_context` | `semialg.context` | `semialg.computation_context` |
-| primary | `SemialgebraicContext` | `semialg.context` | `semialg.SemialgebraicContext` |
 | primary | `convexity_certificate` | `semialg.convexity` | `semialg.convexity_certificate` |
 | primary | `is_convex` | `semialg.convexity` | `semialg.is_convex` |
 | primary | `equivalent` | `semialg.decision` | `semialg.equivalent` |
 | primary | `implies` | `semialg.decision` | `semialg.implies` |
 | primary | `is_satisfiable` | `semialg.decision` | `semialg.is_satisfiable` |
 | primary | `is_tautology` | `semialg.decision` | `semialg.is_tautology` |
-| primary | `SatisfiabilityResult` | `semialg.decision` | `semialg.SatisfiabilityResult` |
-| primary | `SemialgebraicSolution` | `semialg.decision` | `semialg.SemialgebraicSolution` |
 | primary | `solve_semialgebraic` | `semialg.decision` | `semialg.solve_semialgebraic` |
-| primary | `CADOptions` | `semialg.decomposition` | `semialg.CADOptions` |
-| primary | `CADResult` | `semialg.decomposition` | `semialg.CADResult` |
-| primary | `AffineMapAnalysis` | `semialg.affine_geometry` | `semialg.AffineMapAnalysis` |
-| primary | `analyze_affine_map` | `semialg.affine_geometry` | `semialg.analyze_affine_map` |
-| primary | `ParametricMapDegree` | `semialg.map_degree` | `semialg.ParametricMapDegree` |
-| primary | `parametric_map_degree` | `semialg.map_degree` | `semialg.parametric_map_degree` |
-| primary | `ParametricChart` | `semialg.parametric_geometry` | `semialg.ParametricChart` |
-| primary | `ParametricCover` | `semialg.parametric_geometry` | `semialg.ParametricCover` |
-| primary | `bounded_parametric_cover` | `semialg.parametric_geometry` | `semialg.bounded_parametric_cover` |
-| primary | `AffineBoxClip` | `semialg.polyhedral_clipping` | `semialg.AffineBoxClip` |
-| primary | `clip_affine_subspace_to_box` | `semialg.polyhedral_clipping` | `semialg.clip_affine_subspace_to_box` |
-| primary | `BoundaryStratum` | `semialg.region_analysis` | `semialg.BoundaryStratum` |
-| primary | `RegionBoundaryResult` | `semialg.region_analysis` | `semialg.RegionBoundaryResult` |
-| primary | `region_boundary_result` | `semialg.region_analysis` | `semialg.region_boundary_result` |
+| primary | `polynomial_nonnegative_decision` | `semialg.decision_portfolio` | `semialg.polynomial_nonnegative_decision` |
+| primary | `cad` | `semialg.decomposition` | `semialg.cad` |
 | primary | `affine_transform` | `semialg.derived_geometry` | `semialg.affine_transform` |
 | primary | `argmax_set` | `semialg.derived_geometry` | `semialg.argmax_set` |
 | primary | `argmin_set` | `semialg.derived_geometry` | `semialg.argmin_set` |
@@ -290,6 +353,18 @@ importing expert CAD internals cannot replace the root function.
 | primary | `SemialgError` | `semialg.errors` | `semialg.SemialgError` |
 | primary | `SemialgStrategyFailure` | `semialg.errors` | `semialg.SemialgStrategyFailure` |
 | primary | `UnsupportedFragmentError` | `semialg.errors` | `semialg.UnsupportedFragmentError` |
+| primary | `function_convex_partition` | `semialg.function_analysis` | `semialg.function_convex_partition` |
+| primary | `function_convexity` | `semialg.function_analysis` | `semialg.function_convexity` |
+| primary | `function_monotonic_partition` | `semialg.function_analysis` | `semialg.function_monotonic_partition` |
+| primary | `function_monotonicity` | `semialg.function_analysis` | `semialg.function_monotonicity` |
+| primary | `function_sign_partition` | `semialg.function_analysis` | `semialg.function_sign_partition` |
+| primary | `function_mapping_properties` | `semialg.function_properties` | `semialg.function_mapping_properties` |
+| primary | `function_smoothness` | `semialg.function_properties` | `semialg.function_smoothness` |
+| primary | `is_bijective` | `semialg.function_properties` | `semialg.is_bijective` |
+| primary | `is_function_continuous` | `semialg.function_properties` | `semialg.is_function_continuous` |
+| primary | `is_function_smooth` | `semialg.function_properties` | `semialg.is_function_smooth` |
+| primary | `is_injective` | `semialg.function_properties` | `semialg.is_injective` |
+| primary | `is_surjective` | `semialg.function_properties` | `semialg.is_surjective` |
 | primary | `bounding_box` | `semialg.geometry_queries` | `semialg.bounding_box` |
 | primary | `critical_values` | `semialg.geometry_queries` | `semialg.critical_values` |
 | primary | `distance_between_regions` | `semialg.geometry_queries` | `semialg.distance_between_regions` |
@@ -301,33 +376,59 @@ importing expert CAD internals cannot replace the root function.
 | primary | `semialgebraic_image` | `semialg.geometry_queries` | `semialg.semialgebraic_image` |
 | primary | `semialgebraic_preimage` | `semialg.geometry_queries` | `semialg.semialgebraic_preimage` |
 | primary | `semialgebraic_projection` | `semialg.geometry_queries` | `semialg.semialgebraic_projection` |
+| expert | `parametric_map_degree` | `semialg.map_degree` | `semialg.map_degree.parametric_map_degree` |
+| primary | `matrix_definiteness` | `semialg.matrix_analysis` | `semialg.matrix_definiteness` |
+| primary | `matrix_pd_on` | `semialg.matrix_analysis` | `semialg.matrix_pd_on` |
+| primary | `matrix_psd_on` | `semialg.matrix_analysis` | `semialg.matrix_psd_on` |
+| primary | `matrix_rank_on` | `semialg.matrix_analysis` | `semialg.matrix_rank_on` |
+| primary | `matrix_rank_stratification` | `semialg.matrix_analysis` | `semialg.matrix_rank_stratification` |
 | primary | `semialgebraic_measure` | `semialg.measure` | `semialg.semialgebraic_measure` |
 | primary | `region_centroid` | `semialg.moments` | `semialg.region_centroid` |
 | primary | `region_covariance` | `semialg.moments` | `semialg.region_covariance` |
 | primary | `region_moment` | `semialg.moments` | `semialg.region_moment` |
 | primary | `function_range` | `semialg.optimization` | `semialg.function_range` |
-| primary | `FunctionRangeResult` | `semialg.optimization` | `semialg.FunctionRangeResult` |
-| primary | `OptimizationResult` | `semialg.optimization` | `semialg.OptimizationResult` |
 | primary | `semialgebraic_maximize` | `semialg.optimization` | `semialg.semialgebraic_maximize` |
 | primary | `semialgebraic_minimize` | `semialg.optimization` | `semialg.semialgebraic_minimize` |
-| primary | `root_count_conditions` | `semialg.parameters` | `semialg.root_count_conditions` |
+| expert | `root_count_conditions` | `semialg.parameters` | `semialg.parameters.root_count_conditions` |
 | primary | `solvability_conditions` | `semialg.parameters` | `semialg.solvability_conditions` |
+| expert | `bounded_parametric_cover` | `semialg.parametric_geometry` | `semialg.parametric_geometry.bounded_parametric_cover` |
+| expert | `intrinsic_parametric_cover` | `semialg.parametric_geometry` | `semialg.parametric_geometry.intrinsic_parametric_cover` |
+| primary | `HRepresentation` | `semialg.polyhedral` | `semialg.HRepresentation` |
+| primary | `AffineBoxClip` | `semialg.polyhedral_clipping` | `semialg.AffineBoxClip` |
+| primary | `clip_affine_subspace_to_box` | `semialg.polyhedral_clipping` | `semialg.clip_affine_subspace_to_box` |
+| primary | `find_negative_point` | `semialg.polynomial_positivity` | `semialg.find_negative_point` |
+| primary | `polynomial_nonnegative` | `semialg.polynomial_positivity` | `semialg.polynomial_nonnegative` |
+| primary | `zeng_negative_point` | `semialg.polynomial_positivity` | `semialg.zeng_negative_point` |
 | primary | `apply_quantifiers` | `semialg.quantifiers` | `semialg.apply_quantifiers` |
 | primary | `Exists` | `semialg.quantifiers` | `semialg.Exists` |
 | primary | `ForAll` | `semialg.quantifiers` | `semialg.ForAll` |
+| primary | `real_algebraic_feasibility` | `semialg.real_algebraic` | `semialg.real_algebraic_feasibility` |
+| primary | `solve_real_algebraic_set` | `semialg.real_algebraic` | `semialg.solve_real_algebraic_set` |
+| primary | `function_sign` | `semialg.reasoning` | `semialg.function_sign` |
 | primary | `prove_negative` | `semialg.reasoning` | `semialg.prove_negative` |
 | primary | `prove_nonnegative` | `semialg.reasoning` | `semialg.prove_nonnegative` |
 | primary | `prove_nonpositive` | `semialg.reasoning` | `semialg.prove_nonpositive` |
+| primary | `prove_nonzero` | `semialg.reasoning` | `semialg.prove_nonzero` |
 | primary | `prove_positive` | `semialg.reasoning` | `semialg.prove_positive` |
+| primary | `prove_zero` | `semialg.reasoning` | `semialg.prove_zero` |
 | primary | `simplify_system` | `semialg.reasoning` | `semialg.simplify_system` |
 | primary | `simplify_under_assumptions` | `semialg.reasoning` | `semialg.simplify_under_assumptions` |
 | primary | `local_dimension` | `semialg.region_analysis` | `semialg.local_dimension` |
 | primary | `region_active_boundary_strata` | `semialg.region_analysis` | `semialg.region_active_boundary_strata` |
+| primary | `region_boundary_result` | `semialg.region_analysis` | `semialg.region_boundary_result` |
 | primary | `region_nonsmooth_locus` | `semialg.region_analysis` | `semialg.region_nonsmooth_locus` |
 | primary | `region_regular_locus` | `semialg.region_analysis` | `semialg.region_regular_locus` |
 | primary | `region_singular_locus` | `semialg.region_analysis` | `semialg.region_singular_locus` |
+| primary | `region_singular_locus_result` | `semialg.region_analysis` | `semialg.region_singular_locus_result` |
 | primary | `integrate_over_region` | `semialg.region_integrate` | `semialg.integrate_over_region` |
 | primary | `reduce_region_integral` | `semialg.region_integrate` | `semialg.reduce_region_integral` |
+| primary | `region_measure` | `semialg.region_measurement` | `semialg.region_measure` |
+| primary | `random_point` | `semialg.region_sampling` | `semialg.random_point` |
+| primary | `random_points` | `semialg.region_sampling` | `semialg.random_points` |
+| primary | `affine_image` | `semialg.region_transformations` | `semialg.affine_image` |
+| primary | `affine_preimage` | `semialg.region_transformations` | `semialg.affine_preimage` |
+| primary | `region_image` | `semialg.region_transformations` | `semialg.region_image` |
+| primary | `region_preimage` | `semialg.region_transformations` | `semialg.region_preimage` |
 | primary | `region_boundary` | `semialg.regions.operations` | `semialg.region_boundary` |
 | primary | `region_closure` | `semialg.regions.operations` | `semialg.region_closure` |
 | primary | `region_complement` | `semialg.regions.operations` | `semialg.region_complement` |
@@ -336,12 +437,20 @@ importing expert CAD internals cannot replace the root function.
 | primary | `region_dimension` | `semialg.regions.operations` | `semialg.region_dimension` |
 | primary | `region_interior` | `semialg.regions.operations` | `semialg.region_interior` |
 | primary | `region_intersection` | `semialg.regions.operations` | `semialg.region_intersection` |
+| primary | `region_product` | `semialg.regions.operations` | `semialg.region_product` |
 | primary | `region_union` | `semialg.regions.operations` | `semialg.region_union` |
+| primary | `connected_component_count` | `semialg.roadmaps` | `semialg.connected_component_count` |
+| primary | `connected_component_samples` | `semialg.roadmaps` | `semialg.connected_component_samples` |
+| expert | `roadmap` | `semialg.roadmaps` | `semialg.roadmaps.roadmap` |
 | primary | `classify_real_roots` | `semialg.root_classification` | `semialg.classify_real_roots` |
 | primary | `sample_point` | `semialg.sampling` | `semialg.sample_point` |
 | primary | `sample_points` | `semialg.sampling` | `semialg.sample_points` |
 | primary | `sign_at` | `semialg.sampling` | `semialg.sign_at` |
 | primary | `sign_vector` | `semialg.sampling` | `semialg.sign_vector` |
+| expert | `component_decomposition` | `semialg.topology.semialgebraic` | `semialg.topology.semialgebraic.component_decomposition` |
+| expert | `dimension_strata` | `semialg.topology.semialgebraic` | `semialg.topology.semialgebraic.dimension_strata` |
+| expert | `hardt_trivialization` | `semialg.topology.semialgebraic` | `semialg.topology.semialgebraic.hardt_trivialization` |
+| expert | `triangulate_region` | `semialg.topology.semialgebraic` | `semialg.topology.semialgebraic.triangulate_region` |
 | primary | `discretize_region_geometry` | `semialg.solution_geometry` | `semialg.discretize_region_geometry` |
 | primary | `discretize_solution` | `semialg.solution_geometry` | `semialg.discretize_solution` |
 | primary | `plot_region_geometry` | `semialg.solution_geometry` | `semialg.plot_region_geometry` |
@@ -350,45 +459,81 @@ importing expert CAD internals cannot replace the root function.
 | primary | `is_zero_dimensional` | `semialg.solve` | `semialg.is_zero_dimensional` |
 | primary | `reduce_formula` | `semialg.solve` | `semialg.reduce_formula` |
 | primary | `resolve_formula` | `semialg.solve` | `semialg.resolve_formula` |
-| primary | `SemialgOptions` | `semialg.solve` | `semialg.SemialgOptions` |
-| primary | `solve_zero_dimensional_system` | `semialg.solve` | `semialg.solve_zero_dimensional_system` |
-| primary | `SolveDomain` | `semialg.solve` | `semialg.SolveDomain` |
+| primary | `AffineHalfSpace` | `semialg.standard_regions` | `semialg.AffineHalfSpace` |
+| primary | `AffineSpace` | `semialg.standard_regions` | `semialg.AffineSpace` |
+| primary | `Ball` | `semialg.standard_regions` | `semialg.Ball` |
 | primary | `BallRegion` | `semialg.standard_regions` | `semialg.BallRegion` |
 | primary | `BooleanRegion` | `semialg.standard_regions` | `semialg.BooleanRegion` |
 | primary | `BoxRegion` | `semialg.standard_regions` | `semialg.BoxRegion` |
 | primary | `CapsuleRegion` | `semialg.standard_regions` | `semialg.CapsuleRegion` |
+| primary | `Circle` | `semialg.standard_regions` | `semialg.Circle` |
+| primary | `Cone` | `semialg.standard_regions` | `semialg.Cone` |
 | primary | `ConeRegion` | `semialg.standard_regions` | `semialg.ConeRegion` |
+| primary | `ConicRegion` | `semialg.standard_regions` | `semialg.ConicRegion` |
+| primary | `Cube` | `semialg.standard_regions` | `semialg.Cube` |
+| primary | `Cylinder` | `semialg.standard_regions` | `semialg.Cylinder` |
 | primary | `CylinderRegion` | `semialg.standard_regions` | `semialg.CylinderRegion` |
+| primary | `Dodecahedron` | `semialg.standard_regions` | `semialg.Dodecahedron` |
+| primary | `Ellipsoid` | `semialg.standard_regions` | `semialg.Ellipsoid` |
+| primary | `EllipsoidBoundary` | `semialg.standard_regions` | `semialg.EllipsoidBoundary` |
+| primary | `FilledTorus` | `semialg.standard_regions` | `semialg.FilledTorus` |
+| primary | `Geometry` | `semialg.standard_regions` | `semialg.Geometry` |
+| primary | `HalfSpace` | `semialg.standard_regions` | `semialg.HalfSpace` |
+| primary | `Hexahedron` | `semialg.standard_regions` | `semialg.Hexahedron` |
+| primary | `Hyperplane` | `semialg.standard_regions` | `semialg.Hyperplane` |
+| primary | `Icosahedron` | `semialg.standard_regions` | `semialg.Icosahedron` |
 | primary | `IntervalRegion` | `semialg.standard_regions` | `semialg.IntervalRegion` |
+| primary | `Line` | `semialg.standard_regions` | `semialg.Line` |
+| primary | `Octahedron` | `semialg.standard_regions` | `semialg.Octahedron` |
+| primary | `Parallelepiped` | `semialg.standard_regions` | `semialg.Parallelepiped` |
 | primary | `ParallelepipedRegion` | `semialg.standard_regions` | `semialg.ParallelepipedRegion` |
 | primary | `ParallelogramRegion` | `semialg.standard_regions` | `semialg.ParallelogramRegion` |
 | primary | `ParametricRegion` | `semialg.standard_regions` | `semialg.ParametricRegion` |
+| primary | `Point` | `semialg.standard_regions` | `semialg.Point` |
 | primary | `PointRegion` | `semialg.standard_regions` | `semialg.PointRegion` |
+| primary | `Polygon` | `semialg.standard_regions` | `semialg.Polygon` |
 | primary | `PolygonRegion` | `semialg.standard_regions` | `semialg.PolygonRegion` |
 | primary | `PolyhedronRegion` | `semialg.standard_regions` | `semialg.PolyhedronRegion` |
+| primary | `Polytope` | `semialg.standard_regions` | `semialg.Polytope` |
+| primary | `Prism` | `semialg.standard_regions` | `semialg.Prism` |
 | primary | `PrismRegion` | `semialg.standard_regions` | `semialg.PrismRegion` |
+| primary | `Pyramid` | `semialg.standard_regions` | `semialg.Pyramid` |
 | primary | `PyramidRegion` | `semialg.standard_regions` | `semialg.PyramidRegion` |
+| primary | `Ray` | `semialg.standard_regions` | `semialg.Ray` |
 | primary | `RegionDifference` | `semialg.standard_regions` | `semialg.RegionDifference` |
 | primary | `RegionIntersection` | `semialg.standard_regions` | `semialg.RegionIntersection` |
 | primary | `RegionSymmetricDifference` | `semialg.standard_regions` | `semialg.RegionSymmetricDifference` |
 | primary | `RegionUnion` | `semialg.standard_regions` | `semialg.RegionUnion` |
+| primary | `RegularPolygon` | `semialg.standard_regions` | `semialg.RegularPolygon` |
+| primary | `Simplex` | `semialg.standard_regions` | `semialg.Simplex` |
 | primary | `SimplexRegion` | `semialg.standard_regions` | `semialg.SimplexRegion` |
+| primary | `Sphere` | `semialg.standard_regions` | `semialg.Sphere` |
 | primary | `SphereRegion` | `semialg.standard_regions` | `semialg.SphereRegion` |
 | primary | `SphericalShellRegion` | `semialg.standard_regions` | `semialg.SphericalShellRegion` |
 | primary | `StadiumRegion` | `semialg.standard_regions` | `semialg.StadiumRegion` |
 | primary | `StandardRegion` | `semialg.standard_regions` | `semialg.StandardRegion` |
+| primary | `Tetrahedron` | `semialg.standard_regions` | `semialg.Tetrahedron` |
 | primary | `TetrahedronRegion` | `semialg.standard_regions` | `semialg.TetrahedronRegion` |
+| primary | `Torus` | `semialg.standard_regions` | `semialg.Torus` |
 | primary | `TransformedRegion` | `semialg.standard_regions` | `semialg.TransformedRegion` |
+| primary | `Triangle` | `semialg.standard_regions` | `semialg.Triangle` |
+| primary | `affine_relative_interior_formula` | `semialg.strict_feasibility` | `semialg.affine_relative_interior_formula` |
+| primary | `strict_feasible` | `semialg.strict_feasibility` | `semialg.strict_feasible` |
 | primary | `as_semialgebraic_region` | `semialg.symbolic_regions` | `semialg.as_semialgebraic_region` |
+| primary | `is_regular_closed_region` | `semialg.symbolic_regions` | `semialg.is_regular_closed_region` |
+| primary | `is_regular_open_region` | `semialg.symbolic_regions` | `semialg.is_regular_open_region` |
 | primary | `region_closure_interior` | `semialg.symbolic_regions` | `semialg.region_closure_interior` |
 | primary | `region_interior_closure` | `semialg.symbolic_regions` | `semialg.region_interior_closure` |
 | primary | `region_variables` | `semialg.symbolic_regions` | `semialg.region_variables` |
-| primary | `is_regular_closed_region` | `semialg.symbolic_regions` | `semialg.is_regular_closed_region` |
-| primary | `is_regular_open_region` | `semialg.symbolic_regions` | `semialg.is_regular_open_region` |
+| primary | `RegionElement` | `semialg.symbolic_regions` | `semialg.RegionElement` |
+| primary | `RegionNotElement` | `semialg.symbolic_regions` | `semialg.RegionNotElement` |
 | primary | `SemialgebraicRegion` | `semialg.symbolic_regions` | `semialg.SemialgebraicRegion` |
 | primary | `simplify_region` | `semialg.symbolic_regions` | `semialg.simplify_region` |
 | primary | `simplify_boole` | `semialg.symbolic_simplify` | `semialg.simplify_boole` |
 | primary | `simplify_piecewise` | `semialg.symbolic_simplify` | `semialg.simplify_piecewise` |
+| primary | `betti_number` | `semialg.topological_invariants` | `semialg.betti_number` |
+| primary | `topology_summary` | `semialg.topological_invariants` | `semialg.topology_summary` |
+| primary | `find_negative_witness_fast` | `semialg.witness_heuristics` | `semialg.find_negative_witness_fast` |
 
 ## Direct mathematical return convention
 

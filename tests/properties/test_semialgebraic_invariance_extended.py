@@ -5,7 +5,8 @@ import sympy as sp
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from semialg import is_equal, root_count_conditions
+from semialg import is_equal
+from semialg.parameters import root_count_conditions
 
 pytestmark = pytest.mark.slow
 

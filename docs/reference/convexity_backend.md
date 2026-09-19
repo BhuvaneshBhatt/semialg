@@ -4,13 +4,13 @@ These APIs expose exact semialgebraic reasoning primitives intended for higher-l
 
 ## Family contract
 
-**Mathematical return.** `function_sign`, `prove_zero`, and `prove_nonzero` decide scalar sign properties on semialgebraic regions. `function_sign` automatically intersects the supplied assumptions with the function's exact real domain. `matrix_definiteness`, `matrix_psd_on`, and `matrix_pd_on` decide exact symmetric-matrix definiteness by constant exact inertia or determinantal criteria. `matrix_rank_on` and `matrix_rank_stratification` reason about exact rank. `strict_feasible` and `affine_relative_interior_formula` provide affine-relative strict-feasibility semantics. `parametric_affine_reduction` branches on symbolic affine pivots instead of assuming them generically nonzero.
+**computer algebra systeml return.** `function_sign`, `prove_zero`, and `prove_nonzero` decide scalar sign properties on semialgebraic regions. `function_sign` automatically intersects the supplied assumptions with the function's exact real domain. `matrix_definiteness`, `matrix_psd_on`, and `matrix_pd_on` decide exact symmetric-matrix definiteness by constant exact inertia or determinantal criteria. `matrix_rank_on` and `matrix_rank_stratification` reason about exact rank. `strict_feasible` and `affine_relative_interior_formula` provide affine-relative strict-feasibility semantics. `parametric_affine_reduction` branches on symbolic affine pivots instead of assuming them generically nonzero.
 
 **Exactness and certification.** All decisions are exact. Failed nonparametric sign and matrix-definiteness claims retain exact counterexample points when the satisfiability backend produces one; matrix definiteness also attempts to recover an exact violating quadratic-form vector after specialization. Parameter-dependent queries return `ParameterStratifiedResult` objects with semialgebraic guards. No floating-point sign sampling is accepted as proof.
 
 **Algorithm selection.** Constant symmetric matrices use exact congruence/LDL inertia. Polynomial symmetric matrices use principal minors for semidefiniteness and Sylvester leading minors for definiteness, with exact semialgebraic feasibility/QE on violations. Rank uses determinantal minors. Relative strict feasibility preserves explicit affine equalities and inequalities that are identically tight on that affine hull. Parametric affine reduction produces separate zero/nonzero pivot branches.
 
-**Complexity and limitations.** Matrix minor counts grow combinatorially with dimension, and parameterized conditions may invoke complete CAD. Relative-interior support is deliberately restricted to conjunctive affine polynomial systems; arbitrary nonlinear relative interiors remain a separate problem. Parametric affine reduction handles affine pivots whose coefficients depend only on declared parameters and intentionally leaves more complicated pivots unreduced.
+**Complexity and limitations.** Matrix minor counts grow combinatorially with dimension, and parameterized conditions may invoke complete CAD. Relative-interior support is restricted to conjunctive affine polynomial systems; arbitrary nonlinear relative interiors remain a separate problem. Parametric affine reduction handles affine pivots whose coefficients depend only on declared parameters and leaves more complicated pivots unreduced.
 
 ### Scalar sign queries
 
@@ -69,11 +69,11 @@ from semialg import function_convexity
 x, a = symbols("x a", real=True)
 
 assert function_convexity(x**2, [x]) == "strongly_convex"
-assert function_convexity(-x**2, [x]) == "strongly_concave"
-assert function_convexity(3*x + 1, [x]) == "affine"
+assert function_convexity(-(x**2), [x]) == "strongly_concave"
+assert function_convexity(3 * x + 1, [x]) == "affine"
 assert function_convexity(Abs(x), [x]) == "convex"
 
-parametric = function_convexity(a*x**2, [x])
+parametric = function_convexity(a * x**2, [x])
 assert parametric.select({a: 2}) == "strongly_convex"
 assert parametric.select({a: -2}) == "strongly_concave"
 assert parametric.select({a: 0}) == "affine"
@@ -100,7 +100,7 @@ assert function_monotonicity(x**3, x) == "strictly_increasing"
 assert function_monotonicity(x**2, x) == "nonmonotonic"
 assert function_monotonicity(Abs(x), x, domain=x >= 0) == "strictly_increasing"
 
-conditional = function_monotonicity(a*x, x)
+conditional = function_monotonicity(a * x, x)
 assert conditional.select({a: 2}) == "strictly_increasing"
 assert conditional.select({a: 0}) == "constant"
 assert conditional.select({a: -2}) == "strictly_decreasing"
@@ -146,27 +146,31 @@ from semialg import function_sign_partition
 
 x, a = symbols("x a", real=True)
 
-assert tuple(kind for kind, _ in function_sign_partition(x*(x - 1), x)) == (
-    "positive", "zero", "negative", "zero", "positive"
+assert tuple(kind for kind, _ in function_sign_partition(x * (x - 1), x)) == (
+    "positive",
+    "zero",
+    "negative",
+    "zero",
+    "positive",
 )
 assert tuple(kind for kind, _ in function_sign_partition(Abs(x), x)) == (
-    "positive", "zero", "positive"
+    "positive",
+    "zero",
+    "positive",
 )
 
-conditional = function_sign_partition(a*x, x)
-assert tuple(kind for kind, _ in conditional.select({a: 1})) == (
-    "negative", "zero", "positive"
-)
+conditional = function_sign_partition(a * x, x)
+assert tuple(kind for kind, _ in conditional.select({a: 1})) == ("negative", "zero", "positive")
 ```
 
 
 ## Function smoothness
 
-`function_smoothness(f, variables, domain=..., max_order=...)` reports exact continuity, the greatest certified `C^k` order, whether the function is smooth, and exact exceptional loci. Polynomial and rational functions are certified `C^∞` on their exact real function domains. Univariate `Abs`, `sign`, and finite `Piecewise` joins are checked by exact breakpoint analysis with one-sided branch limits; for example `Abs(x)` is continuous but not `C^1` exactly at `x = 0`. The structured result type is `FunctionSmoothnessResult`.
+`function_smoothness(f, variables, domain=..., max_order=...)` reports exact continuity, the greatest certified `C^k` order, whether the function is smooth, and exact exceptional loci. Polynomial and rational functions are certified `C^∞` on their exact real function domains. Univariate `Abs`, `sign`, and finite `Piecewise` joins are checked by exact breakpoint analysis with one-sided branch limits; for example `Abs(x)` is continuous but not `C^1` exactly at `x = 0`. The structured result type is `FunctionSmoothnessResult`. For direct predicates, `is_function_continuous(...)` returns the certified continuity projection and `is_function_smooth(...)` returns the certified smoothness projection.
 
 ## Function mapping properties
 
-`function_mapping_properties(mapping, variables, domain=..., codomain=...)` certifies injectivity, surjectivity onto the stated semialgebraic codomain, and bijectivity. It also records the exact image formula, collision witnesses for failed injectivity, and missing-value witnesses for failed surjectivity. Polynomial/rational maps reuse `semialgebraic_image`; supported algebraic maps use function-graph elimination as fallback. Full-space affine maps use exact Jacobian rank as a fast path. The structured result type is `FunctionMappingPropertiesResult`.
+`function_mapping_properties(mapping, variables, domain=..., codomain=...)` certifies injectivity, surjectivity onto the stated semialgebraic codomain, and bijectivity. It also records the exact image formula, collision witnesses for failed injectivity, and missing-value witnesses for failed surjectivity. Polynomial/rational maps reuse `semialgebraic_image`; supported algebraic maps use function-graph elimination as fallback. Full-space affine maps use exact Jacobian rank as a fast path. The structured result type is `FunctionMappingPropertiesResult`. The convenience predicates `is_injective(...)`, `is_surjective(...)`, and `is_bijective(...)` return the corresponding certified projections without discarding the aggregate analysis API.
 
 
 ## Function-property performance and cache reuse

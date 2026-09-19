@@ -4,13 +4,13 @@ import sympy as sp
 
 from semialg.exact_arithmetic import compare_exact_reals
 from semialg.instances.real_fallbacks import rational_bound
-from semialg.instances.witness_generation import random_sample_from_intv
+from semialg.instances.witness_generation import random_sample_from_intvl
 
 
 def test_exact_sampling_preserves_sub_float_width_interval():
     lo = sp.Integer(1)
     hi = lo + sp.Rational(1, 10**30)
-    samples = random_sample_from_intv(
+    samples = random_sample_from_intvl(
         lo, hi, strict=True, sample_count=4, rng=random.Random(7), integral=False, exact=True
     )
     assert samples
@@ -22,7 +22,7 @@ def test_exact_sampling_preserves_sub_float_width_interval():
 def test_exact_sampling_handles_algebraic_endpoints():
     lo = sp.sqrt(2)
     hi = sp.sqrt(2) + sp.Rational(1, 10**20)
-    samples = random_sample_from_intv(
+    samples = random_sample_from_intvl(
         lo, hi, strict=True, sample_count=3, rng=random.Random(11), integral=False, exact=True
     )
     assert samples

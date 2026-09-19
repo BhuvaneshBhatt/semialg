@@ -43,15 +43,22 @@ New users should read:
 
 1. [Getting started](getting_started.md) — formulas, variables, regions, solving, optimization, and integration.
 2. [Which function should I use?](guides/choosing_an_api.md) — choose between QE, projection, ranges, optimization, images, measure, and related APIs.
-3. [How semialg chooses an algorithm](concepts/algorithm_selection.md) — presolve, virtual substitution, RUR, CAD, and conservative fallback.
-4. [Understanding result objects](concepts/result_objects.md) — witnesses, attainment, certification, guarded branches, and `.select(...)`.
-5. [Region representations](guides/region_representations.md) — choose between formulas, standard regions, `SemialgebraicRegion`, `CADRegion`, and structured cells.
-6. [Exact versus numerical region results](guides/exact_vs_numerical_regions.md) — understand which layers are exact certificates and which are numerical geometry.
-7. [Parameterized computation tutorial](guides/parameterized_computation.md) — ranges, optimization, measure, and algebraic-endpoint integration as parameters vary.
+3. [Algorithm-selection map](concepts/algorithm_selection.md) — feasibility, QE, optimization, decomposition, positivity, integration, and conservative fallback.
+4. [Certificate model](concepts/certificate_model.md) — candidate generation, exact reconstruction, verification, and replay.
+5. [Understanding result objects](concepts/result_objects.md) — witnesses, attainment, certification, guarded branches, and `.select(...)`.
+6. [Region representations](guides/region_representations.md) — choose between formulas, standard regions, `SemialgebraicRegion`, `CADRegion`, and structured cells.
+7. [Exact versus numerical region results](guides/exact_vs_numerical_regions.md) — understand which layers are exact certificates and which are numerical geometry.
+8. [Parameterized computation tutorial](guides/parameterized_computation.md) — ranges, optimization, measure, and algebraic-endpoint integration as parameters vary.
+
+## Tutorials
+
+- [Certified primary decomposition](tutorials/primary_decomposition.md)
+- [Sparse SOS search and exact certification](tutorials/sos_certification.md)
+- [Factorized projection and partial CAD](tutorials/cad_factorized_partial.md)
 
 ## Worked examples
 
-- [Worked example gallery](examples/index.md) — 12 executable end-to-end examples covering QE, optimization, topology, moments, algebraic geometry, transforms, and parameterized integration.
+- [Worked example gallery](examples/index.md) — 17 executable end-to-end examples covering QE, optimization, topology, moments, algebraic geometry, transforms, and parameterized integration.
 
 ## Guides: accomplish a task
 
@@ -74,6 +81,7 @@ If the mathematics is new to you, start with the [Introduction to semialgebraic 
 ## Concepts: understand the mathematics and guarantees
 
 - [Exactness and certification](concepts/exactness_and_certification.md)
+- [Certificate model](concepts/certificate_model.md)
 - [How semialg chooses an algorithm](concepts/algorithm_selection.md)
 - [Understanding result objects](concepts/result_objects.md)
 - [Canonical representations and input conventions](concepts/representations.md)
@@ -108,6 +116,9 @@ These pages are intended primarily for contributors:
 - [Region testing strategy](quality/region_testing.md)
 - [Region capability matrix](quality/region_capability_matrix.md)
 - [Certificate matrix](quality/certificate_matrix.md)
+- [Public API testing](quality/public_api_testing.md)
+- [Coverage measurements](quality/coverage_measurements.md)
+- [Changelog](changelog.md)
 - [Region-computation architecture](architecture/region_computation.md)
 
 ## What “exact” does and does not mean
@@ -115,3 +126,10 @@ These pages are intended primarily for contributors:
 Exactness does **not** imply that every problem is cheap. Complete CAD/QE has severe worst-case complexity. `semialg` therefore uses structure-aware presolve and specialized exact backends where possible. In particular, **quadratic virtual substitution is a real QE/witness backend** and is tried for supported low-degree quantified problems before falling back to CAD. Zero-dimensional algebraic systems can use RUR machinery.
 
 For current boundaries of the implementation, see [Limitations](limitations.md) and the [Feature matrix](feature_matrix.md).
+
+
+## Algorithm provenance
+
+See [Algorithm references](references.md) for the literature behind CAD, ARS-style real solving, regular chains, Zeng-family polynomial decisions, and SOS/Gram certificates.
+
+- [Toric and lattice algebra](toric_algebra.md)

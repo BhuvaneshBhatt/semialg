@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import OptimizationResult, semialgebraic_maximize, semialgebraic_minimize
+from semialg import semialgebraic_maximize, semialgebraic_minimize
+from semialg.optimization_results import OptimizationResult
 
 
 def test_exact_pipeline_interior_stationary_point() -> None:
@@ -70,7 +71,7 @@ def test_exact_pipeline_three_variables() -> None:
     assert result.value == sp.sqrt(3)
     assert result.point == {x: sp.sqrt(3) / 3, y: sp.sqrt(3) / 3, z: sp.sqrt(3) / 3}
     assert result.certified is True
-    assert result.method.endswith("cad_decision_certificate")
+    assert result.method.endswith("cad_range_certificate")
 
 
 def test_exact_pipeline_disjunctive_domain() -> None:

@@ -55,3 +55,8 @@ def test_components_for_explicit_disjunctions_are_merged_when_touching():
     components = region_components(sp.Or(sp.And(x >= 0, x <= 1), sp.And(x >= 1, x <= 2)), [x])
     assert len(components) == 1
     assert same_logic(components[0], sp.And(x >= 0, x <= 2))
+
+
+def test_region_dimension_uses_native_selected_cad_cells():
+    x, y = sp.symbols("x y", real=True)
+    assert region_dimension(sp.Eq(x**2 + y**2, 1), (x, y)) == 1

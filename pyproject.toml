@@ -5,18 +5,33 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "semialg"
 version = "1.0.0"
-description = "CAD and real semialgebraic reasoning for Python"
+description = "Exact real algebraic and semialgebraic geometry in Python: CAD, quantifier elimination, semialgebraic solving, decomposition, integration, and measure"
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = ["sympy>=1.12"]
+requires-python = ">=3.11"
+dependencies = ["sympy>=1.12", "python-flint>=0.9.0", "exprtest>=0.1.0"]
 authors = [{name = "Bhuvanesh Bhatt", email = "bhuvaneshbhatt@gmail.com"}]
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
+keywords = [
+  "symbolic mathematics",
+  "computer algebra",
+  "semialgebraic geometry",
+  "real algebraic geometry",
+  "cylindrical algebraic decomposition",
+  "CAD",
+  "quantifier elimination",
+  "polynomial systems",
+  "real root isolation",
+  "exact computation",
+  "certified computation",
+  "symbolic integration",
+  "semialgebraic optimization",
+  "SymPy",
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -30,6 +45,10 @@ test = [
   "pytest-cov>=5",
   "hypothesis>=6",
   "matplotlib>=3.8",
+  "nbformat>=5",
+  "nbclient>=0.10",
+  "ipykernel>=6",
+  "PyYAML>=6",
 ]
 dev = [
   "pytest>=8",
@@ -38,6 +57,9 @@ dev = [
   "matplotlib>=3.8",
   "ruff>=0.4",
   "nbformat>=5",
+  "nbclient>=0.10",
+  "ipykernel>=6",
+  "PyYAML>=6",
 ]
 docs = [
   "mkdocs>=1.6",
@@ -45,6 +67,8 @@ docs = [
 notebooks = [
   "matplotlib>=3.8",
   "jupyter>=1",
+  "nbclient>=0.10",
+  "ipykernel>=6",
 ]
 release = [
   "build>=1.2",
@@ -68,6 +92,7 @@ where = ["src"]
 include = ["semialg*"]
 
 [tool.ruff]
+target-version = "py311"
 line-length = 100
 exclude = [
     "notebooks",
@@ -98,6 +123,25 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = '-ra -m "not slow"'
 markers = [
+  "contract: public API and permanent behavioral contract tests",
+  "documentation: README, documentation, example, and notebook tests",
+  "integration: subsystem and cross-subsystem behavioral tests",
+  "property: generated and meatmorphic mathematical property tests",
+  "wheel: contracts that exercise a built or installed distribution",
   "slow: computationally expensive tests excluded from the default suite",
   "performance: opt-in wall-clock regression tests (also marked slow)",
+  "installed_wheel: release contracts executed against an installed wheel",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["semialg"]
+
+[tool.coverage.report]
+fail_under = 74.5
+show_missing = true
+skip_covered = true
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
 ]

@@ -27,5 +27,5 @@ def test_collins_core_03():
     assert len(cad.cells) == 5
     check = verify_recorded_signs(cad.cells, cad.tower.level(1).polynomials)
     assert check.ok, check.failures
-    signs = [cell.signs[sp.sstr(x**2 - 1)] for cell in cad.cells]
+    signs = [cell.signs["x - 1"] * cell.signs["x + 1"] for cell in cad.cells]
     assert signs == [1, 0, -1, 0, 1]

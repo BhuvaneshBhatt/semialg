@@ -32,4 +32,4 @@ assert cusp.local_dimension((-1, 0)) == -1
 
 `local_dimension()` is computed from the exact CAD complex: it takes the maximum dimension of selected cells whose closures contain the query point.
 
-This is intentionally distinct from corner/manifold classification. A rectangular corner can have local dimension two while not being an algebraic hypersurface singularity under `singular_locus()`'s current definition.
+This is distinct from corner/manifold classification. A rectangular corner can have local dimension two while not being an algebraic hypersurface singularity under `singular_locus()`'s current definition.

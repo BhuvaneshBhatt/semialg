@@ -39,7 +39,7 @@ print("eliminated membership:", eliminated)
 print("active boundary strata:", len(strata))
 ```
 
-The mapped-region example deliberately contains an existential parameter after coercion, so the default `region_element_conditions(...)` leaves the symbolic membership atom intact. `eliminate=True` requests exact QE/CAD instead. The separate algebraic-parameter example shows `real_parameters=True`, which adds an explicit `Contains(a, Reals)` guard.
+The mapped-region example contains an existential parameter after coercion, so the default `region_element_conditions(...)` leaves the symbolic membership atom intact. `eliminate=True` requests exact QE/CAD instead. The separate algebraic-parameter example shows `real_parameters=True`, which adds an explicit `Contains(a, Reals)` guard.
 
 `region_active_boundary_strata` classifies boundary pieces by the recognized inequality residuals that are active. For the square this gives four one-active edge strata and four two-active corner strata. This is a defining-constraint stratification, not a claim of Whitney regularity; redundant inequalities may refine the returned strata.
 

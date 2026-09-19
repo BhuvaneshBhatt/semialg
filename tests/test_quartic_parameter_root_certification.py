@@ -5,7 +5,8 @@ import itertools
 import pytest
 import sympy as sp
 
-from semialg import root_count_conditions, solvability_conditions
+from semialg import solvability_conditions
+from semialg.parameters import root_count_conditions
 
 
 def _selected_count(conditions, assignment):
@@ -52,7 +53,7 @@ def test_quartic_certified_strata_match_exact_specialization(coefficients):
         assert selected == _distinct_real_root_count(specialized, x)
 
 
-def test_quartic_invariants_distinguish_four_and_zero_real_roots_with_positive_discriminant():
+def test_quartic_positive_discriminant_root_counts():
     x, a = sp.symbols("x a", real=True)
     family = x**4 + a * x**2 + 1
     conditions = root_count_conditions(family, x, (a,))

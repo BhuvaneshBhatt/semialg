@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import root_count_conditions, solvability_conditions
+from semialg import solvability_conditions
 from semialg.conditional import (
     ConditionalBranch,
     ParameterStratificationCertificate,
@@ -12,6 +12,7 @@ from semialg.conditional import (
     verify_parameter_stratification,
 )
 from semialg.parameter_stratification import parameterized_cylindrical_decomposition
+from semialg.parameters import root_count_conditions
 
 
 def test_conditional_branch_applies_and_specializes() -> None:

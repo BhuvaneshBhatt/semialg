@@ -65,7 +65,7 @@ The output records `x` intervals or points and associated lower/upper bounds for
 
 ## Limitation
 
-The 2D syntactic parser is intentionally limited. For complete CAD output, use `extract_cylindrical_solution`, which provides typed arbitrary-dimensional bounds and certified algebraic root functions.
+The 2D syntactic parser is limited. For complete CAD output, use `extract_cylindrical_solution`, which provides typed arbitrary-dimensional bounds and certified algebraic root functions.
 
 ## Edge-case semantics
 

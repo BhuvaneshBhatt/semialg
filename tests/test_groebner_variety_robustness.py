@@ -63,9 +63,7 @@ def test_zero_variable_cad_and_presolve_are_exact() -> None:
     assert presolved.linear is True
 
 
-def test_algebraic_collins_reconstruction_remains_equivalent_after_all_variables_eliminate() -> (
-    None
-):
+def test_algebraic_collins_full_elimination() -> None:
     x, y = sp.symbols("x y", real=True)
     formula = sp.And(sp.Eq(x**2 - 2, 0), sp.Eq(y - x, 0), y > 0)
 

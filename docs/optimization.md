@@ -98,7 +98,7 @@ Open sets are distinguished from closed ones. For example, minimizing `x` over `
 
 `semialgebraic_minimize`, `semialgebraic_maximize`, and `function_range` accept `parameters=[...]` together with `return_stratified=True`. The return value is a `ParameterStratifiedResult`. Each branch is guarded by an exact parameter condition. By default, parameter-dependent optimum/range values remain exact first-order relations with explicit quantifiers, avoiding a second potentially expensive QE pass. Set `eliminate_quantifiers=True` to request complete-CAD elimination explicitly; successful branches then set `quantifier_free=True` and expose an empty quantifier prefix. This option requires `return_stratified=True`.
 
-For optimization, a branch value is `ParametricOptimizationResult`; for ranges it is `ParametricFunctionRangeResult`. These objects deliberately keep the exact first-order relation and its explicit quantifier prefix instead of automatically performing another potentially enormous CAD elimination just to obtain a quantifier-free display. For a minimum with value symbol `t`, the exact relation encodes both
+For optimization, a branch value is `ParametricOptimizationResult`; for ranges it is `ParametricFunctionRangeResult`. These objects keep the exact first-order relation and its explicit quantifier prefix instead of automatically performing another potentially enormous CAD elimination just to obtain a quantifier-free display. For a minimum with value symbol `t`, the exact relation encodes both
 
 $$
 \forall x\;(C(x,p)\Rightarrow f(x,p)\ge t)
@@ -120,7 +120,7 @@ stratum-wide answer.
 
 ## Boolean domains
 
-Bounded DNF expansion is used for disjunctive domains. Each feasible branch is optimized exactly and the branch optima are compared algebraically. Expansion is intentionally bounded; very large Boolean formulas may be declined rather than expanded exponentially.
+Bounded DNF expansion is used for disjunctive domains. Each feasible branch is optimized exactly and the branch optima are compared algebraically. Expansion is bounded; very large Boolean formulas may be declined rather than expanded exponentially.
 
 ## Current limits
 
@@ -134,11 +134,11 @@ When `return_stratified=True, eliminate_quantifiers=True` is requested, semialg 
 ### Exact polynomial nonnegativity backend
 
 Optimization clients can call `polynomial_nonnegative`, `find_negative_point`, or
-`zeng_negative_point` directly. This is intentionally a semialg public API rather
+`zeng_negative_point` directly. This is a semialg public API rather
 than an optimization-package-specific hook, so downstream packages such as
 symbolic optimization layers can reuse the same exact certificates and witnesses.
 The result object distinguishes a certified negative point, certified global
 nonnegativity, and an unsupported/incomplete case. The current fast coercivity
-certificate intentionally accepts only positive even-monomial leading forms; a
+certificate accepts only positive even-monomial leading forms; a
 leading form containing mixed odd exponents falls back to an incomplete result
 unless another exact strategy supplies a negative witness.

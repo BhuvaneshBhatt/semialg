@@ -53,7 +53,8 @@ def test_separable_optimization_splits_cartesian_problem():
 
 
 def test_public_certificate_replay_and_diagnostics():
-    from semialg import replay_certificate, result_diagnostics, semialgebraic_minimize
+    from semialg import replay_certificate, semialgebraic_minimize
+    from semialg.certificates import result_diagnostics
 
     x = sp.symbols("x", real=True)
     result = semialgebraic_minimize(x, sp.And(x >= 0, x <= 2), (x,), return_result=True)

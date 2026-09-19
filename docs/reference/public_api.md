@@ -11,7 +11,6 @@ Primary reference: [Decision, QE, and formulas](decision_and_qe.md)
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
 | `apply_quantifiers` | `semialg.quantifiers` | function | Wrap ``formula`` in a prenex quantifier prefix. |
-| `computation_context` | `semialg.context` | function | Create/reuse a context for one complete exact solve operation. |
 | `equivalent` | `semialg.decision.api` | function | Return whether two semialgebraic formulas define the same real set. |
 | `Exists` | `semialg.quantifiers` | class | Existentially quantify one or more variables in a Boolean formula. |
 | `ForAll` | `semialg.quantifiers` | class | Universally quantify one or more variables in a Boolean formula. |
@@ -26,15 +25,11 @@ Primary reference: [Decision, QE, and formulas](decision_and_qe.md)
 | `prove_positive` | `semialg.reasoning` | function | Return whether the expression is certified positive on the stated domain. |
 | `reduce_formula` | `semialg.solve.reduce` | function | Reduce a parsed real formula using the selected exact decision strategy. |
 | `resolve_formula` | `semialg.solve.resolve` | function | Resolve a parsed formula and return its exact solution representation. |
-| `SatisfiabilityResult` | `semialg.decision.solution` | class | Structured result for a real satisfiability query. |
-| `SemialgebraicSolution` | `semialg.decision.solution` | class | Structured solution summary for a semialgebraic constraint system. |
-| `SemialgOptions` | `semialg.domains` | class | Shared options accepted by high-level semialgebraic APIs. |
 | `simplify_boole` | `semialg.symbolic_simplify` | function | Simplify a semialgebraic Boolean formula over the real numbers. |
 | `simplify_piecewise` | `semialg.symbolic_simplify` | function | Simplify a Piecewise expression using semialgebraic branch conditions. |
 | `simplify_system` | `semialg.reasoning` | function | Simplify a real semialgebraic system with CAD/QE-backed checks. |
 | `simplify_under_assumptions` | `semialg.reasoning` | function | Simplify real expressions using provable assumptions. |
 | `solve_semialgebraic` | `semialg.decision.api` | function | Reduce, sample, and summarize a semialgebraic system over the reals. |
-| `SolveDomain` | `semialg.domains` | class | str(object='') -> str |
 
 ## CAD and decomposition
 
@@ -42,8 +37,6 @@ Primary reference: [CAD and decomposition](cad.md)
 
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
-| `CADOptions` | `semialg.decomposition.cylindrical` | class | Options accepted by :func:`cad`. |
-| `CADResult` | `semialg.decomposition.cylindrical` | class | Public result for CAD requests. |
 | `cad` | `semialg.decomposition.cylindrical` | function | Compute a cylindrical algebraic decomposition for a real formula. |
 
 ## Solving and sampling
@@ -55,19 +48,18 @@ Primary reference: [Solving and sampling](solving_and_sampling.md)
 | `discretize_region_geometry` | `semialg.solution_geometry` | function | Return lightweight geometry for explicit standard-region objects. |
 | `discretize_solution` | `semialg.solution_geometry` | function | Return a small plotting/discretization representation for a solution. |
 | `find_instance` | `semialg.solve.find_instance` | function | Find satisfying assignments for a formula. |
-| `RealAlgebraicFeasibilityResult` | `semialg.real_algebraic` | class | Certified real-algebraic feasibility result. |
 | `real_algebraic_feasibility` | `semialg.real_algebraic` | function | Decide real feasibility of rational polynomial equations by certified ARS reduction. |
 | `solve_real_algebraic_set` | `semialg.real_algebraic` | function | Return one exact real point or certified emptiness. |
-| `WitnessSearchResult` | `semialg.witness_heuristics` | class | Exact-verified one-sided witness-search result. |
 | `find_negative_witness_fast` | `semialg.witness_heuristics` | function | Search odd-degree and rational-line negative witnesses. |
 | `is_zero_dimensional` | `semialg.solve.zero_dimensional` | function | Return whether rational polynomial equations define a finite complex set. |
 | `plot_region_geometry` | `semialg.solution_geometry` | function | Plot an explicit standard-region object using Matplotlib. |
 | `plot_solution` | `semialg.solution_geometry` | function | Plot a 1D/2D solution using Matplotlib when available. |
 | `sample_point` | `semialg.sampling` | function | Return one satisfying real sample point for ``formula``, or ``None``. |
 | `sample_points` | `semialg.sampling` | function | Return satisfying real sample points for a quantifier-free formula. |
+| `random_point` | `semialg.region_sampling` | function | Return one random point, intrinsically uniform for supported canonical regions. |
+| `random_points` | `semialg.region_sampling` | function | Return seeded random points, intrinsically uniform for supported canonical regions. |
 | `sign_at` | `semialg.sampling` | function | Return the sign of a polynomial/expression at a point. |
 | `sign_vector` | `semialg.sampling` | function | Return the signs of ``polys`` at ``point`` in input order. |
-| `solve_zero_dimensional_system` | `semialg.solve.zero_dimensional` | function | Solve a finite rational polynomial system exactly. |
 
 ## Optimization and ranges
 
@@ -76,13 +68,10 @@ Primary reference: [Optimization and ranges](optimization_and_range.md)
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
 | `function_range` | `semialg.optimization` | function | Return a quantifier-free formula describing a real function range. |
-| `FunctionRangeResult` | `semialg.optimization_results` | class | Exact range summary for a supported semialgebraic image problem. |
-| `OptimizationResult` | `semialg.optimization_results` | class | Exact optimum summary for supported semialgebraic problems. |
-| `PolynomialNegativityResult` | `semialg.polynomial_positivity` | class | Certified polynomial-negativity result. |
+| `polynomial_nonnegative_decision` | `semialg.decision_portfolio` | function | Certified SOS/Zeng/ARS/CAD-style nonnegativity portfolio. |
 | `find_negative_point` | `semialg.polynomial_positivity` | function | Return a certified negative point or certified nonnegativity. |
-| `polynomial_nonnegative` | `semialg.polynomial_positivity` | function | Decide global nonnegativity on the certified specialized fragment. |
+| `polynomial_nonnegative` | `semialg.polynomial_positivity` | function | Decide global nonnegativity through the certified portfolio dispatcher. |
 | `zeng_negative_point` | `semialg.polynomial_positivity` | function | Specialized exact critical-value polynomial negativity backend. |
-| `root_count_conditions` | `semialg.parameters` | function | Return parameter conditions grouped by distinct real-root count. |
 | `semialgebraic_maximize` | `semialg.optimization` | function | Return an exact maximum/supremum for a polynomial semialgebraic problem. |
 | `semialgebraic_minimize` | `semialg.optimization` | function | Return an exact minimum/infimum for a polynomial semialgebraic problem. |
 | `solvability_conditions` | `semialg.parameters` | function | Return parameter conditions for real solvability of a constraint system. |
@@ -94,21 +83,49 @@ Primary reference: [Regions and geometry](regions.md)
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
 | `AffineBoxClip` | `semialg.polyhedral_clipping` | class | Exact vertices of an affine subspace clipped by an axis-aligned box. |
-| `AffineMapAnalysis` | `semialg.affine_geometry` | class | Exact algebraic properties of an affine map ``x -> A*x + b``. |
 | `analyze_affine_map` | `semialg.affine_geometry` | function | Analyze an affine expression map or an explicit matrix/offset pair. |
-| `BoundaryStratum` | `semialg.region_analysis` | class | One exact CAD boundary cell with membership and active-set metadata. |
-| `bounded_parametric_cover` | `semialg.parametric_geometry` | function | Return a certified finite bounded parametric cover when one is structural. |
 | `clip_affine_subspace_to_box` | `semialg.polyhedral_clipping` | function | Clip a low-dimensional affine subspace to a box without CAD. |
-| `ParametricChart` | `semialg.parametric_geometry` | class | One certified map from a bounded parameter domain into a region. |
-| `ParametricCover` | `semialg.parametric_geometry` | class | Finite certified cover of a region or bounded region intersection. |
-| `ParametricMapDegree` | `semialg.map_degree` | class | Generic complex fiber degree of a rational map in characteristic zero. |
-| `parametric_map_degree` | `semialg.map_degree` | function | Return the generic algebraic fiber degree of a rational map. |
-| `RegionBoundaryResult` | `semialg.region_analysis` | class | Exact region boundary together with reusable CAD and cell metadata. |
-| `SingularLocusResult` | `semialg.region_analysis` | class | Certified singular-locus result with explicit incomplete semantics. |
 | `region_boundary_result` | `semialg.region_analysis` | function | Return exact boundary cells, membership status, active residuals, and CAD. |
 | `affine_transform` | `semialg.derived_geometry` | function | Return the exact affine image ``A*x + b`` in the original coordinates. |
 | `argmax_set` | `semialg.derived_geometry` | function | Return the exact global maximizer set as a semialgebraic formula. |
 | `argmin_set` | `semialg.derived_geometry` | function | Return the exact global minimizer set as a semialgebraic formula. |
+| `AffineHalfSpace` | `semialg.standard_regions` | class | Half-space intrinsic to an affine subspace. |
+| `AffineSpace` | `semialg.standard_regions` | class | Affine space represented by one point and independent directions. |
+| `Geometry` | `semialg.standard_regions` | class | Common structural geometry protocol with semialgebraic formula lowering. |
+| `HalfSpace` | `semialg.standard_regions` | class | Closed half-space defined by an oriented hyperplane. |
+| `Hyperplane` | `semialg.standard_regions` | class | Codimension-one affine space defined by a normal and point. |
+| `Line` | `semialg.standard_regions` | class | Infinite affine line represented by a point and direction. |
+| `HRepresentation` | `semialg.polyhedral` | class | Exact closed halfspace representation `A x <= b` with bounded H→V conversion and redundancy certification. |
+| `affine_image` | `semialg.region_transformations` | function | Structure-preserving exact affine image of canonical regions. |
+| `affine_preimage` | `semialg.region_transformations` | function | Exact preimage under an invertible affine map. |
+| `region_image` | `semialg.region_transformations` | function | Exact symbolic image with canonical affine preservation and lazy nonlinear lowering. |
+| `region_preimage` | `semialg.region_transformations` | function | Exact symbolic preimage with canonical affine preservation. |
+| `Point` | `semialg.standard_regions` | class | Canonical single-point geometry. |
+| `Ray` | `semialg.standard_regions` | class | Closed affine ray represented by a point and direction. |
+| `Polytope` | `semialg.standard_regions` | class | Canonical convex polytope represented by vertices. |
+| `Simplex` | `semialg.standard_regions` | class | Canonical simplex with affinely independent vertices. |
+| `Triangle` | `semialg.standard_regions` | class | Convenience constructor namespace returning canonical simplices. |
+| `Polygon` | `semialg.standard_regions` | class | Canonical simple polygon in two dimensions. |
+| `RegularPolygon` | `semialg.standard_regions` | function | Construct a regular polygon as a canonical polygon. |
+| `ConicRegion` | `semialg.standard_regions` | class | Affine conic region with lineality directions and nonnegative rays. |
+| `Parallelepiped` | `semialg.standard_regions` | class | Canonical affine image of a unit box. |
+| `Cube` | `semialg.standard_regions` | function | Construct an axis-aligned cube as a canonical parallelepiped. |
+| `Tetrahedron` | `semialg.standard_regions` | function | Construct an explicit or regular tetrahedron as a canonical simplex. |
+| `Octahedron` | `semialg.standard_regions` | function | Construct a regular octahedron as a canonical polytope. |
+| `Icosahedron` | `semialg.standard_regions` | function | Construct a regular icosahedron as a canonical polytope. |
+| `Dodecahedron` | `semialg.standard_regions` | function | Construct a regular dodecahedron as a canonical polytope. |
+| `Prism` | `semialg.standard_regions` | function | Extrude a vertex-defined base into a canonical polytope. |
+| `Pyramid` | `semialg.standard_regions` | function | Join a base to an apex as a canonical polytope. |
+| `Hexahedron` | `semialg.standard_regions` | function | Construct a canonical polytope from eight 3D vertices. |
+| `Ball` | `semialg.standard_regions` | class | Canonical closed Euclidean ball in arbitrary dimension. |
+| `Sphere` | `semialg.standard_regions` | class | Canonical sphere boundary in arbitrary dimension. |
+| `Circle` | `semialg.standard_regions` | constructor namespace | Construct planar canonical spheres. |
+| `Ellipsoid` | `semialg.standard_regions` | class | Canonical filled ellipsoid with a positive-definite shape matrix. |
+| `EllipsoidBoundary` | `semialg.standard_regions` | class | Canonical ellipsoid boundary with a positive-definite shape matrix. |
+| `Cylinder` | `semialg.standard_regions` | class | Canonical flat-ended right circular cylinder. |
+| `Cone` | `semialg.standard_regions` | class | Canonical right circular cone with base at `start` and apex at `end`. |
+| `Torus` | `semialg.standard_regions` | class | Canonical ring or horn torus surface in three-dimensional space. |
+| `FilledTorus` | `semialg.standard_regions` | class | Canonical solid ring or horn torus in three-dimensional space. |
 | `BallRegion` | `semialg.standard_regions` | class | BallRegion(center: 'Sequence[object]', radius: 'object' = 1) |
 | `BooleanRegion` | `semialg.standard_regions` | class | BooleanRegion(op: 'str', regions: 'Sequence[StandardRegion]', *, assume_disjoint: 'bool' = False) |
 | `bounding_box` | `semialg.geometry_queries` | function | Compute the exact axis-aligned bounding box by coordinate optimization. |
@@ -120,9 +137,13 @@ Primary reference: [Regions and geometry](regions.md)
 | `connected_components` | `semialg.derived_geometry` | function | Return exact CAD-connected-component formulas. |
 | `convexity_certificate` | `semialg.convexity` | function | Decide convexity through the staged exact certificate hierarchy. |
 | `contains_point` | `semialg.derived_geometry` | function | Return whether an exact point belongs to the semialgebraic region. |
+| `RegionElement` | `semialg.symbolic_regions` | class | Symbolic assertion that a point belongs to a region. |
+| `RegionNotElement` | `semialg.symbolic_regions` | class | Symbolic assertion that a point does not belong to a region. |
 | `coordinate_range` | `semialg.derived_geometry` | function | Return the exact range of one coordinate over a region. |
 | `covariance_matrix` | `semialg.derived_geometry` | function | Return the exact covariance matrix of the uniform measure on a region. |
 | `critical_values` | `semialg.geometry_queries` | function | Return exact objective values from isolated and constant KKT components. |
+| `critical_value_image` | `semialg.geometry_queries` | function | Return the exact supported value-set image of critical loci. |
+| `CriticalValueImage` | `semialg.geometry_queries` | class | Structured exact image of isolated and positive-dimensional critical values. |
 | `CylinderRegion` | `semialg.standard_regions` | class | CylinderRegion(start: 'Sequence[object]', end: 'Sequence[object]', radius: 'object' = 1) |
 | `diameter` | `semialg.derived_geometry` | function | Return the exact Euclidean diameter (supremal pairwise distance). |
 | `distance_between_regions` | `semialg.geometry_queries` | function | Compute exact Euclidean distance between two semialgebraic regions. |
@@ -172,6 +193,7 @@ Primary reference: [Regions and geometry](regions.md)
 | `region_dimension` | `semialg.regions.operations` | function | Return the exact semialgebraic dimension from a complete adapted CAD. |
 | `region_interior` | `semialg.regions.operations` | function | Return the Euclidean interior of a semialgebraic region. |
 | `region_intersection` | `semialg.regions.operations` | function | Return the intersection of implicit semialgebraic regions. |
+| `region_product` | `semialg.regions.operations` | function | Return the exact Cartesian product of semialgebraic regions. |
 | `region_union` | `semialg.regions.operations` | function | Return the union of implicit semialgebraic regions. |
 | `RegionDifference` | `semialg.standard_regions` | function | Return the Boolean difference of two standard regions. |
 | `RegionIntersection` | `semialg.standard_regions` | function | Return the Boolean intersection of standard regions. |
@@ -210,6 +232,7 @@ Primary reference: [Integration, measure, and moments](integration_and_moments.m
 | `region_centroid` | `semialg.moments` | function | Return the centroid of a finite-measure semialgebraic region. |
 | `region_covariance` | `semialg.moments` | function | Return the covariance matrix of the uniform measure on a region. |
 | `region_moment` | `semialg.moments` | function | Return a raw moment integral over a semialgebraic region. |
+| `region_measure` | `semialg.region_measurement` | function | Return intrinsic or ambient measure for canonical geometry and formula regions. |
 | `semialgebraic_measure` | `semialg.measure` | function | Return the exact measure of a supported semialgebraic set. |
 
 ## Algebraic computation
@@ -254,7 +277,6 @@ Primary references: [Regions](regions.md), [CAD](cad.md), and [Exactness and cer
 
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
-| `SemialgebraicContext` | `semialg.context` | class | Reusable normalized semialgebraic problem plus exact computation cache. |
 | `SemialgebraicRegion` | `semialg.symbolic_regions` | class | A symbolic semialgebraic subset of ````R^n```` with lazy reusable state. |
 | `as_semialgebraic_region` | `semialg.symbolic_regions` | function | Coerce a formula or explicit ````StandardRegion```` to ````SemialgebraicRegion````. |
 | `local_dimension` | `semialg.region_analysis` | function | Exact local semialgebraic dimension at a point. |
@@ -264,7 +286,6 @@ Primary references: [Regions](regions.md), [CAD](cad.md), and [Exactness and cer
 | `region_singular_locus` | `semialg.region_analysis` | function | Return an exact singular-locus formula or raise when certification is incomplete. |
 | `region_singular_locus_result` | `semialg.region_analysis` | function | Return singular-locus geometry with completeness and diagnostic metadata. |
 | `replay_certificate` | `semialg.certificates` | function | Replay a supported exact certificate using an independent public path. |
-| `result_diagnostics` | `semialg.certificates` | function | Return one stable diagnostic schema for CAD/QE/optimization certificates. |
 
 ## Unified symbolic/CAD region facade additions
 
@@ -297,11 +318,45 @@ Primary reference: [Convexity backend primitives](convexity_backend.md)
 | `matrix_psd_on` | `semialg.matrix_analysis` | function | Decide positive semidefiniteness on a semialgebraic domain. |
 | `matrix_rank_on` | `semialg.matrix_analysis` | function | Return the exact constant matrix rank on a region, or `None` when it varies. |
 | `matrix_rank_stratification` | `semialg.matrix_analysis` | function | Partition parameter space by exact determinantal rank. |
-| `parametric_affine_reduction` | `semialg.affine_reduction` | function | Reduce affine equalities with explicit zero/nonzero parameter-pivot branches. |
 | `prove_nonzero` | `semialg.reasoning` | function | Prove that an expression is everywhere nonzero on a semialgebraic region. |
 | `prove_zero` | `semialg.reasoning` | function | Prove that an expression is identically zero on a semialgebraic region. |
 | `function_sign` | `semialg.reasoning` | function | Return a canonical exact sign classification, optionally stratified by parameters. |
 | `function_sign_partition` | `semialg.function_analysis` | function | Partition a univariate semialgebraic function domain into exact positive, zero, and negative regions. |
 | `function_smoothness` | `semialg.function_properties` | function | Report continuity, differentiability order, smoothness, and exact exceptional loci. |
 | `function_mapping_properties` | `semialg.function_properties` | function | Certify injectivity, surjectivity, bijectivity, image, and exact witnesses. |
+| `is_injective` | `semialg.function_properties` | function | Return the certified injectivity projection for a semialgebraic map. |
+| `is_surjective` | `semialg.function_properties` | function | Return the certified surjectivity projection for a semialgebraic map. |
+| `is_bijective` | `semialg.function_properties` | function | Return the certified bijectivity projection for a semialgebraic map. |
+| `is_function_continuous` | `semialg.function_properties` | function | Return the certified continuity projection for a semialgebraic function. |
+| `is_function_smooth` | `semialg.function_properties` | function | Return the certified smoothness projection for a semialgebraic function. |
 | `strict_feasible` | `semialg.strict_feasibility` | function | Decide affine-relative or ambient strict feasibility and return a witness in result mode. |
+
+## Algebraic decomposition and GTZ infrastructure
+
+Primary reference: [Algebraic roots and exact finite solving](algebraic.md)
+
+| Public name | Implementation module | Kind | Summary |
+|---|---|---|---|
+
+## Package lifecycle and cache controls
+
+Primary reference: [Performance](../guides/performance.md#cache-lifecycle-and-teardown)
+
+| Public name | Implementation module | Kind | Summary |
+|---|---|---|---|
+
+## Exact real-root and topology core
+
+| Public name | Implementation module | Kind | Summary |
+|---|---|---|---|
+| `connected_component_count` | `semialg.roadmaps` | function | Count exact semialgebraic connected components. |
+| `connected_component_samples` | `semialg.roadmaps` | function | Return one exact sample per connected component. |
+| `topology_summary` | `semialg.topological_invariants` | function | Compute component, Euler, and supported Betti data. |
+| `betti_number` | `semialg.topological_invariants` | function | Return a certified supported Betti number. |
+
+## Semialgebraic topology and families
+
+Primary reference: [Semialgebraic topology and families](regions.md#semialgebraic-topology-and-families)
+
+| Public name | Implementation module | Kind | Summary |
+|---|---|---|---|

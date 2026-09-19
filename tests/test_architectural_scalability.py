@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import SemialgebraicContext, is_satisfiable
+from semialg import is_satisfiable
+from semialg.context import SemialgebraicContext
 from semialg.ec.selection import choose_designated_ec
 from semialg.incidence import analyze_incidence, sparse_variable_order
 from semialg.parameter_stratification import exceptional_parameter_analysis

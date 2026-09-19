@@ -62,7 +62,7 @@ treating a failed Hessian sign as a set-convexity theorem.
 
 `function_convexity(expr, variables, domain=...)` classifies a supported real semialgebraic function as `affine`, `convex`, `concave`, `neither`, `nonconvex_domain`, or `unknown`. The natural real domain recognized by `function_domain` is intersected automatically with the explicit domain.
 
-The implementation deliberately consumes the reusable backend primitives rather than duplicating them. It certifies domain convexity, uses affine-relative strict feasibility and safe affine presolve for lower-dimensional domains, uses `function_sign` and `matrix_definiteness` for Hessian analysis, and falls back to exact epi/hypograph or quantified Jensen reasoning through the semialgebraic graph layer. Parameterized calls return `ParameterStratifiedResult` branches with the same canonical classifications.
+The implementation consumes the reusable backend primitives rather than duplicating them. It certifies domain convexity, uses affine-relative strict feasibility and safe affine presolve for lower-dimensional domains, uses `function_sign` and `matrix_definiteness` for Hessian analysis, and falls back to exact epi/hypograph or quantified Jensen reasoning through the semialgebraic graph layer. Parameterized calls return `ParameterStratifiedResult` branches with the same canonical classifications.
 
 For a polynomial on a full-dimensional convex domain, the Hessian test is necessary and sufficient, so both positive and negative matrix-definiteness results are decisive. On lower-dimensional domains, a positive Hessian certificate is still sufficient, but a failed ambient Hessian sign is not treated as a nonconvexity proof; exact function-definition reasoning is used instead.
 
@@ -75,16 +75,14 @@ from semialg import function_convexity
 x, y, a = symbols("x y a", real=True)
 
 assert function_convexity(x**2, [x]) == "strongly_convex"
-assert function_convexity(-x**2, [x]) == "strongly_concave"
-assert function_convexity(2*x + 1, [x]) == "affine"
+assert function_convexity(-(x**2), [x]) == "strongly_concave"
+assert function_convexity(2 * x + 1, [x]) == "affine"
 assert function_convexity(Abs(x), [x]) == "convex"
 
-restricted = function_convexity(
-    -y**2, [x, y], domain=(y == 0) & (x >= -1) & (x <= 1)
-)
+restricted = function_convexity(-(y**2), [x, y], domain=(y == 0) & (x >= -1) & (x <= 1))
 assert restricted == "affine"
 
-parametric = function_convexity(a*x**2, [x], parameters=[a])
+parametric = function_convexity(a * x**2, [x], parameters=[a])
 assert parametric.select({a: 2}) == "convex"
 assert parametric.select({a: -2}) == "concave"
 assert parametric.select({a: 0}) == "affine"

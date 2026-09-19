@@ -22,3 +22,4 @@ The gallery favors small exact problems that expose the real algorithms—CAD/QE
 - [CAD-driven integration variable ordering](16_cad_integration_variable_order.md) — Let CAD choose simpler cylindrical coordinates and exact iterated bounds.
 
 - [Symbolic region conditions and active-boundary strata](17_symbolic_region_conditions.md) — Keep region membership symbolic by default, opt into QE, expose real parameter assumptions, and inspect active boundary strata.
+- [Specialist APIs and owning namespaces](18_specialist_namespaces.md) — Keep the package root focused while importing root-count and map-degree workflows explicitly.

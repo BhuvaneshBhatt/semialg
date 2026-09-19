@@ -3,9 +3,12 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg import cad, classify_real_roots
+from semialg.algebraic.cache import clear_algebraic_caches
+from semialg.algebraic.comparison import compare_samples
+from semialg.algebraic.intervals import RationalInterval
 from semialg.algebraic.roots import isolate_real_roots
 from semialg.algebraic.sample_points import choose_sector_sample
-from semialg.algebraic.samples import AlgebraicRoot
+from semialg.algebraic.samples import AlgebraicRoot, RationalSample
 from semialg.reconstruct import root_of
 from semialg.simplify.intervals import Interval1D, merge_intervals
 
@@ -35,6 +38,26 @@ def test_exact_root_isolation_handles_algebraic_coefficients_without_numerics():
     expected = (-(2 ** sp.Rational(1, 4)), 2 ** sp.Rational(1, 4))
     assert values == expected
     assert all(sp.simplify((x**2 - sp.sqrt(2)).subs(x, value)) == 0 for value in values)
+
+
+def test_algebraic_root_expression_uses_its_certified_interval_before_index():
+    x = sp.Symbol("x", real=True)
+    polynomial = sp.Poly(x**2 - 2, x)
+    root = AlgebraicRoot(polynomial, RationalInterval(1, 2), root_index=5)
+
+    assert root.as_expr() == sp.sqrt(2)
+
+
+def test_comparison_cache_distinguishes_root_interval_certificates():
+    x = sp.Symbol("x", real=True)
+    polynomial = sp.Poly(x**2 - 2, x)
+    positive = AlgebraicRoot(polynomial, RationalInterval(1, 2), root_index=5)
+    negative = AlgebraicRoot(polynomial, RationalInterval(-2, -1), root_index=5)
+    zero = RationalSample(0)
+
+    clear_algebraic_caches()
+    assert compare_samples(positive, zero) == 1
+    assert compare_samples(negative, zero) == -1
 
 
 def test_sector_sample_refines_overlapping_algebraic_intervals_exactly():

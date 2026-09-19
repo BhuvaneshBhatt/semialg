@@ -45,7 +45,7 @@ def test_virtual_substitution_prepass_falls_back_when_degree_is_too_high():
     assert result.metadata["qe_result"].backend != "quadratic-virtual-substitution-qe"
 
 
-def test_try_virtual_substitution_qe_removes_vacuous_existential_after_quadratic_step():
+def test_virtual_substitution_removes_vacuous_exists():
     x, y = sp.symbols("x y", real=True)
     parsed = parse_quant_form_text(
         "exists x, y. x^2 <= 1",
@@ -63,7 +63,7 @@ def test_try_virtual_substitution_qe_removes_vacuous_existential_after_quadratic
     assert result.formula == sp.true or sp.simplify(result.formula) == sp.true
 
 
-def test_try_virtual_substitution_qe_returns_none_for_mixed_quantifier_prefix_in_full_mode():
+def test_virtual_substitution_declines_mixed_prefix():
     x, y = sp.symbols("x y", real=True)
     parsed = parse_quant_form_text(
         "forall x. (y^2 + x <= 0)",

@@ -109,3 +109,25 @@ def test_formula_graph_supports_xor_implies_and_equivalent():
     graph = semialgebraic_formula_graph(formula)
     assert graph.formula is not None
     assert graph.auxiliary_variables
+
+
+def test_semialgebraic_graph_is_closed_under_nested_supported_compositions() -> None:
+    x, y, t = sp.symbols("x y t", real=True)
+    expressions = (
+        sp.Abs(sp.real_root(x, 3)),
+        sp.Max(sp.Abs(x), sp.sqrt(y)),
+        sp.Min(sp.sign(x) + 2, sp.Abs(y - 1)),
+        sp.Piecewise((sp.sqrt(sp.Abs(x)), x <= 1), (sp.Max(x, y), True)),
+    )
+    for expression in expressions:
+        graph = semialgebraic_function_graph(expression, t)
+        assert graph.formula is not None
+        assert graph.auxiliary_variables
+
+
+def test_nested_supported_graphs_feed_domain_and_range_projection() -> None:
+    x, t = sp.symbols("x t", real=True)
+    expression = sp.sqrt(sp.Abs(x))
+    assert function_domain(expression, [x]) is sp.true
+    result = function_range(expression, variables=[x], value_symbol=t)
+    assert equivalent(result, t >= 0, [t])

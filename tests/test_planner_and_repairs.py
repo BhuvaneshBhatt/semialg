@@ -34,7 +34,8 @@ def test_planner_and_02():
 def test_planner_and_03():
     solved = reduce_text("exists y. y^2 - x = 0", strategy="auto", return_result=True)
     assert solved.result == sp.Ge(sp.Symbol("x", real=True), 0)
-    assert "strategy_selection" in solved.metadata
+    assert solved.method == "quadratic_virtual_substitution"
+    assert "strategy_selection" not in solved.metadata
 
 
 def test_planner_and_04():

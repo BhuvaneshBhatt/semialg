@@ -68,3 +68,9 @@ Parametric optimization and function-range results retain their exact quantified
 ## Parametric integration
 
 For semialgebraic regions whose inequalities contain symbolic parameters, region integration stratifies parameter space, reduces the region with symbolic parameter-dependent bounds, and attaches exact integral expressions to the certified guards. Empty fibers are represented by a zero-valued branch, giving complete parameter-space coverage. This is different from `ParametricRegion`, which represents an explicit geometric parametrization.
+
+## Representative parameter samples
+
+A representative sample is auxiliary data, not a proof that an arbitrary convenient parameter value belongs to a stratum. When CAD supplies a cell sample, semialg validates it against that cell. When a finer parameter decomposition is unavailable, the fallback searches for and validates an exact representative of the full parameter condition. It never assumes that zero is feasible. If no representative can be certified for a nonempty stratum, the operation raises `NotImplementedError` rather than specializing the problem at an invalid point.
+
+Sampled fibers are constructed through the same internal path for CAD cells and fallback strata, so specialization and validation semantics remain consistent.

@@ -1,14 +1,89 @@
-# Region operations and predicates
+# Region relations and operations
 
-`semialg` represents semialgebraic regions using SymPy Boolean formulas over real variables.
+Use these APIs when you want to ask set-theoretic questions about regions or construct a new region from existing geometry. Canonical regions are handled structurally when semialg has an exact closed form; general semialgebraic inputs fall back to the package's exact formula/QE/CAD machinery.
 
-## Boolean region operations
+## Relations
+
+```python
+from semialg import Ball, IntervalRegion, is_disjoint, is_equal, is_subset
+
+small = Ball((0, 0), 1)
+large = Ball((0, 0), 3)
+
+is_subset(small, large)
+# True
+
+is_disjoint(IntervalRegion(0, 1), IntervalRegion(2, 3))
+# True
+
+is_equal(IntervalRegion(0, 1), IntervalRegion(0, 1))
+# True
+```
+
+Canonical geometry objects expose the same relations as methods:
+
+```python
+small.subset_of(large)
+small.disjoint_from(Ball((4, 0), 1))
+small.equals_region(Ball((0, 0), 1))
+```
+
+The structural layer currently recognizes common exact cases for points, intervals, boxes, and filled balls. If it cannot certify the answer directly, the relation is lowered to the existing exact implication/equivalence/satisfiability engine.
+
+## Boolean set operations
 
 ```python
 from semialg import region_union, region_intersection, region_difference, region_complement
 ```
 
-These functions construct symbolic Boolean formulas for union, intersection, difference, and complement.
+`region_intersection` preserves canonical structure when a direct representation is known. For example, intersecting two closed intervals yields an `IntervalRegion`, and intersecting compatible boxes yields a `BoxRegion`. General intersections use the unified symbolic-region representation.
+
+`region_union`, `region_difference`, and `region_complement` construct exact Boolean semialgebraic regions.
+
+## Cartesian products
+
+`region_product` forms Cartesian products. Closed intervals and boxes retain a canonical `BoxRegion`; products of individual points retain a canonical `Point`.
+
+```python
+from semialg import IntervalRegion, region_product
+
+rectangle = region_product(IntervalRegion(0, 1), IntervalRegion(2, 4))
+# BoxRegion(bounds=((0, 1), (2, 4)))
+```
+
+For regions without a direct canonical product representation, semialg creates a `SemialgebraicRegion` in concatenated coordinates.
+
+## Images and preimages
+
+`region_image` and `region_preimage` represent exact direct and inverse images under affine or polynomial maps. Affine maps preserve canonical structure whenever the resulting geometry has a supported canonical representation. Nonlinear direct images remain exact transformed regions until formula lowering; nonlinear preimages are exact substitutions.
+
+```python
+import sympy as sp
+from semialg import IntervalRegion, region_preimage
+
+x = sp.symbols("x", real=True)
+preimage = region_preimage(IntervalRegion(0, 1), (x**2,), (x,))
+
+preimage.contains((-1,))
+# True
+preimage.contains((2,))
+# False
+```
+
+Geometry objects also provide `.image(...)` and `.preimage(...)` methods.
+
+## Minkowski sums
+
+`minkowski_sum(A, B)` returns `{a + b : a in A, b in B}`. Points, intervals, boxes, and filled balls use direct structural formulas. General cases are computed as exact semialgebraic images.
+
+```python
+from semialg import Ball, minkowski_sum
+
+minkowski_sum(Ball((0, 0), 1), Ball((2, 0), 3))
+# Ball(center=(2, 0), radius=4)
+```
+
+The method form `region.minkowski_sum(other)` uses the same dispatch path.
 
 ## Closure, interior, boundary, dimension, components
 
@@ -24,72 +99,26 @@ region_closure(sp.And(x > 0, x < 1), [x])
 region_boundary(sp.And(x > 0, x < 1), [x])
 # Eq(x, 0) | Eq(x, 1)
 
-region_boundary(x**2 + y**2 < 1, [x, y])
-# Eq(x**2 + y**2 - 1, 0) in supported cases
-
 region_dimension(x**2 + y**2 < 1, [x, y])
 # 2
 ```
 
-## Region predicates
+These topology operations use exact CAD semantics for composite formulas. `region_dimension` is the maximum Euclidean dimension of a selected cell in a complete adapted CAD.
 
-```python
-from semialg.reasoning import (
-    region_bounded, region_closed, region_compact,
-    region_disjoint, region_equal, region_subset,
-)
+## Symbolic relation conditions
 
-region_subset(x > 1, x > 0, [x])
-# True
+For parameter-dependent statements, `RegionElement`, `RSubset`, `RDisjoint`, and `REqual` represent symbolic assertions. `region_element_conditions()` and `region_relation_conditions()` expose their formulas; use `eliminate=True` when a quantifier-free condition is required.
 
-region_equal(x**2 <= 1, sp.And(x >= -1, x <= 1), [x])
-# True
+## Structural convex intersections
 
-region_disjoint(x < 0, x > 0, [x])
-# True
+Affine lines and rays are clipped directly against convex canonical regions when an exact structural description is available. Boxes use their coordinate halfspaces directly; simplexes, polygons, parallelepipeds, and polytopes use exact polyhedral representations. Filled balls use the quadratic line parameter, so these cases avoid CAD entirely.
 
-region_bounded(sp.And(x >= 0, x <= 1), [x])
-# True
+Hyperplane sections are also structural for finite convex polyhedra. The intersection vertices are obtained from vertices lying on the hyperplane and exact crossings of polytope edges. Hyperplane sections of filled balls remain intrinsic balls represented through an affine embedding, and hyperplane sections of ellipsoids remain intrinsic ellipsoids.
+
+Polytope relations exploit convexity before using the general decision engine. To prove `P <= Q`, it is enough to certify every generating vertex of `P` against the supporting halfspaces of `Q`. Disjointness first looks for a separating supporting facet. Minkowski sums use the classical identity
+
+```text
+conv(V) + conv(W) = conv({v + w : v in V, w in W})
 ```
 
-## CAD-semantic topology
-
-`region_closure`, `region_interior`, and `region_boundary` use an adapted complete CAD for composite Boolean semialgebraic formulas. Closure is computed from CAD-cell incidence, interior as the complement of the closure of the complement, and boundary as the intersection of the two closures. This correctly removes internal decomposition seams; for example, the shared point in `[0, 1] ∪ [1, 2]` is an interior point rather than a boundary point.
-
-Atomic polynomial relations use the same CAD semantics as composite Boolean formulas. A compact atom-wise formula is retained only when its truth set is verified against the resulting CAD cells. This matters for cases such as `x**2*y > 0`, whose closure is not obtained by merely replacing `>` with `>=`. The atom-wise transformation remains available only with `strategy="syntactic"`.
-
-### Exact dimension
-
-`region_dimension` is an exact operation: it returns the maximum Euclidean dimension of a selected cell in a complete adapted CAD. The former equation-count/interior heuristic is no longer used by the public API.
-
-## Symbolic membership and relation conditions
-
-For symbolic region predicates, condition conversion is deliberately non-CAD by default.
-
-```python
-from semialg.symbolic_regions import region_element_conditions, region_relation_conditions
-
-region_element_conditions(expr)                       # structural lowering only
-region_element_conditions(expr, eliminate=True)       # request exact QE/CAD
-region_element_conditions(expr, real_parameters=True) # add Contains(p, Reals) guards
-
-region_relation_conditions(expr)
-region_relation_conditions(expr, eliminate=True)
-```
-
-`real_parameters=True` makes real-domain assumptions for algebraic-level region parameters explicit in the returned Boolean formula.
-
-## Singular, nonsmooth, and active-boundary structure
-
-`region_singular_locus` uses reduced-real component-relative Jacobian regularity. A smooth component contributes no intrinsic singularities, while intersections of distinct certified components contribute union-induced singularities even when the branches are individually smooth or tangent. Inequality boundaries are analyzed only on exact boundary CAD cells where the corresponding residual is actually active, and relative to each certified equality component rather than a global maximum dimension. The final locus is restricted to the actual topological boundary, so redundant or inactive inequalities cannot manufacture singularities. If a required equidimensional decomposition cannot be certified complete, the formula-only API raises rather than falling back to a global-rank approximation; `region_singular_locus_result` exposes the incomplete status and any certified lower-bound singular subset explicitly. Internally, exact incidence strata distinguish pairwise from higher-order component intersections and exclude components not in the recorded incidence set. `region_nonsmooth_locus` additionally detects transverse intersections on realized multi-active inequality strata, such as polygon corners and polyhedral ridges. `region_active_boundary_strata` reuses the rich boundary CAD metadata and returns pairwise-disjoint exact strata classified by the realized active residual set.
-
-```python
-from semialg import region_active_boundary_strata, region_nonsmooth_locus
-
-square = sp.And(x >= 0, x <= 1, y >= 0, y <= 1)
-strata = region_active_boundary_strata(square, [x, y])
-assert sum(s.active_count == 1 for s in strata) == 4
-assert sum(s.active_count == 2 for s in strata) == 4
-```
-
-The active-boundary result is a defining-constraint stratification, not a Whitney stratification; redundant inequalities can refine it.
+and therefore construct the exact sum from pairwise vertex sums without invoking CAD.

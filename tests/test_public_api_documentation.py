@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import inspect
 import re
+import unicodedata
 from pathlib import Path
 
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 
 import semialg
 
@@ -49,7 +53,7 @@ def test_public_functions_and_classes_have_docstrings():
 def test_primary_reference_families_state_the_contract():
     required = (
         "## Family contract",
-        "**Mathematical return.**",
+        "**Common mathematical result.**",
         "**Exactness and certification.**",
         "**Algorithm",
         "**Complexity and limitations.**",
@@ -87,8 +91,37 @@ def test_documentation_relative_links_resolve():
             resolved = (path.parent / relative).resolve()
             if not resolved.exists():
                 broken.append((str(path.relative_to(ROOT)), target))
+                continue
+            fragment = target.split("#", 1)[1] if "#" in target else ""
+            if fragment and resolved.suffix == ".md":
+                anchors = _markdown_anchors(resolved.read_text(encoding="utf-8"))
+                if fragment not in anchors:
+                    broken.append((str(path.relative_to(ROOT)), target))
 
     assert broken == []
+
+
+def _markdown_anchors(text: str) -> set[str]:
+    """Return GitHub/MkDocs-compatible explicit and generated heading anchors."""
+
+    anchors: set[str] = set()
+    counts: dict[str, int] = {}
+    for line in text.splitlines():
+        match = re.match(r"^#{1,6}\s+(.+?)\s*$", line)
+        if not match:
+            continue
+        heading = re.sub(r"\s+#+$", "", match.group(1)).strip()
+        explicit = re.search(r"\s*\{#([^}]+)\}\s*$", heading)
+        if explicit:
+            anchors.add(explicit.group(1))
+            heading = heading[: explicit.start()].strip()
+        normalized = unicodedata.normalize("NFKD", heading.lower())
+        slug = re.sub(r"[^\w\- ]", "", normalized).strip().replace(" ", "-")
+        slug = re.sub(r"-+", "-", slug)
+        count = counts.get(slug, 0)
+        counts[slug] = count + 1
+        anchors.add(slug if count == 0 else f"{slug}_{count}")
+    return anchors
 
 
 def _section_for_anchor(text: str, anchor: str) -> str | None:

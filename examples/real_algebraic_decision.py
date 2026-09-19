@@ -15,13 +15,13 @@ from semialg.algebraic_decomposition import (
 
 x, y = sp.symbols("x y", real=True)
 
-circle = real_algebraic_feasibility((x**2 + y**2 - 1,), (x, y))
+circle = real_algebraic_feasibility((x**2 + y**2 - 1,), (x, y), return_result=True)
 assert circle.complete and circle.satisfiable
 assert circle.assignment is not None
 assert sp.simplify((x**2 + y**2 - 1).subs(circle.assignment)) == 0
 print("circle witness:", circle.assignment)
 
-empty = real_algebraic_feasibility((x**2 + y**2 + 1,), (x, y))
+empty = real_algebraic_feasibility((x**2 + y**2 + 1,), (x, y), return_result=True)
 assert empty.complete and empty.satisfiable is False
 print("empty real variety certified:", empty.complete)
 

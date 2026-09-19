@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import root_count_conditions, solvability_conditions
+from semialg import solvability_conditions
+from semialg.parameters import root_count_conditions
 
 
 def test_solvability_conditions_for_quadratic_real_root_parameters() -> None:

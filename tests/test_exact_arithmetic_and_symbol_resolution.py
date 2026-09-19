@@ -65,7 +65,7 @@ def test_exact_truth_handles_algebraic_relation():
     assert exact_truth(sp.sqrt(2) < sp.Rational(7, 5)) is False
 
 
-def test_symbolic_integral_root_isolation_fails_conservatively_for_unsupported_domain():
+def test_root_isolation_declines_unsupported_domain():
     x = sp.Symbol("x")
     with pytest.raises(NotImplementedError, match="exact real-root isolation"):
         integral_real_roots(x**2 - sp.sqrt(2), x)

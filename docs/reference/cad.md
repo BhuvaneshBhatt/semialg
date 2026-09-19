@@ -1,7 +1,7 @@
 # CAD and structured geometry reference
 ## Family contract
 
-**Mathematical return.** CAD APIs return cylindrical cells/decompositions, exact cell bounds and samples, or structured connectivity/integration data derived from them.
+**computer algebra systeml return.** CAD APIs return cylindrical cells/decompositions, exact cell bounds and samples, or structured connectivity/integration data derived from them.
 
 **Exactness and certification.** Root order, sign/truth invariance, and cell reconstruction are exact on certified paths. Reduced projection is used only when its side conditions are established; otherwise the implementation falls back conservatively.
 
@@ -31,7 +31,7 @@ from semialg import cad
 ```
 
 CAD implementation modules are available to expert users under
-`semialg.cad_algorithms`; that package name is deliberately distinct from the
+`semialg.cad_algorithms`; that package name is distinct from the
 root `cad` function.
 
 Constructs or queries a cylindrical algebraic decomposition for supported semialgebraic input. Depending on options/output, CAD can support decision procedures, topology, structured cells, bounds, and integration adapters.

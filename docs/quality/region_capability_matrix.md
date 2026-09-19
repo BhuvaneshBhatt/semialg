@@ -3,8 +3,9 @@
 | Capability | Status | Exact/certified layer | Notes |
 |---|---|---|---|
 | Unified symbolic region | Implemented | Exact | `SemialgebraicRegion(formula, variables)` |
-| Named standard shapes | Implemented | Exact | Convertible to unified regions |
-| Membership expressions | Implemented | Exact | Symbolic lowering via `RegionElement` |
+| Named standard shapes | Implemented | Exact | Every canonical region family lowers through the unified region coercion layer |
+| Canonical formula lowering | Implemented | Exact | `Geometry.as_formula()` preserves quantified parameters; `eliminate=True` requests a quantifier-free formula |
+| Membership expressions | Implemented | Exact | `RegionElement`/`RegionNotElement` provide symbolic membership; `.contains()` and `contains_point()` decide exact points |
 | Subset/equality/disjointness | Implemented | Exact | QE/CAD-backed where needed |
 | Boolean operations | Implemented | Exact | Formula layer and reusable CAD layer |
 | Projection | Implemented | Exact | Existential QE |

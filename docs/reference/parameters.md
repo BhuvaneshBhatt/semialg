@@ -1,7 +1,7 @@
 # Parameters and conditional results reference
 ## Family contract
 
-**Mathematical return.** Parameter APIs return guarded exact branches, parameter stratifications, and certificates describing where each symbolic result is valid.
+**computer algebra systeml return.** Parameter APIs return guarded exact branches, parameter stratifications, and certificates describing where each symbolic result is valid.
 
 **Exactness and certification.** A representative sample from a parameter cell is not promoted to an unconditional symbolic answer. Guards, coverage, and disjointness are explicit parts of the result model.
 
@@ -28,12 +28,12 @@ Checks the structural/logical validity of a proposed parameter partition in supp
 ## Root conditions
 
 - `solvability_conditions`
-- `root_count_conditions`
+- `semialg.parameters.root_count_conditions`
 - `classify_real_roots`
 
 These expose parameter-dependent existence/count/classification information.
 
-`SolvabilityConditionsResult` deliberately has Boolean truth only for the two
+`SolvabilityConditionsResult` has Boolean truth only for the two
 unconditional cases: an identically true solvability condition is truthy and an
 identically false condition is falsey. A genuinely parameter-dependent condition
 raises `TypeError` in `bool(result)`; inspect `result.formula`,

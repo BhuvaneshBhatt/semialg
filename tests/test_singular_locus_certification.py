@@ -31,7 +31,7 @@ def test_incomplete_equality_decomposition_is_explicit_not_global_rank_fallback(
     assert not result.complete
     assert result.formula is None
     assert result.known_singular_formula is sp.false
-    assert "global-rank fallback is intentionally disabled" in result.diagnostics[0]
+    assert "global-rank fallback is disabled" in result.diagnostics[0]
     with pytest.raises(NotImplementedError, match="global-rank fallback"):
         result.require_complete()
 

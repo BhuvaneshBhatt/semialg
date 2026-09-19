@@ -6,6 +6,7 @@ from semialg import (
     argmin_set,
     centroid,
     closest_points,
+    connected_components,
     contains_point,
     coordinate_range,
     covariance_matrix,
@@ -132,13 +133,17 @@ def test_dense_linear_image_and_distance_set_operations():
 
 
 def test_connected_components_public_api_returns_exact_components():
-    import sympy as sp
-
-    from semialg import connected_components
-
     x = sp.Symbol("x", real=True)
     components = connected_components((x <= -1) | (x >= 1), [x])
 
     assert len(components) == 2
     assert any(sp.simplify(component.subs(x, -2)) is sp.true for component in components)
     assert any(sp.simplify(component.subs(x, 2)) is sp.true for component in components)
+
+
+def test_connected_components_separates_strict_intervals_at_an_excluded_point():
+    x = sp.Symbol("x", real=True)
+
+    components = connected_components((x < 0) | (x > 0), [x])
+
+    assert components == (x < 0, x > 0)

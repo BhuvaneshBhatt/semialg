@@ -1,7 +1,7 @@
 # Decision and QE reference
 ## Family contract
 
-**Mathematical return.** Decision functions return exact truth values or structured exact decision results for first-order formulas over the reals. QE operations return a quantifier-free formula equivalent over the declared real variables.
+**computer algebra systeml return.** Decision functions return exact truth values or structured exact decision results for first-order formulas over the reals. QE operations return a quantifier-free formula equivalent over the declared real variables.
 
 **Exactness and certification.** Successful certified paths do not use fixed-precision numerical sign guesses. Specialized methods may decline and allow another exact backend to run.
 

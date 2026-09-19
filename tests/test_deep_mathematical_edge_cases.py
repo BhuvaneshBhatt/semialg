@@ -3,13 +3,14 @@ from __future__ import annotations
 import pytest
 import sympy as sp
 
-from semialg import connected_components, is_connected, root_count_conditions
+from semialg import connected_components, is_connected
 from semialg.algebraic.rational_univariate import (
     compute_rational_univariate_representation,
     solve_zero_dimensional_system_with_rur,
 )
 from semialg.cad_algorithms.reduced import decomp_form_reduced_safe
 from semialg.formula import parse_formula
+from semialg.parameters import root_count_conditions
 from semialg.tticad.safe import decompose_tticad_safe
 
 

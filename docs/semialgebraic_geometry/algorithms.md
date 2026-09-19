@@ -29,6 +29,8 @@ Many higher-dimensional algorithms ultimately rely on exact univariate root oper
 
 These operations support exact CAD sections, interval decomposition, root classification, and algebraic sample points.
 
+Refinement uses a hybrid Newton/bisection strategy: a Newton step is only a proposal, and the contracted interval is accepted only after an exact root-count certificate identifies the side containing the unique root.  Algebraic-coefficient fibers use progressively higher numerical precision only to propose rational split points; approximation never decides membership or root count.  Wide, easy intervals stay on ordinary bisection so the acceleration does not add avoidable overhead to simple cases.
+
 ## Resultants, subresultants, and discriminants
 
 Eliminating a variable from polynomial equations often uses the resultant. Discriminants detect multiple-root events, while principal/subresultant coefficients capture degree and common-root changes. In CAD projection these quantities identify parameter values where fiber behavior may change.

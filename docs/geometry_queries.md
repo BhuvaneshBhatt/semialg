@@ -54,9 +54,19 @@ The convenience predicates are exact compositions of the existing decision, topo
 
 ```python
 from semialg import (
-    is_empty, is_bounded, is_compact, is_open, is_closed,
-    is_subset, is_equal, is_disjoint, intersects, contains_point,
-    is_connected, is_full_dimensional, has_empty_interior,
+    is_empty,
+    is_bounded,
+    is_compact,
+    is_open,
+    is_closed,
+    is_subset,
+    is_equal,
+    is_disjoint,
+    intersects,
+    contains_point,
+    is_connected,
+    is_full_dimensional,
+    has_empty_interior,
 )
 ```
 

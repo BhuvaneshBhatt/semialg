@@ -38,6 +38,12 @@ def test_regular_explicit_graph_is_regular_stratum_and_integrates():
     integrals = intrinsic_solution_integrals(sol, 1, dimension=1, evaluate=True)
     assert len(integrals) == 1
     assert sp.simplify(integrals[0].integral - sp.sqrt(2)) == 0
+    piece = integrals[0]
+    assert piece.chart_variables == (x,)
+    assert dict(piece.chart_mapping) == {x: x, y: x}
+    assert piece.jacobian == sp.ImmutableMatrix([[1], [1]])
+    assert piece.gram_matrix == sp.ImmutableMatrix([[2]])
+    assert piece.metric_factor == sp.sqrt(2)
 
 
 def test_uncertified_algebraic_section_is_exposed_as_singular_stratum():

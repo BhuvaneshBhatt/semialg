@@ -1,7 +1,7 @@
 # Optimization and range reference
 ## Family contract
 
-**Mathematical return.** Optimization returns exact infimum/supremum information, attainment and witnesses where available; range APIs characterize all attainable scalar values.
+**computer algebra systeml return.** Optimization returns exact infimum/supremum information, attainment and witnesses where available; range APIs characterize all attainable scalar values.
 
 **Exactness and certification.** Exact candidate generation is distinct from global certification. Structured results expose certification/attainment information where relevant.
 
@@ -21,11 +21,23 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `function_range` | function | Return a quantifier-free formula describing a real function range. |
 | `FunctionRangeResult` | class | Exact range summary for a supported semialgebraic image problem. |
 | `OptimizationResult` | class | Exact optimum summary for supported semialgebraic problems. |
+| `CertifiedDecisionAttempt` | class | One backend attempt in a certified polynomial-decision portfolio trace. |
+| `CertifiedDecisionResult` | class | Final certified decision plus ordered backend attempts, witness, and certificate. |
+| `SOSCertificate` | class | Exact Gram-matrix sum-of-squares certificate. |
+| `SOSSearchPlan` | class | Sparse Newton-basis/Gram-size estimate controlling automatic SOS search. |
+| `PSDVerification` | class | Exact LDL/congruence PSD verification result. |
+| `SOSSearchResult` | class | Optional SOS-search result whose certificate is accepted only after exact verification. |
+| `plan_sos_search` | function | Estimate sparse Newton Gram basis and decide whether auto mode should launch SOS search. |
+| `sparse_sos_monomial_basis` | function | Compute the exact Newton-polytope-filtered SOS Gram basis. |
+| `search_sos_certificate` | function | Ask optional `symbopt` for an SOS candidate and verify it exactly. |
+| `verify_psd_exact` | function | Verify exact PSD using symmetric LDL/congruence elimination. |
+| `verify_sos_certificate` | function | Verify an exact Gram identity and positive-semidefinite Gram matrix. |
+| `polynomial_nonnegative_decision` | function | Dispatch SOS → Zeng/ARS → complete semialgebraic decision and retain the attempt trace. |
 | `PolynomialNegativityResult` | class | Certified negative-point/nonnegativity/incomplete result for a polynomial. |
 | `find_negative_point` | function | Return an exact point where a polynomial is negative, or certified nonnegativity. |
-| `polynomial_nonnegative` | function | Return a strict certified global polynomial nonnegativity decision. |
+| `polynomial_nonnegative` | function | Return a certified global polynomial nonnegativity decision through the portfolio dispatcher. |
 | `zeng_negative_point` | function | Specialized exact critical-value decision backend for polynomial negativity. |
-| `root_count_conditions` | function | Return parameter conditions grouped by distinct real-root count. |
+| `semialg.parameters.root_count_conditions` | function | Return parameter conditions grouped by distinct real-root count. |
 | `semialgebraic_maximize` | function | Return an exact maximum/supremum for a polynomial semialgebraic problem. |
 | `semialgebraic_minimize` | function | Return an exact minimum/infimum for a polynomial semialgebraic problem. |
 | `solvability_conditions` | function | Return parameter conditions for real solvability of a constraint system. |

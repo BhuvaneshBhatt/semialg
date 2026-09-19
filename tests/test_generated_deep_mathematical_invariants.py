@@ -9,10 +9,11 @@ hypothesis = pytest.importorskip("hypothesis")
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from semialg import connected_components, root_count_conditions
+from semialg import connected_components
 from semialg.algebraic.rational_univariate import solve_zero_dimensional_system_with_rur
 from semialg.cad_algorithms.reduced import decomp_form_reduced_safe
 from semialg.formula import parse_formula
+from semialg.parameters import root_count_conditions
 
 small_int = st.integers(min_value=-3, max_value=3)
 

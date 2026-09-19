@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import sympy as sp
 
-import semialg
-from semialg import computation_context, function_range, semialgebraic_minimize
+from semialg import function_range, semialgebraic_minimize
 from semialg.algebraic.roots import isolate_real_roots
 from semialg.algebraic.signs import sign_at_sample
 from semialg.conditional import ParameterStratifiedResult
-from semialg.context import ExactComputationContext, current_computation_context
+from semialg.context import (
+    ExactComputationContext,
+    computation_context,
+    current_computation_context,
+)
 from semialg.optimization import (
     ParametricFunctionRangeResult,
     ParametricOptimizationResult,
@@ -18,6 +21,9 @@ from semialg.planner.heuristics import candidate_variable_orders, score_variable
 
 
 def test_computation_context_reuses_algebraic_work_and_is_scoped() -> None:
+    from semialg.algebraic.cache import clear_algebraic_caches
+
+    clear_algebraic_caches()
     x = sp.Symbol("x", real=True)
     context = ExactComputationContext()
     assert current_computation_context() is None
@@ -27,7 +33,7 @@ def test_computation_context_reuses_algebraic_work_and_is_scoped() -> None:
         assert sign_at_sample(x + 3, (root,)) == 1
         stats = context.stats()
         assert stats["algebraic.roots"]["size"] >= 1
-        assert stats["algebraic.signs"]["hits"] >= 1
+        assert stats["algebraic.sign-certificates"]["hits"] >= 1
         assert current_computation_context() is context
     assert current_computation_context() is None
 
@@ -145,7 +151,7 @@ def test_parametric_string_parameter_preserves_existing_symbol_identity() -> Non
 
 
 def test_context_and_parametric_types_use_intended_api_tiers() -> None:
-    assert semialg.computation_context is computation_context
+    assert computation_context is computation_context
     assert ExactComputationContext is not None
     assert current_computation_context is not None
     assert ParametricOptimizationResult is not None

@@ -14,7 +14,8 @@ Symbolic geometry is allowed when an ordering cannot yet be decided exactly; mos
 | `ParallelogramRegion` / `ParallelepipedRegion` | origin and spanning vectors have compatible dimensions |
 | `PrismRegion` | base and extrusion data have compatible ambient dimensions |
 | `PyramidRegion` | base and apex have compatible ambient dimensions |
-| `BallRegion` / `SphereRegion` | radius is not provably negative |
+| `BallRegion` / `SphereRegion` / canonical `Ball` / `Sphere` | radius is not provably negative |
+| canonical `Ellipsoid` | center is nonempty; shape matrix is square, symmetric, and positive definite; unresolved symbolic Sylvester conditions are retained |
 | `SphericalShellRegion` | $0 \le r_{inner} \le r_{outer}$ when decidable |
 | `CylinderRegion` / `ConeRegion` | endpoint dimensions agree and radius is not provably negative |
 | `StadiumRegion` / `CapsuleRegion` | endpoint dimensions agree and radius is not provably negative; stadiums are planar while capsules may have arbitrary ambient dimension |

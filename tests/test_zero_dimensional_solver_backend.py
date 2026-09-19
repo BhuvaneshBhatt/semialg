@@ -1,8 +1,9 @@
 import pytest
 import sympy as sp
 
-from semialg import is_zero_dimensional, solve_zero_dimensional_system
+from semialg import is_zero_dimensional
 from semialg.algebraic.rational_univariate import RationalUnivariateError
+from semialg.solve.zero_dimensional import solve_zero_dimensional_system
 
 
 def test_public_zero_dimensional_solver_uses_rur_and_filters_inequalities():
@@ -11,7 +12,7 @@ def test_public_zero_dimensional_solver_uses_rur_and_filters_inequalities():
     result = solve_zero_dimensional_system(
         [sp.Eq(x**2 + y**2, 1), sp.Eq(x - y, 0)],
         inequalities=x > 0,
-        vars=[x, y],
+        variables=[x, y],
         return_result=True,
     )
 
@@ -32,14 +33,14 @@ def test_public_zero_dimensional_detection_rejects_positive_dimensional_curve():
 
     with pytest.raises(RationalUnivariateError, match="zero-dimensional"):
         solve_zero_dimensional_system(
-            [x**2 + y**2 - 1], vars=[x, y], backend="rur", return_result=True
+            [x**2 + y**2 - 1], variables=[x, y], backend="rur", return_result=True
         )
 
 
-def test_rur_backend_exposes_quotient_and_geometric_solution_metadata_for_nonradical_system():
+def test_rur_nonradical_metadata():
     x, y = sp.symbols("x y")
 
-    result = solve_zero_dimensional_system([x**2, y - 1], vars=[x, y], return_result=True)
+    result = solve_zero_dimensional_system([x**2, y - 1], variables=[x, y], return_result=True)
 
     assert result.points == ((0, 1),)
     assert result.representation is not None
@@ -51,7 +52,7 @@ def test_rur_backend_exposes_quotient_and_geometric_solution_metadata_for_nonrad
 def test_zero_dimensional_solver_uses_radical_simplification_before_enumeration():
     x = sp.symbols("x", real=True)
     result = solve_zero_dimensional_system(
-        [x**2], inequalities=sp.Ne(x, 0), vars=[x], return_result=True
+        [x**2], inequalities=sp.Ne(x, 0), variables=[x], return_result=True
     )
     assert result.points == tuple()
     assert result.status == "unsat"

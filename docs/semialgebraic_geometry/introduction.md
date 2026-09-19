@@ -73,7 +73,7 @@ A semialgebraic formula can be viewed in two complementary ways:
 1. **Logical:** a first-order formula over the ordered field of real numbers.
 2. **Geometric:** a region consisting of all real points satisfying that formula.
 
-`semialg` deliberately supports both viewpoints. Raw formulas are useful for one-off decisions and quantifier elimination; `SemialgebraicRegion` packages a formula with its ambient variables; `CADRegion` attaches a reusable cylindrical algebraic decomposition for repeated geometric and topological queries.
+`semialg` supports both viewpoints. Raw formulas are useful for one-off decisions and quantifier elimination; `SemialgebraicRegion` packages a formula with its ambient variables; `CADRegion` attaches a reusable cylindrical algebraic decomposition for repeated geometric and topological queries.
 
 See [Region representations](../guides/region_representations.md) for the computational tradeoffs.
 

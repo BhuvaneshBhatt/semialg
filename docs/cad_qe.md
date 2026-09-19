@@ -56,7 +56,7 @@ The specialized backend has an exact fallback contract: inability to certify a f
 
 ## Reduced projection and fallback
 
-Reduced/equational-constraint paths are used only when their logical and invariance requirements are established. The package falls back to the complete Collins-style path rather than treating a merely algebraic resultant as a logically necessary equality.
+The complete backend is Collins-style projection/lifting ([Collins1975](references.md), [ACM1984](references.md)): squarefree active polynomials project content, all coefficients, discriminants, and pairwise resultants. Reduced/equational-constraint paths are McCallum/Lazard/TTICAD-style accelerators ([McCallum1988](references.md), [Brown2001](references.md), [Lazard1994](references.md), [BDEMW2016](references.md)). They are used only when their logical and invariance requirements are established; otherwise the package falls back to the complete Collins-style path rather than treating a merely algebraic resultant as a logically necessary equality. See [Algorithm references](references.md#cylindrical-algebraic-decomposition) for the exact implementation mapping.
 
 ## Caching
 

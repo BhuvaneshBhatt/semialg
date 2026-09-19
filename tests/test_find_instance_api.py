@@ -16,7 +16,13 @@ def test_find_instance_01():
 def test_find_instance_02():
     result = find_instance_text("x^2 = 2", variables=["x"], count=2, return_result=True)
     assert isinstance(result, InstanceResult)
-    assert result.variables
+    assert result.status == SolverStatus.SAT
+    assert result.variables == (sp.Symbol("x", real=True),)
+    assert len(result.instances) == 2
+    assert {sp.simplify(point[result.variables[0]]) for point in result.instances} == {
+        -sp.sqrt(2),
+        sp.sqrt(2),
+    }
 
 
 def test_find_instance_03():

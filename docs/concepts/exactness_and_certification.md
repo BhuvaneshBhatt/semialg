@@ -25,7 +25,6 @@ Numerical computation is permitted in different roles depending on the API. The 
 | Exact range / QE reconstruction | Heuristics may choose a backend or presentation | Yes |
 | Plotting / discretization | Yes | No; these are presentation APIs |
 | `exact=False` sampling/integration modes | Yes | No; inexactness is explicit |
-| Certified transcendental root intervals, where supported | Numerical interval arithmetic may be part of the certified algorithm | Yes, through the backend's interval/certificate rules |
 
 A useful implementation principle follows: **numerics may suggest; they may not silently certify an exact API.**
 
@@ -57,7 +56,7 @@ semialg should not silently upgrade candidate generation into a proof. Certifica
 
 Numerical methods are useful for plotting, exploratory sampling, diagnostics, and explicitly inexact workflows. They are not used as hidden proof substitutes in certified CAD/root-ordering paths.
 
-For example, public sampling can opt into numerical random sampling with `exact=False`. That is intentionally different from an exact representative sample.
+For example, public sampling can opt into numerical random sampling with `exact=False`. That is different from an exact representative sample.
 
 ## Conservative failure
 
@@ -91,3 +90,11 @@ When consuming a structured result, treat these questions independently:
 4. **Approximation:** Was an inexact mode explicitly requested?
 
 For what happens when one of these stages cannot be completed, see [Errors and failure modes](../guides/errors_and_failure_modes.md).
+## Solver scope and exact transformations
+
+Exactness does not imply that every symbolic function belongs to one solver. Polynomial
+root certification, equivalence-preserving algebraization, and the existing transcendental
+solver have distinct contracts. See
+[Transcendental and algebraic solving scope](../guides/transcendental_scope.md) for the
+canonical boundary.
+

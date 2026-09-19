@@ -101,7 +101,7 @@ implementation. `optimization.py` remains the stable public facade and core
 optimizer, while `_optimization_parametric.py` owns parameter-stratified optimum
 relations. Function-range orchestration remains in `_optimization_range.py`, with
 fast special cases in `_range_special_cases.py` and graph/image QE in
-`_function_graph_image.py`. The split is intentionally procedural: algebraic and
+`_function_graph_image.py`. The split is procedural: algebraic and
 CAD inner loops do not gain strategy-object or method-dispatch layers.
 
 Region integration separates the public integration surface from focused
