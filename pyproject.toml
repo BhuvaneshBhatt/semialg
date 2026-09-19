@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semialg"
-version = "1.0.0"
+version = "1.1.0"
 description = "Exact real algebraic and semialgebraic geometry in Python: CAD, quantifier elimination, semialgebraic solving, decomposition, integration, and measure"
 readme = "README.md"
 requires-python = ">=3.11"
