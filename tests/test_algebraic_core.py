@@ -392,7 +392,7 @@ def test_fiber_root_rank_cert_avoids_recounting_known_rank_boundaries():
 
 
 @with_computation_context
-def test_ranked_partition_reuses_existing_rational_boundary_without_sturm_recount():
+def test_ranked_partition_reuses_rational_boundary():
     from semialg.algebraic.cache import CACHE
     from semialg.algebraic.samples import FiberRootContext, RationalSample
 
@@ -539,7 +539,7 @@ def test_local_tower_root_expr_rejects_nullified_fiber_root():
     assert local_tower_root_expr(stale_generic_root) is None
 
 
-def test_sign_eliminates_certified_point_coordinate_before_tower_interval_arithmetic():
+def test_sign_eliminates_certified_coordinate_first():
     import sympy as sp
 
     from semialg.algebraic.intervals import RationalInterval
@@ -621,7 +621,7 @@ def test_multilevel_quotient_sturm_eliminates_exact_parent_coordinates():
     assert context.root_count(sp.Rational(-10), sp.Rational(10)) == 0
 
 
-def test_projected_sign_reuses_selected_fiber_zero_certificate_with_omitted_parent():
+def test_projected_sign_reuses_fiber_zero_certificate():
     """A sign polynomial may omit an algebraic parent carried by the final fiber root."""
     from semialg.algebraic.intervals import RationalInterval
     from semialg.algebraic.samples import AlgebraicRoot, FiberRootContext, RationalSample

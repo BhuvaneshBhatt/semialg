@@ -62,8 +62,7 @@ reduce_complete_expr(statement)
 # True
 ```
 
-`apply_quantifiers(matrix, prefix)` and `split_quantifiers(formula)` provide an
-explicit bridge for code that must interoperate with older internal APIs.  A
+`apply_quantifiers(matrix, prefix)` and `split_quantifiers(formula)` provide the low-level matrix/prefix representation used by solver internals. A
 `ParsedPrenexFormula` also exposes `.quantified_expr`, so parsing text and
 reconstructing a first-class quantified expression round-trip cleanly.
 

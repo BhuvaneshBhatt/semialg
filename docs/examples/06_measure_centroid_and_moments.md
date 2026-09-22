@@ -29,6 +29,7 @@ from semialg import (
     centroid,
     covariance_matrix,
     inertia_tensor,
+    region_measure,
     semialgebraic_measure,
 )
 
@@ -48,6 +49,10 @@ assert area == sp.pi
 assert center == {x: 0, y: 0}
 assert cov == sp.eye(2) / 4
 assert inertia == sp.eye(2) * sp.pi / 4
+
+segment = sp.Eq(y, 0) & (x >= 0) & (x <= 1)
+assert region_measure(segment, [x, y]) == 0
+assert region_measure(segment, [x, y], measure_dimension="intrinsic") == 1
 ```
 
 The matching executable file is `examples/gallery/06_measure_centroid_and_moments.py`; the documentation

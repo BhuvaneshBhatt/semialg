@@ -3,7 +3,7 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg import (
-    BoxRegion,
+    Box,
     CADRegion,
     SemialgebraicRegion,
     as_cad_region,
@@ -16,7 +16,7 @@ from semialg.reasoning import region_subset
 def test_four_region_entry_styles_interoperate():
     x, y = sp.symbols("x y", real=True)
     formula = sp.And(x >= 0, x <= 1, y >= 0, y <= 1)
-    standard = BoxRegion(((0, 1), (0, 1)))
+    standard = Box(((0, 1), (0, 1)))
     symbolic = SemialgebraicRegion(formula, (x, y))
     cad = as_cad_region(symbolic)
 

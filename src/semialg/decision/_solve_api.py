@@ -53,6 +53,112 @@ from .api import (  # noqa: E402
 )
 
 
+def _execute_solver_backend(expr, vars_, *, method_key, domain, strategy, sample_count):
+    """Execute the selected exact backend without output/metadata assembly."""
+    selected_method: str | None = None
+    rur_result = None
+    solved = None
+    planner_diagnostics: dict[str, object] = {}
+
+    if method_key == "auto":
+        planned = _run_auto_solve_plan(
+            expr,
+            vars_,
+            domain=domain,
+            strategy=strategy,
+            sample_count=sample_count,
+        )
+        reduced = planned.reduced
+        satisfiable = planned.satisfiable
+        selected_method = planned.method
+        solved = planned.solved
+        rur_result = planned.rur_result
+        planner_diagnostics = planned.diagnostics
+        fast_method = selected_method
+        fast_satisfiable = satisfiable
+    else:
+        # Explicit method requests retain their strict semantics and bypass the
+        # automatic planner except for the exact method-specific fast path.
+        if method_key == "linear":
+            presolved = affine_presolve(expr, vars_)
+            working = presolved.formula
+            working_vars = presolved.variables
+            linear_profile = profile_semialgebraic_system(working, working_vars)
+            if not linear_profile.linear or not linear_profile.conjunctive:
+                raise NotImplementedError(
+                    "method='linear' requires a conjunctive affine real system"
+                )
+            linear = exact_linear_feasibility(working, working_vars)
+            if linear is None:
+                raise NotImplementedError(
+                    "method='linear' could not eliminate this affine system exactly"
+                )
+            satisfiable, certificate = linear
+            reduced = (
+                reconstruct_affine_solution_formula(presolved, working) if satisfiable else sp.false
+            )
+            selected_method = "linear_fourier_motzkin"
+            fast_method = selected_method
+            fast_satisfiable = bool(satisfiable)
+            planner_diagnostics = {
+                "planner_steps": (
+                    _planner_step(
+                        "linear_fourier_motzkin",
+                        True,
+                        "explicit linear method request",
+                        eliminated_condition=certificate,
+                    ),
+                )
+            }
+        else:
+            if method_key == "rur":
+                rur_result = _try_rur_formula(
+                    expr, vars_, max_solutions=sample_count if sample_count else None
+                )
+                if rur_result is None:
+                    raise NotImplementedError(
+                        "method='rur' supports finite zero-dimensional equality branches only"
+                    )
+                assignments = tuple(dict(point) for point in rur_result.assignments)
+                reduced = _finite_points_formula(assignments, vars_) if assignments else sp.false
+                satisfiable = bool(assignments)
+                selected_method = "rational_univariate"
+                fast_method = selected_method
+                fast_satisfiable = satisfiable
+            elif method_key == "interval":
+                reduced, fast_method, fast_satisfiable = _fast_solution_formula(expr, vars_)
+                if fast_satisfiable is None:
+                    raise NotImplementedError(
+                        "method='interval' could not reduce this univariate system"
+                    )
+                satisfiable = bool(fast_satisfiable)
+                selected_method = fast_method
+            else:
+                # cad/qe/cylindrical/sampling force the general
+                # reducer rather than accepting a structurally cheaper method.
+                parsed = ParsedPrenexFormula(vars_, (), parse_formula(expr), expr)
+                solved = reduce_formula(
+                    parsed, domain=domain, return_result=True, strategy=strategy
+                )
+                reduced = _safe_simplify_expr(solved.result)
+                try:
+                    satisfiable = is_satisfiable(reduced, vars_, domain=domain, strategy=strategy)
+                except PolynomialError:
+                    satisfiable = reduced is not sp.false and reduced != sp.false
+                selected_method = getattr(solved, "method", method_key)
+                fast_method = selected_method
+                fast_satisfiable = bool(satisfiable)
+
+    return (
+        reduced,
+        bool(satisfiable),
+        selected_method or fast_method,
+        solved,
+        rur_result,
+        planner_diagnostics,
+    )
+
+
 @with_computation_context
 def solve_semialgebraic(
     constraints: FormulaLike | Iterable[FormulaLike],
@@ -183,101 +289,16 @@ def solve_semialgebraic(
         )
         return result.formula if return_formula else _select_solution_output(result, output)
 
-    selected_method: str | None = None
-    rur_result = None
-    solved = None
-    planner_diagnostics: dict[str, object] = {}
-
-    if method_key == "auto":
-        planned = _run_auto_solve_plan(
+    reduced, satisfiable, selected_method, solved, rur_result, planner_diagnostics = (
+        _execute_solver_backend(
             expr,
             vars_,
+            method_key=method_key,
             domain=domain,
             strategy=strategy,
             sample_count=sample_count,
         )
-        reduced = planned.reduced
-        satisfiable = planned.satisfiable
-        selected_method = planned.method
-        solved = planned.solved
-        rur_result = planned.rur_result
-        planner_diagnostics = planned.diagnostics
-        fast_method = selected_method
-        fast_satisfiable = satisfiable
-    else:
-        # Explicit method requests retain their strict semantics and bypass the
-        # automatic planner except for the exact method-specific fast path.
-        if method_key == "linear":
-            presolved = affine_presolve(expr, vars_)
-            working = presolved.formula
-            working_vars = presolved.variables
-            linear_profile = profile_semialgebraic_system(working, working_vars)
-            if not linear_profile.linear or not linear_profile.conjunctive:
-                raise NotImplementedError(
-                    "method='linear' requires a conjunctive affine real system"
-                )
-            linear = exact_linear_feasibility(working, working_vars)
-            if linear is None:
-                raise NotImplementedError(
-                    "method='linear' could not eliminate this affine system exactly"
-                )
-            satisfiable, certificate = linear
-            reduced = (
-                reconstruct_affine_solution_formula(presolved, working) if satisfiable else sp.false
-            )
-            selected_method = "linear_fourier_motzkin"
-            fast_method = selected_method
-            fast_satisfiable = bool(satisfiable)
-            planner_diagnostics = {
-                "planner_steps": (
-                    _planner_step(
-                        "linear_fourier_motzkin",
-                        True,
-                        "explicit linear method request",
-                        eliminated_condition=certificate,
-                    ),
-                )
-            }
-        else:
-            if method_key == "rur":
-                rur_result = _try_rur_formula(
-                    expr, vars_, max_solutions=sample_count if sample_count else None
-                )
-                if rur_result is None:
-                    raise NotImplementedError(
-                        "method='rur' supports finite zero-dimensional equality branches only"
-                    )
-                assignments = tuple(dict(point) for point in rur_result.assignments)
-                reduced = _finite_points_formula(assignments, vars_) if assignments else sp.false
-                satisfiable = bool(assignments)
-                selected_method = "rational_univariate"
-                fast_method = selected_method
-                fast_satisfiable = satisfiable
-            elif method_key == "interval":
-                reduced, fast_method, fast_satisfiable = _fast_solution_formula(expr, vars_)
-                if fast_satisfiable is None:
-                    raise NotImplementedError(
-                        "method='interval' could not reduce this univariate system"
-                    )
-                satisfiable = bool(fast_satisfiable)
-                selected_method = fast_method
-            else:
-                # cad/qe/cylindrical/sampling force the general
-                # reducer rather than accepting a structurally cheaper method.
-                parsed = ParsedPrenexFormula(vars_, (), parse_formula(expr), expr)
-                solved = reduce_formula(
-                    parsed, domain=domain, return_result=True, strategy=strategy
-                )
-                reduced = _safe_simplify_expr(solved.result)
-                try:
-                    satisfiable = is_satisfiable(reduced, vars_, domain=domain, strategy=strategy)
-                except PolynomialError:
-                    satisfiable = reduced is not sp.false and reduced != sp.false
-                selected_method = getattr(solved, "method", method_key)
-                fast_method = selected_method
-                fast_satisfiable = bool(satisfiable)
-
-    selected_method = selected_method or fast_method
+    )
     simplified_constraints: tuple[sp.Expr, ...] = conjuncts(reduced)
     # Record a simplified constraint tuple without making full redundancy removal
     # part of the critical solve path. The dedicated ``simplify_system`` API

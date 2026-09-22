@@ -6,28 +6,28 @@ The high-level geometry layer composes CAD/QE, exact optimization, and local pol
 
 ```python
 import sympy as sp
-from semialg import semialgebraic_projection, semialgebraic_image, semialgebraic_preimage, fiber
+from semialg import semialgebraic_projection, region_image, region_preimage, fiber
 
 x, y, u, a = sp.symbols("x y u a", real=True)
 
 semialgebraic_projection((x >= 0) & (x <= y) & (y <= 2), [x], [x, y])
 # (y >= 0) & (y <= 2)
 
-semialgebraic_image(x, (x >= -1) & (x <= 2), [x], image_variables=[u])
+region_image((x >= -1) & (x <= 2), x, [x], image_variables=[u])
 
 # Parameters remain free when source variables are explicit:
 a = sp.symbols("a", real=True)
-semialgebraic_image(x, (x >= 0) & (x <= a), [x], image_variables=[u], parameters=[a])
+region_image((x >= 0) & (x <= a), x, [x], image_variables=[u], parameters=[a])
 # (u >= -1) & (u <= 2)
 
-semialgebraic_preimage(x**2 + y**2, u <= 1, [x, y], target_variables=[u])
+region_preimage(u <= 1, x**2 + y**2, [x, y], target_variables=[u])
 # x**2 + y**2 <= 1
 
 fiber((x >= 0) & (x <= a), {a: 2})
 # (x >= 0) & (x <= 2)
 ```
 
-Projection and image are genuine existential QE operations. Preimage and fiber are exact symbolic substitutions.
+For formula inputs, projection and image are genuine existential QE operations. `region_image` and `region_preimage` also dispatch on structured regions, preserving canonical affine structure when possible. Formula preimages and fibers are exact symbolic substitutions.
 
 ## Bounding boxes, distances, and critical values
 
@@ -84,9 +84,9 @@ from semialg import (
 
 ## Moments and rigid/affine operations
 
-`centroid` and `covariance_matrix` are concise aliases over the existing exact region-moment machinery. `moment_matrix` returns the normalized raw second-moment matrix, while `inertia_tensor` integrates `||x||^2 I - x x^T` at unit density about the origin.
+`centroid` and `covariance_matrix` are the normalized primary moment APIs over the exact region-moment machinery. `moment_matrix` returns the normalized raw second-moment matrix, while `inertia_tensor` integrates `||x||^2 I - x x^T` at unit density about the origin.
 
-`translate` and nonzero scalar `scale` are direct substitutions. `linear_image`, `affine_transform`, and `minkowski_sum` are exact semialgebraic images; the latter constructs the existential image of `(a, b) -> a + b`. General instances may therefore require full QE. `squared_distance_range` gives the exact polynomial pairwise-distance-squared range, while `distance_set` converts it to the nonnegative Euclidean-distance set via `d**2`.
+`translate` and nonzero scalar `scale` are direct substitutions. `linear_image`, `affine_image`, and `minkowski_sum` are exact semialgebraic images; the latter constructs the existential image of `(a, b) -> a + b`. General instances may therefore require full QE. `squared_distance_range` gives the exact polynomial pairwise-distance-squared range, while `distance_set` converts it to the nonnegative Euclidean-distance set via `d**2`.
 
 ## Algebraic-geometry conveniences
 

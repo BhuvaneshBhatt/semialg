@@ -6,7 +6,7 @@ import pytest
 import sympy as sp
 
 from semialg import (
-    IntervalRegion,
+    Interval,
     ResourceLimitError,
     cad,
     classify_real_roots,
@@ -17,11 +17,11 @@ from semialg import (
     is_tautology,
     matrix_pd_on,
     matrix_psd_on,
+    region_image,
+    region_preimage,
     sample_points,
-    semialgebraic_image,
     semialgebraic_maximize,
     semialgebraic_minimize,
-    semialgebraic_preimage,
     semialgebraic_projection,
     translate,
 )
@@ -67,9 +67,7 @@ def test_integral_declines_unsupported_modes(structured):
             1, sp.Eq(X, 0), (X,), method="numeric", measure_dimension=0, return_result=structured
         )
     with pytest.raises(NotImplementedError, match="extra bounds"):
-        integrate_over_region(
-            1, IntervalRegion(0, 1), (X,), bounds={X: (0, 1)}, return_result=structured
-        )
+        integrate_over_region(1, Interval(0, 1), (X,), bounds={X: (0, 1)}, return_result=structured)
     with pytest.raises(ValueError, match="method"):
         integrate_over_region(
             1, (X >= 0) & (X <= 1), (X,), method="invalid", return_result=structured
@@ -134,17 +132,17 @@ def test_geometry_rejects_mismatched_coordinates():
     with pytest.raises(ValueError, match="not problem variables"):
         semialgebraic_projection(X >= 0, (Y,), (X,))
     with pytest.raises(ValueError, match="same length"):
-        semialgebraic_image((X, X + 1), X >= 0, (X,), image_variables=(U,))
+        region_image(X >= 0, (X, X + 1), (X,), image_variables=(U,))
     with pytest.raises(ValueError, match="same length"):
-        semialgebraic_preimage((X, X + 1), U >= 0, (X,), target_variables=(U,))
+        region_preimage(U >= 0, (X, X + 1), (X,), target_variables=(U,))
 
 
 @pytest.mark.parametrize("names", [(U, U), ("u", "u")], ids=["symbols", "strings"])
 def test_images_reject_duplicate_target_coordinates(names):
     with pytest.raises(ValueError, match="distinct"):
-        semialgebraic_image((X, X + 1), X >= 0, (X,), image_variables=names)
+        region_image(X >= 0, (X, X + 1), (X,), image_variables=names)
     with pytest.raises(ValueError, match="distinct"):
-        semialgebraic_preimage((X, X + 1), U >= 0, (X,), target_variables=names)
+        region_preimage(U >= 0, (X, X + 1), (X,), target_variables=names)
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,7 @@
 # Decision and QE reference
 ## Family contract
 
-**computer algebra systeml return.** Decision functions return exact truth values or structured exact decision results for first-order formulas over the reals. QE operations return a quantifier-free formula equivalent over the declared real variables.
+**Mathematical return.** Decision functions return exact truth values or structured exact decision results for first-order formulas over the reals. QE operations return a quantifier-free formula equivalent over the declared real variables.
 
 **Exactness and certification.** Successful certified paths do not use fixed-precision numerical sign guesses. Specialized methods may decline and allow another exact backend to run.
 
@@ -59,6 +59,18 @@ Checks whether the assumptions imply the conclusion. A structured `ImplicationRe
 ## `equivalent(lhs, rhs, variables=None, *, ..., return_result=False)`
 
 Checks logical equivalence over the declared real variables. Printed-expression equality is not used as a substitute for symbolic identity or proof.
+
+## `quantifier_eliminate(formula, quantifiers=None, *, variables=None, strategy="auto", return_result=False)`
+
+Primary certified real quantifier-elimination interface. It accepts semialg `Exists`/`ForAll` nodes or an explicit prenex prefix, performs exact specialist-first dispatch, and returns a quantifier-free real formula. With `return_result=True`, `QuantifierEliminationResult` records affine-presolve substitutions, variable blocks, the selected method, and backend provenance.
+
+## `project_region(region, eliminate, *, variables=None, strategy="auto", return_result=False)`
+
+Computes exact real existential projection through the same QE dispatcher. It is a facade over existential quantification rather than an independent projection implementation.
+
+## `QuantifierEliminationResult`
+
+Structured certified QE result containing the quantifier-free formula, free and quantified variables, original prefix, dispatcher method, presolve provenance, backend result, and diagnostic metadata.
 
 ## `qe_by_complete_cad(...)`
 

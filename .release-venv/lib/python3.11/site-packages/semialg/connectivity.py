@@ -114,7 +114,7 @@ class CADConnectivityGraph:
 def _cell_formula(cell: CylindricalSolutionCell, *, closed: bool) -> sp.Expr:
     try:
         return cell.as_formula(closed=closed)
-    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+    except (ArithmeticError, NotImplementedError, sp.PolynomialError):
         parts = [level.as_formula(closed=closed) for level in cell.levels]
         return sp.And(*parts) if parts else sp.true
 
@@ -135,7 +135,7 @@ def _closures_intersect_inside_solution(
         from .decision import is_satisfiable
 
         return bool(is_satisfiable(connector, variables)), connector
-    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+    except (ArithmeticError, NotImplementedError, sp.PolynomialError):
         # Conservative fallback: only connect if SymPy can reduce the connector
         # to literal True. Do not guess adjacency from syntactic overlap.
         return bool(is_true_expr(connector)), connector

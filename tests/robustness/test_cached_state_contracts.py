@@ -7,7 +7,7 @@ from semialg import SemialgebraicRegion
 from semialg.cad_algorithms.point_location import locate_cad_point
 from semialg.context import SemialgebraicContext
 from semialg.decomposition.cylindrical import cad
-from semialg.symbolic_regions import REqual
+from semialg.symbolic_regions import RegionEqual
 
 
 def test_semialgebraic_region_rejects_mismatched_context_formula():
@@ -51,7 +51,7 @@ def test_context_structural_state_is_immutable_after_cache_creation():
 
 
 def test_empty_region_equality_evaluates_to_true():
-    relation = REqual()
+    relation = RegionEqual()
     assert relation.as_formula() is sp.true
     assert relation.evaluate() is True
 

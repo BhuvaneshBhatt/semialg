@@ -97,7 +97,7 @@ class _RegionRelation(Boolean):
                     "parameter-dependent region relation is symbolic; use "
                     "region_relation_conditions(..., eliminate=True)"
                 )
-        if isinstance(self, RSubset):
+        if isinstance(self, RegionSubset):
             return bool(
                 region_subset(
                     regs[0].quantifier_free_formula(),
@@ -106,7 +106,7 @@ class _RegionRelation(Boolean):
                     strategy=strategy,
                 )
             )
-        if isinstance(self, RDisjoint):
+        if isinstance(self, RegionDisjoint):
             for i, left in enumerate(regs):
                 for right in regs[i + 1 :]:
                     if not region_disjoint(
@@ -117,7 +117,7 @@ class _RegionRelation(Boolean):
                     ):
                         return False
             return True
-        if isinstance(self, REqual):
+        if isinstance(self, RegionEqual):
             if len(regs) < 2:
                 return True
             first = regs[0]
@@ -133,7 +133,7 @@ class _RegionRelation(Boolean):
         raise TypeError(type(self).__name__)
 
 
-class RSubset(_RegionRelation):
+class RegionSubset(_RegionRelation):
     """Symbolic region-subset relation."""
 
     def __new__(cls, lhs: object, rhs: object):
@@ -150,7 +150,7 @@ class RSubset(_RegionRelation):
         return ForAll(coords, sp.Or(sp.Not(a), b))
 
 
-class RDisjoint(_RegionRelation):
+class RegionDisjoint(_RegionRelation):
     """Symbolic assertion that all supplied regions are pairwise disjoint."""
 
     def __new__(cls, *regions: object):
@@ -182,7 +182,7 @@ class RDisjoint(_RegionRelation):
         return sp.And(*clauses)
 
 
-class REqual(_RegionRelation):
+class RegionEqual(_RegionRelation):
     """Symbolic assertion that all supplied regions are equal."""
 
     def __new__(cls, *regions: object):
@@ -199,11 +199,15 @@ class REqual(_RegionRelation):
         first = self.regions[0]
         return sp.And(
             *(
-                RSubset(first, other).as_formula(quantifier_free_regions=quantifier_free_regions)
+                RegionSubset(first, other).as_formula(
+                    quantifier_free_regions=quantifier_free_regions
+                )
                 for other in self.regions[1:]
             ),
             *(
-                RSubset(other, first).as_formula(quantifier_free_regions=quantifier_free_regions)
+                RegionSubset(other, first).as_formula(
+                    quantifier_free_regions=quantifier_free_regions
+                )
                 for other in self.regions[1:]
             ),
         )
@@ -306,7 +310,7 @@ def region_relation_conditions(
     eliminate: bool = False,
     real_parameters: bool = False,
 ) -> sp.Expr:
-    """Lower ``RSubset``/``RDisjoint``/``REqual`` to quantified conditions.
+    """Lower ``RegionSubset``/``RegionDisjoint``/``RegionEqual`` to quantified conditions.
 
     With ``eliminate=True`` the generated real quantifiers are eliminated using
     semialg's exact QE stack. ``variables`` specifies the desired free-variable
@@ -344,9 +348,9 @@ def region_relation_conditions(
 __all__ = [
     "RegionElement",
     "RegionNotElement",
-    "RSubset",
-    "RDisjoint",
-    "REqual",
+    "RegionSubset",
+    "RegionDisjoint",
+    "RegionEqual",
     "region_element_conditions",
     "region_relation_conditions",
 ]

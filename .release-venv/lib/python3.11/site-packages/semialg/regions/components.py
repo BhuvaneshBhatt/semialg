@@ -6,7 +6,7 @@ from ..model import QEResult
 from .cell_formulas import cell_to_formula, qe_cells_and_vars
 
 
-def region_components(cells_with_truth, variables):
+def components_from_cells(cells_with_truth, variables):
     pieces = []
     for cell, truth in cells_with_truth:
         if not truth:
@@ -25,4 +25,4 @@ def region_components(cells_with_truth, variables):
 
 def qe_components(qe_result: QEResult):
     cells, variables = qe_cells_and_vars(qe_result)
-    return region_components(cells, variables)
+    return components_from_cells(cells, variables)

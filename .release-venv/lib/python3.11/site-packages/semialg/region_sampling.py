@@ -122,11 +122,11 @@ def _inside_halfspaces(point, matrix, offsets):
 
 @lru_cache(maxsize=128)
 def _weighted_region_pieces(region):
-    from .standard_regions import PolygonRegion, PolyhedronRegion
+    from .standard_regions import Polygon, TetrahedralComplex
 
-    if isinstance(region, PolygonRegion):
+    if isinstance(region, Polygon):
         pieces = tuple(region.triangulation())
-    elif isinstance(region, PolyhedronRegion):
+    elif isinstance(region, TetrahedralComplex):
         pieces = tuple(region.tetrahedra)
     else:
         raise TypeError("weighted decomposition requires a polygon or polyhedron")
@@ -149,34 +149,34 @@ def _weighted_choice(items, weights, rng: random.Random):
 
 def _random_standard_region(region, rng: random.Random, precision: int):
     from .standard_regions import (
-        BallRegion,
-        BoxRegion,
+        Ball,
+        Box,
         Ellipsoid,
         EllipsoidBoundary,
-        IntervalRegion,
-        ParallelepipedRegion,
-        ParallelogramRegion,
-        PointRegion,
-        PolygonRegion,
-        PolyhedronRegion,
+        FinitePointSet,
+        Interval,
+        Parallelepiped,
+        Parallelogram,
+        Polygon,
         Polytope,
-        SimplexRegion,
-        SphereRegion,
-        SphericalShellRegion,
+        Simplex,
+        Sphere,
+        SphericalShell,
+        TetrahedralComplex,
     )
 
-    if isinstance(region, PointRegion):
+    if isinstance(region, FinitePointSet):
         if not region.points:
             raise ValueError("cannot sample an empty point region")
         point = rng.choice(region.points)
         return tuple(sp.N(value, precision) for value in point)
 
-    if isinstance(region, IntervalRegion):
+    if isinstance(region, Interval):
         lo = _numeric(region.lower, label="interval lower bound")
         hi = _numeric(region.upper, label="interval upper bound")
         return _tuple_point((lo + (hi - lo) * rng.random(),), precision)
 
-    if isinstance(region, BoxRegion):
+    if isinstance(region, Box):
         values = []
         for index, (lower, upper) in enumerate(region.bounds):
             lo = _numeric(lower, label=f"box lower bound {index}")
@@ -184,7 +184,7 @@ def _random_standard_region(region, rng: random.Random, precision: int):
             values.append(lo + (hi - lo) * rng.random())
         return _tuple_point(values, precision)
 
-    if isinstance(region, SphereRegion):
+    if isinstance(region, Sphere):
         center = [_numeric(value, label="sphere center") for value in region.center]
         radius = _numeric(region.radius, label="sphere radius")
         if radius == 0:
@@ -194,7 +194,7 @@ def _random_standard_region(region, rng: random.Random, precision: int):
             [c + radius * d for c, d in zip(center, direction, strict=True)], precision
         )
 
-    if isinstance(region, BallRegion):
+    if isinstance(region, Ball):
         center = [_numeric(value, label="ball center") for value in region.center]
         radius = _numeric(region.radius, label="ball radius")
         if radius == 0:
@@ -205,7 +205,7 @@ def _random_standard_region(region, rng: random.Random, precision: int):
             [c + radial * d for c, d in zip(center, direction, strict=True)], precision
         )
 
-    if isinstance(region, SphericalShellRegion):
+    if isinstance(region, SphericalShell):
         center = [_numeric(value, label="shell center") for value in region.center]
         inner = _numeric(region.inner_radius, label="shell inner radius")
         outer = _numeric(region.outer_radius, label="shell outer radius")
@@ -230,10 +230,10 @@ def _random_standard_region(region, rng: random.Random, precision: int):
             precision,
         )
 
-    if isinstance(region, SimplexRegion):
+    if isinstance(region, Simplex):
         return _simplex_point(region.vertices, rng, precision)
 
-    if isinstance(region, (PolygonRegion, PolyhedronRegion)):
+    if isinstance(region, (Polygon, TetrahedralComplex)):
         pieces, weights = _weighted_region_pieces(region)
         piece = _weighted_choice(pieces, weights, rng)
         return _simplex_point(piece.vertices, rng, precision)
@@ -253,7 +253,7 @@ def _random_standard_region(region, rng: random.Random, precision: int):
                 return _tuple_point(coords, precision)
         raise ValueError("polytope rejection sampling did not find a point within 10000 attempts")
 
-    if isinstance(region, (ParallelogramRegion, ParallelepipedRegion)):
+    if isinstance(region, (Parallelogram, Parallelepiped)):
         if region.dimension() != len(region.vectors):
             raise NotImplementedError(
                 "uniform intrinsic sampling requires independent spanning vectors"

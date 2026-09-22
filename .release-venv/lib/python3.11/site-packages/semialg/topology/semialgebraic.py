@@ -11,12 +11,11 @@ from ..connectivity import CADConnectedComponent, extract_cad_connectivity
 from ..derived_geometry import is_compact
 from ..normalization import normalize_formula, normalize_problem_variables
 from ..standard_regions import (
-    BoxRegion,
-    ParallelepipedRegion,
-    PolygonRegion,
+    Box,
+    Parallelepiped,
+    Polygon,
     Polytope,
     Simplex,
-    SimplexRegion,
     StandardRegion,
 )
 
@@ -66,16 +65,16 @@ class SemialgebraicTriangulation:
         return self.complex.dimension
 
 
-def _box_vertices(region: BoxRegion) -> tuple[tuple[sp.Expr, ...], ...]:
+def _box_vertices(region: Box) -> tuple[tuple[sp.Expr, ...], ...]:
     return tuple(tuple(choice) for choice in itertools.product(*region.bounds))
 
 
 def _as_polytope(region: StandardRegion) -> Polytope | None:
     if isinstance(region, Polytope):
         return region
-    if isinstance(region, (SimplexRegion, PolygonRegion, ParallelepipedRegion)):
+    if isinstance(region, (Simplex, Polygon, Parallelepiped)):
         return Polytope.from_region(region)
-    if isinstance(region, BoxRegion):
+    if isinstance(region, Box):
         return Polytope(_box_vertices(region))
     return None
 
@@ -116,10 +115,10 @@ def _pulling_triangulation(polytope: Polytope) -> tuple[tuple[int, ...], ...]:
 
 
 def _polyhedral_triangulation(region: StandardRegion) -> SimplicialComplex | None:
-    if isinstance(region, SimplexRegion):
+    if isinstance(region, Simplex):
         vertices = tuple(region.vertices)
         return SimplicialComplex(vertices, (tuple(range(len(vertices))),))
-    if isinstance(region, PolygonRegion):
+    if isinstance(region, Polygon):
         pieces = region.triangulation()
         vertices = tuple(dict.fromkeys(vertex for piece in pieces for vertex in piece.vertices))
         positions = {vertex: i for i, vertex in enumerate(vertices)}

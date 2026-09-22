@@ -45,7 +45,7 @@ def test_cylindrical_vertical_bounds_reduce_triangle_like_cell():
     )
 
 
-def test_cylindrical_vertical_bounds_handle_disjoint_union_in_integral_reduction():
+def test_cylindrical_bounds_handle_disjoint_union():
     x, y = sp.symbols("x y", real=True)
     cond = sp.Or(
         sp.And(x >= 0, x <= 1, y >= 0, y <= 1),

@@ -12,13 +12,13 @@ from semialg import (
     integrate_over_region,
     region_complement,
     region_difference,
+    region_image,
     region_intersection,
+    region_preimage,
     region_union,
     scale,
-    semialgebraic_image,
     semialgebraic_maximize,
     semialgebraic_minimize,
-    semialgebraic_preimage,
     translate,
 )
 
@@ -77,11 +77,11 @@ def test_affine_image_preimage_and_inverse_preserve_endpoints(
         if factor > 0
         else sp.Interval(ends[1], ends[0], right_open, left_open)
     )
-    image = semialgebraic_image((factor * X + offset,), domain, (X,), image_variables=(U,))
+    image = region_image(domain, (factor * X + offset,), (X,), image_variables=(U,))
     assert _real_set(image) == expected
     composed = translate(scale(domain, factor, (X,)), (offset,), (X,))
     assert _real_set(composed) == expected
-    preimage = semialgebraic_preimage((factor * X + offset,), image, (X,), target_variables=(U,))
+    preimage = region_preimage(image, (factor * X + offset,), (X,), target_variables=(U,))
     assert _real_set(preimage) == source
     inverse = scale(translate(composed, (-offset,), (X,)), sp.Rational(1, factor), (X,))
     assert _real_set(inverse) == source

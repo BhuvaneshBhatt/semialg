@@ -3,8 +3,8 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg import (
-    BallRegion,
-    BoxRegion,
+    Ball,
+    Box,
     ParametricRegion,
     SemialgebraicRegion,
     as_semialgebraic_region,
@@ -17,11 +17,11 @@ from semialg import (
 )
 from semialg.reasoning import region_disjoint, region_subset
 from semialg.symbolic_regions import (
-    RDisjoint,
+    RegionDisjoint,
     RegionElement,
+    RegionEqual,
     RegionNotElement,
-    REqual,
-    RSubset,
+    RegionSubset,
     region_element_conditions,
     region_relation_conditions,
 )
@@ -46,8 +46,8 @@ def test_formula_region_carries_lazy_context_and_reusable_cad():
 
 def test_explicit_regions_lower_to_same_symbolic_region_layer():
     x, y = sp.symbols("x y", real=True)
-    box = BoxRegion(((0, 1), (-1, 2)))
-    ball = BallRegion((0, 0), 1)
+    box = Box(((0, 1), (-1, 2)))
+    ball = Ball((0, 0), 1)
 
     symbolic_box = box.as_semialgebraic_region((x, y))
     symbolic_ball = as_semialgebraic_region(ball, (x, y))
@@ -59,7 +59,7 @@ def test_explicit_regions_lower_to_same_symbolic_region_layer():
 
 def test_membership_predicates_lower_inside_boolean_expressions():
     x, y = sp.symbols("x y", real=True)
-    region = as_semialgebraic_region(BoxRegion(((0, 1), (0, 1))), (x, y))
+    region = as_semialgebraic_region(Box(((0, 1), (0, 1))), (x, y))
     point = (sp.Rational(1, 2), y)
 
     element = RegionElement(point, region)
@@ -77,11 +77,11 @@ def test_region_relation_nodes_lower_to_quantified_formulas_and_evaluate():
     outer = SemialgebraicRegion(sp.And(x >= -1, x <= 2), (x,))
     disjoint = SemialgebraicRegion(sp.And(x >= 3, x <= 4), (x,))
 
-    subset = RSubset(inner, outer)
+    subset = RegionSubset(inner, outer)
     assert isinstance(subset.as_formula(), sp.Basic)
     assert subset.evaluate() is True
-    assert RDisjoint(inner, disjoint).evaluate() is True
-    assert REqual(inner, inner).evaluate() is True
+    assert RegionDisjoint(inner, disjoint).evaluate() is True
+    assert RegionEqual(inner, inner).evaluate() is True
 
     lowered = region_relation_conditions(subset)
     assert "ForAll" in str(lowered)
@@ -91,7 +91,7 @@ def test_region_relation_nodes_lower_to_quantified_formulas_and_evaluate():
 def test_region_operations_accept_unified_and_explicit_regions():
     x = sp.Symbol("x", real=True)
     left = SemialgebraicRegion(sp.And(x >= 0, x <= 1), (x,))
-    right = BoxRegion(((1, 2),))
+    right = Box(((1, 2),))
 
     union = region_union(left, right)
     intersection = region_intersection(left, right)
@@ -106,7 +106,7 @@ def test_region_operations_accept_unified_and_explicit_regions():
     assert difference.contains((1,)) is False
 
     assert region_subset(left, union) is True
-    assert region_disjoint(difference, as_semialgebraic_region(BoxRegion(((1, 2),)), (x,))) is True
+    assert region_disjoint(difference, as_semialgebraic_region(Box(((1, 2),)), (x,))) is True
 
 
 def test_parametric_region_keeps_existential_membership_until_needed():
@@ -140,10 +140,10 @@ def test_topology_helpers_preserve_unified_region_objects():
 
 
 def test_nested_quantified_polygon_branches_are_eliminated_for_membership():
-    from semialg import PolygonRegion
+    from semialg import Polygon
 
     x, y = sp.symbols("x y", real=True)
-    polygon = PolygonRegion(((0, 0), (3, 0), (3, 3), (2, 3), (2, 1), (1, 1), (1, 3), (0, 3)))
+    polygon = Polygon(((0, 0), (3, 0), (3, 3), (2, 3), (2, 1), (1, 1), (1, 3), (0, 3)))
     region = as_semialgebraic_region(polygon, (x, y))
 
     qf = region.quantifier_free_formula()
@@ -172,5 +172,5 @@ def test_region_condition_real_parameters_adds_explicit_membership():
     lowered = region_element_conditions(atom, eliminate=False, real_parameters=True)
     assert sp.Contains(a, sp.S.Reals, evaluate=False) in lowered.args
 
-    relation = region_relation_conditions(RSubset(region, region), real_parameters=True)
+    relation = region_relation_conditions(RegionSubset(region, region), real_parameters=True)
     assert relation.has(sp.Contains(a, sp.S.Reals, evaluate=False))

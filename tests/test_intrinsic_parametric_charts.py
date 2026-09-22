@@ -39,7 +39,7 @@ def test_ellipsoid_boundary_native_chart_uses_induced_metric():
     )
 
 
-def test_formula_intrinsic_cover_normalizes_regular_cad_graph_to_same_chart_contract():
+def test_intrinsic_cover_normalizes_cad_graph_chart():
     x, y = sp.symbols("x y", real=True)
     formula = sp.And(sp.Eq(y, x), x >= 0, x <= 1)
     cover = intrinsic_parametric_cover(formula, (x, y), dimension=1)

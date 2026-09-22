@@ -28,7 +28,7 @@ for component in result.components:
 assert semialg.replay_certificate(result).verified
 ```
 
-computer algebra systemlly this has the decomposition
+Mathematically this has the decomposition
 
 \[
 I=\langle x+y\rangle\cap\langle x^2,y\rangle,

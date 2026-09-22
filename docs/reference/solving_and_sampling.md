@@ -1,7 +1,7 @@
 # Solving and sampling reference
 ## Family contract
 
-**computer algebra systeml return.** Solving APIs return exact witnesses, finite algebraic solution representations, or samples from semialgebraic solution sets.
+**Mathematical return.** Solving APIs return exact witnesses, finite algebraic solution representations, or samples from semialgebraic solution sets.
 
 **Exactness and certification.** Exact sampling/witness paths use algebraic values and certified sign checks. Explicit numerical sampling modes are inexact by design and are not proof substitutes.
 

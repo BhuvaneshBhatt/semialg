@@ -5,7 +5,7 @@ import semialg
 from semialg.standard_region_integrate import integrate_over_standard_region
 
 
-def test_equivalent_does_not_conflate_same_name_symbols_with_different_assumptions():
+def test_equivalent_preserves_symbol_assumptions():
     x = sp.Symbol("x")
     x_real = sp.Symbol("x", real=True)
 
@@ -63,7 +63,7 @@ def test_standard_region_integration_preserves_input_symbol_identity():
 
     result = integrate_over_standard_region(
         x,
-        semialg.IntervalRegion(0, 1),
+        semialg.Interval(0, 1),
         ["x"],
     )
 
@@ -76,15 +76,15 @@ def test_standard_region_intersection_orders_close_endpoints_exactly():
     region = semialg.BooleanRegion(
         "intersection",
         (
-            semialg.IntervalRegion(0, 1 + epsilon),
-            semialg.IntervalRegion(0, 1),
+            semialg.Interval(0, 1 + epsilon),
+            semialg.Interval(0, 1),
         ),
     )
 
     assert integrate_over_standard_region(1, region, [x]) == 1
 
 
-def test_region_components_does_not_shrink_contained_interval():
+def test_connected_components_does_not_shrink_contained_interval():
     x = sp.Symbol("x", real=True)
     region = sp.Or(
         sp.And(x >= 0, x <= 10),
@@ -92,17 +92,17 @@ def test_region_components_does_not_shrink_contained_interval():
         evaluate=False,
     )
 
-    components = semialg.region_components(region, [x])
+    components = semialg.connected_components(region, [x])
 
     assert len(components) == 1
     assert semialg.equivalent(components[0], sp.And(x >= 0, x <= 10), [x])
 
 
-def test_region_components_preserves_strictness_at_shared_endpoint():
+def test_connected_components_preserves_strictness_at_shared_endpoint():
     x = sp.Symbol("x", real=True)
     region = sp.Or(sp.And(x > 0, x < 1), sp.And(x > 1, x < 2))
 
-    components = semialg.region_components(region, [x])
+    components = semialg.connected_components(region, [x])
 
     assert len(components) == 2
 

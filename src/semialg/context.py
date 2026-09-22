@@ -242,11 +242,11 @@ class SemialgebraicContext:
         return self._memo["projection_tower"]
 
     def exceptional_parameters(self, parameters):
-        from .parameter_stratification import exceptional_parameter_analysis
+        from .decomposition._parametric_support import analyze_parametric_boundaries
 
         key = ("exceptional_parameters", tuple(parameters))
         if key not in self._memo:
-            self._memo[key] = exceptional_parameter_analysis(
+            self._memo[key] = analyze_parametric_boundaries(
                 self.formula, self.variables, tuple(parameters)
             )
         return self._memo[key]

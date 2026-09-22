@@ -3,14 +3,14 @@ import sympy as sp
 
 from semialg import (
     Ball,
-    BoxRegion,
-    IntervalRegion,
+    Box,
+    Interval,
     Parallelepiped,
     Point,
     Polygon,
     Simplex,
     Sphere,
-    SphericalShellRegion,
+    SphericalShell,
 )
 from semialg.standard_region_integrate import integrate_over_standard_region
 
@@ -19,14 +19,14 @@ from semialg.standard_region_integrate import integrate_over_standard_region
     ("region", "variables"),
     [
         (Point((2, -1)), sp.symbols("x y", real=True)),
-        (IntervalRegion(-2, 3), (sp.Symbol("x", real=True),)),
-        (BoxRegion(((0, 2), (-1, 3))), sp.symbols("x y", real=True)),
+        (Interval(-2, 3), (sp.Symbol("x", real=True),)),
+        (Box(((0, 2), (-1, 3))), sp.symbols("x y", real=True)),
         (Simplex(((0, 0), (2, 0), (0, 3))), sp.symbols("x y", real=True)),
         (Polygon(((0, 0), (2, 0), (2, 1), (0, 1))), sp.symbols("x y", real=True)),
         (Parallelepiped((0, 0), ((2, 0), (0, 3))), sp.symbols("x y", real=True)),
         (Ball((0, 0), 2), sp.symbols("x y", real=True)),
         (Sphere((0, 0), 2), sp.symbols("x y", real=True)),
-        (SphericalShellRegion((0, 0), (1, 2)), sp.symbols("x y", real=True)),
+        (SphericalShell((0, 0), (1, 2)), sp.symbols("x y", real=True)),
     ],
     ids=[
         "point",
@@ -49,8 +49,8 @@ def test_measure_matches_integral(region, variables):
 @pytest.mark.parametrize(
     ("region", "variables"),
     [
-        (IntervalRegion(-2, 4), (sp.Symbol("x", real=True),)),
-        (BoxRegion(((0, 2), (-1, 3))), sp.symbols("x y", real=True)),
+        (Interval(-2, 4), (sp.Symbol("x", real=True),)),
+        (Box(((0, 2), (-1, 3))), sp.symbols("x y", real=True)),
         (Simplex(((0, 0), (2, 0), (0, 3))), sp.symbols("x y", real=True)),
         (Simplex(((0, 0, 1), (2, 0, 1), (0, 3, 1))), sp.symbols("x y z", real=True)),
         (Polygon(((0, 0), (2, 0), (2, 1), (0, 1))), sp.symbols("x y", real=True)),
@@ -71,9 +71,9 @@ def test_centroid_matches_moments(region, variables):
     ("region", "intrinsic", "ambient"),
     [
         (Point((1, 2, 3)), 1, 0),
-        (IntervalRegion(2, 2), 1, 0),
-        (BoxRegion(((0, 0), (0, 2))), 2, 0),
-        (BoxRegion(((1, 1), (2, 2))), 1, 0),
+        (Interval(2, 2), 1, 0),
+        (Box(((0, 0), (0, 2))), 2, 0),
+        (Box(((1, 1), (2, 2))), 1, 0),
         (Simplex(((0, 0), (3, 4))), 5, 0),
         (Simplex(((0, 0, 1), (1, 0, 1), (0, 1, 1))), sp.Rational(1, 2), 0),
         (Sphere((0, 0), 2), 4 * sp.pi, 0),

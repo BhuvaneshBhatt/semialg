@@ -6,7 +6,7 @@ treated as proof of adequate behavior.
 
 | Level | What it establishes | What it does not establish |
 | --- | --- | --- |
-| Import contract | Every exported name exists, is callable, documented, and has an inspectable signature | computer algebra systeml correctness |
+| Import contract | Every exported name exists, is callable, documented, and has an inspectable signature | Mathematical correctness |
 | Direct-call inventory | Every exported function is invoked somewhere in the recursive test tree | Boundary cases or completeness |
 | Behavioral contract | Representative results, failures, witnesses, and result-object fields have assertions | Exhaustive input coverage |
 | Property regression | Results agree under specialization, symbol/order changes, cache history, or equivalent formulations | All possible formulas |
@@ -137,7 +137,7 @@ production-path contracts are:
 
 - `CADRegion` through `as_cad_region`;
 - `AffineBoxClip` through `clip_affine_subspace_to_box`;
-- `Geometry` and `StandardRegion` through a concrete `IntervalRegion`;
+- `Geometry` and `StandardRegion` through a concrete `Interval`;
 - `ResourceLimitError` and its public base classes through a resource-limited `cad` call.
 
 `tests/test_public_type_contracts.py` asserts useful fields and behavior after those
@@ -173,3 +173,30 @@ and unassigned nested subsystems are errors.
 
 See [Coverage measurements](coverage_measurements.md) for the subsystem policy and the
 rules for increasing floors.
+
+## Semantic coherence contracts
+
+`tests/test_decision_semantic_coherence.py` keeps a small, non-slow set of identities between the everyday decision APIs. These are deliberately redundant at the **mathematical** level but not at the implementation-contract level:
+
+- `implies(A, B)` agrees with unsatisfiability of `A & ~B`;
+- `equivalent(A, B)` agrees with implication in both directions;
+- variable renaming preserves satisfiability;
+- multiplication of a polynomial inequality by a known positive constant preserves its feasible set.
+
+These checks complement explicit expected-value cases. They are especially useful after planner, normalization, or fast-path refactors because they exercise the same mathematical statement through different public entry points. They do not replace independent mathematical oracles: if two APIs share an incorrect backend, agreement alone cannot detect the error.
+
+## Reader-facing example style
+
+Documentation examples show the expression a reader would evaluate followed by its expected result. For example:
+
+```python
+is_satisfiable(x**2 <= 1, [x])
+# True
+```
+
+Tests use assertions; README and guide examples normally do not repeat the same expectation as both an assertion and an output comment. `tests/test_documentation_presentation_contracts.py` protects this convention and also checks that the computation-flow diagrams remain present and linked.
+
+
+## Root-level adequacy gate
+
+File-level call coverage is necessary but not sufficient. The root API also has a named-contract adequacy gate: every exported function must be exercised by at least two independently named tests, while critical decision/solver APIs require at least three. The current function-by-function audit is recorded in [Root API adequacy audit](root-api-adequacy.md). The audit deliberately labels functions with exactly two contracts as *adequate-minimum* rather than pretending that a test count proves mathematical completeness.

@@ -16,47 +16,104 @@ from .quantifiers import Exists
 from .symbolic_regions import SemialgebraicRegion, _default_variables, _fresh_symbols
 
 
+def _composite_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Expr | None:
+    """Lower parametric, transformed, and Boolean composition representations."""
+    from .standard_regions import BooleanRegion, ParametricRegion, TransformedRegion
+
+    if isinstance(region, ParametricRegion):
+        body = sp.And(
+            normalize_formula(region.assumptions),
+            *(sp.And(param >= lo, param <= hi) for param, lo, hi in region.limits),
+            *(sp.Eq(v, mapping) for v, mapping in zip(variables, region.mapping, strict=True)),
+        )
+        return Exists(region.parameters, body)
+    if isinstance(region, TransformedRegion):
+        base_vars = tuple(region.base_variables)
+        if len(base_vars) != region.base.ambient_dimension():
+            raise ValueError("TransformedRegion base variable count does not match base dimension")
+        base_formula = _standard_region_formula(region.base, base_vars)
+        body = sp.And(
+            base_formula,
+            *(sp.Eq(v, mapping) for v, mapping in zip(variables, region.mapping, strict=True)),
+        )
+        return Exists(base_vars, body)
+    if isinstance(region, BooleanRegion):
+        formulas = [as_semialgebraic_region(r, variables).formula for r in region.regions]
+        if region.op == "union":
+            return sp.Or(*formulas)
+        if region.op == "intersection":
+            return sp.And(*formulas)
+        if region.op == "difference":
+            return sp.And(formulas[0], sp.Not(formulas[1]))
+        if region.op == "symmetric_difference":
+            return sp.Xor(formulas[0], formulas[1])
+        if region.op == "complement":
+            return sp.Not(formulas[0])
+    return None
+
+
+def _swept_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Expr | None:
+    """Lower segment-swept and axial solid families without affecting shape dispatch."""
+    from .standard_regions import Capsule, Cone, Cylinder, Stadium
+
+    if isinstance(region, (Stadium, Capsule)):
+        t = sp.Dummy("t", real=True)
+        axis_point = tuple(a + t * (b - a) for a, b in zip(region.start, region.end, strict=True))
+        radial = sum((v - q) ** 2 for v, q in zip(variables, axis_point, strict=True))
+        return Exists(t, sp.And(t >= 0, t <= 1, radial <= region.radius**2))
+    if isinstance(region, (Cylinder, Cone)):
+        t = sp.Dummy("t", real=True)
+        direction = tuple(b - a for a, b in zip(region.start, region.end, strict=True))
+        norm_sq = sp.expand(sum(delta**2 for delta in direction))
+        if certified_zero(norm_sq) is True:
+            radial = sum((v - a) ** 2 for v, a in zip(variables, region.start, strict=True))
+            return radial <= region.radius**2
+        offset = tuple(v - a for v, a in zip(variables, region.start, strict=True))
+        projection = sp.expand(sum(o * d for o, d in zip(offset, direction, strict=True)))
+        perpendicular_sq = sp.expand(sum(o**2 for o in offset) - t**2 * norm_sq)
+        radius_sq = (
+            region.radius**2
+            if isinstance(region, Cylinder) and not isinstance(region, Cone)
+            else ((1 - t) * region.radius) ** 2
+        )
+        return Exists(
+            t, sp.And(t >= 0, t <= 1, sp.Eq(projection, t * norm_sq), perpendicular_sq <= radius_sq)
+        )
+    return None
+
+
 def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Expr:
     """Lower a ``StandardRegion`` to a symbolic semialgebraic membership formula."""
 
     from .standard_regions import (
         AffineHalfSpace,
         AffineSpace,
-        BallRegion,
-        BooleanRegion,
-        BoxRegion,
-        CapsuleRegion,
-        ConeRegion,
-        ConicRegion,
-        CylinderRegion,
+        Ball,
+        Box,
         Ellipsoid,
         EllipsoidBoundary,
         FilledTorus,
+        FinitePointSet,
         HalfSpace,
         Hyperplane,
-        IntervalRegion,
-        ParallelepipedRegion,
-        ParallelogramRegion,
-        ParametricRegion,
-        PointRegion,
-        PolygonRegion,
-        PolyhedronRegion,
+        Interval,
+        Parallelepiped,
+        Parallelogram,
+        Polygon,
+        PolyhedralCone,
         Polytope,
-        PrismRegion,
-        PyramidRegion,
         Ray,
-        SimplexRegion,
-        SphereRegion,
-        SphericalShellRegion,
-        StadiumRegion,
+        Simplex,
+        Sphere,
+        SphericalShell,
+        TetrahedralComplex,
         Torus,
-        TransformedRegion,
     )
 
     if len(variables) != region.ambient_dimension():
         raise ValueError("variable count does not match explicit region ambient dimension")
 
-    if isinstance(region, PointRegion):
+    if isinstance(region, FinitePointSet):
         pieces = [
             sp.And(*(sp.Eq(v, c) for v, c in zip(variables, p, strict=True))) for p in region.points
         ]
@@ -111,7 +168,7 @@ def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Exp
             for j, v in enumerate(variables)
         ]
         return Exists(params, sp.And(*coords))
-    if isinstance(region, ConicRegion):
+    if isinstance(region, PolyhedralCone):
         free = _fresh_symbols("u", len(region.directions))
         nonnegative = _fresh_symbols("t", len(region.rays))
         coords = [
@@ -139,29 +196,29 @@ def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Exp
             weights,
             sp.And(sp.Eq(sum(weights), 1), *(w >= 0 for w in weights), *coords),
         )
-    if isinstance(region, IntervalRegion):
+    if isinstance(region, Interval):
         (x,) = variables
         lo = x >= region.lower if region.lower_closed else x > region.lower
         hi = x <= region.upper if region.upper_closed else x < region.upper
         return sp.And(lo, hi)
-    if isinstance(region, BoxRegion):
+    if isinstance(region, Box):
         return sp.And(
             *(
                 sp.And(v >= lo, v <= hi)
                 for v, (lo, hi) in zip(variables, region.bounds, strict=True)
             )
         )
-    if isinstance(region, SphereRegion):
+    if isinstance(region, Sphere):
         radial = sum((v - c) ** 2 for v, c in zip(variables, region.center, strict=True))
         return sp.Eq(radial, region.radius**2)
-    if isinstance(region, BallRegion):
+    if isinstance(region, Ball):
         radial = sum((v - c) ** 2 for v, c in zip(variables, region.center, strict=True))
         return radial <= region.radius**2
     if isinstance(region, (Ellipsoid, EllipsoidBoundary)):
         delta = sp.Matrix(variables) - sp.Matrix(region.center)
         quadratic = sp.expand((delta.T * region.shape_matrix.inv() * delta)[0])
         return sp.Eq(quadratic, 1) if isinstance(region, EllipsoidBoundary) else quadratic <= 1
-    if isinstance(region, SphericalShellRegion):
+    if isinstance(region, SphericalShell):
         radial = sum((v - c) ** 2 for v, c in zip(variables, region.center, strict=True))
         return sp.And(radial >= region.inner_radius**2, radial <= region.outer_radius**2)
     if isinstance(region, Torus):
@@ -175,7 +232,7 @@ def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Exp
             (rho_sq + z_sq + r_major**2 - r_minor**2) ** 2 - 4 * r_major**2 * rho_sq
         )
         return quartic <= 0 if isinstance(region, FilledTorus) else sp.Eq(quartic, 0)
-    if isinstance(region, SimplexRegion):
+    if isinstance(region, Simplex):
         lambdas = _fresh_symbols("lambda", len(region.vertices))
         coords = [
             sp.Eq(
@@ -190,13 +247,13 @@ def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Exp
             *coords,
         )
         return Exists(lambdas, body)
-    if isinstance(region, PolygonRegion):
+    if isinstance(region, Polygon):
         return sp.Or(
             *(_standard_region_formula(triangle, variables) for triangle in region.triangulation())
         )
-    if isinstance(region, PolyhedronRegion):
+    if isinstance(region, TetrahedralComplex):
         return sp.Or(*(_standard_region_formula(tet, variables) for tet in region.tetrahedra))
-    if isinstance(region, (ParallelogramRegion, ParallelepipedRegion)):
+    if isinstance(region, (Parallelogram, Parallelepiped)):
         params = _fresh_symbols("u", len(region.vectors))
         body = sp.And(
             *(sp.And(param >= 0, param <= 1) for param in params),
@@ -212,101 +269,12 @@ def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Exp
             ),
         )
         return Exists(params, body)
-    if isinstance(region, PrismRegion):
-        base_vars = _fresh_symbols("b", len(variables))
-        t = sp.Dummy("t", real=True)
-        base_formula = _standard_region_formula(region.base, tuple(base_vars))
-        body = sp.And(
-            base_formula,
-            t >= 0,
-            t <= 1,
-            *(
-                sp.Eq(v, b + t * delta)
-                for v, b, delta in zip(variables, base_vars, region.vector, strict=True)
-            ),
-        )
-        return Exists((*base_vars, t), body)
-    if isinstance(region, PyramidRegion):
-        base_vars = _fresh_symbols("b", len(variables))
-        t = sp.Dummy("t", real=True)
-        base_formula = _standard_region_formula(region.base, tuple(base_vars))
-        body = sp.And(
-            base_formula,
-            t >= 0,
-            t <= 1,
-            *(
-                sp.Eq(v, (1 - t) * b + t * apex)
-                for v, b, apex in zip(variables, base_vars, region.apex, strict=True)
-            ),
-        )
-        return Exists((*base_vars, t), body)
-    if isinstance(region, ParametricRegion):
-        body = sp.And(
-            normalize_formula(region.assumptions),
-            *(sp.And(param >= lo, param <= hi) for param, lo, hi in region.limits),
-            *(sp.Eq(v, mapping) for v, mapping in zip(variables, region.mapping, strict=True)),
-        )
-        return Exists(region.parameters, body)
-    if isinstance(region, TransformedRegion):
-        base_vars = tuple(region.base_variables)
-        if len(base_vars) != region.base.ambient_dimension():
-            raise ValueError("TransformedRegion base variable count does not match base dimension")
-        base_formula = _standard_region_formula(region.base, base_vars)
-        body = sp.And(
-            base_formula,
-            *(sp.Eq(v, mapping) for v, mapping in zip(variables, region.mapping, strict=True)),
-        )
-        return Exists(base_vars, body)
-    if isinstance(region, BooleanRegion):
-        subregions = [as_semialgebraic_region(r, variables) for r in region.regions]
-        formulas = [sub.formula for sub in subregions]
-        if region.op == "union":
-            return sp.Or(*formulas)
-        if region.op == "intersection":
-            return sp.And(*formulas)
-        if region.op == "difference":
-            if len(formulas) != 2:
-                raise ValueError("difference requires two regions")
-            return sp.And(formulas[0], sp.Not(formulas[1]))
-        if region.op == "symmetric_difference":
-            if len(formulas) != 2:
-                raise ValueError("symmetric difference requires two regions")
-            return sp.Xor(formulas[0], formulas[1])
-        if region.op == "complement":
-            if len(formulas) != 1:
-                raise ValueError("complement requires one region")
-            return sp.Not(formulas[0])
-    if isinstance(region, (StadiumRegion, CapsuleRegion)):
-        # Distance-to-segment representation; exact and valid in any ambient dimension.
-        t = sp.Dummy("t", real=True)
-        axis_point = tuple(a + t * (b - a) for a, b in zip(region.start, region.end, strict=True))
-        radial = sum((v - q) ** 2 for v, q in zip(variables, axis_point, strict=True))
-        return Exists(t, sp.And(t >= 0, t <= 1, radial <= region.radius**2))
-    if isinstance(region, (CylinderRegion, ConeRegion)):
-        # Flat-ended right cylinder/cone with the stored start/end as axis.
-        t = sp.Dummy("t", real=True)
-        direction = tuple(b - a for a, b in zip(region.start, region.end, strict=True))
-        norm_sq = sp.expand(sum(delta**2 for delta in direction))
-        if certified_zero(norm_sq) is True:
-            radial = sum((v - a) ** 2 for v, a in zip(variables, region.start, strict=True))
-            return radial <= region.radius**2
-        offset = tuple(v - a for v, a in zip(variables, region.start, strict=True))
-        projection = sp.expand(sum(o * d for o, d in zip(offset, direction, strict=True)))
-        perpendicular_sq = sp.expand(sum(o**2 for o in offset) - t**2 * norm_sq)
-        radius_sq = (
-            region.radius**2
-            if isinstance(region, CylinderRegion) and not isinstance(region, ConeRegion)
-            else ((1 - t) * region.radius) ** 2
-        )
-        return Exists(
-            t,
-            sp.And(
-                t >= 0,
-                t <= 1,
-                sp.Eq(projection, t * norm_sq),
-                perpendicular_sq <= radius_sq,
-            ),
-        )
+    composite = _composite_region_formula(region, variables)
+    if composite is not None:
+        return composite
+    swept = _swept_region_formula(region, variables)
+    if swept is not None:
+        return swept
     raise NotImplementedError(f"cannot lower {type(region).__name__} to a semialgebraic formula")
 
 
@@ -345,3 +313,12 @@ def as_semialgebraic_region(
 
 
 __all__ = ["as_semialgebraic_region"]
+
+
+# ``symbolic_regions`` historically re-exports this operation.  Install the
+# canonical implementation object after this module is fully initialized so the
+# re-export preserves object identity without creating a second implementation
+# or an eager circular import.
+from . import symbolic_regions as _symbolic_regions  # noqa: E402
+
+_symbolic_regions.as_semialgebraic_region = as_semialgebraic_region

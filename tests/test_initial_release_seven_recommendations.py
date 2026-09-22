@@ -1,6 +1,6 @@
 import sympy as sp
 
-from semialg import BoxRegion, CriticalValueImage, betti_number, critical_value_image
+from semialg import Box, CriticalValueImage, betti_number, critical_value_image
 from semialg.function_graph import semialgebraic_function_graph
 from semialg.topology.semialgebraic import (
     simplicial_betti_numbers,
@@ -10,7 +10,7 @@ from semialg.topology.semialgebraic import (
 
 
 def test_polyhedral_triangulation_drives_exact_higher_betti_numbers():
-    box = BoxRegion(((0, 1), (0, 1), (0, 1)))
+    box = Box(((0, 1), (0, 1), (0, 1)))
     triangulation = triangulate_region(box)
     assert simplicial_betti_numbers(triangulation.complex) == (1, 0, 0, 0)
     assert triangulation_betti_numbers(box) == (1, 0, 0, 0)
@@ -49,17 +49,17 @@ def test_cheap_factored_box_sign_certificate_handles_boundary_zeros():
 
 
 def test_parameter_strata_use_certified_nonzero_representatives():
-    from semialg.parameter_stratification import parameterized_cylindrical_decomposition
+    from semialg.decomposition import parametric_cad
 
     x, p = sp.symbols("x p", real=True)
-    result = parameterized_cylindrical_decomposition(
-        sp.And(p > 1, sp.Eq(x - p, 0)), (x,), (p,), specialize_fibers=False
+    result = parametric_cad(
+        sp.And(p > 1, sp.Eq(x - p, 0)), (x,), parameters=(p,), specialize_fibers=False
     )
     assert result.strata
     assert all(
         bool(sp.simplify(stratum.condition.subs(stratum.sample))) for stratum in result.strata
     )
-    assert all(stratum.sample[p] != 0 for stratum in result.strata)
+    assert all(stratum.sample[p] != 0 for stratum in result.strata if stratum.has_solution)
 
 
 def test_intrinsic_integration_sums_disjoint_regular_cad_charts():

@@ -120,10 +120,6 @@ class RootCountConditionsResult:
         return self.conditions_by_count.get(sp.sympify(count), sp.false)
 
 
-def _as_real_symbol(var: sp.Symbol | str) -> sp.Symbol:
-    return sp.Symbol(var, real=True) if isinstance(var, str) else var
-
-
 def _normalize_symbols(
     symbols: Sequence[sp.Symbol | str] | None,
     *,

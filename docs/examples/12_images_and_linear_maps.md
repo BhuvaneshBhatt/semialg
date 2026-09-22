@@ -18,7 +18,7 @@ u^2+v^2\le2.
 
 The raw reconstructed image formula may contain exact algebraic root-function
 boundaries rather than printing in this simplest form. The executable checks
-representative interior, boundary, and exterior points. computer algebra systemlly the image
+representative interior, boundary, and exterior points. Mathematically the image
 is the disk `u**2 + v**2 <= 2`; in general, exact set equality should be checked
 semantically rather than by comparing printed formulas.
 
@@ -27,14 +27,14 @@ semantically rather than by comparing printed formulas.
 ```python
 import sympy as sp
 
-from semialg import contains_point, semialgebraic_image
+from semialg import contains_point, region_image
 
 x, y, u, v = sp.symbols("x y u v", real=True)
 disk = x**2 + y**2 <= 1
 
-image = semialgebraic_image(
-    [x + y, x - y],
+image = region_image(
     disk,
+    [x + y, x - y],
     variables=[x, y],
     image_variables=[u, v],
 )

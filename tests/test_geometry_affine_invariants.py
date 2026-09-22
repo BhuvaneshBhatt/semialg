@@ -1,6 +1,6 @@
 import sympy as sp
 
-from semialg import Ball, BoxRegion, Point, Simplex, Sphere
+from semialg import Ball, Box, Point, Simplex, Sphere
 
 
 def _mapped_point(matrix, offset, point):
@@ -18,7 +18,7 @@ def test_full_dimensional_measure_scales_by_determinant():
 
 
 def test_centroid_is_affine_equivariant():
-    region = BoxRegion(((-1, 3), (2, 6)))
+    region = Box(((-1, 3), (2, 6)))
     matrix = sp.Matrix(((2, -1), (1, 1)))
     offset = (4, -3)
     image = region.transform(matrix, offset)

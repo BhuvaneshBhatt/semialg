@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .api import QuantifierEliminationResult, project_region, quantifier_eliminate
 from .blocks import QuantifierBlock, blocks_to_quantifiers, norm_quant_blocks, quantifiers_to_blocks
 from .complete import (
     CellUnion,
@@ -13,6 +14,9 @@ from .complete import (
 from .prenex import eval_quantifier_free, qe_blocks, qe_parsed, qe_prenex, qe_prenex_suffix, qe_text
 
 __all__ = [
+    "QuantifierEliminationResult",
+    "project_region",
+    "quantifier_eliminate",
     "CellUnion",
     "CompleteQEResult",
     "QEDiagnostics",

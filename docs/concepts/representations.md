@@ -15,7 +15,7 @@ region = (x**2 + y**2 <= 1) & (y >= 0)
 
 Use `Eq(f, 0)` for polynomial equalities and SymPy inequalities for strict or non-strict sign conditions. Boolean combinations use `And`, `Or`, and `Not` (or their operator equivalents where SymPy supports them).
 
-Standard-region objects such as `IntervalRegion`, `BoxRegion`, and `BallRegion` are convenience representations with explicit geometric invariants. They can be converted or lowered to semialgebraic formulas as required by downstream algorithms.
+Standard-region objects such as `Interval`, `Box`, and `Ball` are convenience representations with explicit geometric invariants. They can be converted or lowered to semialgebraic formulas as required by downstream algorithms.
 
 ## Exact coefficients
 

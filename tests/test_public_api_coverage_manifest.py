@@ -83,8 +83,8 @@ def test_indirect_types_and_exceptions_declare_production_contracts() -> None:
     entries = _manifest()
     assert entries["CADRegion"]["production"] == "as_cad_region"
     assert entries["AffineBoxClip"]["production"] == "clip_affine_subspace_to_box"
-    assert entries["Geometry"]["production"] == "IntervalRegion"
-    assert entries["StandardRegion"]["production"] == "IntervalRegion"
+    assert entries["Geometry"]["production"] == "Interval"
+    assert entries["StandardRegion"]["production"] == "Interval"
     for name in ("CADRegion", "AffineBoxClip", "Geometry", "StandardRegion"):
         assert "production-path" in entries[name]["contracts"]
         assert "tests/test_public_type_contracts.py" in entries[name]["tests"]

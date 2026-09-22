@@ -6,7 +6,7 @@ from semialg.algebraic_decomposition import (
 )
 
 
-def test_recursive_regular_chain_splits_reducible_hypersurface_and_conserves_degree():
+def test_regular_chain_split_conserves_degree():
     x, y = sp.symbols("x y")
     result = recursive_regular_chain_decomposition((x * y,), (x, y))
     assert result.complete
@@ -38,7 +38,7 @@ def test_minimal_prime_result_carries_hilbert_degree_certificate():
     assert sorted(component.degree for component in result.components) == [1, 1]
 
 
-def test_regular_chain_degree_certificate_uses_reduced_union_not_input_multiplicity():
+def test_regular_chain_degree_uses_reduced_union():
     x, y = sp.symbols("x y")
     result = recursive_regular_chain_decomposition((x**2 * y,), (x, y))
     assert result.complete

@@ -21,7 +21,7 @@ def test_region_singular_locus_respects_explicit_empty_ambient_variables():
     assert region_singular_locus(x**2 <= 0, variables=()) is sp.false
 
 
-def test_region_analysis_point_mapping_reports_missing_coordinates_as_value_error():
+def test_region_analysis_rejects_missing_coordinates():
     x, y = sp.symbols("x y", real=True)
 
     with pytest.raises(ValueError, match="missing coordinate.*y"):

@@ -17,7 +17,7 @@ shadow = ball.project((z,))
 assert shadow.variables == (x, y)
 ```
 
-computer algebra systemlly this is existential elimination:
+Mathematically this is existential elimination:
 
 ```text
 (x, y) is in shadow  iff  exists z: x^2 + y^2 + z^2 <= 1.

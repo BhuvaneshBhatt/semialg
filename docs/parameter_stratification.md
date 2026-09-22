@@ -11,7 +11,7 @@ Many exact symbolic answers depend on parameter regions. `semialg` represents th
 - `verify_parameter_stratification`
 - `solvability_conditions(..., return_stratified=True)`
 - `root_count_conditions(..., return_stratified=True)`
-- `ParameterizedCylindricalDecomposition.as_stratified_result()`
+- `ParametricCADResult.as_stratified_result()`
 - `semialgebraic_minimize(..., parameters=[...], return_stratified=True)`
 - `semialgebraic_maximize(..., parameters=[...], return_stratified=True)`
 - `function_range(..., parameters=[...], return_stratified=True)`
@@ -54,7 +54,7 @@ Three claims are checked independently:
 
 `verify_parameter_stratification` returns a `ParameterStratificationCertificate` containing these checks, overlap conditions, and any uncovered condition.
 
-A sampled CAD fiber is evidence for a parameter cell, not automatically a symbolic formula valid on the whole cell. `ParameterizedCylindricalDecomposition.as_stratified_result()` therefore exposes guarded `ParameterStratum` objects rather than promoting representative fibers to unconditional answers.
+A sampled CAD fiber is evidence for a parameter cell, not automatically a symbolic formula valid on the whole cell. `ParametricCADResult.as_stratified_result()` therefore exposes guarded `ParametricCADCase` objects rather than promoting representative fibers to unconditional answers.
 
 ## Optimization and range relations
 

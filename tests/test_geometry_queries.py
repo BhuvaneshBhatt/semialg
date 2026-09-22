@@ -10,8 +10,8 @@ from semialg import (
     is_convex,
     is_path_connected,
     path_between,
-    semialgebraic_image,
-    semialgebraic_preimage,
+    region_image,
+    region_preimage,
     semialgebraic_projection,
 )
 
@@ -22,15 +22,15 @@ def test_semialgebraic_projection_eliminates_existential_variable():
     assert sp.simplify_logic(sp.Xor(result, sp.And(y >= 0, y <= 2))) is sp.false
 
 
-def test_semialgebraic_image_identity_interval():
+def test_region_image_formula_identity_interval():
     x, u = sp.symbols("x u", real=True)
-    result = semialgebraic_image(x, sp.And(x >= -1, x <= 2), [x], image_variables=[u])
+    result = region_image(sp.And(x >= -1, x <= 2), x, [x], image_variables=[u])
     assert sp.simplify_logic(sp.Xor(result, sp.And(u >= -1, u <= 2))) is sp.false
 
 
-def test_semialgebraic_preimage_and_fiber():
+def test_region_preimage_formula_and_fiber():
     x, y, u, a = sp.symbols("x y u a", real=True)
-    pre = semialgebraic_preimage(x**2 + y**2, u <= 1, [x, y], target_variables=[u])
+    pre = region_preimage(u <= 1, x**2 + y**2, [x, y], target_variables=[u])
     assert pre == (x**2 + y**2 <= 1)
     assert fiber(sp.And(x >= 0, x <= a), {a: 2}) == sp.And(x >= 0, x <= 2)
 

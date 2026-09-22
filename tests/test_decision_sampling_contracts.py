@@ -44,7 +44,7 @@ def test_sample_points_random_strategy_is_seeded_and_can_return_floats():
     assert all(isinstance(point[x], sp.Float) for point in left)
 
 
-def test_sample_point_representative_still_uses_rur_for_irrational_finite_witness():
+def test_sample_point_uses_rur_for_irrational_witness():
     x = sp.symbols("x", real=True)
 
     point = sample_point(sp.Eq(x**2, 2), [x], strategy="representative")

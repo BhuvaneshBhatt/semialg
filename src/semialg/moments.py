@@ -15,7 +15,7 @@ class RegionMomentResult:
     """Moment integral over a semialgebraic region.
 
     ``value`` is the raw moment, not normalized by the region measure. Use
-    ``region_centroid`` or ``region_covariance`` for normalized first and
+    ``centroid`` or ``covariance_matrix`` for normalized first and
     second central moments.
     """
 
@@ -151,7 +151,7 @@ def region_moment(
     return result if return_result else result.value
 
 
-def region_centroid(
+def centroid(
     condition: object,
     variables: Sequence[sp.Symbol | str],
     *,
@@ -215,7 +215,7 @@ def region_centroid(
     return result if return_result else result.centroid
 
 
-def region_covariance(
+def covariance_matrix(
     condition: object,
     variables: Sequence[sp.Symbol | str],
     *,
@@ -231,7 +231,7 @@ def region_covariance(
 
     formula = normalize_formula(condition)
     vars_ = normalize_variables(variables, formula)
-    centroid_result = region_centroid(
+    centroid_result = centroid(
         formula,
         vars_,
         bounds=bounds,
@@ -287,6 +287,6 @@ __all__ = [
     "RegionCentroidResult",
     "RegionCovarianceResult",
     "region_moment",
-    "region_centroid",
-    "region_covariance",
+    "centroid",
+    "covariance_matrix",
 ]

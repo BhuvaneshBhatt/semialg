@@ -23,6 +23,7 @@ def test_known_region_basic_invariants(case):
         assert region.euler_characteristic() == case.euler_compact_support
 
 
+@pytest.mark.slow
 def test_native_region_analysis_reused_across_invariants():
     case = next(item for item in corpus() if item.name == "solid_torus")
     region = case.region

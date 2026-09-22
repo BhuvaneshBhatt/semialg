@@ -65,7 +65,7 @@ def test_region_analysis_refuses_complete_boolean_without_certificate():
     assert result.formula is None
 
 
-def test_real_dimension_drop_union_has_only_true_component_intersection_singularity():
+def test_dimension_drop_union_has_true_crossing_only():
     x, y, z = sp.symbols("x y z", real=True)
     # Reduced real set: plane z=0 union line x=y=0.
     formula = sp.Eq((x**2 + y**2) * z, 0)

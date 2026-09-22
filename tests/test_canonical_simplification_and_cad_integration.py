@@ -29,7 +29,7 @@ def test_zero_set_multiplicity_is_removed_canonically():
     ) == sp.Ne(x, 1)
 
 
-def test_canonical_simplification_is_idempotent_and_shared_by_public_simplifiers():
+def test_canonical_simplification_is_shared_and_idempotent():
     expr = sp.Or(
         sp.And(2 * x - 2 * y > 0, x > -1),
         sp.And(y - x < 0, x > -1),

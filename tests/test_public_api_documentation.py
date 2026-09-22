@@ -53,7 +53,7 @@ def test_public_functions_and_classes_have_docstrings():
 def test_primary_reference_families_state_the_contract():
     required = (
         "## Family contract",
-        "**Common mathematical result.**",
+        "**Mathematical return.**",
         "**Exactness and certification.**",
         "**Algorithm",
         "**Complexity and limitations.**",
@@ -129,7 +129,8 @@ def _section_for_anchor(text: str, anchor: str) -> str | None:
 
     for match in re.finditer(r"^## (.+)$", text, flags=re.MULTILINE):
         title = match.group(1).strip().lower()
-        slug = re.sub(r"[^a-z0-9 -]", "", title).replace(" ", "-")
+        slug = re.sub(r"[^a-z0-9_ -]", "", title).replace(" ", "-")
+        slug = re.sub(r"-+", "-", slug)
         if slug != anchor:
             continue
         next_heading = re.search(r"^## ", text[match.end() :], flags=re.MULTILINE)

@@ -87,12 +87,8 @@ def solve_int_divis(
     )
 
 
-def detect_int_lin_elim(expr: sp.Expr, variables: Sequence[sp.Symbol]):
-    return detect_lin_reduction(expr, variables)
-
-
 def reduce_int_divis(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSolveResult | None:
-    reduction = detect_int_lin_elim(expr, variables)
+    reduction = detect_lin_reduction(expr, variables)
     if reduction is None:
         return None
     reduced_vars = tuple(v for v in variables if v != reduction.solved_variable)
@@ -532,7 +528,6 @@ def solve_int_methods(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> IntEqnSo
 
 __all__ = [
     "IntEqnSolveResult",
-    "detect_int_lin_elim",
     "solve_int_fams2",
     "solve_int_divis",
     "reduce_int_divis",

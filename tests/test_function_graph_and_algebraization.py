@@ -89,7 +89,7 @@ def test_back_substitution_precedes_exponential_algebraization() -> None:
     assert result.diagnostics["back_substitutions"] == (("y", "2*x"),)
 
 
-def test_noncommensurate_trig_frequencies_are_not_relaxed_to_independent_circles() -> None:
+def test_noncommensurate_trig_frequencies_are_not_relaxed() -> None:
     x = sp.symbols("x", real=True)
     algebraized = exact_algebraize_function_problem(
         sp.sin(x) + sp.sin(sp.sqrt(2) * x), sp.true, (x,)

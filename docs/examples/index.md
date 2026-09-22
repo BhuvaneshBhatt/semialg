@@ -23,3 +23,5 @@ The gallery favors small exact problems that expose the real algorithms—CAD/QE
 
 - [Symbolic region conditions and active-boundary strata](17_symbolic_region_conditions.md) — Keep region membership symbolic by default, opt into QE, expose real parameter assumptions, and inspect active boundary strata.
 - [Specialist APIs and owning namespaces](18_specialist_namespaces.md) — Keep the package root focused while importing root-count and map-degree workflows explicitly.
+
+- [Canonical boundary topology](19_boundary_topology.md) — Query polygon holes and polyhedral outer/cavity shells from canonical boundary representations.

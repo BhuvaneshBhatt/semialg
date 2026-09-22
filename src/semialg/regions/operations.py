@@ -116,6 +116,30 @@ def region_difference(
     return _simplify_region(sp.And(normalize_formula(lhs), sp.Not(normalize_formula(rhs))))
 
 
+def region_symmetric_difference(
+    lhs: FormulaLike | Iterable[FormulaLike],
+    rhs: FormulaLike | Iterable[FormulaLike],
+):
+    """Return the exact symmetric difference of two semialgebraic regions.
+
+    The result contains points belonging to exactly one operand.  Unified and
+    explicit region inputs are lowered through the same exact representation
+    used by the other Boolean region operations.
+    """
+    left_object = _as_region_object(lhs)
+    right_object = _as_region_object(rhs)
+    if left_object is not None or right_object is not None:
+        from ..symbolic_regions import as_semialgebraic_region
+
+        base = left_object or right_object
+        left = left_object or as_semialgebraic_region(lhs, base.variables)
+        right = right_object or as_semialgebraic_region(rhs, base.variables)
+        return left.difference(right).union(right.difference(left))
+    left = normalize_formula(lhs)
+    right = normalize_formula(rhs)
+    return _simplify_region(sp.Or(sp.And(left, sp.Not(right)), sp.And(right, sp.Not(left))))
+
+
 def region_product(*regions, variables=None):
     """Return the Cartesian product of semialgebraic regions.
 
@@ -812,7 +836,7 @@ def _components_1d(expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr, ...] | 
     return tuple(_piece_from_interval(interval, variable) for interval in merged)
 
 
-def region_components(
+def explicit_region_components(
     region: FormulaLike | Iterable[FormulaLike],
     variables: Sequence[sp.Symbol | str] | None = None,
     *,
@@ -829,7 +853,7 @@ def region_components(
     if region_object is not None:
         from ..symbolic_regions import SemialgebraicRegion
 
-        formulas = region_components(
+        formulas = explicit_region_components(
             region_object.quantifier_free_formula(),
             region_object.variables,
             strategy=strategy,

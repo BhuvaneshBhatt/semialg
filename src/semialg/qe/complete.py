@@ -402,6 +402,59 @@ def _propagate_quantified_cell_truth(
     return current
 
 
+def _presolve_complete_qe(
+    matrix: Formula,
+    variables: tuple[sp.Symbol, ...],
+    free: tuple[sp.Symbol, ...],
+    quantifiers: tuple[tuple[str, sp.Symbol], ...],
+    notes: list[str],
+) -> tuple[
+    Formula, tuple[sp.Symbol, ...], tuple[sp.Symbol, ...], tuple[tuple[str, sp.Symbol], ...]
+]:
+    """Apply semantics-preserving affine and linear QE presolve stages."""
+
+    existential: tuple[sp.Symbol, ...] = ()
+    if quantifiers and quantifiers[-1][0] == "exists":
+        start = len(quantifiers) - 1
+        while start > 0 and quantifiers[start - 1][0] == "exists":
+            start -= 1
+        existential = tuple(sym for _, sym in quantifiers[start:])
+    presolved = presolve_semialgebraic(to_sympy(matrix), variables, eliminate=existential)
+    if presolved.changed:
+        removed = {var for var, _ in presolved.substitutions}
+        matrix = parse_formula(presolved.formula)
+        quantifiers = tuple((qname, sym) for qname, sym in quantifiers if sym not in removed)
+        free = tuple(sym for sym in free if sym not in removed)
+        variables = tuple(sym for sym in variables if sym not in removed)
+        if removed:
+            notes.append(
+                "presolve eliminated affine existential variables: "
+                + ", ".join(sym.name for sym in removed)
+            )
+
+    trailing_exists: tuple[sp.Symbol, ...] = ()
+    if quantifiers and quantifiers[-1][0] == "exists":
+        start = len(quantifiers) - 1
+        while start > 0 and quantifiers[start - 1][0] == "exists":
+            start -= 1
+        trailing_exists = tuple(sym for _, sym in quantifiers[start:])
+    if trailing_exists:
+        fm = fourier_motzkin_eliminate(to_sympy(matrix), trailing_exists)
+        if fm is not None:
+            fm_formula, fm_removed = fm
+            matrix = parse_formula(fm_formula)
+            removed_set = set(fm_removed)
+            quantifiers = tuple(
+                (qname, sym) for qname, sym in quantifiers if sym not in removed_set
+            )
+            variables = tuple(sym for sym in variables if sym not in removed_set)
+            notes.append(
+                "Fourier-Motzkin eliminated linear existential variables: "
+                + ", ".join(sym.name for sym in fm_removed)
+            )
+    return matrix, variables, free, quantifiers
+
+
 @with_computation_context
 def _qe_by_complete_cad_result(
     vars_: Sequence[sp.Symbol],
@@ -441,56 +494,11 @@ def _qe_by_complete_cad_result(
             )
 
     if use_presolve and variables:
-        # Only the innermost existential block may be substituted directly in
-        # the quantifier-free matrix.  Eliminating an outer existential through
-        # an equality that depends on a later universal variable would change
-        # ``exists x. forall y`` into the invalid ``forall y. exists x`` semantics.
-        existential: tuple[sp.Symbol, ...] = ()
-        if quantifiers and quantifiers[-1][0] == "exists":
-            start = len(quantifiers) - 1
-            while start > 0 and quantifiers[start - 1][0] == "exists":
-                start -= 1
-            existential = tuple(sym for _, sym in quantifiers[start:])
-        presolved = presolve_semialgebraic(to_sympy(matrix), variables, eliminate=existential)
-        if presolved.changed:
-            removed = {var for var, _ in presolved.substitutions}
-            matrix = parse_formula(presolved.formula)
-            quantifiers = tuple((qname, sym) for qname, sym in quantifiers if sym not in removed)
-            free = tuple(sym for sym in free if sym not in removed)
-            quantified = tuple(sym for _, sym in quantifiers)
-            variables = tuple(sym for sym in variables if sym not in removed)
-            qmap = norm_quant_map(quantifiers)
-            if removed:
-                note_list.append(
-                    "presolve eliminated affine existential variables: "
-                    + ", ".join(sym.name for sym in removed)
-                )
-
-        # After affine substitution, a remaining innermost existential block
-        # may be a purely linear conjunction.  Fourier-Motzkin removes it
-        # exactly without constructing projection polynomials in those vars.
-        trailing_exists: tuple[sp.Symbol, ...] = ()
-        if quantifiers and quantifiers[-1][0] == "exists":
-            start = len(quantifiers) - 1
-            while start > 0 and quantifiers[start - 1][0] == "exists":
-                start -= 1
-            trailing_exists = tuple(sym for _, sym in quantifiers[start:])
-        if trailing_exists:
-            fm = fourier_motzkin_eliminate(to_sympy(matrix), trailing_exists)
-            if fm is not None:
-                fm_formula, fm_removed = fm
-                matrix = parse_formula(fm_formula)
-                removed_set = set(fm_removed)
-                quantifiers = tuple(
-                    (qname, sym) for qname, sym in quantifiers if sym not in removed_set
-                )
-                quantified = tuple(sym for _, sym in quantifiers)
-                variables = tuple(sym for sym in variables if sym not in removed_set)
-                qmap = norm_quant_map(quantifiers)
-                note_list.append(
-                    "Fourier-Motzkin eliminated linear existential variables: "
-                    + ", ".join(sym.name for sym in fm_removed)
-                )
+        matrix, variables, free, quantifiers = _presolve_complete_qe(
+            matrix, tuple(variables), tuple(free), tuple(quantifiers), note_list
+        )
+        quantified = tuple(sym for _, sym in quantifiers)
+        qmap = norm_quant_map(quantifiers)
 
     polys_for_order = formula_polynomials(matrix)
     if variable_order_strategy not in {"preserve", "none"} and variables:

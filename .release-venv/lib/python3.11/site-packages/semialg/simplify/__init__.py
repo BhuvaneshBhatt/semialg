@@ -12,12 +12,9 @@ from .implication import (
 )
 from .intervals import Interval1D, interval_condition, intervals_to_formula, merge_intervals
 
-canonicalize_qe_formula = simplify_qe_formula
-
 __all__ = [
     "ImplicationMinimizationStats",
     "Interval1D",
-    "canonicalize_qe_formula",
     "clear_implication_minimization_stats",
     "cell_to_interval_1d",
     "cell_union_to_formula",

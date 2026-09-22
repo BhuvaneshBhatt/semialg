@@ -94,10 +94,10 @@ def _evaluate_reduced_integral(
     *,
     method: str,
     precision: int,
-) -> tuple[sp.Expr, bool, str]:
+) -> tuple[sp.Expr, bool, str, str | None]:
     """Evaluate reduced pieces according to the requested evaluation method.
 
-    Returns ``(value, exact, evaluation_method)``. ``method="symbolic"``
+    Returns ``(value, exact, evaluation_method, fallback_reason)``. ``method="symbolic"``
     never falls back to numerical quadrature. ``method="auto"`` tries the
     symbolic path first and falls back to numerical evaluation only if symbolic
     integration leaves an unevaluated Integral.
@@ -111,7 +111,7 @@ def _evaluate_reduced_integral(
             symbolic = sp.simplify(
                 sum((_integral_piece_value(piece) for piece in reduced.pieces), sp.Integer(0))
             )
-            return symbolic, True, "symbolic"
+            return symbolic, True, "symbolic", None
         except NotImplementedError:
             if method == "symbolic":
                 raise
@@ -119,7 +119,8 @@ def _evaluate_reduced_integral(
     numeric = sum(
         (_numeric_piece_value(piece, precision) for piece in reduced.pieces), sp.Float(0, precision)
     )
-    return sp.N(numeric, precision), False, "numeric"
+    reason = "symbolic_integration_unevaluated" if method == "auto" else "numeric_requested"
+    return sp.N(numeric, precision), False, "numeric", reason
 
 
 def _reduce_1d(
@@ -515,7 +516,7 @@ def integrate_over_region(
     reduced = reduce_region_integral(expr, formula, vars_, bounds=bound_map)
     if not isinstance(reduced, ReducedRegionIntegral):
         raise TypeError("region reduction returned an unexpected result type")
-    value, exact, evaluation_method = _evaluate_reduced_integral(
+    value, exact, evaluation_method, fallback_reason = _evaluate_reduced_integral(
         reduced, method=method, precision=precision
     )
     result = RegionIntegralResult(
@@ -529,6 +530,7 @@ def integrate_over_region(
             "pieces": reduced.pieces,
             "requested_method": method,
             "evaluation_method": evaluation_method,
+            "fallback_reason": fallback_reason,
             "precision": precision,
             "measure_dimension": dim,
             "measure_dimension_request": measure_dimension,

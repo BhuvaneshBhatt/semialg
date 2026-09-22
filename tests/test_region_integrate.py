@@ -57,3 +57,18 @@ def test_integrate_over_region_result_object():
     assert isinstance(result, RegionIntegralResult)
     assert result.method == "one_dimensional_cell_integration"
     assert sp.simplify(result.value - 2) == 0
+
+
+def test_geometry_helper_import_is_acyclic():
+    from semialg._region_integrate_geometry import _radial_radii_squared
+
+    assert callable(_radial_radii_squared)
+
+
+def test_parameter_dependent_radial_bounds_do_not_coerce_relations_to_bool():
+    from semialg._region_integrate_geometry import _radial_radii_squared
+
+    x, y, a = sp.symbols("x y a", real=True)
+    assert _radial_radii_squared(x**2 + y**2 <= a, x, y) is None
+    assert _radial_radii_squared(x**2 + y**2 <= a**2, x, y) is None
+    assert _radial_radii_squared(a * (x**2 + y**2) <= 1, x, y) is None

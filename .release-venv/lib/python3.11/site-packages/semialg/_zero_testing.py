@@ -73,6 +73,37 @@ def certified_constant_sign(expr: object, *, assumptions: object = True) -> int 
     return int(sign) if sign in (-1, 0, 1) else None
 
 
+def certified_sign(expr: object, *, assumptions: object = True) -> int | None:
+    """Return a certified pointwise sign (-1, 0, 1), or ``None``.
+
+    Unlike identity testing, a symbolic nonzero expression is not assumed to
+    have a fixed sign.  SymPy assumptions may certify a sign; symbol-free exact
+    values are delegated to the exact algebraic comparator.
+    """
+    value = sp.sympify(expr)
+    if value == 0:
+        return 0
+    try:
+        positive = sp.ask(sp.Q.positive(value), assumptions)
+        negative = sp.ask(sp.Q.negative(value), assumptions)
+    except (TypeError, ValueError, AttributeError):
+        positive = negative = None
+    if positive is True:
+        return 1
+    if negative is True:
+        return -1
+    if value.free_symbols:
+        return None
+    if certified_pointwise_zero(value, assumptions=assumptions) is True:
+        return 0
+    try:
+        from .exact_arithmetic import exact_sign
+
+        return exact_sign(value)
+    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
+        return None
+
+
 def certified_nonzero(expr: object, *, assumptions: object = True) -> bool:
     """Return whether ``expr`` is globally certified to be nonzero.
 
@@ -102,6 +133,7 @@ __all__ = [
     "certified_equal",
     "certified_nonzero",
     "certified_pointwise_zero",
+    "certified_sign",
     "certified_zero",
     "require_certified_zero",
 ]

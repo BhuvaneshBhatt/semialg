@@ -134,6 +134,7 @@ def test_every_public_certificate_type_has_an_explicit_replay_policy():
         "ModularGroebnerCertificate": "standalone",
         "ModularResultantCertificate": "standalone",
         "ModularSubresultantCertificate": "standalone",
+        "NonnegativeCombinationCertificate": "standalone",
         "PolynomialRootIntervalCertificate": "standalone",
         "SaturationStabilizationCertificate": "standalone",
         "ZeroDimensionalPrimaryCertificate": "standalone",

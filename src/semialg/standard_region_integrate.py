@@ -11,27 +11,24 @@ from .exact_arithmetic import compare_exact_reals
 from .normalization import normalize_variables
 from .parametric_integration import integrate_over_parametric_region
 from .standard_regions import (
-    BallRegion,
+    Ball,
     BooleanRegion,
-    BoxRegion,
-    CapsuleRegion,
-    ConeRegion,
-    CylinderRegion,
-    IntervalRegion,
-    ParallelepipedRegion,
-    ParallelogramRegion,
+    Box,
+    Capsule,
+    Cone,
+    Cylinder,
+    FinitePointSet,
+    Interval,
+    Parallelepiped,
+    Parallelogram,
     ParametricRegion,
-    PointRegion,
-    PolygonRegion,
-    PolyhedronRegion,
-    PrismRegion,
-    PyramidRegion,
-    SimplexRegion,
-    SphereRegion,
-    SphericalShellRegion,
-    StadiumRegion,
+    Polygon,
+    Simplex,
+    Sphere,
+    SphericalShell,
+    Stadium,
     StandardRegion,
-    TetrahedronRegion,
+    TetrahedralComplex,
     TransformedRegion,
 )
 
@@ -46,7 +43,7 @@ def _symbols(
 
 
 def _tetrahedron_open_interior(
-    region: TetrahedronRegion, variables: tuple[sp.Symbol, sp.Symbol, sp.Symbol]
+    region: Simplex, variables: tuple[sp.Symbol, sp.Symbol, sp.Symbol]
 ) -> sp.Expr:
     """Return strict barycentric inequalities for a full-dimensional tetrahedron."""
 
@@ -60,7 +57,7 @@ def _tetrahedron_open_interior(
 
 
 @lru_cache(maxsize=128)
-def _polyhedron_measure_tetrahedra(region: PolyhedronRegion) -> tuple[TetrahedronRegion, ...]:
+def _polyhedron_measure_tetrahedra(region: TetrahedralComplex) -> tuple[Simplex, ...]:
     """Return top-dimensional tetrahedra after certifying no positive-measure overlap."""
 
     dimension = region.dimension()
@@ -90,7 +87,7 @@ def _polyhedron_measure_tetrahedra(region: PolyhedronRegion) -> tuple[Tetrahedro
                     "tetrahedral overlap certification left unresolved conditions"
                 )
             raise ValueError(
-                "PolyhedronRegion tetrahedra must have disjoint interiors for exact integration"
+                "TetrahedralComplex tetrahedra must have disjoint interiors for exact integration"
             )
         return pieces
 
@@ -105,7 +102,7 @@ def _polyhedron_measure_tetrahedra(region: PolyhedronRegion) -> tuple[Tetrahedro
         intersection = sp.And(left, right)
         if region_dimension(intersection, variables) >= dimension:
             raise ValueError(
-                "PolyhedronRegion tetrahedra overlap in positive top-dimensional measure"
+                "TetrahedralComplex tetrahedra overlap in positive top-dimensional measure"
             )
     return pieces
 
@@ -171,7 +168,7 @@ def _integrate_polynomial_over_box(
     return sp.simplify(total)
 
 
-def _simplex_parametric_region(region: SimplexRegion) -> ParametricRegion:
+def _simplex_parametric_region(region: Simplex) -> ParametricRegion:
     vertices = region.vertices
     k = len(vertices) - 1
     if k == 0:
@@ -190,7 +187,7 @@ def _simplex_parametric_region(region: SimplexRegion) -> ParametricRegion:
 
 
 def _parallelepiped_parametric_region(
-    region: ParallelepipedRegion | ParallelogramRegion,
+    region: Parallelepiped | Parallelogram,
 ) -> ParametricRegion:
     vectors = tuple(region.vectors)  # type: ignore[attr-defined]
     params = tuple(sp.Symbol(f"_u{i + 1}", real=True) for i in range(len(vectors)))
@@ -249,9 +246,7 @@ def _segment_length(start: tuple[sp.Expr, ...], end: tuple[sp.Expr, ...]) -> sp.
     return sp.sqrt(sum((b - a) ** 2 for a, b in zip(start, end, strict=True)))
 
 
-def _aligned_z_parametric_cylinder(
-    region: CylinderRegion, cone: bool = False
-) -> ParametricRegion | None:
+def _aligned_z_parametric_cylinder(region: Cylinder, cone: bool = False) -> ParametricRegion | None:
     if len(region.start) != 3 or len(region.end) != 3:
         return None
     x0, y0, z0 = region.start
@@ -357,7 +352,7 @@ def _integrate_boolean_region(
             )
         )
     if region.op == "intersection":
-        if all(isinstance(r, IntervalRegion) for r in region.regions) and len(variables) == 1:
+        if all(isinstance(r, Interval) for r in region.regions) and len(variables) == 1:
             lowers = tuple(r.lower for r in region.regions)
             uppers = tuple(r.upper for r in region.regions)
             lo = max(lowers, key=lambda z: _ExactOrder(z))
@@ -365,9 +360,9 @@ def _integrate_boolean_region(
             if compare_exact_reals(hi, lo) < 0:
                 return sp.Integer(0)
             return integrate_over_standard_region(
-                integrand, IntervalRegion(lo, hi), variables, method=method, precision=precision
+                integrand, Interval(lo, hi), variables, method=method, precision=precision
             )
-        if all(isinstance(r, BoxRegion) for r in region.regions):
+        if all(isinstance(r, Box) for r in region.regions):
             bounds = []
             for i in range(len(variables)):
                 lowers = tuple(r.bounds[i][0] for r in region.regions)
@@ -378,7 +373,7 @@ def _integrate_boolean_region(
                     return sp.Integer(0)
                 bounds.append((lo, hi))
             return integrate_over_standard_region(
-                integrand, BoxRegion(bounds), variables, method=method, precision=precision
+                integrand, Box(bounds), variables, method=method, precision=precision
             )
         raise NotImplementedError(
             "this BooleanRegion intersection is outside the exact supported fragment"
@@ -403,9 +398,9 @@ def integrate_over_standard_region(
     expr = sp.sympify(integrand)
     vars_ = _symbols(variables, expr)
 
-    if isinstance(region, PointRegion):
+    if isinstance(region, FinitePointSet):
         return sp.simplify(sum(expr.subs(dict(zip(vars_, p, strict=True))) for p in region.points))
-    if isinstance(region, IntervalRegion):
+    if isinstance(region, Interval):
         if region.dimension() < 0:
             return sp.Integer(0)
         if region.dimension() == 0:
@@ -416,7 +411,7 @@ def integrate_over_standard_region(
                 raise NotImplementedError("could not integrate over interval symbolically")
             return value.evalf(precision)
         return sp.simplify(value)
-    if isinstance(region, BoxRegion):
+    if isinstance(region, Box):
         substitutions: dict[sp.Symbol, sp.Expr] = {}
         active_variables: list[sp.Symbol] = []
         active_bounds: list[tuple[sp.Expr, sp.Expr]] = []
@@ -442,21 +437,21 @@ def integrate_over_standard_region(
             ),
         )
         return sp.N(value, precision) if method == "numeric" else sp.simplify(value)
-    if isinstance(region, (SimplexRegion, TetrahedronRegion)):
+    if isinstance(region, Simplex):
         if region.dimension() < len(region.vertices) - 1:
             return _integrate_exact_image(expr, region, vars_, method=method, precision=precision)
         pregion = _simplex_parametric_region(region)
         return integrate_over_parametric_region(
             expr, vars_, pregion, method=method, precision=precision
         )  # type: ignore[return-value]
-    if isinstance(region, PolygonRegion):
+    if isinstance(region, Polygon):
         return sp.simplify(
             sum(
                 integrate_over_standard_region(expr, tri, vars_, method=method, precision=precision)
                 for tri in region.triangulation()
             )
         )
-    if isinstance(region, PolyhedronRegion):
+    if isinstance(region, TetrahedralComplex):
         pieces = _polyhedron_measure_tetrahedra(region)
         return sp.simplify(
             sum(
@@ -464,7 +459,7 @@ def integrate_over_standard_region(
                 for tet in pieces
             )
         )
-    if isinstance(region, (ParallelogramRegion, ParallelepipedRegion)):
+    if isinstance(region, (Parallelogram, Parallelepiped)):
         return integrate_over_parametric_region(
             expr,
             vars_,
@@ -472,54 +467,19 @@ def integrate_over_standard_region(
             method=method,
             precision=precision,
         )  # type: ignore[return-value]
-    if isinstance(region, PrismRegion):
-        base_pieces = (
-            region.base.triangulation()
-            if isinstance(region.base, PolygonRegion)
-            else (region.base,)
-        )
-        total = sp.Integer(0)
-        for tri in base_pieces:
-            # triangular prism is parametrized as triangle + w*vector
-            simplex_param = _simplex_parametric_region(tri)
-            w = sp.Symbol("_w", real=True)
-            mapping = tuple(
-                sp.simplify(c + w * dv)
-                for c, dv in zip(simplex_param.mapping, region.vector, strict=True)
-            )
-            pregion = ParametricRegion(
-                (*simplex_param.parameters, w), (*simplex_param.limits, (w, 0, 1)), mapping
-            )
-            total += integrate_over_parametric_region(
-                expr, vars_, pregion, method=method, precision=precision
-            )  # type: ignore[operator]
-        return sp.simplify(total)
-    if isinstance(region, PyramidRegion):
-        base_pieces = (
-            region.base.triangulation()
-            if isinstance(region.base, PolygonRegion)
-            else (region.base,)
-        )
-        total = sp.Integer(0)
-        for tri in base_pieces:
-            tet = TetrahedronRegion((*tri.vertices, region.apex))
-            total += integrate_over_standard_region(
-                expr, tet, vars_, method=method, precision=precision
-            )
-        return sp.simplify(total)
-    if isinstance(region, BallRegion) and not isinstance(region, SphereRegion):
+    if isinstance(region, Ball) and not isinstance(region, Sphere):
         fast = _integrate_polynomial_over_centered_region(
             expr, vars_, region.center, region.radius, surface=False
         )
         if fast is not None:
             return fast
-    if isinstance(region, SphereRegion):
+    if isinstance(region, Sphere):
         fast = _integrate_polynomial_over_centered_region(
             expr, vars_, region.center, region.radius, surface=True
         )
         if fast is not None:
             return fast
-    if isinstance(region, SphericalShellRegion):
+    if isinstance(region, SphericalShell):
         outer = _integrate_polynomial_over_centered_region(
             expr, vars_, region.center, region.outer_radius, surface=False
         )
@@ -528,7 +488,7 @@ def integrate_over_standard_region(
         )
         if outer is not None and inner is not None:
             return sp.simplify(outer - inner)
-    if isinstance(region, CylinderRegion) and not isinstance(region, ConeRegion):
+    if isinstance(region, Cylinder) and not isinstance(region, Cone):
         if expr == 1:
             return sp.simplify(sp.pi * region.radius**2 * _segment_length(region.start, region.end))
         pregion = _aligned_z_parametric_cylinder(region, cone=False)
@@ -536,7 +496,7 @@ def integrate_over_standard_region(
             return integrate_over_parametric_region(
                 expr, vars_, pregion, method=method, precision=precision
             )  # type: ignore[return-value]
-    if isinstance(region, ConeRegion):
+    if isinstance(region, Cone):
         if expr == 1:
             return sp.simplify(
                 sp.pi * region.radius**2 * _segment_length(region.start, region.end) / 3
@@ -546,13 +506,13 @@ def integrate_over_standard_region(
             return integrate_over_parametric_region(
                 expr, vars_, pregion, method=method, precision=precision
             )  # type: ignore[return-value]
-    if isinstance(region, StadiumRegion) and not isinstance(region, CapsuleRegion):
+    if isinstance(region, Stadium) and not isinstance(region, Capsule):
         if expr == 1:
             return sp.simplify(
                 2 * region.radius * _segment_length(region.start, region.end)
                 + sp.pi * region.radius**2
             )
-    if isinstance(region, CapsuleRegion):
+    if isinstance(region, Capsule):
         if expr == 1:
             n = len(region.start)
             length = _segment_length(region.start, region.end)
@@ -572,7 +532,7 @@ def integrate_over_standard_region(
             _mapping_is_affine(region.mapping, base_vars)
             and region.dimension() == region.base.dimension()
         )
-        if fast_affine and isinstance(region.base, BoxRegion):
+        if fast_affine and isinstance(region.base, Box):
             limits = tuple(
                 (v, lo, hi)
                 for v, (lo, hi) in reversed(tuple(zip(base_vars, region.base.bounds, strict=True)))
@@ -583,7 +543,7 @@ def integrate_over_standard_region(
             )  # type: ignore[return-value]
         if (
             fast_affine
-            and isinstance(region.base, (SimplexRegion, TetrahedronRegion))
+            and isinstance(region.base, (Simplex, Simplex))
             and region.base.dimension() == len(region.base.vertices) - 1
         ):
             base_param = _simplex_parametric_region(region.base)

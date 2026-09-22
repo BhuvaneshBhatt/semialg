@@ -4,7 +4,7 @@ from semialg.parser import parse_quantified_formula
 from semialg.qe.blocks import QuantifierBlock, norm_quant_blocks, quantifiers_to_blocks
 from semialg.qe.prenex import qe_blocks, qe_text
 from semialg.qe.witnesses import witness_from_qe_result
-from semialg.simplify import simplify_qe_formula as canonicalize_qe_formula
+from semialg.simplify import simplify_qe_formula
 from semialg.simplify.intervals import Interval1D, intervals_to_formula, merge_intervals
 from semialg.validation.equivalence import sym_diff_empty
 
@@ -67,7 +67,7 @@ def test_prenex_blocks_05():
     x = sp.symbols("x", real=True)
     expr1 = sp.Or(sp.And(x >= 0, x <= 1), sp.And(x > 1, x <= 2))
     expr2 = sp.And(x >= 0, x <= 2)
-    canon = canonicalize_qe_formula(expr1)
+    canon = simplify_qe_formula(expr1)
     assert bool(sp.simplify(canon.subs(x, 0)))
     diff = sym_diff_empty(expr1, expr2, (x,))
     assert diff.equivalent

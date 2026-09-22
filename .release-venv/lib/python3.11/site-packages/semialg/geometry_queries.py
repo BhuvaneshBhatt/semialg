@@ -80,15 +80,15 @@ def semialgebraic_projection(
     return sp.simplify(result.formula)
 
 
-def semialgebraic_image(
+def _semialgebraic_image_data(
     mapping: Sequence[sp.Expr] | sp.Expr,
     domain,
     variables: Sequence[sp.Symbol | str] | None = None,
     *,
     image_variables: Sequence[sp.Symbol | str] | None = None,
     parameters: Sequence[sp.Symbol | str] | None = None,
-) -> sp.Expr:
-    """Return the exact semialgebraic image of a polynomial/rational map."""
+) -> tuple[sp.Expr, tuple[sp.Symbol, ...]]:
+    """Return an exact image formula together with its target variables."""
 
     maps = _mapping_tuple(mapping)
     condition = normalize_formula(domain)
@@ -117,7 +117,32 @@ def semialgebraic_image(
         parse_formula(graph),
         return_result=True,
     )
-    return sp.simplify(result.formula)
+    return sp.simplify(result.formula), targets
+
+
+def semialgebraic_image(
+    mapping: Sequence[sp.Expr] | sp.Expr,
+    domain,
+    variables: Sequence[sp.Symbol | str] | None = None,
+    *,
+    image_variables: Sequence[sp.Symbol | str] | None = None,
+    parameters: Sequence[sp.Symbol | str] | None = None,
+) -> sp.Expr:
+    """Return the exact formula-level image of a polynomial/rational map.
+
+    This is the lower-level quantifier-elimination primitive.  Most callers
+    should use :func:`semialg.region_image`, which dispatches on the input
+    representation and preserves structured regions when possible.
+    """
+
+    formula, _ = _semialgebraic_image_data(
+        mapping,
+        domain,
+        variables,
+        image_variables=image_variables,
+        parameters=parameters,
+    )
+    return formula
 
 
 def semialgebraic_preimage(

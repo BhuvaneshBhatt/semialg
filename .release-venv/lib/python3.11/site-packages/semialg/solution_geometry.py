@@ -349,15 +349,15 @@ def discretize_region_geometry(
     """
 
     from .standard_regions import (
-        BallRegion,
-        BoxRegion,
-        CapsuleRegion,
-        IntervalRegion,
-        ParallelogramRegion,
-        PointRegion,
-        PolygonRegion,
-        SphereRegion,
-        StadiumRegion,
+        Ball,
+        Box,
+        Capsule,
+        FinitePointSet,
+        Interval,
+        Parallelogram,
+        Polygon,
+        Sphere,
+        Stadium,
         StandardRegion,
     )
 
@@ -372,26 +372,26 @@ def discretize_region_geometry(
     points = []
     segments = []
     polygons = []
-    if isinstance(region, PointRegion):
+    if isinstance(region, FinitePointSet):
         points.extend(region.points)
-    elif isinstance(region, IntervalRegion):
+    elif isinstance(region, Interval):
         if region.lower == region.upper:
             points.append((region.lower,))
         else:
             segments.append(((region.lower,), (region.upper,)))
-    elif isinstance(region, BoxRegion) and len(region.bounds) == 2:
+    elif isinstance(region, Box) and len(region.bounds) == 2:
         (x0, x1), (y0, y1) = region.bounds
         polygons.append(((x0, y0), (x1, y0), (x1, y1), (x0, y1)))
-    elif isinstance(region, PolygonRegion):
+    elif isinstance(region, Polygon):
         polygons.append(region.vertices)
-    elif isinstance(region, ParallelogramRegion):
+    elif isinstance(region, Parallelogram):
         o = sp.Matrix(region.origin)
         v1 = sp.Matrix(region.vectors[0])
         v2 = sp.Matrix(region.vectors[1])
         verts = [tuple(o), tuple(o + v1), tuple(o + v1 + v2), tuple(o + v2)]
         if len(verts[0]) == 2:
             polygons.append(tuple(verts))
-    elif isinstance(region, (BallRegion, SphereRegion)) and len(region.center) == 2:
+    elif isinstance(region, (Ball, Sphere)) and len(region.center) == 2:
         cx, cy = region.center
         r = region.radius
         pts = tuple(
@@ -401,11 +401,11 @@ def discretize_region_geometry(
             )
             for i in range(samples_per_curve)
         )
-        if isinstance(region, SphereRegion):
+        if isinstance(region, Sphere):
             segments.extend((pts[i], pts[(i + 1) % len(pts)]) for i in range(len(pts)))
         else:
             polygons.append(pts)
-    elif isinstance(region, (StadiumRegion, CapsuleRegion)) and len(region.start) == 2:
+    elif isinstance(region, (Stadium, Capsule)) and len(region.start) == 2:
         # A rectangle around the center segment is coarse; this
         # function provides plotting geometry rather than a certified mesh.
         x0, y0 = region.start

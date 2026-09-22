@@ -10,7 +10,7 @@
 - `equivalent`, `implies` — exact logical comparison of formulas.
 - `reduce_formula` — reduce quantified or constrained formulas to a simpler exact result.
 - `cad` — construct or query a cylindrical algebraic decomposition when explicit CAD access is needed.
-- `polynomial_nonnegative_decision`, `polynomial_nonnegative` — decide global polynomial nonnegativity.
+- `polynomial_nonnegative` — decide certified global polynomial nonnegativity; set `return_result=True` for backend/certificate diagnostics.
 - `prove_positive`, `prove_nonnegative` — prove common sign properties under assumptions.
 
 ## Functions and maps
@@ -28,10 +28,10 @@
 
 - `as_semialgebraic_region` — obtain a symbolic region value.
 - `contains_point`, `is_empty`, `is_bounded`, `is_connected`, `connected_components` — common region queries.
-- `region_union`, `region_intersection`, `region_difference`, `region_complement` — Boolean region operations.
+- `region_union`, `region_intersection`, `region_difference`, `region_symmetric_difference`, `region_complement` — Boolean region operations.
 - `region_boundary`, `region_dimension` — basic geometric structure.
-- `semialgebraic_image`, `semialgebraic_preimage`, `semialgebraic_projection` — exact map and projection operations.
-- `region_measure`, `region_centroid`, `integrate_over_region` — exact geometric measurement and integration.
+- `region_image`, `region_preimage`, `semialgebraic_projection` — exact map and projection operations.
+- `region_measure`, `centroid`, `integrate_over_region` — exact geometric measurement and integration.
 - `sample_point`, `sample_points` — exact representative points.
 
 ## Algebraic geometry and parameters

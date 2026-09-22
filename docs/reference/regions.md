@@ -34,9 +34,15 @@ work in arbitrary ambient dimension and retain their center and radius.
 convenience constructor. Symbolic positive-definiteness conditions that cannot
 be decided at construction time are retained as `construction_conditions`.
 
+## Canonical geometry names
+
+Named shapes use direct geometric names such as `Ball`, `Sphere`, `Polygon`, `Box`, and `PolyhedralCone`. The `*Region` suffix is reserved for representation or composition types such as `SemialgebraicRegion`, `ParametricRegion`, and `BooleanRegion`.
+
+Representation and composition classes keep the `Region` suffix because they describe how a set is represented rather than naming a geometric shape.
+
 ## Family contract
 
-**computer algebra systeml return.** Region APIs construct exact semialgebraic sets, decide exact set/geometric properties, or return exact images, projections, components, distances, transforms, and local algebraic-geometric objects.
+**Mathematical return.** Region APIs construct exact semialgebraic sets, decide exact set/geometric properties, or return exact images, projections, components, distances, transforms, and local algebraic-geometric objects.
 
 **Exactness and certification.** Boolean/set relations are semantic rather than syntactic. Geometry queries reuse exact QE, CAD, optimization, and algebraic-geometry machinery; unsupported exact cases do not silently become numerical approximations.
 
@@ -57,14 +63,13 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `analyze_affine_map` | function | Analyze an affine expression map or matrix/offset pair without QE. |
 | `AffineBoxClip` | class | Exact low-dimensional affine-subspace/box clipping result. |
 | `clip_affine_subspace_to_box` | function | Clip a one- or two-dimensional affine subspace to a box by exact linear algebra. |
-| `affine_transform` | function | Return the exact affine image ``A*x + b`` in the original coordinates. |
 | `argmax_set` | function | Return the exact global maximizer set as a semialgebraic formula. |
 | `argmin_set` | function | Return the exact global minimizer set as a semialgebraic formula. |
 | `HRepresentation` | class | Exact closed halfspace representation `A x <= b` for polyhedral conversion. |
 | `PolytopeFacet` | class | Supporting facet with exact incident vertex indices. |
 | `PolytopeIncidence` | class | Exact vertex-facet incidence data for a polytope. |
-| `affine_image` | function | Exact structure-preserving affine image of a canonical region. |
-| `affine_preimage` | function | Exact affine preimage; preserves canonical structure for invertible maps and lowers singular/rectangular maps by exact substitution. |
+| `affine_image` | function | Exact affine image with representation-aware dispatch; canonical inputs preserve structure when possible. |
+| `affine_preimage` | function | Exact affine preimage with representation-aware dispatch and structured preservation when possible. |
 | `Point` | class | Canonical single-point geometry. |
 | `AffineSpace` | class | Affine space from an anchor and independent directions. |
 | `Hyperplane` | class | Codimension-one affine space from a normal and boundary point. |
@@ -73,11 +78,11 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `Line` | class | Infinite affine line. |
 | `Ray` | class | Closed affine ray. |
 | `Polytope` | class | Canonical convex hull of finitely many vertices. |
-| `Simplex` | class | Canonical simplex with affinely independent vertices. |
+| `Simplex` | class | Canonical simplex with exact affine dimension; degenerate simplices are supported. |
 | `Triangle` | constructor namespace | Triangle constructors returning canonical `Simplex` objects. |
 | `Polygon` | class | Canonical simple polygon in two-dimensional affine coordinates. |
 | `RegularPolygon` | function | Construct a regular polygon and return the canonical `Polygon`. |
-| `ConicRegion` | class | Affine conic region with free lineality directions and nonnegative generating rays. |
+| `PolyhedralCone` | class | Affine polyhedral cone with free lineality directions and nonnegative generating rays. |
 | `Parallelepiped` | class | Canonical affine image of a unit box with independent spanning vectors. |
 | `Cube` | function | Construct an axis-aligned cube as a canonical `Parallelepiped`. |
 | `Tetrahedron` | function | Construct an explicit or regular tetrahedron as a canonical `Simplex`. |
@@ -96,14 +101,11 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `Cone` | class | Canonical right circular cone with base at `start` and apex at `end`. |
 | `Torus` | class | Canonical three-dimensional torus surface with major and minor radii. |
 | `FilledTorus` | class | Canonical solid torus with major and minor radii. |
-| `BallRegion` | class | BallRegion(center: 'Sequence[object]', radius: 'object' = 1) |
 | `BooleanRegion` | class | BooleanRegion(op: 'str', regions: 'Sequence[StandardRegion]', *, assume_disjoint: 'bool' = False) |
 | `bounding_box` | function | Compute the exact axis-aligned bounding box by coordinate optimization. |
-| `BoxRegion` | class | BoxRegion(bounds: 'Sequence[tuple[object, object]]') |
-| `CapsuleRegion` | class | CapsuleRegion(start: 'Sequence[object]', end: 'Sequence[object]', radius: 'object' = 1) |
-| `centroid` | function | Return the exact centroid of a measurable semialgebraic region. |
+| `Box` | class | Box(bounds: 'Sequence[tuple[object, object]]') |
+| `Capsule` | class | Capsule(start: 'Sequence[object]', end: 'Sequence[object]', radius: 'object' = 1) |
 | `closest_points` | function | Return all exact closest point pairs when the distance is attained. |
-| `ConeRegion` | class | ConeRegion(start: 'Sequence[object]', end: 'Sequence[object]', radius: 'object' = 1) |
 | `connected_components` | function | Return exact CAD-connected-component formulas. |
 | `connected_component_count` | function | Count semialgebraically connected components exactly from certified CAD connectivity. |
 | `connected_component_samples` | function | Return one exact representative point from every connected component. |
@@ -129,11 +131,9 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `RegionElement` | class | Build a symbolic membership predicate that can be lowered or evaluated. |
 | `RegionNotElement` | class | Build the symbolic complement of a membership predicate. |
 | `coordinate_range` | function | Return the exact range of one coordinate over a region. |
-| `covariance_matrix` | function | Return the exact covariance matrix of the uniform measure on a region. |
 | `critical_values` | function | Return exact objective values from isolated and constant positive-dimensional KKT components. |
 | `critical_value_image` | function | Return the exact supported value-set image of critical loci. |
 | `CriticalValueImage` | class | Structured exact image of isolated and positive-dimensional critical values. |
-| `CylinderRegion` | class | CylinderRegion(start: 'Sequence[object]', end: 'Sequence[object]', radius: 'object' = 1) |
 | `diameter` | function | Return the exact Euclidean diameter (supremal pairwise distance). |
 | `distance_between_regions` | function | Compute exact Euclidean distance between two semialgebraic regions. |
 | `distance_set` | function | Return the exact set of Euclidean pairwise distances as a formula. |
@@ -144,7 +144,8 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `has_empty_interior` | function | Return whether the region has empty ambient interior. |
 | `inertia_tensor` | function | Return the unit-density second moment-of-inertia tensor about the origin. |
 | `intersects` | function | Return whether two semialgebraic regions have nonempty intersection. |
-| `IntervalRegion` | class | IntervalRegion(lower: 'object', upper: 'object', *, lower_closed: 'bool' = True, upper_closed: 'bool' = True) |
+| `is_interior_disjoint` | function | Return whether two semialgebraic regions have disjoint ambient interiors. |
+| `Interval` | class | Interval(lower: 'object', upper: 'object', *, lower_closed: 'bool' = True, upper_closed: 'bool' = True) |
 | `is_bounded` | function | Return whether the semialgebraic region is bounded. |
 | `is_closed` | function | Return whether the semialgebraic region is closed. |
 | `is_compact` | function | Return whether the semialgebraic region is compact. |
@@ -165,8 +166,7 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `minkowski_sum` | function | Return the exact Minkowski sum of two semialgebraic regions. |
 | `moment_matrix` | function | Return the normalized raw second-moment matrix ``E[x x.T]``. |
 | `nearest_point` | function | Return all exact nearest points when the distance is attained. |
-| `ParallelepipedRegion` | class | ParallelepipedRegion(origin: 'Sequence[object]', vectors: 'Sequence[Sequence[object]]') |
-| `ParallelogramRegion` | class | ParallelogramRegion(origin: 'Sequence[object]', vectors: 'Sequence[Sequence[object]]') |
+| `Parallelogram` | class | Parallelogram(origin: 'Sequence[object]', vectors: 'Sequence[Sequence[object]]') |
 | `ParametricRegion` | class | ParametricRegion(parameters: 'Sequence[sp.Symbol \| str]', limits: 'Sequence[tuple[sp.Symbol \| str, object, object]]', mapping: 'Sequence[object]', *, multiplicity: 'object' = 1, assumptions: 'object' = True) |
 | `ParametricChart` | class | One certified bounded parameter-domain map into a semialgebraic region. |
 | `ParametricCover` | class | Finite certified collection of parametric charts covering a region or bounded intersection. |
@@ -175,35 +175,24 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `ParametricMapDegree` | class | Generic algebraic fiber-degree result for a rational parametrization. |
 | `parametric_map_degree` | function | Compute generic complex fiber multiplicity from a quotient-algebra degree. |
 | `path_between` | function | Return a certified CAD cell-chain connecting two points in a region. |
-| `PointRegion` | class | PointRegion(points: 'Sequence[Sequence[object]] \| Sequence[object]') |
-| `PolygonRegion` | class | PolygonRegion(vertices: 'Sequence[Sequence[object]]') |
-| `PolyhedronRegion` | class | PolyhedronRegion(tetrahedra: 'Sequence[TetrahedronRegion \| Sequence[Sequence[object]]]') |
-| `PrismRegion` | class | PrismRegion(base: 'PolygonRegion \| SimplexRegion \| Sequence[Sequence[object]]', vector: 'Sequence[object]') |
-| `PyramidRegion` | class | PyramidRegion(base: 'PolygonRegion \| SimplexRegion \| Sequence[Sequence[object]]', apex: 'Sequence[object]') |
+| `FinitePointSet` | class | FinitePointSet(points: 'Sequence[Sequence[object]] \| Sequence[object]') |
+| `TetrahedralComplex` | class | TetrahedralComplex(tetrahedra: 'Sequence[Simplex \| Sequence[Sequence[object]]]') |
 | `region_boundary` | function | Return the Euclidean boundary of a semialgebraic region. |
 | `region_closure` | function | Return the Euclidean closure of a semialgebraic region. |
 | `region_complement` | function | Return the complement of an implicit or unified semialgebraic region. |
-| `region_components` | function | Return connected-component formulas for simple explicit cases. |
 | `region_difference` | function | Return ``lhs`` minus ``rhs`` for implicit or unified regions. |
 | `region_dimension` | function | Return the exact semialgebraic dimension from a complete adapted CAD. |
 | `region_interior` | function | Return the Euclidean interior of a semialgebraic region. |
 | `region_intersection` | function | Return the exact intersection, preserving canonical structure when available. |
 | `region_product` | function | Return the exact Cartesian product of semialgebraic regions. |
+| `region_symmetric_difference` | function | Return the exact symmetric difference of two semialgebraic regions. |
 | `region_union` | function | Return the union of implicit or unified semialgebraic regions. |
-| `RegionDifference` | function | Return the Boolean difference of two standard regions. |
-| `RegionIntersection` | function | Return the Boolean intersection of standard regions. |
-| `RegionSymmetricDifference` | function | Return the Boolean symmetric difference of two standard regions. |
-| `RegionUnion` | function | Return the Boolean union of standard regions. |
 | `scale` | function | Scale a region about the origin by a scalar factor. |
-| `semialgebraic_image` | function | Return the exact semialgebraic image of a polynomial/rational map. |
-| `semialgebraic_preimage` | function | Return the preimage of a semialgebraic target under a symbolic map. |
 | `semialgebraic_projection` | function | Project ``region`` by existentially eliminating the requested variables. |
-| `SimplexRegion` | class | SimplexRegion(vertices: 'Sequence[Sequence[object]]') |
 | `singular_locus` | function | Return equations defining the singular locus of an algebraic variety. |
-| `SphereRegion` | class | SphereRegion(center: 'Sequence[object]', radius: 'object' = 1) |
-| `SphericalShellRegion` | class | SphericalShellRegion(center: 'Sequence[object]', radii: 'tuple[object, object]') |
+| `SphericalShell` | class | SphericalShell(center: 'Sequence[object]', radii: 'tuple[object, object]') |
 | `squared_distance_range` | function | Return the exact range of squared pairwise distances. |
-| `StadiumRegion` | class | StadiumRegion(start: 'Sequence[object]', end: 'Sequence[object]', radius: 'object' = 1) |
+| `Stadium` | class | Stadium(start: 'Sequence[object]', end: 'Sequence[object]', radius: 'object' = 1) |
 | `Geometry` | class | Common structural geometry protocol with semialgebraic formula lowering. |
 | `StandardRegion` | class | Base class for explicit standard geometry supported by semialg. |
 | `sublevel_set` | function | Return ``region ∩ {expression <= value}`` (or strict variant). |
@@ -212,7 +201,6 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `tangent_cone` | function | Return the exact ideal-theoretic Zariski tangent cone at ``point``. |
 | `tangent_dimension` | function | Return the exact Zariski tangent-space dimension at ``point``. |
 | `tangent_space` | function | Return the Zariski tangent space at a point as the Jacobian nullspace. |
-| `TetrahedronRegion` | class | TetrahedronRegion(vertices: 'Sequence[Sequence[object]]') |
 | `TransformedRegion` | class | TransformedRegion(base: 'StandardRegion', mapping: 'Sequence[object]', base_variables: 'Sequence[sp.Symbol \| str]') |
 | `translate` | function | Translate a region by ``vector`` while preserving coordinate symbols. |
 | `width` | function | Return exact directional width ``max u·x - min u·x``. |
@@ -233,8 +221,8 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `result_diagnostics` | function | Return one stable diagnostic schema for CAD/QE/optimization certificates. |
 | `CADRegion` | class | A reusable region represented by a public :class:`CADResult`. |
 | `as_cad_region` | function | Coerce a region/formula/CAD result to a reusable :class:`CADRegion`. |
-| `region_closure_interior` | function | Return interior(closure(region)). |
-| `region_interior_closure` | function | Return closure(interior(region)). |
+| `interior_of_closure` | function | Return interior(closure(region)). |
+| `closure_of_interior` | function | Return closure(interior(region)). |
 | `region_variables` | function | Return coordinate variables, parameters, or all symbols of a region. |
 | `is_regular_closed_region` | function | Return whether a region equals the closure of its interior. |
 | `is_regular_open_region` | function | Return whether a region equals the interior of its closure. |
@@ -278,11 +266,11 @@ nearest one is selected by exact comparison; otherwise the general exact
 optimization backend remains the fallback.
 
 `analyze_affine_map` centralizes affine rank, determinant, inverse, and scaled
-isometry recognition. `affine_transform` reuses this analysis for its exact
-invertible-map shortcut. `parametric_map_degree` computes the generic algebraic
+isometry recognition. `affine_image` reuses this analysis for its exact
+invertible-map shortcut on formula inputs and its structure-preserving canonical path. `parametric_map_degree` computes the generic algebraic
 fiber degree of polynomial/rational maps; real-domain restrictions are kept
 separate from this generic complex degree so later integration code can combine
-the two deliberately.
+the two explicitly.
 
 `clip_affine_subspace_to_box` is narrow: it handles one- and
 two-dimensional affine subspaces by exact facet intersection and does not
@@ -300,7 +288,7 @@ the specialized linear-algebra computation is measurably cheaper than CAD.
 - `region_interior`
 - `region_boundary`
 
-Structural and predicate APIs include `region_dimension`, `region_components`, `region_subset`, `region_equal`, `region_disjoint`, `region_bounded`, `region_closed`, and `region_compact`.
+Structural and predicate APIs include `region_dimension`, `connected_components`, `region_subset`, `region_equal`, `region_disjoint`, `region_bounded`, `region_closed`, and `region_compact`. The lightweight `explicit_region_components` helper is expert-only and handles syntactically explicit cases; it is not a substitute for certified connected-component decomposition.
 
 ## Standard regions
 
@@ -322,7 +310,7 @@ Constructor invariants are part of the public contract. See [Region invariants](
 
 ## Boolean standard regions
 
-`RegionUnion`, `RegionIntersection`, `RegionDifference`, and `RegionSymmetricDifference` construct set-theoretic combinations of `StandardRegion` objects.
+`BooleanRegion.union`, `BooleanRegion.intersection`, `BooleanRegion.difference`, and `BooleanRegion.symmetric_difference` are the explicit structured constructors for Boolean combinations of `StandardRegion` objects. The lowercase `region_*` operations remain the representation-independent set operations.
 
 
 ## Unified symbolic and reusable CAD regions
@@ -350,7 +338,7 @@ See [Region operations](../region_operations.md).
 
 ## High-level semialgebraic maps and metric queries
 
-`semialgebraic_projection(region, eliminate, variables)` computes a Tarski-Seidenberg projection by existential QE. `semialgebraic_image(mapping, domain, ...)` constructs the graph of a symbolic map and projects away the source variables; `semialgebraic_preimage` substitutes a map into a target formula; `fiber` specializes a family at fixed parameter or coordinate values.
+`semialgebraic_projection(region, eliminate, variables)` computes a Tarski-Seidenberg projection by existential QE. `region_image(region, mapping, ...)` and `region_preimage(target, mapping, ...)` are the primary representation-aware map APIs: canonical inputs preserve structure when possible, `SemialgebraicRegion` inputs return symbolic regions, and formula inputs use exact QE/substitution. The lower-level `semialgebraic_image` and `semialgebraic_preimage` formula primitives remain expert APIs. `fiber` specializes a family at fixed parameter or coordinate values.
 
 `bounding_box` optimizes every coordinate exactly. `distance_to_region` and `distance_between_regions` minimize squared Euclidean distance through the exact optimization backend and optionally return the underlying optimization certificate/result. `critical_values` exposes exact values at isolated KKT/singular candidates and additionally certifies values on positive-dimensional connected KKT components when the objective is constant there; attained global extrema are also included.
 
@@ -377,7 +365,7 @@ High-level derived operations are available directly from `semialg`:
 - exact set predicates: `is_empty`, `is_bounded`, `is_compact`, `is_open`, `is_closed`, `is_subset`, `is_equal`, `is_disjoint`, `intersects`, `is_dense_in`, and `contains_point`; symbolic membership is represented by `RegionElement` and `RegionNotElement`;
 - topology/structure: `connected_components`, `is_connected`, `is_full_dimensional`, and `has_empty_interior`;
 - metric and convex geometry: `coordinate_range`, `diameter`, `nearest_point`, `closest_points`, `support_function`, `width`, `squared_distance_range`, and `distance_set`;
-- transforms: `translate`, `scale`, `linear_image`, `affine_transform`, and `minkowski_sum`;
+- transforms: `translate`, `scale`, `linear_image`, `affine_image`, and `minkowski_sum`;
 - level constructions: `level_set`, `sublevel_set`, and `superlevel_set`.
 
 These are compositions of the certified lower-level algorithms. Direct substitutions such as translation are cheap; general images, Minkowski sums, and some metric operations may invoke optimization or complete CAD/QE and retain its worst-case complexity.
@@ -388,8 +376,8 @@ These are compositions of the certified lower-level algorithms. Direct substitut
 `TransformedRegion` represents an exact transformed standard region before it is
 lowered to a semialgebraic formula.
 
-`region_closure_interior` computes the closure of a region's interior and
-`region_interior_closure` computes the interior of its closure. The predicates
+`closure_of_interior` computes the closure of a region's interior and
+`interior_of_closure` computes the interior of its closure. The predicates
 `is_regular_closed_region` and `is_regular_open_region` test the corresponding
 fixed-point identities. `simplify_region` removes Boolean redundancy while
 preserving exact region semantics.
@@ -468,3 +456,103 @@ The current generality is narrower than the existence theorems. Higher-dimension
 ### Simplicial homology
 
 `simplicial_betti_numbers(complex)` constructs all simplicial boundary matrices and computes their ranks exactly over the rationals. `triangulation_betti_numbers(region)` applies this to any region accepted by `triangulate_region`; `betti_number` uses this backend automatically for certified triangulable standard regions.
+
+## Canonical boundary topology
+
+`Polygon` continues to mean one simple planar polygon.  `PolygonalSet` represents
+one or more disconnected filled polygonal components, with each
+`PolygonalComponent` storing one outer boundary and zero or more hole
+boundaries.  Outer cycles are normalized counterclockwise and hole cycles
+clockwise.  `outer_polygons()`, `inner_polygons()`, and `polygon_vertices()`
+inspect that topology without triangulating it.
+
+For three-dimensional boundary representations, `PolyhedralShell` stores one
+connected, closed, consistently oriented polygonal 2-manifold.  Construction
+validates face indices, exact vertex deduplication, planar faces, two-face edge
+incidence, orientation across shared edges, and face connectivity.
+`PolyhedralComponent` associates an outer shell with explicitly classified
+cavity shells, while `Polyhedron` may contain several disconnected solid
+components.  `outer_polyhedra()`, `inner_polyhedra()`,
+`polyhedron_vertices()`, and `polyhedron_face_indices()` expose this structure.
+`deduplicate_indexed_vertices()` provides the shared exact coordinate-deduplication and cell-reindexing primitive.
+
+Boundary objects record already-classified outer/inner topology rather than
+inferring geometric nesting.  Automatic shell/ring nesting and canonical
+classification belong to the canonicalization layer.
+
+
+## Reduced algebraic variety semantics
+
+Use `certified_radicalization` before ideal-sensitive geometric analysis when the reduced ideal is needed explicitly. `irreducible_components` requires a certified complete minimal-prime decomposition. `reduced_component_singular_loci` computes the singular locus of each certified irreducible component independently; intersections of smooth components are therefore not mislabeled as singularities of the components themselves.
+
+### Semialgebraic local geometry
+
+`polynomial_constraints` exposes a quantifier-free polynomial region as a DNF-preserving structured constraint system. `active_constraints` identifies exactly active equality/inequality constraints at a feasible exact point.
+
+`relative_interior` and `relative_boundary` compute topology relative to a **certified affine hull**. They raise `NotImplementedError` when the current formula does not expose enough globally valid linear equalities to certify that hull, rather than silently substituting ambient or local-dimension topology.
+
+`semialgebraic_tangent_cone` computes the exact Bouligand/contingent cone as the closure of secant velocities, using quantifier elimination. `local_dimension` remains the exact CAD-derived local semialgebraic dimension.
+
+### Parameterization and critical loci
+
+`parameterization_geometry` analyzes a polynomial or rational parameterization on a full-dimensional semialgebraic parameter domain. It returns the generic Jacobian rank, exact image dimension, generic fiber dimension, rank-drop locus, and exact critical-value image. `parameterization_critical_locus` and `parameterization_critical_values` are focused convenience queries.
+
+Lower-dimensional parameter domains defined by polynomial equalities are handled intrinsically: the critical-rank test augments the map Jacobian with the certified domain-constraint Jacobian, so simplex-like parameter manifolds are not analyzed using ambient rank.
+
+## Canonicalization and exact polytope decomposition
+
+`canonicalize_polygon`, `canonicalize_polyhedron`, and `canonicalize_region` provide deterministic exact normalization for supported polygonal and polyhedral representations. Convex polytopes can be decomposed with `triangulate_polytope` or `decompose_polytope`; the `pulling` and `placing` strategies use only source vertices, while `barycentric` introduces exact face barycenters. `tetrahedralize_cell` and `tetrahedralize_cells` use a global vertex ordering so incident convex 3-cells induce the same triangulation on a shared face.
+
+### Constraint certificates
+
+The constraint-certificate layer proves implied polynomial inequalities, detects redundant inequalities, constructs and replays exact nonnegative-combination/SOS certificates, and associates real constraint systems with certified irreducible algebraic components. These certificates let statistical callers vary valid constraint presentations without moving proof obligations out of semialg.
+
+## Canonicalization, polygonal paths, conversion, and polytope decomposition
+
+Canonical region types include `FinitePointSet`, `Interval`, `Box`, `Parallelogram`, `Zonotope`, and `TetrahedralComplex`. `canonicalize_polygon`, `canonicalize_polyhedron`, and `canonicalize_region` provide deterministic exact canonicalization. Polygonal canonicalization recognizes triangles, axis-aligned boxes, and parallelograms; convex polyhedral canonicalization recognizes simplices, boxes, parallelepipeds, and general hexahedra while preserving nonconvex `TetrahedralComplex` and shell-based `Polyhedron` representations.
+
+`polygonal_region_from_paths(paths, fill_rule=...)` constructs exact planar polygonal sets from crossing, nested, disconnected, collinear, and coincident polygonal paths. Supported rules are `even_odd`, `nonzero`, `positive`, `negative`, and `winding_at_least_two`.
+
+`convert_region` converts among `canonical`, `formula`/`implicit`, `semialgebraic`, `cad`, `parametric`, `simplicial`/`triangulation`, `mesh`, and `boundary` representations. `RegionConversion` records whether the result is exact, certified, and lossy. Numerical CAD meshing is explicitly marked lossy; exact conversions are not.
+
+`triangulate_polytope` and `decompose_polytope` provide deterministic exact pulling, placing, and barycentric decompositions. `PolytopeDecomposition` records introduced vertices and certification/conformity metadata. Shell-based `Polyhedron` formulas preserve nonconvexity and cavities rather than replacing them by convex hulls.
+
+`tetrahedralize_cell` and `tetrahedralize_cells` provide conforming tetrahedralization of tetrahedra, pyramids, triangular prisms, and hexahedra using global vertex ordering. Shared polygonal faces are replay-checked for identical induced triangulations. Results are represented by `MixedCellTetrahedralization` and `MixedMeshTetrahedralization`.
+
+## Exact hulls, generation, refinement, and polyhedral Boolean fast paths
+
+`convex_hull(points, canonical=True)` constructs the exact convex hull of rational or
+algebraic points, including lower-dimensional hulls embedded in a larger ambient
+space. With canonicalization enabled, recognized hulls are returned through the
+strongest certified standard-region representation.
+
+`random_polygon()` and `random_polytope()` provide seeded exact lattice examples for
+experiments and tests. `subdivide_triangular_faces()` performs conforming triangular
+1-to-4 refinement, while `geodesic_refinement()` radially projects such a refinement
+to an exact symbolic sphere.
+
+`polyhedral_intersection()` is the exact convex-polytope structural intersection
+backend. `polyhedral_boolean()` preserves structural polyhedral results when they can
+be certified without subdivision and otherwise returns the ordinary Boolean-region
+representation rather than convexifying a nonconvex result.
+
+## Semialgebraic statistical model geometry and constraint certificates
+
+`polynomial_constraints()` returns a Boolean-preserving `PolynomialConstraintSystem`
+whose `PolynomialConstraintClause` objects contain normalized `PolynomialConstraint`
+relations. `active_constraints()` returns an `ActiveConstraintResult` at an exact
+feasible point. `relative_interior()`, `relative_boundary()`, and
+`semialgebraic_tangent_cone()` retain the real inequality geometry rather than
+replacing a model by its Zariski closure.
+
+`parameterization_geometry()` returns `ParameterizationGeometry`, while
+`parameterization_critical_locus()` and `parameterization_critical_values()` expose
+rank-drop and critical-value geometry for polynomial/rational parameterizations.
+
+`nonnegative_combination_certificate()` produces a replayable
+`NonnegativeCombinationCertificate`; `verify_nonnegative_combination_certificate()`
+checks it independently. `implied_polynomial_inequality()` returns an
+`ImpliedPolynomialInequality`, `redundant_polynomial_inequalities()` returns
+`RedundantPolynomialInequality` records, and `component_constraint_descriptions()`
+returns `ComponentConstraintDescription` objects that attach real constraints to
+certified irreducible algebraic components.

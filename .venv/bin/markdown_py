@@ -1,4 +1,4 @@
-#!/Users/bbhatt/git/Portfolio/semialg/.venv/bin/python
+#!/Users/bbhatt/git/Portfolio/semialg/.venv/bin/python3.11
 import sys
 from markdown.__main__ import run
 if __name__ == '__main__':

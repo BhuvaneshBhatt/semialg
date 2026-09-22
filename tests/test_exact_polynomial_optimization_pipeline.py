@@ -106,7 +106,7 @@ def test_optimization_result_certified_field_is_public() -> None:
     assert isinstance(result.diagnostics, dict)
 
 
-def test_string_variable_name_reuses_problem_symbol_without_assumption_duplicate() -> None:
+def test_string_variable_reuses_problem_symbol() -> None:
     x = sp.Symbol("x")
     result = semialgebraic_minimize(x**2, [x >= 1], ["x"], return_result=True)
     assert result.variables == (x,)

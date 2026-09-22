@@ -101,7 +101,7 @@ region_union(left, right)
 region_intersection(left, right)
 ```
 
-For common geometric objects, use standard-region classes such as `IntervalRegion`, `BoxRegion`, `BallRegion`, and `ParametricRegion`. Their constructor invariants are summarized in [Region invariants](guides/region_invariants.md).
+For common geometric objects, use standard-region classes such as `Interval`, `Box`, `Ball`, and `ParametricRegion`. Their constructor invariants are summarized in [Region invariants](guides/region_invariants.md).
 
 ## 7. Integrate and measure
 

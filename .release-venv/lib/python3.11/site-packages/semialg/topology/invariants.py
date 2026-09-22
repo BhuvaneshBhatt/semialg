@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .._strategy_outcome import StrategyOutcome, StrategyStatus
 from ..derived_geometry import is_compact
 from ..geometry_queries import euler_characteristic
 from ..normalization import normalize_formula, normalize_problem_variables
@@ -24,6 +25,18 @@ class TopologySummary:
         return self.connected_components
 
 
+def _certified_convexity_outcome(formula, variables) -> StrategyOutcome[bool]:
+    """Try the exact convexity backend without conflating unsupported with false."""
+    try:
+        from ..convexity import is_convex
+
+        return StrategyOutcome.success(bool(is_convex(formula, variables)))
+    except NotImplementedError as exc:
+        return StrategyOutcome.not_applicable(str(exc))
+    except (ArithmeticError, TypeError, ValueError) as exc:
+        return StrategyOutcome.unknown(str(exc))
+
+
 def topology_summary(region, variables=None, *, compact_support: bool = True) -> TopologySummary:
     """Return exact component, Euler, and supported Betti-number information.
 
@@ -32,6 +45,23 @@ def topology_summary(region, variables=None, *, compact_support: bool = True) ->
     numbers are left unspecified until an oriented cellular homology backend is
     available.
     """
+
+    from ..standard_regions import StandardRegion
+
+    if isinstance(region, StandardRegion):
+        # Standard/polyhedral regions already have a certified finite complex;
+        # use it before invoking general CAD/roadmap machinery.
+        from .semialgebraic import triangulation_betti_numbers
+
+        betti_exact = tuple(int(v) for v in triangulation_betti_numbers(region, variables))
+        formula = normalize_formula(region)
+        vars_ = normalize_problem_variables(variables, formula)
+        dimension = int(region_dimension(formula, vars_))
+        compact = bool(is_compact(formula, vars_))
+        components = betti_exact[0] if betti_exact else 0
+        chi = sum((-1) ** i * b for i, b in enumerate(betti_exact))
+        padded = betti_exact + (0,) * max(0, dimension + 1 - len(betti_exact))
+        return TopologySummary(dimension, components, chi, compact_support and compact, padded)
 
     formula = normalize_formula(region)
     vars_ = normalize_problem_variables(variables, formula)
@@ -42,12 +72,8 @@ def topology_summary(region, variables=None, *, compact_support: bool = True) ->
     betti: list[int | None] = [components]
     convex = False
     if compact and components == 1:
-        try:
-            from ..convexity import is_convex
-
-            convex = is_convex(formula, vars_)
-        except (ArithmeticError, TypeError, ValueError, NotImplementedError):
-            convex = False
+        convexity = _certified_convexity_outcome(formula, vars_)
+        convex = convexity.status is StrategyStatus.SUCCESS and bool(convexity.value)
     if convex:
         betti.extend([0] * max(0, dimension))
     elif dimension >= 1:

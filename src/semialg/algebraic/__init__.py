@@ -141,9 +141,6 @@ from .toric import (
     toric_ideal,
 )
 
-compare_alg_numbers = compare_samples
-sort_algebraic_numbers = sort_samples
-
 
 def refine_pair_until_disj(left: AlgebraicRoot, right: AlgebraicRoot, *, steps: int = 8):
     lroot = left
@@ -283,8 +280,6 @@ __all__ = [
     "rur_parameter_thom_encoding",
     "sign_at_rur_point",
     "sign_conditions_at_rur_points",
-    "compare_alg_numbers",
-    "sort_algebraic_numbers",
     "refine_pair_until_disj",
     "get_isolating_interval",
 ]

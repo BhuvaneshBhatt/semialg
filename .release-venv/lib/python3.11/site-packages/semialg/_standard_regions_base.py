@@ -251,7 +251,7 @@ class StandardRegion(Geometry):
 
 
 @dataclass(frozen=True)
-class PointRegion(StandardRegion):
+class FinitePointSet(StandardRegion):
     points: tuple[_PointData, ...]
 
     def __init__(self, points: Sequence[Sequence[object]] | Sequence[object]):
@@ -270,7 +270,7 @@ class PointRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class Point(PointRegion):
+class Point(FinitePointSet):
     """A single point in an affine coordinate space."""
 
     def __init__(self, coordinates: Sequence[object]):

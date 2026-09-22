@@ -16,6 +16,8 @@ from ._standard_region_geometry import (
 from ._standard_regions_base import *
 from ._standard_regions_curved import *
 from ._standard_regions_polyhedral import *
+from ._standard_regions_polyhedral import _ParallelepipedBase, _SimplexBase
+from ._zero_testing import certified_sign
 from .exact_arithmetic import compare_exact_reals
 from .normalization import normalize_symbol_sequence
 
@@ -66,17 +68,11 @@ class ParametricRegion(StandardRegion):
             missing = tuple(param for param in params if param not in seen)
             raise ValueError(f"missing integration limits for parameters {missing!r}")
         mult = sp.sympify(multiplicity)
-        try:
-            mult_cmp = compare_exact_reals(mult, sp.Integer(0))
-        except (TypeError, ValueError, NotImplementedError):
-            if mult.is_positive is True:
-                mult_cmp = 1
-            elif mult.is_nonpositive is True:
-                mult_cmp = 0
-            else:
-                raise ValueError("parametrization multiplicity must be provably positive") from None
-        if mult_cmp <= 0:
+        mult_sign = certified_sign(mult, assumptions=sp.sympify(assumptions))
+        if mult_sign in (-1, 0):
             raise ValueError("parametrization multiplicity must be positive")
+        if mult_sign is None:
+            raise ValueError("parametrization multiplicity must be provably positive")
         object.__setattr__(self, "parameters", params)
         object.__setattr__(self, "limits", tuple(sym_limits))
         object.__setattr__(self, "mapping", tuple(sp.sympify(expr) for expr in mapping))
@@ -137,11 +133,11 @@ class TransformedRegion(StandardRegion):
 
         substitutions: dict[sp.Symbol, sp.Expr] = {}
         tangent_vectors: tuple[_PointData, ...] | None = None
-        if isinstance(self.base, IntervalRegion):
+        if isinstance(self.base, Interval):
             if self.base.dimension() == 0:
                 return 0
             tangent_vectors = ((sp.Integer(1),),)
-        elif isinstance(self.base, BoxRegion):
+        elif isinstance(self.base, Box):
             vectors: list[_PointData] = []
             for index, (variable, (lower, upper)) in enumerate(
                 zip(self.base_variables, self.base.bounds, strict=True)
@@ -154,17 +150,17 @@ class TransformedRegion(StandardRegion):
                     )
                     vectors.append(vector)
             tangent_vectors = tuple(vectors)
-        elif isinstance(self.base, SimplexRegion):
+        elif isinstance(self.base, _SimplexBase):
             anchor = self.base.vertices[0]
             substitutions = dict(zip(self.base_variables, anchor, strict=True))
             differences = tuple(
                 tuple(sp.Matrix(vertex) - sp.Matrix(anchor)) for vertex in self.base.vertices[1:]
             )
             tangent_vectors = _independent_vectors(differences)
-        elif isinstance(self.base, (ParallelogramRegion, ParallelepipedRegion)):
+        elif isinstance(self.base, (Parallelogram, _ParallelepipedBase)):
             substitutions = dict(zip(self.base_variables, self.base.origin, strict=True))
             tangent_vectors = _independent_vectors(self.base.vectors)
-        elif isinstance(self.base, PointRegion):
+        elif isinstance(self.base, FinitePointSet):
             return 0
 
         if tangent_vectors is not None:
@@ -225,11 +221,9 @@ class BooleanRegion(StandardRegion):
         if self.op == "union":
             return max(r.dimension() for r in self.regions)
         if self.op == "intersection" and all(
-            isinstance(region, IntervalRegion) for region in self.regions
+            isinstance(region, Interval) for region in self.regions
         ):
-            intervals = tuple(
-                region for region in self.regions if isinstance(region, IntervalRegion)
-            )
+            intervals = tuple(region for region in self.regions if isinstance(region, Interval))
             lower = intervals[0].lower
             upper = intervals[0].upper
             try:
@@ -268,25 +262,25 @@ class BooleanRegion(StandardRegion):
     def ambient_dimension(self) -> int:
         return self.regions[0].ambient_dimension() if self.regions else 0
 
+    @classmethod
+    def union(cls, *regions: StandardRegion, assume_disjoint: bool = False) -> BooleanRegion:
+        """Construct the Boolean union of standard regions."""
+        return cls("union", regions, assume_disjoint=assume_disjoint)
 
-def RegionUnion(*regions: StandardRegion, assume_disjoint: bool = False) -> BooleanRegion:
-    """Return the Boolean union of standard regions."""
-    return BooleanRegion("union", regions, assume_disjoint=assume_disjoint)
+    @classmethod
+    def intersection(cls, *regions: StandardRegion) -> BooleanRegion:
+        """Construct the Boolean intersection of standard regions."""
+        return cls("intersection", regions)
 
+    @classmethod
+    def difference(cls, a: StandardRegion, b: StandardRegion) -> BooleanRegion:
+        """Construct the Boolean difference of two standard regions."""
+        return cls("difference", (a, b))
 
-def RegionIntersection(*regions: StandardRegion) -> BooleanRegion:
-    """Return the Boolean intersection of standard regions."""
-    return BooleanRegion("intersection", regions)
-
-
-def RegionDifference(a: StandardRegion, b: StandardRegion) -> BooleanRegion:
-    """Return the Boolean difference of two standard regions."""
-    return BooleanRegion("difference", (a, b))
-
-
-def RegionSymmetricDifference(a: StandardRegion, b: StandardRegion) -> BooleanRegion:
-    """Return the Boolean symmetric difference of two standard regions."""
-    return BooleanRegion("symmetric_difference", (a, b))
+    @classmethod
+    def symmetric_difference(cls, a: StandardRegion, b: StandardRegion) -> BooleanRegion:
+        """Construct the Boolean symmetric difference of two standard regions."""
+        return cls("symmetric_difference", (a, b))
 
 
 def is_standard_region(obj: object) -> bool:

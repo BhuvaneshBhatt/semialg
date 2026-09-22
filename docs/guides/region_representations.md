@@ -50,9 +50,9 @@ This keeps input lightweight. There is no persistent context or CAD cache attach
 Named regions are convenient for geometry and integration:
 
 ```python
-from semialg import BoxRegion
+from semialg import Box
 
-box = BoxRegion(((0, 1), (-2, 2)))
+box = Box(((0, 1), (-2, 2)))
 ```
 
 Convert to the unified symbolic model when you want general region algebra:

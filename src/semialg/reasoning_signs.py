@@ -201,9 +201,9 @@ def _prove_sign(
     if cheap is None and asm in (sp.true, True) and relation in {"nonnegative", "nonpositive"}:
         target = expression if relation == "nonnegative" else -expression
         try:
-            from .decision_portfolio import polynomial_nonnegative_decision
+            from .polynomial_positivity import polynomial_nonnegative
 
-            portfolio = polynomial_nonnegative_decision(target, vars_, return_result=True)
+            portfolio = polynomial_nonnegative(target, vars_, return_result=True)
         except (
             RationalUnivariateError,
             sp.PolynomialError,

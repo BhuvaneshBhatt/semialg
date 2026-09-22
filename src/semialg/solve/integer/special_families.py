@@ -10,7 +10,7 @@ import sympy as sp
 from ._common import RECOVERABLE_ERRORS as _RECOVERABLE_ERRORS
 from .formula_utils import split_equalities as _split_equalities
 from .output_normalization import canon_int_result
-from .thue import solve_binary_bounded
+from .thue import solve_thue_family
 
 
 @dataclass(frozen=True)
@@ -404,7 +404,7 @@ def solve_int_fams(expr: sp.Expr, variables: Sequence[sp.Symbol]):
         thue = None
     if thue is None:
         try:
-            thue = solve_binary_bounded(expr, variables, search_bound=200)
+            thue = solve_thue_family(expr, variables, search_bound=200)
         except _RECOVERABLE_ERRORS:
             thue = None
     if thue is not None:

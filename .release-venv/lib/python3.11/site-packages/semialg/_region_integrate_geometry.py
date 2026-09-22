@@ -10,6 +10,9 @@ from ._linear_relations import certified_sign, safe_linear_solution
 from ._zero_testing import certified_equal, certified_zero
 from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
 from .interval_decomposition import (
+    one_dimensional_intervals as _shared_intervals,
+)
+from .interval_decomposition import (
     truth_at as _truth_at,
 )
 from .normalization import (
@@ -18,7 +21,6 @@ from .normalization import (
 from .region_integral_results import (
     RegionIntegralPiece,
 )
-from .region_integrate import _one_dimensional_intervals
 from .relations import make_zero_relation
 from .relations import split_relation as _relation_parts
 
@@ -53,13 +55,18 @@ def _radial_radii_squared(
         if any(monom not in {(2, 0), (0, 2), (0, 0)} for monom in poly.monoms()):
             return None
         constant = poly.coeff_monomial(1)
+        coefficient_sign = certified_sign(coeff_x2)
+        if coefficient_sign not in (-1, 1):
+            # A parameter-dependent quadratic coefficient changes both the
+            # inequality orientation and boundedness across parameter strata.
+            return None
         radius_sq = sp.simplify(-constant / coeff_x2)
         if op == "==":
             return (sp.Integer(0), sp.Integer(0))
         if op == "!=":
             found = True
             continue
-        if sp.simplify(coeff_x2).is_negative:
+        if coefficient_sign < 0:
             op = {"<": ">", "<=": ">=", ">": "<", ">=": "<="}[op]
         if op in ("<", "<="):
             upper = sp.Min(upper, radius_sq) if upper != sp.oo else radius_sq
@@ -73,10 +80,18 @@ def _radial_radii_squared(
     upper = sp.simplify(upper)
     if upper == sp.oo:
         raise NotImplementedError("unbounded radial integrals are outside the supported fragment")
-    if bool(upper <= lower) or bool(upper <= 0):
+    ordering = certified_sign(upper - lower)
+    upper_sign = certified_sign(upper)
+    if ordering in (-1, 0) or upper_sign in (-1, 0):
         return (sp.Integer(0), sp.Integer(0))
-    if bool(lower < 0):
+    lower_sign = certified_sign(lower)
+    if lower_sign == -1:
         lower = sp.Integer(0)
+    elif ordering is None or upper_sign is None or lower_sign is None:
+        # Parameter-dependent radius ordering needs stratification; leave it to
+        # the general integration path rather than coercing a symbolic relation
+        # to bool or silently choosing one parameter regime.
+        return None
     return lower, upper
 
 
@@ -188,7 +203,14 @@ def _vertical_slice_data(
         if certified_equal(lower, lo) is not True or certified_equal(upper, hi) is not True:
             x_conditions.extend([lower >= lo, upper <= hi])
     x_condition = sp.And(*x_conditions) if x_conditions else sp.true
-    intervals = _one_dimensional_intervals(x_condition, x, None)
+    intervals = _shared_intervals(
+        x_condition,
+        x,
+        None,
+        extra_symbol_error=(
+            "1D integration formula contains symbols outside the integration variable"
+        ),
+    )
     return lower, upper, intervals
 
 

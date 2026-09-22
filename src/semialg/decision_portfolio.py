@@ -31,13 +31,15 @@ class CertifiedDecisionResult:
     certificate: Any = None
 
 
-def polynomial_nonnegative_decision(
+def _polynomial_nonnegative_portfolio(
     polynomial: sp.Expr,
     variables: Sequence[sp.Symbol],
     *,
     strategy: str = "auto",
     sos_backend: str | Callable[[sp.Expr, list[sp.Symbol]], object] = "auto",
     return_result: bool = False,
+    random_lines: int = 8,
+    seed: int = 1234,
 ) -> bool | CertifiedDecisionResult:
     """Decide global polynomial nonnegativity using certified fallbacks.
 
@@ -46,6 +48,10 @@ def polynomial_nonnegative_decision(
 
     ``auto`` tries exact-verified SOS search, then Zeng (including its ARS
     positive-dimensional critical-locus path), then complete semialgebraic CAD.
+    ``random_lines`` and ``seed`` tune only the Zeng witness-search stage.
+
+    This is the internal dispatcher behind :func:`polynomial_nonnegative`; it is
+    intentionally not a second public spelling of the same mathematical query.
     """
 
     from .polynomial_positivity import zeng_negative_point
@@ -56,6 +62,8 @@ def polynomial_nonnegative_decision(
     allowed = {"auto", "sos", "zeng", "ars", "cad"}
     if strategy_name not in allowed:
         raise ValueError(f"unknown polynomial decision strategy: {strategy!r}")
+    if random_lines < 0:
+        raise ValueError("random_lines must be nonnegative")
     attempts: list[CertifiedDecisionAttempt] = []
 
     def finish(result: CertifiedDecisionResult) -> bool | CertifiedDecisionResult:
@@ -84,7 +92,7 @@ def polynomial_nonnegative_decision(
 
     if strategy_name in {"auto", "zeng", "ars"}:
         try:
-            zeng = zeng_negative_point(expr, vars_)
+            zeng = zeng_negative_point(expr, vars_, random_lines=random_lines, seed=seed)
         except (sp.PolynomialError, ValueError, TypeError):
             zeng = None
         if zeng is not None:
@@ -140,5 +148,4 @@ def polynomial_nonnegative_decision(
 __all__ = [
     "CertifiedDecisionAttempt",
     "CertifiedDecisionResult",
-    "polynomial_nonnegative_decision",
 ]

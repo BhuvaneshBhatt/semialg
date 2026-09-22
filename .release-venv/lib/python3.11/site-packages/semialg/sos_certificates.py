@@ -19,7 +19,7 @@ from typing import Any
 import sympy as sp
 
 from ._linear_relations import certified_sign
-from ._zero_testing import certified_zero
+from ._zero_testing import certified_equal, certified_zero
 
 
 @dataclass(frozen=True)
@@ -277,16 +277,29 @@ def verify_sos_certificate(
     certificate: SOSCertificate,
     variables: Sequence[sp.Symbol] | None = None,
 ) -> bool:
-    """Return whether an SOS certificate proves ``polynomial >= 0`` exactly."""
+    """Return whether an SOS certificate proves ``polynomial >= 0`` exactly.
 
-    expr = sp.expand(sp.sympify(polynomial))
-    if sp.expand(sp.sympify(certificate.polynomial) - expr) != 0:
+    Malformed certificate payloads are rejected rather than leaking low-level
+    SymPy conversion errors from a verification boundary.
+    """
+
+    if not isinstance(certificate, SOSCertificate):
         return False
-    vars_ = tuple(variables) if variables is not None else certificate.variables
-    if tuple(certificate.variables) != vars_:
+    try:
+        expr = sp.expand(sp.sympify(polynomial))
+        cert_polynomial = sp.sympify(certificate.polynomial)
+        cert_variables = tuple(certificate.variables)
+        vars_ = tuple(variables) if variables is not None else cert_variables
+        basis = tuple(map(sp.sympify, certificate.monomial_basis))
+        gram = sp.ImmutableMatrix(certificate.gram_matrix)
+    except (TypeError, ValueError, sp.SympifyError):
         return False
-    basis = tuple(map(sp.sympify, certificate.monomial_basis))
-    gram = sp.ImmutableMatrix(certificate.gram_matrix)
+    if any(not isinstance(variable, sp.Symbol) for variable in (*cert_variables, *vars_)):
+        return False
+    if certified_equal(cert_polynomial, expr) is not True:
+        return False
+    if cert_variables != vars_:
+        return False
     if gram.rows != len(basis) or gram.cols != len(basis):
         return False
     if any((term.free_symbols - set(vars_)) for term in basis):

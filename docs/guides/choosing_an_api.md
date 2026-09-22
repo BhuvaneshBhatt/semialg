@@ -12,8 +12,8 @@ Several `semialg` operations can express the same mathematical problem. Prefer t
 | Compute values attained by a scalar function | `function_range` |
 | Find a global minimum/maximum | `semialgebraic_minimize`, `semialgebraic_maximize` |
 | Return the entire optimizer locus | `argmin_set`, `argmax_set`, `extrema_set` |
-| Compute an image under a polynomial map | `semialgebraic_image` |
-| Pull a set back under a map | `semialgebraic_preimage` |
+| Compute an image under a polynomial map | `region_image` |
+| Pull a set back under a map | `region_preimage` |
 | Compute volume, area, length, or intrinsic measure | `semialgebraic_measure` |
 | Integrate a function over a region | `integrate_over_region` |
 | Test a set relation | `is_subset`, `is_equal`, `is_disjoint`, `intersects` |
@@ -55,7 +55,7 @@ Use `argmin_set`/`argmax_set` when the optimizer can be positive-dimensional. Fo
 
 `semialgebraic_projection` forgets coordinates.
 
-`semialgebraic_image` applies a map. A projection is a special linear image, but the projection API is clearer and can avoid unnecessary graph construction.
+`region_image` applies a map. A projection is a special linear image, but the projection API is clearer and can avoid unnecessary graph construction.
 
 ## Measure versus integration
 

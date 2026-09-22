@@ -1,8 +1,7 @@
 import pytest
 import sympy as sp
 
-from semialg import ConicRegion, Parallelepiped, Polygon, Polytope, Simplex
-from semialg.standard_regions import ParallelepipedRegion, PolygonRegion, SimplexRegion
+from semialg import Parallelepiped, Polygon, PolyhedralCone, Polytope, Simplex
 
 
 def test_polytope_convex_hull_formula_and_affine_hull():
@@ -16,12 +15,14 @@ def test_polytope_convex_hull_formula_and_affine_hull():
     assert region.as_formula((x, y)).has(sp.Symbol)  # structural existential lowering
 
 
-def test_simplex_requires_affine_independence():
+def test_simplex_reports_actual_affine_dimension():
     triangle = Simplex([(0, 0), (1, 0), (0, 1)])
     assert triangle.dimension() == 2
+    assert triangle.is_nondegenerate()
     assert triangle.contains((sp.Rational(1, 4), sp.Rational(1, 4)))
-    with pytest.raises(ValueError, match="affinely independent"):
-        Simplex([(0, 0), (1, 0), (2, 0)])
+    degenerate = Simplex([(0, 0), (1, 0), (2, 0)])
+    assert degenerate.dimension() == 1
+    assert not degenerate.is_nondegenerate()
 
 
 def test_polygon_preserves_simple_polygon_semantics():
@@ -33,7 +34,7 @@ def test_polygon_preserves_simple_polygon_semantics():
 
 def test_conic_region_uses_free_and_nonnegative_generators():
     x, y = sp.symbols("x y", real=True)
-    cone = ConicRegion((0, 0), directions=[(1, 0)], rays=[(0, 1)])
+    cone = PolyhedralCone((0, 0), directions=[(1, 0)], rays=[(0, 1)])
     assert cone.dimension() == 2
     assert cone.contains((3, 2))
     assert not cone.contains((3, -2))
@@ -52,16 +53,16 @@ def test_parallelepiped_requires_independent_vectors():
 
 
 def test_conversion_bridges_preserve_canonical_data():
-    assert Simplex.from_region(SimplexRegion([(0, 0), (1, 0), (0, 1)])).vertices == (
+    assert Simplex.from_region(Simplex([(0, 0), (1, 0), (0, 1)])).vertices == (
         (0, 0),
         (1, 0),
         (0, 1),
     )
-    assert Polygon.from_region(PolygonRegion([(0, 0), (1, 0), (1, 1), (0, 1)])).vertices[0] == (
+    assert Polygon.from_region(Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])).vertices[0] == (
         0,
         0,
     )
-    old = ParallelepipedRegion((1, 2), [(1, 0), (0, 2)])
+    old = Parallelepiped((1, 2), [(1, 0), (0, 2)])
     new = Parallelepiped.from_region(old)
     assert new.origin == old.origin
     assert new.vectors == old.vectors

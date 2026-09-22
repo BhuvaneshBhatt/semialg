@@ -13,7 +13,7 @@ from semialg import Exists
 image_relation = Exists(x, sp.And(C, graph_f))
 ```
 
-computer algebra systemlly this is $\exists x\,[C(x) \land \operatorname{graph}_f(x,t)]$,
+Mathematically this is $\exists x\,[C(x) \land \operatorname{graph}_f(x,t)]$,
 where `t` is a value symbol. Eliminating the original variables gives a condition on `t`.
 
 ```python

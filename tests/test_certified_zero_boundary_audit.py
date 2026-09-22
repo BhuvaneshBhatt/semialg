@@ -32,7 +32,7 @@ def test_no_simplify_not_equal_zero_proof_decisions_remain():
     assert offenders == []
 
 
-def test_parameter_dependent_circle_coefficient_is_not_divided_without_nonzero_proof():
+def test_circle_coefficient_requires_nonzero_proof():
     from semialg._region_integrate_intrinsic import _circle_radius_squared
 
     x, y, a = sp.symbols("x y a", real=True)

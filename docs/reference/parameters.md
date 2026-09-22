@@ -1,7 +1,7 @@
 # Parameters and conditional results reference
 ## Family contract
 
-**computer algebra systeml return.** Parameter APIs return guarded exact branches, parameter stratifications, and certificates describing where each symbolic result is valid.
+**Mathematical return.** Parameter APIs return guarded exact branches, parameter stratifications, and certificates describing where each symbolic result is valid.
 
 **Exactness and certification.** A representative sample from a parameter cell is not promoted to an unconditional symbolic answer. Guards, coverage, and disjointness are explicit parts of the result model.
 

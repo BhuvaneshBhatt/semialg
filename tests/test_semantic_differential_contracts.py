@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import is_tautology, polynomial_nonnegative_decision
+from semialg import is_tautology, polynomial_nonnegative
 from semialg.algebraic.rational_univariate import solve_zero_dimensional_system_with_rur
 from semialg.formula import parse_formula
 from semialg.preprocess import semialgebraicize
@@ -54,7 +54,7 @@ def test_specialized_nonnegativity_decision_matches_complete_formula_truth():
     x, y = sp.symbols("x y", real=True)
     polynomial = x**4 + y**4 + x**2 * y**2 + 1
 
-    specialized = polynomial_nonnegative_decision(polynomial, (x, y), sos_backend="none")
+    specialized = polynomial_nonnegative(polynomial, (x, y), sos_backend="none")
     complete = is_tautology(polynomial >= 0, (x, y))
 
     assert specialized is complete is True

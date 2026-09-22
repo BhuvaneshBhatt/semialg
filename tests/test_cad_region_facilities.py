@@ -57,8 +57,8 @@ def test_regular_open_and_closed_region_operations():
     assert is_regular_closed_region(closed)
     assert is_regular_open_region(opened)
     assert not point.is_regular_closed()
-    assert closed.interior_closure().equals_region(closed)
-    assert opened.closure_interior().equals_region(opened)
+    assert closed.closure_of_interior().equals_region(closed)
+    assert opened.interior_of_closure().equals_region(opened)
 
 
 def test_triangulate_bounded_structured_cad_cell():

@@ -11,7 +11,7 @@ from semialg.conditional import (
     conditional_result,
     verify_parameter_stratification,
 )
-from semialg.parameter_stratification import parameterized_cylindrical_decomposition
+from semialg.decomposition import parametric_cad
 from semialg.parameters import root_count_conditions
 
 
@@ -102,14 +102,14 @@ def test_result_objects_convert_to_stratified_results() -> None:
     assert root_counts.as_stratified_result().select({a: 4}) == 0
 
 
-def test_parameterized_decomposition_exposes_guarded_strata_not_sample_fibers() -> None:
+def test_parametric_cad_exposes_guarded_strata_not_sample_fibers() -> None:
     x, a = sp.symbols("x a", real=True)
-    decomposition = parameterized_cylindrical_decomposition(sp.Eq(x**2, a), [x], [a])
+    decomposition = parametric_cad(sp.Eq(x**2, a), [x], parameters=[a])
     result = decomposition.as_stratified_result()
     assert isinstance(result, ParameterStratifiedResult)
     selected = result.select({a: 1})
     assert selected.condition.subs(a, 1) is sp.true or selected.condition.subs(a, 1) == sp.true
-    # The value is the ParameterStratum itself; representative ``solution`` is
+    # The value is the ParametricCADCase itself; representative ``solution`` is
     # explicitly not promoted to a symbolic fiber valid throughout the cell.
     assert hasattr(selected, "sample")
 

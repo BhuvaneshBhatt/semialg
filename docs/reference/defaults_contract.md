@@ -11,4 +11,4 @@ These defaults are part of semialg's user-facing behavior and are guarded by tes
 | `semialgebraic_minimize` / `semialgebraic_maximize` | `constraints=None`, `variables=None`, `domain="reals"`, `return_result=False`, `certification="auto"`, `range_cost_limit=2500`, `recursion_limit=4`, `max_boolean_branches=32`, `parameters=None`, `return_stratified=False`, `eliminate_quantifiers=False` |
 | `integrate_over_region` | `bounds=None`, `method="symbolic"`, `precision=50`, `measure_dimension="ambient"`, `return_result=False`, `parameters=None`, `return_stratified=False` |
 
-When a default is changed intentionally, update this page and the corresponding contract test in the same change.
+When a default is changed, update this page and the corresponding contract test in the same change.

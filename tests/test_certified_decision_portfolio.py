@@ -1,9 +1,10 @@
+import pytest
 import sympy as sp
 
 from semialg import (
     find_instance,
     is_satisfiable,
-    polynomial_nonnegative_decision,
+    polynomial_nonnegative,
     reduce_formula,
     zeng_negative_point,
 )
@@ -44,7 +45,7 @@ def test_optional_search_backend_is_accepted_only_after_exact_verification():
 
     searched = search_sos_certificate(x**2 + y**2, (x, y), backend=searcher)
     assert searched.certified
-    result = polynomial_nonnegative_decision(
+    result = polynomial_nonnegative(
         x**2 + y**2, (x, y), strategy="sos", sos_backend=searcher, return_result=True
     )
     assert result.decision is True
@@ -52,7 +53,28 @@ def test_optional_search_backend_is_accepted_only_after_exact_verification():
     assert result.certificate is not None
 
 
-def test_zeng_positive_dimensional_gradient_routes_through_ars_for_nonnegative_case():
+def test_zeng_options_return_certified_decision():
+    x = sp.Symbol("x", real=True)
+    result = polynomial_nonnegative(
+        x**2 + 1,
+        (x,),
+        strategy="zeng",
+        return_result=True,
+        random_lines=3,
+        seed=77,
+    )
+
+    assert result.decision is True
+    assert result.backend.startswith("zeng")
+
+
+def test_single_public_nonnegative_api_validates_random_lines():
+    x = sp.Symbol("x", real=True)
+    with pytest.raises(ValueError, match="random_lines must be nonnegative"):
+        polynomial_nonnegative(x**2 + 1, (x,), random_lines=-1)
+
+
+def test_zeng_ars_nonnegative_case():
     x, y = sp.symbols("x y", real=True)
     polynomial = (x**2 + y**2 - 1) ** 2
     result = zeng_negative_point(polynomial, (x, y), random_lines=0)
@@ -61,7 +83,7 @@ def test_zeng_positive_dimensional_gradient_routes_through_ars_for_nonnegative_c
     assert result.method == "zeng+ars"
 
 
-def test_zeng_positive_dimensional_gradient_routes_through_ars_for_negative_case():
+def test_zeng_ars_negative_case():
     x, y = sp.symbols("x y", real=True)
     polynomial = (x**2 + y**2 - 1) ** 2 - 1
     result = zeng_negative_point(polynomial, (x, y), random_lines=0)
@@ -88,7 +110,7 @@ def test_find_instance_uses_ars_for_positive_dimensional_pure_equalities():
     assert sp.simplify((x**2 + y**2 - 1).subs(result.first())) == 0
 
 
-def test_reduce_formula_reports_ars_instead_of_cad_for_existential_equality_sentence():
+def test_existential_equality_uses_ars():
     parsed = parse_quant_form_text("exists x. exists y. x^2 + y^2 = 1")
     result = reduce_formula(parsed, strategy="auto", return_result=True)
     assert result.result is sp.true
@@ -96,13 +118,11 @@ def test_reduce_formula_reports_ars_instead_of_cad_for_existential_equality_sent
     assert "strategy_selection" not in result.metadata
 
 
-def test_portfolio_falls_through_to_cad_when_specialized_backends_are_incomplete():
+def test_portfolio_falls_back_to_cad():
     x, y = sp.symbols("x y", real=True)
     # Noncoercive and not SOS; Zeng's current specialized fragment is incomplete.
     polynomial = x**2 * y**2 + x
-    result = polynomial_nonnegative_decision(
-        polynomial, (x, y), sos_backend="none", return_result=True
-    )
+    result = polynomial_nonnegative(polynomial, (x, y), sos_backend="none", return_result=True)
     assert result.decision is False
     assert result.backend in {"zeng+odd_degree", "zeng+random_line", "cad"}
     assert result.witness is not None
@@ -134,7 +154,7 @@ def test_sos_planner_uses_sparse_newton_basis_before_budgeting():
     assert plan.reason == "within_auto_budget"
 
 
-def test_auto_portfolio_does_not_launch_backend_when_planner_prefers_exact_route():
+def test_auto_portfolio_respects_planner_route():
     x, y = sp.symbols("x y", real=True)
     calls = []
 
@@ -142,7 +162,7 @@ def test_auto_portfolio_does_not_launch_backend_when_planner_prefers_exact_route
         calls.append((polynomial, tuple(variables)))
         raise AssertionError("automatic SOS planner should have skipped the backend")
 
-    result = polynomial_nonnegative_decision(
+    result = polynomial_nonnegative(
         x**2 + y**2 + 1, (x, y), sos_backend=should_not_run, return_result=True
     )
     assert result.decision is True
@@ -171,7 +191,7 @@ def test_explicit_sos_strategy_bypasses_auto_cost_planner():
         calls.append((polynomial, tuple(variables)))
         return Result()
 
-    result = polynomial_nonnegative_decision(
+    result = polynomial_nonnegative(
         1 + x**2 + y**2, (x, y), strategy="sos", sos_backend=search, return_result=True
     )
     assert result.decision is True

@@ -9,6 +9,7 @@ expensive problem context and CAD artifacts are lazy, non-structural caches.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import sympy as sp
 from sympy.logic.boolalg import as_Boolean
@@ -16,6 +17,12 @@ from sympy.logic.boolalg import as_Boolean
 from .internal_symbols import collision_free_real_symbols
 from .normalization import normalize_formula, normalize_variables
 from .structural_keys import ordered_symbols
+
+if TYPE_CHECKING:
+    # Static export declaration only. Runtime access stays lazy through
+    # ``__getattr__`` so region_coercion remains the sole implementation owner
+    # without recreating the symbolic_regions <-> region_coercion import cycle.
+    from .region_coercion import as_semialgebraic_region
 
 
 def _default_variables(dimension: int) -> tuple[sp.Symbol, ...]:
@@ -237,21 +244,17 @@ class SemialgebraicRegion(sp.Basic):
         return RegionNotElement(point, self)
 
     def union(self, *others: object) -> SemialgebraicRegion:
-        regions = (self,) + tuple(
-            as_semialgebraic_region(other, self.variables) for other in others
-        )
+        regions = (self,) + tuple(_coerce_region(other, self.variables) for other in others)
         _require_same_ambient(regions)
         return SemialgebraicRegion(sp.Or(*(region.formula for region in regions)), self.variables)
 
     def intersection(self, *others: object) -> SemialgebraicRegion:
-        regions = (self,) + tuple(
-            as_semialgebraic_region(other, self.variables) for other in others
-        )
+        regions = (self,) + tuple(_coerce_region(other, self.variables) for other in others)
         _require_same_ambient(regions)
         return SemialgebraicRegion(sp.And(*(region.formula for region in regions)), self.variables)
 
     def difference(self, other: object) -> SemialgebraicRegion:
-        rhs = as_semialgebraic_region(other, self.variables)
+        rhs = _coerce_region(other, self.variables)
         _require_same_ambient((self, rhs))
         return SemialgebraicRegion(sp.And(self.formula, sp.Not(rhs.formula)), self.variables)
 
@@ -296,21 +299,21 @@ class SemialgebraicRegion(sp.Basic):
             self.variables,
         )
 
-    def interior_closure(self, *, strategy: str | None = None) -> SemialgebraicRegion:
+    def closure_of_interior(self, *, strategy: str | None = None) -> SemialgebraicRegion:
         """Return the closure of the interior of this region."""
         return self.interior(strategy=strategy).closure(strategy=strategy)
 
-    def closure_interior(self, *, strategy: str | None = None) -> SemialgebraicRegion:
+    def interior_of_closure(self, *, strategy: str | None = None) -> SemialgebraicRegion:
         """Return the interior of the closure of this region."""
         return self.closure(strategy=strategy).interior(strategy=strategy)
 
     def is_regular_closed(self, *, strategy: str | None = None) -> bool:
         """Whether ``S = closure(interior(S))``."""
-        return self.equals_region(self.interior_closure(strategy=strategy), strategy=strategy)
+        return self.equals_region(self.closure_of_interior(strategy=strategy), strategy=strategy)
 
     def is_regular_open(self, *, strategy: str | None = None) -> bool:
         """Whether ``S = interior(closure(S))``."""
-        return self.equals_region(self.closure_interior(strategy=strategy), strategy=strategy)
+        return self.equals_region(self.interior_of_closure(strategy=strategy), strategy=strategy)
 
     def as_cad_region(self, *, strategy: str = "auto"):
         """Return a first-class reusable CAD-region wrapper."""
@@ -558,9 +561,9 @@ class SemialgebraicRegion(sp.Basic):
     ):
         """Return the centroid under the requested uniform measure."""
 
-        from .moments import region_centroid
+        from .moments import centroid
 
-        return region_centroid(
+        return centroid(
             self.quantifier_free_formula(),
             self.variables,
             method=method,
@@ -642,9 +645,9 @@ class SemialgebraicRegion(sp.Basic):
         )
 
     def components(self) -> tuple[SemialgebraicRegion, ...]:
-        from .regions.operations import region_components
+        """Return the exact connected components of this region."""
 
-        formulas = region_components(self.quantifier_free_formula(), self.variables)
+        formulas = self.ensure_native_analysis().component_formulas()
         return tuple(SemialgebraicRegion(formula, self.variables) for formula in formulas)
 
     def dimension(self) -> int:
@@ -657,34 +660,28 @@ class SemialgebraicRegion(sp.Basic):
             return certified
         from .reasoning_regions import region_bounded
 
-        return bool(
-            region_bounded(self.quantifier_free_formula(), self.variables, strategy=strategy)
-        )
+        return region_bounded(self.quantifier_free_formula(), self.variables, strategy=strategy)
 
     def is_closed(self, *, strategy: str | None = None) -> bool:
         from .reasoning_regions import region_closed
 
-        return bool(
-            region_closed(self.quantifier_free_formula(), self.variables, strategy=strategy)
-        )
+        return region_closed(self.quantifier_free_formula(), self.variables, strategy=strategy)
 
     def is_compact(self, *, strategy: str | None = None) -> bool:
         from .reasoning_regions import region_compact
 
-        return bool(
-            region_compact(self.quantifier_free_formula(), self.variables, strategy=strategy)
-        )
+        return region_compact(self.quantifier_free_formula(), self.variables, strategy=strategy)
 
     def subset_of(self, other: object, *, evaluate: bool = True, strategy: str | None = None):
-        relation = RSubset(self, as_semialgebraic_region(other, self.variables))
+        relation = RegionSubset(self, _coerce_region(other, self.variables))
         return relation.evaluate(strategy=strategy) if evaluate else relation
 
     def disjoint_from(self, other: object, *, evaluate: bool = True, strategy: str | None = None):
-        relation = RDisjoint(self, as_semialgebraic_region(other, self.variables))
+        relation = RegionDisjoint(self, _coerce_region(other, self.variables))
         return relation.evaluate(strategy=strategy) if evaluate else relation
 
     def equals_region(self, other: object, *, evaluate: bool = True, strategy: str | None = None):
-        relation = REqual(self, as_semialgebraic_region(other, self.variables))
+        relation = RegionEqual(self, _coerce_region(other, self.variables))
         return relation.evaluate(strategy=strategy) if evaluate else relation
 
     def _sympystr(self, printer) -> str:
@@ -701,39 +698,51 @@ def _require_same_ambient(regions: Sequence[SemialgebraicRegion]) -> None:
             raise ValueError("region ambient dimensions do not match")
 
 
-# Import coercion and predicates after ``SemialgebraicRegion`` is defined to
-# keep the dependency graph acyclic while re-exporting the implementation
-# objects themselves.
-from .region_coercion import as_semialgebraic_region  # noqa: E402
+# Region coercion has a separate canonical owner.  Internal calls use a lazy
+# helper so importing this core module does not create a cycle.
+def _coerce_region(region, variables=None):
+    from .region_coercion import as_semialgebraic_region
+
+    return as_semialgebraic_region(region, variables)
+
+
+def __getattr__(name: str):
+    if name == "as_semialgebraic_region":
+        from .region_coercion import as_semialgebraic_region
+
+        return as_semialgebraic_region
+    raise AttributeError(name)
+
+
 from .region_predicates import (  # noqa: E402
-    RDisjoint,
+    RegionDisjoint,
     RegionElement,
+    RegionEqual,
     RegionNotElement,
-    REqual,
-    RSubset,
+    RegionSubset,
     region_element_conditions,
     region_relation_conditions,
 )
 
 
-def region_interior_closure(
+def closure_of_interior(
     region: object,
     variables: Sequence[sp.Symbol | str] | None = None,
     *,
     strategy: str | None = None,
 ) -> SemialgebraicRegion:
     """Return closure(interior(region))."""
-    return as_semialgebraic_region(region, variables).interior_closure(strategy=strategy)
+    return _coerce_region(region, variables).closure_of_interior(strategy=strategy)
 
 
-def region_closure_interior(
+def interior_of_closure(
     region: object,
     variables: Sequence[sp.Symbol | str] | None = None,
     *,
     strategy: str | None = None,
 ) -> SemialgebraicRegion:
     """Return interior(closure(region))."""
-    return as_semialgebraic_region(region, variables).closure_interior(strategy=strategy)
+    return _coerce_region(region, variables).interior_of_closure(strategy=strategy)
 
 
 def is_regular_closed_region(
@@ -743,7 +752,7 @@ def is_regular_closed_region(
     strategy: str | None = None,
 ) -> bool:
     """Return whether a region equals the closure of its interior."""
-    return as_semialgebraic_region(region, variables).is_regular_closed(strategy=strategy)
+    return _coerce_region(region, variables).is_regular_closed(strategy=strategy)
 
 
 def is_regular_open_region(
@@ -753,7 +762,7 @@ def is_regular_open_region(
     strategy: str | None = None,
 ) -> bool:
     """Return whether a region equals the interior of its closure."""
-    return as_semialgebraic_region(region, variables).is_regular_open(strategy=strategy)
+    return _coerce_region(region, variables).is_regular_open(strategy=strategy)
 
 
 def region_variables(
@@ -763,7 +772,7 @@ def region_variables(
     kind: str = "coordinates",
 ) -> tuple[sp.Symbol, ...]:
     """Return coordinate variables, parameters, or all symbols of a region."""
-    return as_semialgebraic_region(region, variables).region_variables(kind)
+    return _coerce_region(region, variables).region_variables(kind)
 
 
 def simplify_region(
@@ -773,7 +782,7 @@ def simplify_region(
     exact: bool = False,
 ) -> SemialgebraicRegion:
     """Canonicalize a symbolic semialgebraic region formula."""
-    return as_semialgebraic_region(region, variables).simplify(exact=exact)
+    return _coerce_region(region, variables).simplify(exact=exact)
 
 
 __all__ = [
@@ -781,13 +790,13 @@ __all__ = [
     "as_semialgebraic_region",
     "RegionElement",
     "RegionNotElement",
-    "RSubset",
-    "RDisjoint",
-    "REqual",
+    "RegionSubset",
+    "RegionDisjoint",
+    "RegionEqual",
     "region_element_conditions",
     "region_relation_conditions",
-    "region_interior_closure",
-    "region_closure_interior",
+    "closure_of_interior",
+    "interior_of_closure",
     "is_regular_closed_region",
     "is_regular_open_region",
     "region_variables",

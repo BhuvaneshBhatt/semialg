@@ -12,8 +12,7 @@ from sympy.core.relational import (
     StrictLessThan,
 )
 
-from ._zero_testing import certified_nonzero
-from .exact_arithmetic import exact_sign
+from ._zero_testing import certified_nonzero, certified_sign
 
 _POLY_ERRORS = (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError)
 
@@ -35,29 +34,6 @@ class LinearBound:
     value: sp.Expr
     side: str
     strict: bool
-
-
-def certified_sign(expr: object) -> int | None:
-    """Return a mathematically certified sign when it is cheaply decidable.
-
-    Symbol assumptions are honored.  Constant exact expressions fall back to
-    the package's exact algebraic sign routine.  ``None`` means that no global
-    sign claim is justified; callers must not choose an inequality direction.
-    """
-
-    value = sp.sympify(expr)
-    if value == 0 or value.is_zero is True:
-        return 0
-    if value.is_positive is True:
-        return 1
-    if value.is_negative is True:
-        return -1
-    if value.free_symbols:
-        return None
-    try:
-        return exact_sign(value)
-    except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
-        return None
 
 
 def linear_in_variable(expr: object, variable: sp.Symbol) -> LinearInVariable | None:

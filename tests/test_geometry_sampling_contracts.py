@@ -3,21 +3,20 @@ import sympy as sp
 
 from semialg import (
     Ball,
-    BoxRegion,
+    Box,
     Ellipsoid,
     EllipsoidBoundary,
-    IntervalRegion,
+    FinitePointSet,
+    Interval,
     Parallelepiped,
-    PointRegion,
     Polygon,
-    PolyhedronRegion,
     Polytope,
     Simplex,
     Sphere,
-    SphericalShellRegion,
-    TetrahedronRegion,
+    SphericalShell,
+    TetrahedralComplex,
 )
-from semialg.standard_regions import ParallelogramRegion, SphereRegion
+from semialg.standard_regions import Parallelogram
 
 
 def _floats(point):
@@ -37,7 +36,7 @@ def _valid_sample(region, point):
         shape_inverse = sp.Matrix(region.shape_matrix).inv()
         level = float(sp.N((delta.T * shape_inverse * delta)[0]))
         return abs(level - 1.0) < 1e-10
-    if isinstance(region, SphereRegion):
+    if isinstance(region, Sphere):
         center = tuple(float(sp.N(value)) for value in region.center)
         radius = float(sp.N(region.radius))
         squared = sum((value - origin) ** 2 for value, origin in zip(values, center, strict=True))
@@ -55,21 +54,21 @@ def _valid_sample(region, point):
 @pytest.mark.parametrize(
     ("region", "expected"),
     [
-        (PointRegion(((0,), (2,))), (1.0,)),
-        (IntervalRegion(0, 2), (1.0,)),
-        (BoxRegion(((0, 2), (-1, 1))), (1.0, 0.0)),
+        (FinitePointSet(((0,), (2,))), (1.0,)),
+        (Interval(0, 2), (1.0,)),
+        (Box(((0, 2), (-1, 1))), (1.0, 0.0)),
         (Simplex(((0, 0), (1, 0), (0, 1))), (1 / 3, 1 / 3)),
         (Ball((1, -2), 2), (1.0, -2.0)),
         (Sphere((1, -2, 3), 2), (1.0, -2.0, 3.0)),
-        (SphericalShellRegion((1, -2), (1, 3)), (1.0, -2.0)),
+        (SphericalShell((1, -2), (1, 3)), (1.0, -2.0)),
         (Ellipsoid((1, -2), sp.diag(4, 9)), (1.0, -2.0)),
         (EllipsoidBoundary((1, -2), sp.diag(4, 9)), (1.0, -2.0)),
         (Polygon(((0, 0), (2, 0), (2, 1), (0, 1))), (1.0, 0.5)),
         (
-            PolyhedronRegion((TetrahedronRegion(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1))),)),
+            TetrahedralComplex((Simplex(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1))),)),
             (0.25, 0.25, 0.25),
         ),
-        (ParallelogramRegion((0, 0), ((2, 0), (0, 4))), (1.0, 2.0)),
+        (Parallelogram((0, 0), ((2, 0), (0, 4))), (1.0, 2.0)),
         (Parallelepiped((0, 0, 0), ((2, 0, 0), (0, 4, 0), (0, 0, 6))), (1.0, 2.0, 3.0)),
         (Polytope(((0, 0), (2, 0), (2, 2), (0, 2))), (1.0, 1.0)),
     ],
@@ -111,7 +110,7 @@ def test_ball_radial_moment():
 
 
 def test_shell_radial_moment():
-    points = SphericalShellRegion((0, 0), (1, 3)).random_points(4000, seed=17)
+    points = SphericalShell((0, 0), (1, 3)).random_points(4000, seed=17)
     mean_radius_squared = sum(sum(value * value for value in _floats(p)) for p in points) / len(
         points
     )
@@ -134,6 +133,6 @@ def test_ellipse_surface_moment():
 
 
 def test_degenerate_parallelotope_declines():
-    region = ParallelogramRegion((0, 0), ((1, 0), (2, 0)))
+    region = Parallelogram((0, 0), ((1, 0), (2, 0)))
     with pytest.raises(NotImplementedError, match="independent spanning vectors"):
         region.random_point(seed=1)

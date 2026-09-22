@@ -918,18 +918,6 @@ def solve_quantified_modular_system(
     return result
 
 
-def solve_modular_system(
-    expr: sp.Expr, variables: Sequence[sp.Symbol], modulus: int, *, max_points: int = 10000
-) -> ModularSolveResult:
-    return solve_quant_free_mod_sys(expr, variables, modulus, max_points=max_points)
-
-
-def find_modular_instance(
-    expr: sp.Expr, variables: Sequence[sp.Symbol], modulus: int, *, max_points: int = 10000
-):
-    return find_quant_free_mod_inst(expr, variables, modulus, max_points=max_points)
-
-
 __all__ = [
     "ModularSolveResult",
     "norm_mod_form",
@@ -942,6 +930,4 @@ __all__ = [
     "find_quant_free_mod_inst",
     "eliminate_one_var",
     "solve_quantified_modular_system",
-    "solve_modular_system",
-    "find_modular_instance",
 ]

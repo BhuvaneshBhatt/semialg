@@ -2,7 +2,6 @@ import pytest
 import sympy as sp
 
 from semialg import Ball, Ellipsoid, Sphere
-from semialg.standard_regions import BallRegion, SphereRegion
 
 
 def test_ball_is_arbitrary_dimensional_closed_body():
@@ -73,9 +72,9 @@ def test_symbolic_ellipsoid_keeps_positive_definiteness_conditions():
 
 
 def test_canonical_bridges_from_existing_radial_regions():
-    old_ball = BallRegion((1, 2), 3)
-    old_sphere = SphereRegion((1, 2, 3), 4)
+    old_ball = Ball((1, 2), 3)
+    old_sphere = Sphere((1, 2, 3), 4)
     assert Ball.from_region(old_ball) == Ball((1, 2), 3)
     assert Sphere.from_region(old_sphere) == Sphere((1, 2, 3), 4)
     with pytest.raises(TypeError, match="sphere boundary"):
-        Ball.from_region(SphereRegion((0, 0), 1))
+        Ball.from_region(Sphere((0, 0), 1))

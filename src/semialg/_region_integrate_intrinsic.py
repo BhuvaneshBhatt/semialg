@@ -386,7 +386,7 @@ def _integrate_intrinsic_dimension(
         reduced = reduce_region_integral(integrand, condition, variables, bounds=bounds)
         if not isinstance(reduced, ReducedRegionIntegral):
             raise TypeError("region reduction returned an unexpected result type")
-        value, _, _ = _evaluate_reduced_integral(reduced, method="symbolic", precision=50)
+        value, _, _, _ = _evaluate_reduced_integral(reduced, method="symbolic", precision=50)
         return value, reduced.method
     if measure_dimension == 0:
         return _integrate_zero_dimensional(

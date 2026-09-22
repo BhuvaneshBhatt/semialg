@@ -2,7 +2,7 @@ import pytest
 import sympy as sp
 
 from semialg import (
-    affine_transform,
+    affine_image,
     argmin_set,
     centroid,
     coordinate_range,
@@ -102,8 +102,8 @@ def test_minkowski_support_function_identity_for_intervals():
 def test_affine_bijection_preserves_subset_relations():
     inner = sp.And(x >= 0, x <= 1)
     outer = sp.And(x >= -1, x <= 2)
-    tin = affine_transform(inner, [[3]], [4], [x])
-    tout = affine_transform(outer, [[3]], [4], [x])
+    tin = affine_image(inner, [[3]], [4], [x])
+    tout = affine_image(outer, [[3]], [4], [x])
     assert is_subset(tin, tout, [x])
 
 
@@ -156,6 +156,6 @@ def test_set_relation_algebra_identity_cases(left, right, subset, equal, disjoin
 
 def test_compact_interval_remains_compact_under_affine_bijection():
     region = sp.And(x >= -2, x <= 2)
-    transformed = affine_transform(region, [[-2]], [5], [x])
+    transformed = affine_image(region, [[-2]], [5], [x])
     assert is_compact(region, [x])
     assert is_compact(transformed, [x])

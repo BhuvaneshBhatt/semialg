@@ -210,6 +210,96 @@ def _finish_with_general_reducer(
     )
 
 
+def _try_structural_solve_decomposition(
+    state: _SolvePlanState,
+    *,
+    domain: str,
+    strategy: str | None,
+    sample_count: int,
+    depth: int,
+) -> _PlannedSolveOutcome | None:
+    """Solve explicit Boolean branches or independent incidence blocks exactly."""
+
+    work_expr, work_vars = state.work_expr, state.work_vars
+    steps, diagnostics, reconstruct = state.steps, state.diagnostics, state.reconstruct
+    if isinstance(work_expr, sp.Or) and len(work_expr.args) <= 8:
+        branch_outcomes = [
+            _run_auto_solve_plan(
+                branch,
+                work_vars,
+                domain=domain,
+                strategy=strategy,
+                sample_count=sample_count,
+                depth=depth + 1,
+            )
+            for branch in work_expr.args
+        ]
+        sat_branches = [branch for branch in branch_outcomes if branch.satisfiable]
+        reduced_union = (
+            sp.Or(*(branch.reduced for branch in sat_branches)) if sat_branches else sp.false
+        )
+        reduced_union = reconstruct(reduced_union) if sat_branches else sp.false
+        methods = tuple(branch.method for branch in branch_outcomes)
+        steps.append(
+            _planner_step(
+                "boolean_branch_decomposition",
+                True,
+                "small explicit disjunction solved branch-by-branch",
+                branch_count=len(branch_outcomes),
+                branch_methods=methods,
+            )
+        )
+        diagnostics["planner_steps"] = tuple(steps)
+        diagnostics["branch_plans"] = tuple(branch.diagnostics for branch in branch_outcomes)
+        method = (
+            "rational_univariate"
+            if sat_branches
+            and all(branch.method == "rational_univariate" for branch in sat_branches)
+            else "boolean_branch_decomposition[" + ",".join(methods) + "]"
+        )
+        return _PlannedSolveOutcome(reduced_union, bool(sat_branches), method, diagnostics)
+
+    components = decompose_conjunctive_formula(work_expr, work_vars)
+    if not components:
+        steps.append(_planner_step("incidence_decomposition", False, "system is not separable"))
+        return None
+    child_formulas: list[sp.Expr] = []
+    child_methods: list[str] = []
+    child_diags: list[dict[str, object]] = []
+    all_sat = True
+    for component_formula, component_vars in components:
+        child = _run_auto_solve_plan(
+            component_formula,
+            tuple(component_vars),
+            domain=domain,
+            strategy=strategy,
+            sample_count=sample_count,
+            depth=depth + 1,
+        )
+        child_formulas.append(child.reduced)
+        child_methods.append(child.method)
+        child_diags.append(child.diagnostics)
+        if not child.satisfiable:
+            all_sat = False
+            break
+    combined = (
+        reconstruct(sp.And(*child_formulas) if child_formulas else sp.true) if all_sat else sp.false
+    )
+    method = "incidence_decomposition[" + ",".join(child_methods) + "]"
+    steps.append(
+        _planner_step(
+            "incidence_decomposition",
+            True,
+            "independent variable blocks solved separately",
+            block_count=len(components),
+            child_methods=tuple(child_methods),
+        )
+    )
+    diagnostics["planner_steps"] = tuple(steps)
+    diagnostics["child_plans"] = tuple(child_diags)
+    return _PlannedSolveOutcome(combined, all_sat, method, diagnostics)
+
+
 def _run_auto_solve_plan(
     expr: sp.Expr,
     variables: tuple[sp.Symbol, ...],
@@ -278,91 +368,11 @@ def _run_auto_solve_plan(
                 diagnostics,
             )
 
-    # Small explicit disjunctions are solved branch-by-branch.  This mirrors
-    # Solve's DNF dispatch while avoiding an exponential normalization step: we
-    # only split an Or that is already present and cap the branch count.
-    if isinstance(work_expr, sp.Or) and len(work_expr.args) <= 8:
-        branch_outcomes: list[_PlannedSolveOutcome] = []
-        for branch in work_expr.args:
-            branch_outcomes.append(
-                _run_auto_solve_plan(
-                    branch,
-                    work_vars,
-                    domain=domain,
-                    strategy=strategy,
-                    sample_count=sample_count,
-                    depth=depth + 1,
-                )
-            )
-        sat_branches = [branch for branch in branch_outcomes if branch.satisfiable]
-        reduced_union = (
-            sp.Or(*(branch.reduced for branch in sat_branches)) if sat_branches else sp.false
-        )
-        reduced_union = reconstruct(reduced_union) if sat_branches else sp.false
-        methods = tuple(branch.method for branch in branch_outcomes)
-        steps.append(
-            _planner_step(
-                "boolean_branch_decomposition",
-                True,
-                "small explicit disjunction solved branch-by-branch",
-                branch_count=len(branch_outcomes),
-                branch_methods=methods,
-            )
-        )
-        diagnostics["planner_steps"] = tuple(steps)
-        diagnostics["branch_plans"] = tuple(branch.diagnostics for branch in branch_outcomes)
-        # Preserve the familiar finite-system method when every surviving
-        # branch was solved by RUR; otherwise expose the decomposition.
-        method = (
-            "rational_univariate"
-            if sat_branches
-            and all(branch.method == "rational_univariate" for branch in sat_branches)
-            else "boolean_branch_decomposition[" + ",".join(methods) + "]"
-        )
-        return _PlannedSolveOutcome(reduced_union, bool(sat_branches), method, diagnostics)
-
-    # Solve independent variable-incidence blocks separately.  This is the
-    # semialgebraic analogue of Solve's block-diagonal system decomposition.
-    components = decompose_conjunctive_formula(work_expr, work_vars)
-    if components:
-        child_formulas: list[sp.Expr] = []
-        child_methods: list[str] = []
-        child_diags: list[dict[str, object]] = []
-        all_sat = True
-        for component_formula, component_vars in components:
-            child = _run_auto_solve_plan(
-                component_formula,
-                tuple(component_vars),
-                domain=domain,
-                strategy=strategy,
-                sample_count=sample_count,
-                depth=depth + 1,
-            )
-            child_formulas.append(child.reduced)
-            child_methods.append(child.method)
-            child_diags.append(child.diagnostics)
-            if not child.satisfiable:
-                all_sat = False
-                break
-        if all_sat:
-            combined = sp.And(*child_formulas) if child_formulas else sp.true
-            combined = reconstruct(combined)
-        else:
-            combined = sp.false
-        method = "incidence_decomposition[" + ",".join(child_methods) + "]"
-        steps.append(
-            _planner_step(
-                "incidence_decomposition",
-                True,
-                "independent variable blocks solved separately",
-                block_count=len(components),
-                child_methods=tuple(child_methods),
-            )
-        )
-        diagnostics["planner_steps"] = tuple(steps)
-        diagnostics["child_plans"] = tuple(child_diags)
-        return _PlannedSolveOutcome(combined, all_sat, method, diagnostics)
-    steps.append(_planner_step("incidence_decomposition", False, "system is not separable"))
+    decomposed = _try_structural_solve_decomposition(
+        state, domain=domain, strategy=strategy, sample_count=sample_count, depth=depth
+    )
+    if decomposed is not None:
+        return decomposed
 
     # Preserve the finite-system solver contract: when the original system can
     # be zero dimensional, run RUR on the affine-presolved system before the
@@ -651,12 +661,12 @@ def _parameter_solution_data(
         conditions = solvability_conditions(param_formula, variables, parameters, domain=domain)
     decomposition = None
     try:
-        from ..parameter_stratification import parameterized_cylindrical_decomposition
+        from ..decomposition import parametric_cad
 
-        decomposition = parameterized_cylindrical_decomposition(
+        decomposition = parametric_cad(
             formula,
             variables,
-            parameters,
+            parameters=parameters,
             domain=domain,
             specialize_fibers=True,
         )

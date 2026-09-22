@@ -61,31 +61,27 @@ def section_value_bound(
         and variable in sp.sympify(poly).free_symbols
     ):
         coefficient_symbols = sp.sympify(poly).free_symbols - {variable}
+        local_root_index = int(
+            certificate.root_index if certificate is not None else cell.root_index
+        )
+        if certificate is None:
+            try:
+                base_subs = {
+                    base_variables[i]: sample_to_expr(cell.sample[i])
+                    for i in range(min(cell.level - 1, len(base_variables)))
+                }
+                specialized = sp.expand(poly.subs(base_subs))
+                exact_poly = sp.Poly(specialized, variable, extension=True)
+                roots = tuple(root for root in exact_poly.all_roots() if root.is_real is not False)
+                sample_value = sample_to_expr(cell.sample[cell.level - 1])
+                matches = [
+                    i for i, root in enumerate(roots) if certified_equal(root, sample_value) is True
+                ]
+                if len(matches) == 1:
+                    local_root_index = matches[0]
+            except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+                pass
         if coefficient_symbols:
-            local_root_index = int(
-                certificate.root_index if certificate is not None else cell.root_index
-            )
-            if certificate is None and base_variables:
-                try:
-                    base_subs = {
-                        base_variables[i]: sample_to_expr(cell.sample[i])
-                        for i in range(min(cell.level - 1, len(base_variables)))
-                    }
-                    specialized = sp.expand(poly.subs(base_subs))
-                    exact_poly = sp.Poly(specialized, variable, extension=True)
-                    roots = tuple(
-                        root for root in exact_poly.all_roots() if root.is_real is not False
-                    )
-                    sample_value = sample_to_expr(cell.sample[cell.level - 1])
-                    matches = [
-                        i
-                        for i, root in enumerate(roots)
-                        if certified_equal(root, sample_value) is True
-                    ]
-                    if len(matches) == 1:
-                        local_root_index = matches[0]
-                except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
-                    pass
             return AlgebraicRootFunction(
                 polynomial=sp.expand(poly),
                 fiber_variable=variable,
@@ -96,7 +92,7 @@ def section_value_bound(
                 stack_root_index=cell.root_index,
                 closed=closed,
             )
-        expr = fiber_root_expr(poly, variable, cell.root_index)
+        expr = fiber_root_expr(poly, variable, local_root_index)
         if expr is not None:
             return as_cad_bound(expr, closed=closed)
     point = cell.lower_bound or cell.upper_bound

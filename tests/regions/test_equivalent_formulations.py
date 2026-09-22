@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from semialg import BoxRegion, SemialgebraicRegion, as_semialgebraic_region
+from semialg import Box, SemialgebraicRegion, as_semialgebraic_region
 
 
 def test_equivalent_interval_formulations_have_same_region_answers():
@@ -19,7 +19,7 @@ def test_equivalent_interval_formulations_have_same_region_answers():
 
 def test_standard_box_and_formula_region_are_semantically_identical():
     x, y = sp.symbols("x y", real=True)
-    standard = as_semialgebraic_region(BoxRegion(((0, 1), (-2, 2))), (x, y))
+    standard = as_semialgebraic_region(Box(((0, 1), (-2, 2))), (x, y))
     formula = SemialgebraicRegion(sp.And(x >= 0, x <= 1, y >= -2, y <= 2), (x, y))
 
     assert standard.equals_region(formula)

@@ -30,7 +30,7 @@ def _gallery_stems() -> list[str]:
 def test_gallery_has_documented_executable_examples():
     stems = _gallery_stems()
 
-    assert len(stems) == 18
+    assert len(stems) == 19
     assert all((DOC_EXAMPLES / f"{stem}.md").exists() for stem in stems)
 
     index = (DOC_EXAMPLES / "index.md").read_text(encoding="utf-8")

@@ -52,9 +52,9 @@ def run_special_fams(req: IntegerSolveRequest):
 
 
 def _run_thue_family(req: IntegerSolveRequest):
-    from .thue import solve_binary_bounded
+    from .thue import solve_thue_family
 
-    return solve_binary_bounded(req.expr, req.variables, search_bound=req.search_bound or 200)
+    return solve_thue_family(req.expr, req.variables, search_bound=req.search_bound or 200)
 
 
 def _run_linear_divisibility(req: IntegerSolveRequest):

@@ -7,7 +7,7 @@ from semialg.parameters import SolvabilityConditionsResult
 from semialg.sampling import _dedupe_points
 from semialg.symbolic_regions import (
     RegionElement,
-    RSubset,
+    RegionSubset,
     SemialgebraicRegion,
     region_element_conditions,
     region_relation_conditions,
@@ -59,12 +59,12 @@ def test_region_relation_conditions_recurse_through_implies_and_equivalent():
     x = sp.Symbol("x", real=True)
     left = SemialgebraicRegion(x >= 0, (x,))
     right = SemialgebraicRegion(x >= -1, (x,))
-    subset = RSubset(left, right)
+    subset = RegionSubset(left, right)
 
     lowered = region_relation_conditions(sp.Implies(subset, x <= 5, evaluate=False))
-    assert not lowered.has(RSubset)
+    assert not lowered.has(RegionSubset)
     lowered_eqv = region_relation_conditions(sp.Equivalent(subset, subset, evaluate=False))
-    assert not lowered_eqv.has(RSubset)
+    assert not lowered_eqv.has(RegionSubset)
 
 
 def test_direct_region_membership_formula_is_structural_by_default():

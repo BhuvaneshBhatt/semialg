@@ -8,7 +8,7 @@
 | `algebraic` | exact algebraic numbers, signs, comparisons, ideals and certificates |
 | `regions`, `topology` | region operations, incidence, connectedness, triangulation and homology |
 | `optimization` and `_optimization_*` | extrema, ranges, KKT geometry and certificates |
-| `parameter_stratification`, `parameters` | parameter exceptional sets, certified strata and representative fibers |
+| `decomposition.parametric`, `parameters` | parametric CAD, exceptional-boundary provenance, certified strata, representative fibers, and parameter feasibility |
 | `region_integrate` and `_region_integrate_*` | ambient and intrinsic integration |
 | `function_graph` | exact graph encodings used by image/range operations |
 

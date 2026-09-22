@@ -53,7 +53,6 @@ from .system_roots import (
     SearchBox,
     SystemRootFallbackResult,
     orchestrate_trans_search,
-    solve_bounded_trans_sys,
 )
 
 __all__ = [
@@ -92,7 +91,6 @@ __all__ = [
     "SystemRootFallbackResult",
     "SearchBox",
     "orchestrate_trans_search",
-    "solve_bounded_trans_sys",
     "CleanupResult",
     "finite_points_form",
     "remove_redundant_disjunc",

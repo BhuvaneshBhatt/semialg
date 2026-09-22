@@ -30,6 +30,7 @@ nav:
       - Certificate model: concepts/certificate_model.md
       - Algorithm selection: concepts/algorithm_selection.md
       - Decision pipeline: concepts/decision_pipeline.md
+      - Computation flows: concepts/computation_flows.md
       - Assumptions and uncertainty: concepts/assumptions_and_uncertainty.md
       - CAD: concepts/cad.md
       - Gröbner variety CAD: concepts/groebner_variety_cad.md
@@ -85,13 +86,18 @@ nav:
   - References: references.md
   - Quality:
       - Decision contracts: quality/decision_contracts.md
-      - Certified zero/equality boundary: quality/certified_zero_equality_audit.md
+      - Certified zero/equality boundary: quality/certified_decisions.md
       - Robustness: quality/robustness.md
       - Reference regression suite: quality/reference_regression_suite.md
       - Region testing strategy: quality/region_testing.md
       - Region capability matrix: quality/region_capability_matrix.md
       - Certificate matrix: quality/certificate_matrix.md
       - Public API testing: quality/public_api_testing.md
+      - Root API adequacy audit: quality/root-api-adequacy.md
+      - Multidimensional root API testing: quality/root-api-multidimensional-testing.md
+      - Root API documentation adequacy: quality/root-api-documentation-adequacy.md
+      - Root API test adequacy: quality/root-api-test-adequacy.md
+      - No-backward-compatibility audit: quality/no-compatibility-audit.md
       - Coverage measurements: quality/coverage_measurements.md
   - Architecture:
       - Ownership: architecture/ownership.md
@@ -99,10 +105,14 @@ nav:
       - Design: architecture/design.md
       - Code quality: architecture/code_quality.md
       - API surface policy: architecture/api_surface.md
+      - API naming: architecture/api_naming.md
+      - Decision boundaries: architecture/decision_boundaries.md
+      - Quantifier elimination: architecture/quantifier_elimination.md
   - Reference:
       - Overview: reference/index.md
       - Everyday API: reference/everyday_api.md
       - Public API: reference/public_api.md
+      - Root API usage and parameter semantics: reference/root_api_usage.md
       - High-level defaults: reference/defaults_contract.md
       - Decision and QE: reference/decision_and_qe.md
       - CAD: reference/cad.md
@@ -118,3 +128,5 @@ nav:
       - Package metadata: reference/package_metadata.md
 
   - API namespaces: api_namespaces.md
+
+  - Internal ownership and limitations: quality/internal-ownership-and-limitations.md

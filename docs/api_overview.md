@@ -27,7 +27,7 @@ Use these when the primary question is whether a real formula is true, feasible,
 
 ## CAD and structured geometry
 
-- `cad`, `generic_cad`
+- `cad`, `parametric_cad`
 - `extract_structured_cad_cells`
 - `extract_vertical_bounds_from_cad_2d`
 - `build_cad_adjacency_graph`, `extract_cad_connectivity`
@@ -50,10 +50,10 @@ Use these when the primary question is whether a real formula is true, feasible,
 - Extrema sets: `argmin_set`, `argmax_set`, `extrema_set`
 - Level families: `level_set`, `sublevel_set`, `superlevel_set`
 
-- Region relations/operations: `is_subset`, `is_equal`, `is_disjoint`, `intersects`, `region_union`, `region_intersection`, `region_difference`, `region_complement`, `region_product`
+- Region relations/operations: `is_subset`, `is_equal`, `is_disjoint`, `intersects`, `is_interior_disjoint`, `region_union`, `region_intersection`, `region_difference`, `region_symmetric_difference`, `region_complement`, `region_product`
 - Topology: `region_closure`, `region_interior`, `region_boundary`, `is_path_connected`, `path_between`, `euler_characteristic`
 - Predicates and structure: `is_empty`, `is_bounded`, `is_compact`, `is_open`, `is_closed`, `is_subset`, `is_equal`, `is_disjoint`, `intersects`, `is_dense_in`, `contains_point`, `is_convex`, `is_connected`, `is_path_connected`, `is_full_dimensional`, `has_empty_interior`, plus the lower-level `region_*` operations
-- Maps and metric queries: `semialgebraic_projection`, `semialgebraic_image`, `semialgebraic_preimage`, `fiber`, `translate`, `scale`, `linear_image`, `affine_transform`, `minkowski_sum`, `squared_distance_range`, `distance_set`, `bounding_box`, `coordinate_range`, `distance_to_region`, `distance_between_regions`, `nearest_point`, `closest_points`, `diameter`, `support_function`, `width`
+- Maps and metric queries: `semialgebraic_projection`, `region_image`, `region_preimage`, `fiber`, `translate`, `scale`, `linear_image`, `affine_image`, `minkowski_sum`, `squared_distance_range`, `distance_set`, `bounding_box`, `coordinate_range`, `distance_to_region`, `distance_between_regions`, `nearest_point`, `closest_points`, `diameter`, `support_function`, `width`
 - Local algebraic geometry: `singular_locus`, `is_singular`, `is_smooth`, `tangent_space`, `tangent_dimension`, `tangent_cone`
 - Standard regions: intervals, boxes, balls, spheres, shells, simplices, polytopes, parametric and transformed regions
 
@@ -64,7 +64,7 @@ Use these when the primary question is whether a real formula is true, feasible,
 - `reduce_region_integral`, `integrate_over_region` (including parameter-stratified formula regions)
 - `semialgebraic_measure` (including parameter-stratified measure)
 - `integrate_over_standard_region`, `integrate_over_parametric_region`
-- `region_moment`, `region_centroid`, `region_covariance`, plus `centroid`, `moment_matrix`, `covariance_matrix`, `inertia_tensor`
+- `region_moment`, `centroid`, `covariance_matrix`, `moment_matrix`, `inertia_tensor`
 
 → [Integration and moments reference](reference/integration_and_moments.md)
 

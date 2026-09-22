@@ -9,7 +9,7 @@ import sympy as sp
 
 from semialg import (
     Ball,
-    BoxRegion,
+    Box,
     affine_relative_interior_formula,
     discretize_region_geometry,
     function_convex_partition,
@@ -110,7 +110,7 @@ def test_seeded_random_conveniences_are_reproducible_and_inside() -> None:
 
 def test_discretization_and_plotting_return_stable_public_objects() -> None:
     x, y = sp.symbols("x y", real=True)
-    box = BoxRegion(((0, 1), (0, 1)))
+    box = Box(((0, 1), (0, 1)))
     geometry = discretize_region_geometry(box, variables=(x, y))
     solution = SimpleNamespace(
         variables=(x, y),

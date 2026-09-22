@@ -6,6 +6,7 @@ from semialg import (
     HRepresentation,
     Point,
     Polytope,
+    SemialgebraicRegion,
     Simplex,
     affine_image,
     affine_preimage,
@@ -50,7 +51,33 @@ def test_singular_simplex_image_degrades_to_polytope():
     assert image.dimension() == 1
 
 
-def test_affine_transformations_reject_nonreal_data_at_boundary() -> None:
+def test_affine_image_dispatches_formula_and_symbolic_region():
+    x = sp.Symbol("x", real=True)
+    formula = sp.And(x >= 0, x <= 1)
+    image = affine_image(formula, ((2,),), (1,), (x,))
+    assert sp.simplify(sp.Equivalent(image, sp.And(x >= 1, x <= 3))) is sp.true
+
+    symbolic = SemialgebraicRegion(formula, (x,))
+    symbolic_image = affine_image(symbolic, ((2,),), (1,))
+    assert isinstance(symbolic_image, SemialgebraicRegion)
+    assert symbolic_image.variables == (x,)
+    assert sp.simplify(sp.Equivalent(symbolic_image.formula, sp.And(x >= 1, x <= 3))) is sp.true
+
+
+def test_affine_preimage_dispatches_formula_target():
+    x, u = sp.symbols("x u", real=True)
+    target = sp.And(u >= 0, u <= 2)
+    preimage = affine_preimage(
+        target,
+        ((2,),),
+        (0,),
+        variables=(x,),
+        target_variables=(u,),
+    )
+    assert sp.simplify(sp.Equivalent(preimage, sp.And(x >= 0, x <= 1))) is sp.true
+
+
+def test_affine_maps_reject_nonreal_data_at_boundary() -> None:
     import pytest
 
     from semialg import analyze_affine_map

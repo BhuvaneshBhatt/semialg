@@ -151,7 +151,7 @@ def test_range_endpoint_witness_on_positive_dimensional_locus():
     assert sp.simplify(point[y]) == 0
 
 
-def test_positive_dimensional_singular_locus_uses_range_image_and_recovers_witness():
+def test_singular_locus_range_recovers_witness():
     x, y = sp.symbols("x y", real=True)
     result = semialgebraic_minimize(
         y,

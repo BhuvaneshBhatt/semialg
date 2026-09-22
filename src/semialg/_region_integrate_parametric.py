@@ -153,7 +153,7 @@ def _stratified_region_integral(
     """
 
     from .conditional import ConditionalBranch, conditional_result
-    from .parameter_stratification import parameterized_cylindrical_decomposition
+    from .decomposition import parametric_cad
 
     if method == "numeric":
         raise NotImplementedError(
@@ -166,8 +166,8 @@ def _stratified_region_integral(
 
     from .region_integrate import _evaluate_reduced_integral, reduce_region_integral
 
-    decomposition = parameterized_cylindrical_decomposition(
-        condition, variables, parameters, specialize_fibers=False
+    decomposition = parametric_cad(
+        condition, variables, parameters=parameters, specialize_fibers=False
     )
     try:
         reduced = reduce_region_integral(
@@ -179,7 +179,7 @@ def _stratified_region_integral(
         )
         if not isinstance(reduced, ReducedRegionIntegral):
             raise TypeError("region reduction returned an unexpected result type")
-        value, exact, evaluation_method = _evaluate_reduced_integral(
+        value, exact, evaluation_method, _fallback_reason = _evaluate_reduced_integral(
             reduced, method="symbolic", precision=precision
         )
         if not exact:
@@ -193,6 +193,8 @@ def _stratified_region_integral(
     if decomposition.parameter_condition is not sp.false:
         if decomposition.strata:
             for stratum in decomposition.strata:
+                if not stratum.has_solution:
+                    continue
                 branches.append(
                     ConditionalBranch(
                         stratum.condition,
@@ -237,7 +239,7 @@ def _stratified_region_integral(
         branches,
         coverage_condition=sp.true,
         complete=True,
-        disjoint=bool(decomposition.parameter_space_solution is not None),
+        disjoint=True,
         certified=True,
         method="parametric_semialgebraic_region_integration",
         diagnostics={

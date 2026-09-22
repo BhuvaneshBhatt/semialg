@@ -6,7 +6,7 @@ from pathlib import Path
 
 import sympy as sp
 
-from .decomposition import cad_text, component_instances_text, generic_cad_text
+from .decomposition import cad_text, component_instances_text, parametric_cad_text
 from .solve.find_instance import find_instance_text
 from .solve.reduce import reduce_text
 from .solve.resolve import resolve_text
@@ -31,7 +31,6 @@ def run_reduce(args: argparse.Namespace) -> None:
         symbols=symbols or None,
         variable_order=tuple(symbols.values()) or None,
         domain=args.domain,
-        return_result=True,
         strategy=args.strategy,
     )
     if args.json:
@@ -66,7 +65,7 @@ def run_cad(args: argparse.Namespace) -> None:
         args.formula,
         variables=tuple(symbols.values()) or None,
         symbols=symbols or None,
-        output=args.output,
+        output="result",
         operation=args.operation,
         domain=args.domain,
         strategy=args.strategy,
@@ -87,18 +86,17 @@ def run_cad(args: argparse.Namespace) -> None:
         print(result.formula)
 
 
-def run_generic_cad(args: argparse.Namespace) -> None:
+def run_parametric_cad(args: argparse.Namespace) -> None:
     names = list(dict.fromkeys((args.parameters or []) + (args.variables or [])))
     symbols = _symbol_table(names)
-    result = generic_cad_text(
+    result = parametric_cad_text(
         args.formula,
         variables=[symbols[name] for name in (args.variables or [])],
         parameters=[symbols[name] for name in (args.parameters or [])],
         symbols=symbols or None,
-        output=args.output,
+        output="result",
         domain=args.domain,
         strategy=args.strategy,
-        return_result=True,
     )
     if args.json:
         payload = {
@@ -215,13 +213,12 @@ def main() -> None:
     cad_cmd.add_argument("--operation", choices=("closure", "interior", "boundary"))
     cad_cmd.set_defaults(func=run_cad)
 
-    generic_cmd = subparsers.add_parser("generic-cad", help="Compute a generic parameter-space CAD")
-    _add_common_formula_args(generic_cmd)
-    generic_cmd.add_argument("--parameters", nargs="*", default=[])
-    generic_cmd.add_argument(
-        "--output", choices=("formula", "cases", "cells", "function"), default="formula"
+    parametric_cmd = subparsers.add_parser(
+        "parametric-cad", help="Compute a generic parameter-space CAD"
     )
-    generic_cmd.set_defaults(func=run_generic_cad)
+    _add_common_formula_args(parametric_cmd)
+    parametric_cmd.add_argument("--parameters", nargs="*", default=[])
+    parametric_cmd.set_defaults(func=run_parametric_cad)
 
     components_cmd = subparsers.add_parser("components", help="Return one sample per component")
     _add_common_formula_args(components_cmd)

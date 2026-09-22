@@ -27,7 +27,7 @@ from ._standard_regions_base import _validate_vector
 
 
 @dataclass(frozen=True)
-class IntervalRegion(StandardRegion):
+class Interval(StandardRegion):
     lower: sp.Expr
     upper: sp.Expr
     lower_closed: bool = True
@@ -54,7 +54,7 @@ class IntervalRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class BoxRegion(StandardRegion):
+class Box(StandardRegion):
     bounds: tuple[tuple[sp.Expr, sp.Expr], ...]
 
     def __init__(self, bounds: Sequence[tuple[object, object]]):
@@ -71,7 +71,7 @@ class BoxRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class SimplexRegion(StandardRegion):
+class _SimplexBase(StandardRegion):
     vertices: tuple[_PointData, ...]
 
     def __init__(self, vertices: Sequence[Sequence[object]]):
@@ -89,7 +89,7 @@ class SimplexRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class PolygonRegion(StandardRegion):
+class _PolygonBase(StandardRegion):
     vertices: tuple[_PointData, ...]
 
     def __init__(self, vertices: Sequence[Sequence[object]]):
@@ -99,7 +99,7 @@ class PolygonRegion(StandardRegion):
         if len(verts) < 3:
             raise ValueError("a polygon requires at least three vertices")
         if len({len(v) for v in verts}) != 1 or len(verts[0]) != 2:
-            raise ValueError("PolygonRegion represents 2D polygons")
+            raise ValueError("_PolygonBase represents 2D polygons")
         _validate_simple_polygon(verts)
         _signed_polygon_orientation(verts)
         object.__setattr__(self, "vertices", verts)
@@ -110,8 +110,8 @@ class PolygonRegion(StandardRegion):
     def ambient_dimension(self) -> int:
         return 2
 
-    def triangulation(self) -> tuple[SimplexRegion, ...]:
-        return tuple(SimplexRegion(triangle) for triangle in _triangulate_polygon(self.vertices))
+    def triangulation(self) -> tuple[Simplex, ...]:
+        return tuple(Simplex(triangle) for triangle in _triangulate_polygon(self.vertices))
 
 
 @dataclass(frozen=True)
@@ -251,9 +251,9 @@ class Polytope(StandardRegion):
     def from_region(cls, region: StandardRegion) -> Polytope:
         """Convert a vertex-defined standard region to a canonical polytope."""
 
-        if isinstance(region, (SimplexRegion, PolygonRegion)):
+        if isinstance(region, (_SimplexBase, _PolygonBase)):
             return cls(region.vertices)
-        if isinstance(region, ParallelepipedRegion):
+        if isinstance(region, _ParallelepipedBase):
             vertices = []
             for mask in __import__("itertools").product((0, 1), repeat=len(region.vectors)):
                 point = tuple(
@@ -267,27 +267,30 @@ class Polytope(StandardRegion):
 
 
 @dataclass(frozen=True)
-class Simplex(SimplexRegion):
+class Simplex(_SimplexBase):
     """Canonical simplex defined by affinely independent vertices."""
 
     construction_conditions: tuple[sp.Expr, ...] = field(default=(), compare=False)
 
     def __init__(
         self,
-        vertices: Sequence[Sequence[object]] | SimplexRegion,
+        vertices: Sequence[Sequence[object]] | _SimplexBase,
         *,
         construction_conditions: Sequence[object] = (),
     ):
-        data = vertices.vertices if isinstance(vertices, SimplexRegion) else vertices
+        data = vertices.vertices if isinstance(vertices, _SimplexBase) else vertices
         super().__init__(data)
-        if len(self.vertices) != self.dimension() + 1:
-            raise ValueError("simplex vertices must be affinely independent")
         conditions = tuple(
             condition
             for condition in (sp.simplify(sp.sympify(item)) for item in construction_conditions)
             if condition is not sp.true
         )
         object.__setattr__(self, "construction_conditions", conditions)
+
+    def is_nondegenerate(self) -> bool:
+        """Return whether the vertices are affinely independent."""
+
+        return len(self.vertices) == self.dimension() + 1
 
     def affine_hull(self):
         anchor = self.vertices[0]
@@ -297,7 +300,7 @@ class Simplex(SimplexRegion):
         return AffineSpace(anchor, directions)
 
     @classmethod
-    def from_region(cls, region: SimplexRegion) -> Simplex:
+    def from_region(cls, region: _SimplexBase) -> Simplex:
         return cls(region)
 
 
@@ -435,18 +438,18 @@ def RegularPolygon(
 
 
 @dataclass(frozen=True)
-class Polygon(PolygonRegion):
+class Polygon(_PolygonBase):
     """Canonical simple polygon in two-dimensional affine coordinates."""
 
     construction_conditions: tuple[sp.Expr, ...] = field(default=(), compare=False)
 
     def __init__(
         self,
-        vertices: Sequence[Sequence[object]] | PolygonRegion,
+        vertices: Sequence[Sequence[object]] | _PolygonBase,
         *,
         construction_conditions: Sequence[object] = (),
     ):
-        data = vertices.vertices if isinstance(vertices, PolygonRegion) else vertices
+        data = vertices.vertices if isinstance(vertices, _PolygonBase) else vertices
         super().__init__(data)
         conditions = tuple(
             condition
@@ -459,13 +462,13 @@ class Polygon(PolygonRegion):
         return AffineSpace(self.vertices[0], ((1, 0), (0, 1)))
 
     @classmethod
-    def from_region(cls, region: PolygonRegion) -> Polygon:
+    def from_region(cls, region: _PolygonBase) -> Polygon:
         return cls(region)
 
 
 @dataclass(frozen=True)
-class ConicRegion(StandardRegion):
-    """Affine conic region with lineality directions and nonnegative rays."""
+class PolyhedralCone(StandardRegion):
+    """Affine polyhedral cone with lineality directions and nonnegative generating rays."""
 
     point: _PointData
     directions: tuple[_PointData, ...]
@@ -479,10 +482,10 @@ class ConicRegion(StandardRegion):
     ):
         anchor = _sympify_point(point)
         dirs = tuple(_sympify_point(v) for v in directions)
-        ray_data = tuple(_validate_vector(v, label="conic ray") for v in rays)
+        ray_data = tuple(_validate_vector(v, label="polyhedral-cone ray") for v in rays)
         if not anchor:
-            raise ValueError("a conic region requires a nonempty point")
-        _validate_same_dimension((anchor, *dirs, *ray_data), label="conic-region data")
+            raise ValueError("a polyhedral cone requires a nonempty point")
+        _validate_same_dimension((anchor, *dirs, *ray_data), label="polyhedral-cone data")
         basis = _independent_vectors(
             tuple(v for v in dirs if any(not _provably_zero(x) for x in v))
         )
@@ -501,26 +504,19 @@ class ConicRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class TetrahedronRegion(SimplexRegion):
-    def __init__(self, vertices: Sequence[Sequence[object]]):
-        if len(vertices) != 4:
-            raise ValueError("a tetrahedron requires four vertices")
-        super().__init__(vertices)
-        if self.ambient_dimension() != 3:
-            raise ValueError("a tetrahedron requires three-dimensional vertices")
+class TetrahedralComplex(StandardRegion):
+    """Finite union of three-dimensional tetrahedra."""
 
+    tetrahedra: tuple[Simplex, ...]
 
-@dataclass(frozen=True)
-class PolyhedronRegion(StandardRegion):
-    tetrahedra: tuple[TetrahedronRegion, ...]
-
-    def __init__(self, tetrahedra: Sequence[TetrahedronRegion | Sequence[Sequence[object]]]):
-        tets = tuple(
-            t if isinstance(t, TetrahedronRegion) else TetrahedronRegion(t) for t in tetrahedra
-        )
-        if any(tet.ambient_dimension() != 3 for tet in tets):
-            raise ValueError("PolyhedronRegion tetrahedra must be three-dimensional")
-        object.__setattr__(self, "tetrahedra", tets)
+    def __init__(self, tetrahedra: Sequence[Simplex | Sequence[Sequence[object]]]):
+        items = []
+        for tetrahedron in tetrahedra:
+            simplex = tetrahedron if isinstance(tetrahedron, Simplex) else Simplex(tetrahedron)
+            if len(simplex.vertices) != 4 or simplex.ambient_dimension() != 3:
+                raise ValueError("tetrahedra must have four three-dimensional vertices")
+            items.append(simplex)
+        object.__setattr__(self, "tetrahedra", tuple(items))
 
     def dimension(self) -> int:
         return max((tet.dimension() for tet in self.tetrahedra), default=-1)
@@ -530,7 +526,7 @@ class PolyhedronRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class ParallelogramRegion(StandardRegion):
+class Parallelogram(StandardRegion):
     origin: _PointData
     vectors: tuple[_PointData, _PointData]
 
@@ -552,7 +548,7 @@ class ParallelogramRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class ParallelepipedRegion(StandardRegion):
+class _ParallelepipedBase(StandardRegion):
     origin: _PointData
     vectors: tuple[_PointData, ...]
 
@@ -572,17 +568,17 @@ class ParallelepipedRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class Parallelepiped(ParallelepipedRegion):
+class Parallelepiped(_ParallelepipedBase):
     """Canonical affine image of a unit box."""
 
     def __init__(
         self,
-        origin: Sequence[object] | ParallelepipedRegion,
+        origin: Sequence[object] | _ParallelepipedBase,
         vectors: Sequence[Sequence[object]] | None = None,
     ):
-        if isinstance(origin, ParallelepipedRegion):
+        if isinstance(origin, _ParallelepipedBase):
             if vectors is not None:
-                raise TypeError("vectors must be omitted when converting a ParallelepipedRegion")
+                raise TypeError("vectors must be omitted when converting a _ParallelepipedBase")
             vectors = origin.vectors
             origin = origin.origin
         if vectors is None:
@@ -595,21 +591,21 @@ class Parallelepiped(ParallelepipedRegion):
         return AffineSpace(self.origin, self.vectors)
 
     @classmethod
-    def from_region(cls, region: ParallelepipedRegion) -> Parallelepiped:
+    def from_region(cls, region: _ParallelepipedBase) -> Parallelepiped:
         return cls(region)
 
 
 @dataclass(frozen=True)
-class PrismRegion(StandardRegion):
-    base: PolygonRegion | SimplexRegion
+class _PrismBase(StandardRegion):
+    base: _PolygonBase | _SimplexBase
     vector: _PointData
 
     def __init__(
         self,
-        base: PolygonRegion | SimplexRegion | Sequence[Sequence[object]],
+        base: _PolygonBase | _SimplexBase | Sequence[Sequence[object]],
         vector: Sequence[object],
     ):
-        base_obj = base if isinstance(base, (PolygonRegion, SimplexRegion)) else PolygonRegion(base)
+        base_obj = base if isinstance(base, (_PolygonBase, _SimplexBase)) else _PolygonBase(base)
         vec = _sympify_point(vector)
         if len(vec) != base_obj.ambient_dimension():
             raise ValueError("prism vector must match the base ambient dimension")
@@ -617,7 +613,7 @@ class PrismRegion(StandardRegion):
         object.__setattr__(self, "vector", vec)
 
     def dimension(self) -> int:
-        if isinstance(self.base, PolygonRegion):
+        if isinstance(self.base, _PolygonBase):
             points = self.base.vertices
         else:
             points = self.base.vertices
@@ -632,16 +628,16 @@ class PrismRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class PyramidRegion(StandardRegion):
-    base: PolygonRegion | SimplexRegion
+class _PyramidBase(StandardRegion):
+    base: _PolygonBase | _SimplexBase
     apex: _PointData
 
     def __init__(
         self,
-        base: PolygonRegion | SimplexRegion | Sequence[Sequence[object]],
+        base: _PolygonBase | _SimplexBase | Sequence[Sequence[object]],
         apex: Sequence[object],
     ):
-        base_obj = base if isinstance(base, (PolygonRegion, SimplexRegion)) else PolygonRegion(base)
+        base_obj = base if isinstance(base, (_PolygonBase, _SimplexBase)) else _PolygonBase(base)
         apex_pt = _sympify_point(apex)
         if len(apex_pt) != base_obj.ambient_dimension():
             raise ValueError("pyramid apex must match the base ambient dimension")
@@ -775,7 +771,7 @@ def Prism(
 ) -> Polytope:
     """Extrude a vertex-defined base by ``vector`` and return a polytope."""
 
-    if isinstance(base, (Polytope, SimplexRegion, PolygonRegion)):
+    if isinstance(base, (Polytope, _SimplexBase, _PolygonBase)):
         vertices = base.vertices
     else:
         vertices = tuple(_sympify_point(v) for v in base)
@@ -797,7 +793,7 @@ def Pyramid(
 ) -> Polytope:
     """Join a vertex-defined base to an apex and return a polytope."""
 
-    if isinstance(base, (Polytope, SimplexRegion, PolygonRegion)):
+    if isinstance(base, (Polytope, _SimplexBase, _PolygonBase)):
         vertices = base.vertices
     else:
         vertices = tuple(_sympify_point(v) for v in base)
@@ -813,16 +809,29 @@ def Pyramid(
     return result
 
 
-def Hexahedron(vertices: Sequence[Sequence[object]]) -> Polytope:
-    """Return an eight-vertex convex hexahedron as a canonical polytope."""
+@dataclass(frozen=True)
+class Hexahedron(Polytope):
+    """Convex three-dimensional polytope with eight vertices and six quadrilateral facets."""
 
-    if len(vertices) != 8:
-        raise ValueError("a hexahedron requires eight vertices")
-    polytope = Polytope(vertices)
-    if polytope.ambient_dimension() != 3 or polytope.dimension() != 3:
-        raise ValueError("a hexahedron requires full-dimensional three-dimensional vertices")
-    if len(polytope.vertices) != 8:
-        raise ValueError("a hexahedron requires eight distinct vertices")
-    if not polytope.validate_topology(vertex_count=8, facet_count=6, facet_sizes=(4,) * 6):
-        raise ValueError("vertices must form a convex hexahedron with six quadrilateral facets")
-    return polytope
+    def __init__(self, vertices: Sequence[Sequence[object]]):
+        if len(vertices) != 8:
+            raise ValueError("a hexahedron requires eight vertices")
+        super().__init__(vertices)
+        if self.ambient_dimension() != 3 or self.dimension() != 3:
+            raise ValueError("a hexahedron requires full-dimensional three-dimensional vertices")
+        if len(self.vertices) != 8:
+            raise ValueError("a hexahedron requires eight distinct vertices")
+        if not self.validate_topology(vertex_count=8, facet_count=6, facet_sizes=(4,) * 6):
+            raise ValueError("vertices must form a convex hexahedron with six quadrilateral facets")
+
+    @property
+    def face_vertex_indices(self) -> tuple[tuple[int, ...], ...]:
+        """Return the six quadrilateral facets as indices into :attr:`vertices`."""
+
+        incidence = self.incidence()
+        return tuple(tuple(facet.vertex_indices) for facet in incidence.facets)
+
+
+@dataclass(frozen=True)
+class Zonotope(_ParallelepipedBase):
+    """Minkowski sum of line segments with possibly dependent generators."""

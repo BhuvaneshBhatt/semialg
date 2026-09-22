@@ -134,7 +134,9 @@ When `return_stratified=True, eliminate_quantifiers=True` is requested, semialg 
 ### Exact polynomial nonnegativity backend
 
 Optimization clients can call `polynomial_nonnegative`, `find_negative_point`, or
-`zeng_negative_point` directly. This is a semialg public API rather
+`zeng_negative_point` directly. `polynomial_nonnegative` is the single public
+global-nonnegativity dispatcher: it returns a Boolean by default and a
+`CertifiedDecisionResult` with `return_result=True`. This is a semialg public API rather
 than an optimization-package-specific hook, so downstream packages such as
 symbolic optimization layers can reuse the same exact certificates and witnesses.
 The result object distinguishes a certified negative point, certified global

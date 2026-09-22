@@ -6,7 +6,7 @@ from importlib import import_module
 
 from ._public_api import PUBLIC_EXPORTS
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 # Derive ``__all__`` from the same registry used by ``__getattr__`` so public
 # star-import/documentation surfaces cannot silently drift out of sync.

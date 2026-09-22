@@ -178,9 +178,9 @@ as the Hausdorff metric factor. Singular strata of the requested dimension cause
 ## Explicit and parametric region validation
 
 Explicit standard-region objects validate geometric invariants at construction time.
-`IntervalRegion` and `BoxRegion` reject bounds whose order is exactly known to be
+`Interval` and `Box` reject bounds whose order is exactly known to be
 reversed. Radius-based regions reject provably negative radii, and
-`SphericalShellRegion` additionally requires the inner radius not to exceed the
+`SphericalShell` additionally requires the inner radius not to exceed the
 outer radius when that ordering is exactly decidable. Constructors for compound
 regions check ambient-coordinate dimensions before integration. Symbolic values
 whose sign or order cannot be established exactly are not rejected merely because
@@ -193,7 +193,7 @@ names against the symbols already present in the integrand and mapping, preservi
 SymPy symbol identity and assumptions.
 
 Boolean-region integration uses exact intersection semantics. In particular,
-`RegionDifference(A, B)` integrates over `A \ B`, equivalently subtracting the
+`BooleanRegion.difference(A, B)` integrates over `A \ B`, equivalently subtracting the
 integral over `A ∩ B`; it does not assume that `B` is contained in `A`.
 
 

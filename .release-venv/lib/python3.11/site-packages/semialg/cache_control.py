@@ -110,6 +110,12 @@ FUNCTOOLS_CACHE_REGISTRY = (
     FunctoolsCacheSpec("sampling.ellipsoid", "region_sampling", "_ellipsoid_data"),
     FunctoolsCacheSpec("sampling.polytope", "region_sampling", "_polytope_sampling_data"),
     FunctoolsCacheSpec("sampling.weighted_pieces", "region_sampling", "_weighted_region_pieces"),
+    FunctoolsCacheSpec(
+        "topology.closed_assignments", "topology.incidence", "_closed_assignment_items"
+    ),
+    FunctoolsCacheSpec(
+        "topology.fully_closed_assignments", "topology.incidence", "_fully_closed_assignment_items"
+    ),
 )
 
 REGISTERED_LRU_CACHES = frozenset(spec.source for spec in FUNCTOOLS_CACHE_REGISTRY)

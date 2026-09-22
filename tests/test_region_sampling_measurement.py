@@ -4,11 +4,11 @@ import sympy as sp
 
 from semialg import (
     Ball,
-    BoxRegion,
+    Box,
     Ellipsoid,
     Simplex,
     Sphere,
-    SphericalShellRegion,
+    SphericalShell,
     as_semialgebraic_region,
     random_point,
     random_points,
@@ -44,7 +44,7 @@ def test_sphere_random_point_uses_surface_measure():
 
 
 def test_shell_random_point_respects_shell():
-    shell = SphericalShellRegion((0, 0), (1, 3))
+    shell = SphericalShell((0, 0), (1, 3))
     for point in shell.random_points(8, seed=4):
         radius = math.hypot(*_float_tuple(point))
         assert 1 <= radius <= 3
@@ -73,7 +73,7 @@ def test_intrinsic_vs_ambient_measure_for_sphere():
 
 
 def test_box_measure_and_centroid():
-    box = BoxRegion(((0, 2), (-1, 3)))
+    box = Box(((0, 2), (-1, 3)))
     assert region_measure(box) == 8
     assert box.centroid() == (1, 1)
 
@@ -90,3 +90,15 @@ def test_public_random_points_function_for_canonical_region():
     points = random_points(Ball((0, 0), 1), count=3, seed=2)
     assert len(points) == 3
     assert random_point(Ball((0, 0), 1), seed=2) == points[0]
+
+
+def test_region_measure_default_depends_on_input_abstraction():
+    x, y = sp.symbols("x y", real=True)
+    segment = sp.And(sp.Eq(y, 0), x >= 0, x <= 1)
+
+    assert region_measure(segment, (x, y)) == 0
+    assert region_measure(segment, (x, y), measure_dimension="intrinsic") == 1
+
+    circle = Sphere((0, 0), 2)
+    assert region_measure(circle) == 4 * sp.pi
+    assert region_measure(circle, measure_dimension="ambient") == 0

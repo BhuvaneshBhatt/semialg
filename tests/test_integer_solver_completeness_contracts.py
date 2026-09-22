@@ -70,7 +70,7 @@ def test_integer_root_solver_failure_is_not_treated_as_unsat():
     assert result is None or not result.complete
 
 
-def test_sum_of_squares_detector_rejects_unconstrained_zero_coefficient_variable():
+def test_sos_detector_rejects_free_zero_coefficient_variable():
     from semialg.solve.integer.special_families import detect_sum_fam2
 
     x, y = sp.symbols("x y", integer=True)

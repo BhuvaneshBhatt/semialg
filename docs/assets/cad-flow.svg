@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="360" viewBox="0 0 920 360" role="img" aria-labelledby="title desc">
+<title id="title">CAD computation flow</title>
+<desc id="desc">CAD computation flow</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#555"/></marker></defs>
+<rect width="100%" height="100%" fill="white"/>
+<rect x="25" y="120" width="130" height="60" rx="10" fill="#f7f7f7" stroke="#333" stroke-width="1.5"/>
+<text x="90.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">Polynomial</text>
+<text x="90.0" y="159.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">formula</text>
+<rect x="195" y="120" width="140" height="60" rx="10" fill="#f7f7f7" stroke="#333" stroke-width="1.5"/>
+<text x="265.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">Normalize /</text>
+<text x="265.0" y="159.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">choose order</text>
+<rect x="380" y="40" width="140" height="60" rx="10" fill="#f7f7f7" stroke="#333" stroke-width="1.5"/>
+<text x="450.0" y="61.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">Projection</text>
+<text x="450.0" y="79.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">polynomials</text>
+<rect x="380" y="200" width="140" height="60" rx="10" fill="#f7f7f7" stroke="#333" stroke-width="1.5"/>
+<text x="450.0" y="221.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">Exact real-root</text>
+<text x="450.0" y="239.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">isolation</text>
+<rect x="565" y="120" width="140" height="60" rx="10" fill="#f7f7f7" stroke="#333" stroke-width="1.5"/>
+<text x="635.0" y="141.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">Lift into</text>
+<text x="635.0" y="159.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">cylindrical cells</text>
+<rect x="750" y="40" width="140" height="60" rx="10" fill="#f7f7f7" stroke="#333" stroke-width="1.5"/>
+<text x="820.0" y="61.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">Evaluate</text>
+<text x="820.0" y="79.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">formula on cells</text>
+<rect x="750" y="200" width="140" height="60" rx="10" fill="#f7f7f7" stroke="#333" stroke-width="1.5"/>
+<text x="820.0" y="221.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">Cell structure</text>
+<text x="820.0" y="239.0" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="14" fill="#111">+ samples</text>
+<line x1="155" y1="150" x2="195" y2="150" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="335" y1="145" x2="380" y2="70" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="450" y1="100" x2="450" y2="200" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="520" y1="230" x2="590" y2="180" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="705" y1="145" x2="750" y2="70" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="705" y1="155" x2="750" y2="230" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+</svg>

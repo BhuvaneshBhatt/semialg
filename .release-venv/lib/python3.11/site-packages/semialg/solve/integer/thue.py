@@ -181,10 +181,5 @@ __all__ = [
     "cont_frac_convs",
     "lll_style_lin_form_bound",
     "solve_thue_family",
-    "solve_binary_bounded",
     "solve_binary_lll",
 ]
-
-
-def solve_binary_bounded(expr: sp.Expr, variables: Sequence[sp.Symbol], *, search_bound: int = 200):
-    return solve_thue_family(expr, variables, search_bound=search_bound)

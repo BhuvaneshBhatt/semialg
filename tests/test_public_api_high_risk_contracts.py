@@ -5,27 +5,28 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg import (
+    BooleanRegion,
     Cube,
     Dodecahedron,
     Icosahedron,
-    IntervalRegion,
+    Interval,
     Octahedron,
     Point,
     Prism,
     Pyramid,
-    RegionDifference,
-    RegionIntersection,
-    RegionSymmetricDifference,
     RegularPolygon,
     SemialgebraicRegion,
     Tetrahedron,
     argmax_set,
     betti_number,
     bounding_box,
+    centroid,
     closest_points,
+    closure_of_interior,
     connected_component_count,
     connected_component_samples,
     contains_point,
+    covariance_matrix,
     critical_values,
     distance_between_regions,
     distance_set,
@@ -33,6 +34,7 @@ from semialg import (
     euler_characteristic,
     extrema_set,
     has_empty_interior,
+    interior_of_closure,
     is_bounded,
     is_dense_in,
     is_full_dimensional,
@@ -46,15 +48,11 @@ from semialg import (
     local_dimension,
     nearest_point,
     region_boundary_result,
-    region_centroid,
-    region_closure_interior,
-    region_covariance,
-    region_interior_closure,
     region_measure,
+    region_preimage,
     region_product,
     region_regular_locus,
     region_variables,
-    semialgebraic_preimage,
     squared_distance_range,
     sublevel_set,
     superlevel_set,
@@ -92,12 +90,12 @@ def test_named_solid_factories_preserve_dimension_and_requested_scale() -> None:
 
 
 def test_polygon_and_boolean_region_factories_preserve_membership() -> None:
-    left = IntervalRegion(0, 2)
-    right = IntervalRegion(1, 3)
+    left = Interval(0, 2)
+    right = Interval(1, 3)
     polygon = RegularPolygon(4, radius=1, rotation=sp.pi / 4)
-    difference = RegionDifference(left, right)
-    intersection = RegionIntersection(left, right)
-    symmetric = RegionSymmetricDifference(left, right)
+    difference = BooleanRegion.difference(left, right)
+    intersection = BooleanRegion.intersection(left, right)
+    symmetric = BooleanRegion.symmetric_difference(left, right)
 
     assert polygon.dimension() == 2 and len(polygon.vertices) == 4
     assert difference.contains((sp.Rational(1, 2),))
@@ -162,7 +160,7 @@ def test_linear_image_and_preimage_satisfy_membership_equivalence() -> None:
     source = (x >= 0) & (x <= 1)
 
     image = linear_image(source, sp.Matrix([[2]]), (x,))
-    preimage = semialgebraic_preimage((2 * x,), image, (x,), target_variables=(x,))
+    preimage = region_preimage(image, (2 * x,), (x,), target_variables=(x,))
     assert equivalent(image, (x >= 0) & (x <= 2), (x,))
     assert equivalent(preimage, source, (x,))
 
@@ -175,8 +173,8 @@ def test_region_regularization_and_variable_contracts() -> None:
     assert is_regular_closed_region(closed)
     assert is_regular_open_region(opened)
     assert region_variables(closed) == (x,)
-    assert region_closure_interior(closed).equals_region(opened)
-    assert region_interior_closure(opened).equals_region(closed)
+    assert interior_of_closure(closed).equals_region(opened)
+    assert closure_of_interior(opened).equals_region(closed)
     assert equivalent(region_regular_locus(closed), closed.formula, (x,))
     assert local_dimension(closed, {x: sp.Rational(1, 2)}) == 1
     boundary = region_boundary_result(closed)
@@ -186,12 +184,12 @@ def test_region_regularization_and_variable_contracts() -> None:
 def test_product_measure_centroid_and_covariance_are_consistent() -> None:
     x = sp.Symbol("x", real=True)
     interval = (x >= 0) & (x <= 1)
-    product = region_product(IntervalRegion(0, 1), Point((2,)))
+    product = region_product(Interval(0, 1), Point((2,)))
 
     assert product.dimension() == 1
     assert region_measure(interval, (x,)) == 1
-    assert region_centroid(interval, (x,)) == {x: sp.Rational(1, 2)}
-    assert region_covariance(interval, (x,)) == sp.Matrix([[sp.Rational(1, 12)]])
+    assert centroid(interval, (x,)) == {x: sp.Rational(1, 2)}
+    assert covariance_matrix(interval, (x,)) == sp.Matrix([[sp.Rational(1, 12)]])
 
 
 def test_component_and_topology_apis_agree_on_two_intervals() -> None:
@@ -223,7 +221,7 @@ def test_dimension_strata_triangulation_and_hardt_results_are_certified() -> Non
 
 def test_parametric_cover_and_map_degree_certify_simple_maps() -> None:
     u = sp.Symbol("u", real=True)
-    cover = bounded_parametric_cover(IntervalRegion(0, 1))
+    cover = bounded_parametric_cover(Interval(0, 1))
     degree = parametric_map_degree((u**2,), (u,))
 
     assert cover.certified_dimension() == 1

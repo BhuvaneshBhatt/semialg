@@ -5,7 +5,7 @@ Use these APIs when you want to ask set-theoretic questions about regions or con
 ## Relations
 
 ```python
-from semialg import Ball, IntervalRegion, is_disjoint, is_equal, is_subset
+from semialg import Ball, Interval, is_disjoint, is_equal, is_subset
 
 small = Ball((0, 0), 1)
 large = Ball((0, 0), 3)
@@ -13,10 +13,10 @@ large = Ball((0, 0), 3)
 is_subset(small, large)
 # True
 
-is_disjoint(IntervalRegion(0, 1), IntervalRegion(2, 3))
+is_disjoint(Interval(0, 1), Interval(2, 3))
 # True
 
-is_equal(IntervalRegion(0, 1), IntervalRegion(0, 1))
+is_equal(Interval(0, 1), Interval(0, 1))
 # True
 ```
 
@@ -36,19 +36,19 @@ The structural layer currently recognizes common exact cases for points, interva
 from semialg import region_union, region_intersection, region_difference, region_complement
 ```
 
-`region_intersection` preserves canonical structure when a direct representation is known. For example, intersecting two closed intervals yields an `IntervalRegion`, and intersecting compatible boxes yields a `BoxRegion`. General intersections use the unified symbolic-region representation.
+`region_intersection` preserves canonical structure when a direct representation is known. For example, intersecting two closed intervals yields an `Interval`, and intersecting compatible boxes yields a `Box`. General intersections use the unified symbolic-region representation.
 
 `region_union`, `region_difference`, and `region_complement` construct exact Boolean semialgebraic regions.
 
 ## Cartesian products
 
-`region_product` forms Cartesian products. Closed intervals and boxes retain a canonical `BoxRegion`; products of individual points retain a canonical `Point`.
+`region_product` forms Cartesian products. Closed intervals and boxes retain a canonical `Box`; products of individual points retain a canonical `Point`.
 
 ```python
-from semialg import IntervalRegion, region_product
+from semialg import Interval, region_product
 
-rectangle = region_product(IntervalRegion(0, 1), IntervalRegion(2, 4))
-# BoxRegion(bounds=((0, 1), (2, 4)))
+rectangle = region_product(Interval(0, 1), Interval(2, 4))
+# Box(bounds=((0, 1), (2, 4)))
 ```
 
 For regions without a direct canonical product representation, semialg creates a `SemialgebraicRegion` in concatenated coordinates.
@@ -59,10 +59,10 @@ For regions without a direct canonical product representation, semialg creates a
 
 ```python
 import sympy as sp
-from semialg import IntervalRegion, region_preimage
+from semialg import Interval, region_preimage
 
 x = sp.symbols("x", real=True)
-preimage = region_preimage(IntervalRegion(0, 1), (x**2,), (x,))
+preimage = region_preimage(Interval(0, 1), (x**2,), (x,))
 
 preimage.contains((-1,))
 # True
@@ -107,7 +107,7 @@ These topology operations use exact CAD semantics for composite formulas. `regio
 
 ## Symbolic relation conditions
 
-For parameter-dependent statements, `RegionElement`, `RSubset`, `RDisjoint`, and `REqual` represent symbolic assertions. `region_element_conditions()` and `region_relation_conditions()` expose their formulas; use `eliminate=True` when a quantifier-free condition is required.
+For parameter-dependent statements, `RegionElement`, `RegionSubset`, `RegionDisjoint`, and `RegionEqual` represent symbolic assertions. `region_element_conditions()` and `region_relation_conditions()` expose their formulas; use `eliminate=True` when a quantifier-free condition is required.
 
 ## Structural convex intersections
 

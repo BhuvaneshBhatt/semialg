@@ -29,7 +29,7 @@ def test_quantifier_application_and_resolution_agree_on_closed_sentences() -> No
     assert resolve_formula(parse_quant_form_text("exists x. x^2 = -1")) is False
 
 
-def test_negative_point_apis_verify_witnesses_and_reject_nonnegative_polynomials() -> None:
+def test_negative_point_apis_verify_witnesses() -> None:
     x, y = sp.symbols("x y", real=True)
     polynomial = x**2 + y**2 - 1
 

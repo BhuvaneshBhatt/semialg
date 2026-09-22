@@ -23,7 +23,7 @@ import sympy as sp
 
 from .equality_ideal import EqualityIdealContext
 from .groebner_utils import compute_groebner_basis
-from .ideal_ops import canonical_qq_basis_uncached, qq_ideal_equal_uncached
+from .ideal_ops import canonical_qq_basis_uncached
 
 
 def _qq_generators(
@@ -35,18 +35,6 @@ def _qq_generators(
     except (sp.PolynomialError, sp.polys.polyerrors.CoercionFailed) as exc:
         raise ValueError("GTZ localization currently requires QQ polynomial generators") from exc
     return tuple(p.as_expr() for p in polys if not p.is_zero)
-
-
-def _canonical_basis(
-    generators: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
-) -> tuple[sp.Expr, ...]:
-    return canonical_qq_basis_uncached(generators, variables)
-
-
-def _ideal_equal(
-    left: Sequence[sp.Expr], right: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
-) -> bool:
-    return qq_ideal_equal_uncached(left, right, variables)
 
 
 def _leading_supports(context: EqualityIdealContext) -> tuple[frozenset[int], ...]:
@@ -284,7 +272,7 @@ def _saturate_exact(
     eliminated = tuple(
         sp.expand(p.as_expr()) for p in gb.polys if u not in p.as_expr().free_symbols
     )
-    return _canonical_basis(eliminated, vars_)
+    return canonical_qq_basis_uncached(eliminated, vars_)
 
 
 @dataclass(frozen=True)
@@ -332,7 +320,7 @@ def contract_localized_ideal(
         canonical_localized, independent, dependent
     )
     if denominator == 1:
-        contracted = _canonical_basis(cleared, variables)
+        contracted = canonical_qq_basis_uncached(cleared, variables)
     else:
         contracted = _saturate_exact(cleared, denominator, variables)
     certificate = LocalizationContractionCertificate(
@@ -391,7 +379,7 @@ def verify_localization_contraction_certificate(
             except (sp.PolynomialError, sp.polys.polyerrors.CoercionFailed):
                 return False
         expected = (
-            _canonical_basis(cleared, certificate.variables)
+            canonical_qq_basis_uncached(cleared, certificate.variables)
             if denominator == 1
             else _saturate_exact(cleared, denominator, certificate.variables)
         )
@@ -430,7 +418,7 @@ def _ideal_intersection(
     eliminated = tuple(
         sp.expand(p.as_expr()) for p in gb.polys if t not in p.as_expr().free_symbols
     )
-    return _canonical_basis(eliminated, vars_)
+    return canonical_qq_basis_uncached(eliminated, vars_)
 
 
 def _ideal_intersection_with_principal(
@@ -450,7 +438,7 @@ def _ideal_intersection_with_principal(
     eliminated = tuple(
         sp.expand(p.as_expr()) for p in gb.polys if t not in p.as_expr().free_symbols
     )
-    return _canonical_basis(eliminated, vars_)
+    return canonical_qq_basis_uncached(eliminated, vars_)
 
 
 def _colon_once(
@@ -468,7 +456,7 @@ def _colon_once(
         if not remainder.is_zero:
             raise ArithmeticError("principal intersection generator was not divisible by h")
         quotients.append(quotient.as_expr())
-    return _canonical_basis(quotients, vars_)
+    return canonical_qq_basis_uncached(quotients, vars_)
 
 
 @dataclass(frozen=True)
@@ -506,7 +494,7 @@ def saturation_stabilization(
     h = sp.Poly(sp.expand(splitter), *vars_, domain=sp.QQ).as_expr()
     if h == 0:
         raise ValueError("saturation splitter must be nonzero")
-    current = _canonical_basis(gens, vars_)
+    current = canonical_qq_basis_uncached(gens, vars_)
     chain = [current]
     exponent = 0
     while True:
@@ -523,9 +511,9 @@ def saturation_stabilization(
     if stable != rabinowitsch:
         raise ArithmeticError("colon-chain stabilization disagrees with exact saturation")
     power = sp.expand(h**stable_exponent)
-    companion = _canonical_basis((*gens, power), vars_)
+    companion = canonical_qq_basis_uncached((*gens, power), vars_)
     reconstructed = _ideal_intersection(stable, companion, vars_)
-    source_basis = _canonical_basis(gens, vars_)
+    source_basis = canonical_qq_basis_uncached(gens, vars_)
     if reconstructed != source_basis:
         raise ArithmeticError("GTZ saturation split failed exact source reconstruction")
     certificate = SaturationStabilizationCertificate(
@@ -547,7 +535,7 @@ def verify_saturation_stabilization_certificate(
         h = sp.Poly(certificate.splitter, *vars_, domain=sp.QQ).as_expr()
         if h == 0 or certificate.exponent < 0:
             return False
-        current = _canonical_basis(gens, vars_)
+        current = canonical_qq_basis_uncached(gens, vars_)
         replay = [current]
         for _ in range(certificate.exponent + 1):
             nxt = _colon_once(current, h, vars_)
@@ -563,11 +551,11 @@ def verify_saturation_stabilization_certificate(
             return False
         if stable != _saturate_exact(gens, h, vars_):
             return False
-        companion = _canonical_basis((*gens, sp.expand(h**certificate.exponent)), vars_)
+        companion = canonical_qq_basis_uncached((*gens, sp.expand(h**certificate.exponent)), vars_)
         if companion != tuple(certificate.companion_generators):
             return False
         reconstructed = _ideal_intersection(stable, companion, vars_)
-        return reconstructed == _canonical_basis(gens, vars_)
+        return reconstructed == canonical_qq_basis_uncached(gens, vars_)
     except (
         ArithmeticError,
         ValueError,

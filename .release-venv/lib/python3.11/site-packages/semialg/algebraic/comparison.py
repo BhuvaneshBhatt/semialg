@@ -649,10 +649,6 @@ def _fiber_common_gcd_context(
         if cached_certificate.gcd_poly is None:
             return None
         return materialize(cached_certificate.gcd_poly)
-    # Backward-compatible process-local cache entry from an older call path.
-    if isinstance(cached_certificate, sp.Poly):
-        relationship.common_gcd = cached_certificate
-        return materialize(cached_certificate)
     fiber = left_context.fiber_variable
     parents = left_context.variables[:-1]
 

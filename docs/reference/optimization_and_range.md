@@ -1,7 +1,7 @@
 # Optimization and range reference
 ## Family contract
 
-**computer algebra systeml return.** Optimization returns exact infimum/supremum information, attainment and witnesses where available; range APIs characterize all attainable scalar values.
+**Mathematical return.** Optimization returns exact infimum/supremum information, attainment and witnesses where available; range APIs characterize all attainable scalar values.
 
 **Exactness and certification.** Exact candidate generation is distinct from global certification. Structured results expose certification/attainment information where relevant.
 
@@ -32,15 +32,33 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `search_sos_certificate` | function | Ask optional `symbopt` for an SOS candidate and verify it exactly. |
 | `verify_psd_exact` | function | Verify exact PSD using symmetric LDL/congruence elimination. |
 | `verify_sos_certificate` | function | Verify an exact Gram identity and positive-semidefinite Gram matrix. |
-| `polynomial_nonnegative_decision` | function | Dispatch SOS → Zeng/ARS → complete semialgebraic decision and retain the attempt trace. |
 | `PolynomialNegativityResult` | class | Certified negative-point/nonnegativity/incomplete result for a polynomial. |
 | `find_negative_point` | function | Return an exact point where a polynomial is negative, or certified nonnegativity. |
-| `polynomial_nonnegative` | function | Return a certified global polynomial nonnegativity decision through the portfolio dispatcher. |
+| `polynomial_nonnegative` | function | Return a certified global polynomial nonnegativity Boolean, or the SOS → Zeng/ARS → CAD portfolio trace with `return_result=True`. |
 | `zeng_negative_point` | function | Specialized exact critical-value decision backend for polynomial negativity. |
 | `semialg.parameters.root_count_conditions` | function | Return parameter conditions grouped by distinct real-root count. |
 | `semialgebraic_maximize` | function | Return an exact maximum/supremum for a polynomial semialgebraic problem. |
 | `semialgebraic_minimize` | function | Return an exact minimum/infimum for a polynomial semialgebraic problem. |
 | `solvability_conditions` | function | Return parameter conditions for real solvability of a constraint system. |
+
+
+## `polynomial_nonnegative`
+
+```text
+polynomial_nonnegative(
+    polynomial, variables, *, strategy="auto", sos_backend="auto",
+    return_result=False, random_lines=8, seed=1234
+)
+```
+
+This is the single public entry point for certified global polynomial
+nonnegativity. By default it returns the mathematical Boolean. Set
+`return_result=True` to receive `CertifiedDecisionResult`, which records the
+selected backend, ordered attempts, witness, and certificate. `strategy` may be
+`"auto"`, `"sos"`, `"zeng"`, `"ars"`, or `"cad"`. Automatic mode tries an
+exactly verified SOS certificate, then the Zeng/ARS specialized route, then
+complete CAD. `random_lines` and `seed` tune the Zeng witness-search stage,
+including when that stage is reached through `strategy="auto"`.
 
 ## `semialgebraic_minimize`
 

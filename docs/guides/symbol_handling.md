@@ -1,6 +1,6 @@
 # Symbol handling
 
-SymPy symbols are identified by more than their printed names. Assumptions are part of their identity.
+SymPy symbols are identified by more than their printed names.  Assumptions are part of their identity.
 
 ```python
 import sympy as sp
@@ -54,7 +54,7 @@ Shared bound normalization rejects a bound whose key does not resolve to a decla
 
 ## Do not compare formulas by printed text
 
-Two expressions can print the same while containing assumption-distinct symbols. semialg's decision APIs use symbolic identity and exact decision procedures rather than `str()`/`sstr()` equality as proof of equivalence.
+Two expresssions can print the same while containing assumption-distinct symbols. semialg's decision APIs use symbolic identity and exact decision procedures rather than `str()`/`sstr()` equality as proof of equivalence.
 
 ## Recommended practice
 

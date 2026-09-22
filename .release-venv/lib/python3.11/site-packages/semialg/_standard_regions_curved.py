@@ -24,7 +24,7 @@ from ._standard_regions_polyhedral import *
 
 
 @dataclass(frozen=True)
-class BallRegion(StandardRegion):
+class _BallBase(StandardRegion):
     center: _PointData
     radius: sp.Expr
 
@@ -50,7 +50,7 @@ class BallRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class SphereRegion(BallRegion):
+class _SphereBase(_BallBase):
     def __init__(self, center: Sequence[object], radius: object = 1, *, assumptions=None):
         super().__init__(center, radius, assumptions=assumptions)
 
@@ -61,7 +61,7 @@ class SphereRegion(BallRegion):
 
 
 @dataclass(frozen=True)
-class Ball(BallRegion):
+class Ball(_BallBase):
     """Canonical closed ball in an arbitrary-dimensional Euclidean space."""
 
     def __init__(self, center: Sequence[object], radius: object = 1, *, assumptions=None):
@@ -79,16 +79,16 @@ class Ball(BallRegion):
         return sp.ImmutableMatrix.eye(self.ambient_dimension()) * self.radius**2
 
     @classmethod
-    def from_region(cls, region: BallRegion) -> Ball:
+    def from_region(cls, region: _BallBase) -> Ball:
         """Convert an existing filled ball region to the canonical type."""
 
-        if isinstance(region, SphereRegion):
+        if isinstance(region, _SphereBase):
             raise TypeError("a sphere boundary cannot be converted to Ball")
         return cls(region.center, region.radius)
 
 
 @dataclass(frozen=True)
-class Sphere(SphereRegion):
+class Sphere(_SphereBase):
     """Canonical sphere boundary in an arbitrary-dimensional Euclidean space."""
 
     def __init__(self, center: Sequence[object], radius: object = 1, *, assumptions=None):
@@ -106,7 +106,7 @@ class Sphere(SphereRegion):
         return sp.ImmutableMatrix.eye(self.ambient_dimension()) * self.radius**2
 
     @classmethod
-    def from_region(cls, region: SphereRegion) -> Sphere:
+    def from_region(cls, region: _SphereBase) -> Sphere:
         """Convert an existing sphere region to the canonical type."""
 
         return cls(region.center, region.radius)
@@ -119,7 +119,7 @@ class Sphere(SphereRegion):
         return cls(center, radius)
 
     @classmethod
-    def circumscribed(cls, simplex: Simplex | SimplexRegion) -> Sphere:
+    def circumscribed(cls, simplex: Simplex | _SimplexBase) -> Sphere:
         """Return the circumsphere of a full-dimensional simplex."""
 
         region = simplex if isinstance(simplex, Simplex) else Simplex(simplex)
@@ -128,7 +128,7 @@ class Sphere(SphereRegion):
         return cls.through(*region.vertices)
 
     @classmethod
-    def inscribed(cls, simplex: Simplex | SimplexRegion) -> Sphere:
+    def inscribed(cls, simplex: Simplex | _SimplexBase) -> Sphere:
         """Return the insphere of a full-dimensional simplex."""
 
         region = simplex if isinstance(simplex, Simplex) else Simplex(simplex)
@@ -267,7 +267,7 @@ class EllipsoidBoundary(StandardRegion):
 
 
 @dataclass(frozen=True)
-class SphericalShellRegion(StandardRegion):
+class SphericalShell(StandardRegion):
     center: _PointData
     inner_radius: sp.Expr
     outer_radius: sp.Expr
@@ -303,7 +303,7 @@ class SphericalShellRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class CylinderRegion(StandardRegion):
+class _CylinderBase(StandardRegion):
     start: _PointData
     end: _PointData
     radius: sp.Expr = sp.Integer(1)
@@ -337,13 +337,13 @@ class CylinderRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class ConeRegion(CylinderRegion):
+class _ConeBase(_CylinderBase):
     def __init__(self, start: Sequence[object], end: Sequence[object], radius: object = 1):
         super().__init__(start, end, radius)
 
 
 @dataclass(frozen=True)
-class Cylinder(CylinderRegion):
+class Cylinder(_CylinderBase):
     """Canonical flat-ended right circular cylinder.
 
     ``start`` and ``end`` are the centers of the two end caps.  The axis must
@@ -383,16 +383,16 @@ class Cylinder(CylinderRegion):
         return AffineSpace(self.start, _identity_directions(self.ambient_dimension()))
 
     @classmethod
-    def from_region(cls, region: CylinderRegion) -> Cylinder:
+    def from_region(cls, region: _CylinderBase) -> Cylinder:
         """Convert an existing nondegenerate cylinder region."""
 
-        if isinstance(region, ConeRegion):
-            raise TypeError("cannot convert ConeRegion to Cylinder")
+        if isinstance(region, _ConeBase):
+            raise TypeError("cannot convert _ConeBase to Cylinder")
         return cls(region.start, region.end, region.radius)
 
 
 @dataclass(frozen=True)
-class Cone(ConeRegion):
+class Cone(_ConeBase):
     """Canonical right circular cone with base at ``start`` and apex at ``end``."""
 
     construction_conditions: tuple[sp.Expr, ...] = field(default=(), compare=False)
@@ -427,7 +427,7 @@ class Cone(ConeRegion):
         return AffineSpace(self.start, _identity_directions(self.ambient_dimension()))
 
     @classmethod
-    def from_region(cls, region: ConeRegion) -> Cone:
+    def from_region(cls, region: _ConeBase) -> Cone:
         """Convert an existing nondegenerate cone region."""
 
         return cls(region.start, region.end, region.radius)
@@ -492,7 +492,7 @@ class FilledTorus(Torus):
 
 
 @dataclass(frozen=True)
-class StadiumRegion(StandardRegion):
+class Stadium(StandardRegion):
     start: _PointData
     end: _PointData
     radius: sp.Expr = sp.Integer(1)
@@ -503,7 +503,7 @@ class StadiumRegion(StandardRegion):
         if len(start_pt) != len(end_pt):
             raise ValueError("region endpoints must have the same dimension")
         if len(start_pt) != 2:
-            raise ValueError("StadiumRegion requires two-dimensional endpoints")
+            raise ValueError("Stadium requires two-dimensional endpoints")
         radius_expr = sp.sympify(radius)
         _validate_nonnegative(radius_expr, label="radius")
         object.__setattr__(self, "start", start_pt)
@@ -526,7 +526,7 @@ class StadiumRegion(StandardRegion):
 
 
 @dataclass(frozen=True)
-class CapsuleRegion(StadiumRegion):
+class Capsule(Stadium):
     def __init__(self, start: Sequence[object], end: Sequence[object], radius: object = 1):
         start_pt = _sympify_point(start)
         end_pt = _sympify_point(end)

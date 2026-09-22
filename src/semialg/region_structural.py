@@ -7,20 +7,19 @@ import sympy as sp
 from .exact_arithmetic import compare_exact_reals
 from .standard_regions import (
     Ball,
-    BallRegion,
-    BoxRegion,
+    Box,
     Ellipsoid,
+    FinitePointSet,
     Hyperplane,
-    IntervalRegion,
+    Interval,
     Line,
-    ParallelepipedRegion,
+    Parallelepiped,
     Point,
-    PointRegion,
-    PolygonRegion,
+    Polygon,
     Polytope,
     Ray,
-    SimplexRegion,
-    SphereRegion,
+    Simplex,
+    Sphere,
     StandardRegion,
     TransformedRegion,
 )
@@ -36,15 +35,15 @@ def _compare(left: sp.Expr, right: sp.Expr) -> int | None:
 
 
 def _filled_ball(region: object) -> bool:
-    return isinstance(region, BallRegion) and not isinstance(region, SphereRegion)
+    return isinstance(region, Ball) and not isinstance(region, Sphere)
 
 
-def _interval_empty(region: IntervalRegion) -> bool:
+def _interval_empty(region: Interval) -> bool:
     relation = _compare(region.lower, region.upper)
     return relation == 0 and not (region.lower_closed and region.upper_closed)
 
 
-def _point_in_interval(point: sp.Expr, region: IntervalRegion) -> bool | None:
+def _point_in_interval(point: sp.Expr, region: Interval) -> bool | None:
     lo = _compare(point, region.lower)
     hi = _compare(point, region.upper)
     if lo is None or hi is None:
@@ -58,7 +57,7 @@ def _point_in_interval(point: sp.Expr, region: IntervalRegion) -> bool | None:
     return True
 
 
-def _interval_subset(left: IntervalRegion, right: IntervalRegion) -> bool | None:
+def _interval_subset(left: Interval, right: Interval) -> bool | None:
     if _interval_empty(left):
         return True
     if _interval_empty(right):
@@ -76,7 +75,7 @@ def _interval_subset(left: IntervalRegion, right: IntervalRegion) -> bool | None
     return True
 
 
-def _interval_disjoint(left: IntervalRegion, right: IntervalRegion) -> bool | None:
+def _interval_disjoint(left: Interval, right: Interval) -> bool | None:
     if _interval_empty(left) or _interval_empty(right):
         return True
     left_before = _compare(left.upper, right.lower)
@@ -105,7 +104,7 @@ def _polytope_constraints(region: Polytope):
         return None
 
 
-def _box_hrep(region: BoxRegion):
+def _box_hrep(region: Box):
     from .polyhedral import HRepresentation
 
     n = region.ambient_dimension()
@@ -126,12 +125,12 @@ def _box_hrep(region: BoxRegion):
 def _as_polytope(region):
     if isinstance(region, Polytope):
         return region
-    if isinstance(region, (SimplexRegion, PolygonRegion, ParallelepipedRegion)):
+    if isinstance(region, (Simplex, Polygon, Parallelepiped)):
         try:
             return Polytope.from_region(region)
         except (TypeError, ValueError, NotImplementedError):
             return None
-    if isinstance(region, BoxRegion):
+    if isinstance(region, Box):
         import itertools
 
         vertices = tuple(itertools.product(*((lower, upper) for lower, upper in region.bounds)))
@@ -140,7 +139,7 @@ def _as_polytope(region):
 
 
 def _convex_hrep(region):
-    if isinstance(region, BoxRegion):
+    if isinstance(region, Box):
         return _box_hrep(region)
     polytope = _as_polytope(region)
     return None if polytope is None else _polytope_constraints(polytope)
@@ -213,7 +212,7 @@ def _parameterized_segment(point, direction, bounds):
     mapping = tuple(sp.simplify(a + t * b) for a, b in zip(point, direction, strict=True))
     if lower is -sp.oo or upper is sp.oo:
         return UNRESOLVED
-    return TransformedRegion(IntervalRegion(lower, upper), mapping, (t,))
+    return TransformedRegion(Interval(lower, upper), mapping, (t,))
 
 
 def _line_convex_intersection(line, region):
@@ -373,19 +372,19 @@ def structural_subset(left: object, right: object) -> bool | None:
         return None
     if left.ambient_dimension() != right.ambient_dimension():
         raise ValueError("region ambient dimensions do not match")
-    if isinstance(left, PointRegion):
+    if isinstance(left, FinitePointSet):
         try:
             values = tuple(right.contains(point) for point in left.points)
         except (TypeError, ValueError, NotImplementedError):
             return None
         return all(values)
-    if isinstance(left, IntervalRegion) and isinstance(right, IntervalRegion):
+    if isinstance(left, Interval) and isinstance(right, Interval):
         return _interval_subset(left, right)
-    if isinstance(left, BoxRegion) and isinstance(right, BoxRegion):
+    if isinstance(left, Box) and isinstance(right, Box):
         if len(left.bounds) != len(right.bounds):
             return False
         results = [
-            _interval_subset(IntervalRegion(*a), IntervalRegion(*b))
+            _interval_subset(Interval(*a), Interval(*b))
             for a, b in zip(left.bounds, right.bounds, strict=True)
         ]
         if any(result is False for result in results):
@@ -424,19 +423,19 @@ def structural_disjoint(left: object, right: object) -> bool | None:
         return left.dimension() < 0
     if left.ambient_dimension() != right.ambient_dimension():
         raise ValueError("region ambient dimensions do not match")
-    if isinstance(left, PointRegion):
+    if isinstance(left, FinitePointSet):
         try:
             values = tuple(not right.contains(point) for point in left.points)
         except (TypeError, ValueError, NotImplementedError):
             return None
         return all(values)
-    if isinstance(right, PointRegion):
+    if isinstance(right, FinitePointSet):
         return structural_disjoint(right, left)
-    if isinstance(left, IntervalRegion) and isinstance(right, IntervalRegion):
+    if isinstance(left, Interval) and isinstance(right, Interval):
         return _interval_disjoint(left, right)
-    if isinstance(left, BoxRegion) and isinstance(right, BoxRegion):
+    if isinstance(left, Box) and isinstance(right, Box):
         results = [
-            _interval_disjoint(IntervalRegion(*a), IntervalRegion(*b))
+            _interval_disjoint(Interval(*a), Interval(*b))
             for a, b in zip(left.bounds, right.bounds, strict=True)
         ]
         if any(result is True for result in results):
@@ -474,7 +473,7 @@ def structural_intersection(left: object, right: object):
 
     if left == right:
         return left
-    convex_polyhedral = (BoxRegion, SimplexRegion, PolygonRegion, ParallelepipedRegion, Polytope)
+    convex_polyhedral = (Box, Simplex, Polygon, Parallelepiped, Polytope)
     if isinstance(left, (Line, Ray)) and isinstance(right, convex_polyhedral):
         return _line_convex_intersection(left, right)
     if isinstance(right, (Line, Ray)) and isinstance(left, convex_polyhedral):
@@ -495,7 +494,7 @@ def structural_intersection(left: object, right: object):
         return _hyperplane_ellipsoid_intersection(left, right)
     if isinstance(right, Hyperplane) and isinstance(left, Ellipsoid):
         return _hyperplane_ellipsoid_intersection(right, left)
-    if isinstance(left, IntervalRegion) and isinstance(right, IntervalRegion):
+    if isinstance(left, Interval) and isinstance(right, Interval):
         if _interval_empty(left):
             return left
         if _interval_empty(right):
@@ -520,17 +519,26 @@ def structural_intersection(left: object, right: object):
         )
         if _compare(lower, upper) == 0 and not (lower_closed and upper_closed):
             return UNRESOLVED
-        return IntervalRegion(lower, upper, lower_closed=lower_closed, upper_closed=upper_closed)
-    if isinstance(left, BoxRegion) and isinstance(right, BoxRegion):
+        return Interval(lower, upper, lower_closed=lower_closed, upper_closed=upper_closed)
+    if isinstance(left, Polytope) and isinstance(right, Polytope):
+        try:
+            from .polyhedral_booleans import polyhedral_intersection
+
+            result = polyhedral_intersection(left, right)
+        except (ValueError, NotImplementedError):
+            result = None
+        if result is not None:
+            return result
+    if isinstance(left, Box) and isinstance(right, Box):
         if len(left.bounds) != len(right.bounds):
             return UNRESOLVED
         bounds = []
         for a, b in zip(left.bounds, right.bounds, strict=True):
-            piece = structural_intersection(IntervalRegion(*a), IntervalRegion(*b))
-            if not isinstance(piece, IntervalRegion):
+            piece = structural_intersection(Interval(*a), Interval(*b))
+            if not isinstance(piece, Interval):
                 return UNRESOLVED
             bounds.append((piece.lower, piece.upper))
-        return BoxRegion(bounds)
+        return Box(bounds)
     subset = structural_subset(left, right)
     if subset is True:
         return left
@@ -543,20 +551,20 @@ def structural_intersection(left: object, right: object):
 def structural_product(left: object, right: object):
     """Return a canonical Cartesian product when one has a direct representation."""
 
-    if isinstance(left, IntervalRegion) and isinstance(right, IntervalRegion):
+    if isinstance(left, Interval) and isinstance(right, Interval):
         if not all((left.lower_closed, left.upper_closed, right.lower_closed, right.upper_closed)):
             return UNRESOLVED
-        return BoxRegion(((left.lower, left.upper), (right.lower, right.upper)))
-    if isinstance(left, BoxRegion) and isinstance(right, BoxRegion):
-        return BoxRegion((*left.bounds, *right.bounds))
-    if isinstance(left, IntervalRegion) and isinstance(right, BoxRegion):
+        return Box(((left.lower, left.upper), (right.lower, right.upper)))
+    if isinstance(left, Box) and isinstance(right, Box):
+        return Box((*left.bounds, *right.bounds))
+    if isinstance(left, Interval) and isinstance(right, Box):
         if not (left.lower_closed and left.upper_closed):
             return UNRESOLVED
-        return BoxRegion(((left.lower, left.upper), *right.bounds))
-    if isinstance(left, BoxRegion) and isinstance(right, IntervalRegion):
+        return Box(((left.lower, left.upper), *right.bounds))
+    if isinstance(left, Box) and isinstance(right, Interval):
         if not (right.lower_closed and right.upper_closed):
             return UNRESOLVED
-        return BoxRegion((*left.bounds, (right.lower, right.upper)))
+        return Box((*left.bounds, (right.lower, right.upper)))
     if isinstance(left, Point) and isinstance(right, Point):
         return Point((*left.coordinates, *right.coordinates))
     return UNRESOLVED
@@ -572,17 +580,17 @@ def structural_minkowski_sum(left: object, right: object):
             return right.transform(sp.eye(right.ambient_dimension()), left.coordinates)
     if isinstance(right, Point) and isinstance(left, StandardRegion):
         return structural_minkowski_sum(right, left)
-    if isinstance(left, IntervalRegion) and isinstance(right, IntervalRegion):
-        return IntervalRegion(
+    if isinstance(left, Interval) and isinstance(right, Interval):
+        return Interval(
             left.lower + right.lower,
             left.upper + right.upper,
             lower_closed=left.lower_closed and right.lower_closed,
             upper_closed=left.upper_closed and right.upper_closed,
         )
-    if isinstance(left, BoxRegion) and isinstance(right, BoxRegion):
+    if isinstance(left, Box) and isinstance(right, Box):
         if len(left.bounds) != len(right.bounds):
             raise ValueError("region ambient dimensions do not match")
-        return BoxRegion(
+        return Box(
             tuple(
                 (a0 + b0, a1 + b1)
                 for (a0, a1), (b0, b1) in zip(left.bounds, right.bounds, strict=True)

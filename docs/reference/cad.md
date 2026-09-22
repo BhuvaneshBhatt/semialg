@@ -1,7 +1,7 @@
 # CAD and structured geometry reference
 ## Family contract
 
-**computer algebra systeml return.** CAD APIs return cylindrical cells/decompositions, exact cell bounds and samples, or structured connectivity/integration data derived from them.
+**Mathematical return.** CAD APIs return cylindrical cells/decompositions, exact cell bounds and samples, or structured connectivity/integration data derived from them.
 
 **Exactness and certification.** Root order, sign/truth invariance, and cell reconstruction are exact on certified paths. Reduced projection is used only when its side conditions are established; otherwise the implementation falls back conservatively.
 
@@ -165,9 +165,9 @@ returns `status="unknown"` with diagnostic details.  Calls with `return_result=F
 or `strict=True` raise `ResourceLimitError` instead of fabricating a mathematical
 formula.
 
-## `generic_cad(...)`
+## `parametric_cad(...)`
 
-Builds a parameter-aware/generic CAD. By default the direct return follows `output` (`"formula"`, `"cases"`, `"cells"`, or `"function"`), matching `cad()`. Set `return_result=True` for `GenericCADResult`, including exceptional-set cases and CAD diagnostics. Specialization preserves the defining polynomial identity of algebraic root sections.
+Builds a parameter-aware/generic CAD. By default the direct return follows `output` (`"formula"`, `"cases"`, `"cells"`, or `"function"`), matching `cad()`. Set `return_result=True` for `ParametricCADResult`, including exceptional-set cases and CAD diagnostics. Specialization preserves the defining polynomial identity of algebraic root sections.
 
 ## Structured cell APIs
 

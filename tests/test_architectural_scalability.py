@@ -4,9 +4,9 @@ import sympy as sp
 
 from semialg import is_satisfiable
 from semialg.context import SemialgebraicContext
+from semialg.decomposition._parametric_support import analyze_parametric_boundaries
 from semialg.ec.selection import choose_designated_ec
 from semialg.incidence import analyze_incidence, sparse_variable_order
-from semialg.parameter_stratification import exceptional_parameter_analysis
 from semialg.preprocess.algebraic import normalize_polynomial_atoms
 from semialg.presolve import presolve_semialgebraic
 
@@ -46,7 +46,7 @@ def test_projection_aware_ec_selection_prefers_low_burden_main_variable() -> Non
 
 def test_exceptional_parameter_analysis_tracks_degree_and_discriminant_strata() -> None:
     x, a, b, c = sp.symbols("x a b c", real=True)
-    analysis = exceptional_parameter_analysis(sp.Eq(a * x**2 + b * x + c, 0), (x,), (a, b, c))
+    analysis = analyze_parametric_boundaries(sp.Eq(a * x**2 + b * x + c, 0), (x,), (a, b, c))
     by_source = {cause.source: cause.polynomial for cause in analysis.causes}
     assert sp.expand(by_source["degree_drop"] - a) == 0
     assert sp.expand(by_source["discriminant"] ** 2 - (b**2 - 4 * a * c) ** 2) == 0
@@ -56,7 +56,7 @@ def test_exceptional_parameter_analysis_tracks_degree_and_discriminant_strata() 
 def test_parameterized_quadratic_degree_drop_is_not_misclassified() -> None:
     x, a, b, c = sp.symbols("x a b c", real=True)
     ctx = SemialgebraicContext(sp.Eq(a * x**2 + b * x + c, 0), (x,))
-    analysis = exceptional_parameter_analysis(ctx.formula, (x,), (a, b, c))
+    analysis = analyze_parametric_boundaries(ctx.formula, (x,), (a, b, c))
     assert any(cause.source == "degree_drop" for cause in analysis.causes)
     # The constant nonzero degree-drop fiber has no real root.
     assert is_satisfiable(sp.Eq(0 * x**2 + 0 * x + 1, 0), (x,)) is False

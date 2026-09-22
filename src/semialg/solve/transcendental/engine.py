@@ -23,7 +23,7 @@ from .quantifier_elimination import eliminate_lead_block
 from .roots import decomp_univar_inequality, isolate_univar_roots
 from .semantics import ResultSemantics
 from .state import TransProblemState, build_trans_state
-from .system_roots import CompletenessCertificate, solve_bounded_trans_sys
+from .system_roots import CompletenessCertificate, orchestrate_trans_search
 
 
 @dataclass(frozen=True)
@@ -292,7 +292,7 @@ def reduce_trans_problem(state: TransProblemState) -> TransReductionResult:
     if periodic:
         trace.append("periodic_bounding_detected")
 
-    fallback = solve_bounded_trans_sys(current.formula, current.all_variables)
+    fallback = orchestrate_trans_search(current.formula, current.all_variables)
     trace.append(fallback.method)
     if fallback.points:
         solved = recon_solved_points(current.all_variables, fallback.points)

@@ -894,7 +894,7 @@ def _squarefree_regular_chain_certified(context: EqualityIdealContext) -> bool:
     the resulting saturated chain is required to define exactly the same ideal
     as the current branch.
     """
-    if context.inconsistent or context.dimension <= 0:
+    if context.inconsistent:
         return True
     chain = _regular_chain_from_lex_basis(context)
     if not chain:

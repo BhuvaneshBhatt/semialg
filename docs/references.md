@@ -30,7 +30,7 @@ The current `equidimensional_decomposition` uses exact factor/ideal splitting pl
 ## Sums of squares and Gram matrices
 
 - **[Parrilo2000]** P. A. Parrilo, *Structured Semidefinite Programs and Semialgebraic Geometry Methods in Robustness and Optimization*, PhD thesis, California Institute of Technology (2000). https://thesis.caltech.edu/1647/
-- **[Parrilo2003]** P. A. Parrilo, “Semidefinite Programming Relaxations for Semialgebraic Problems,” *computer algebra systeml Programming* 96, 293–320 (2003). DOI: https://doi.org/10.1007/s10107-003-0387-5.
+- **[Parrilo2003]** P. A. Parrilo, “Semidefinite Programming Relaxations for Semialgebraic Problems,” *Mathematical Programming* 96, 293–320 (2003). DOI: https://doi.org/10.1007/s10107-003-0387-5.
 
 These references underlie the Gram formulation used by `SOSCertificate`: for a suitable monomial vector `z`, an SOS polynomial admits `p = z.T*Q*z` with `Q` positive semidefinite.  `semialg` treats numerical SDP output only as a search hint and independently verifies the exact identity and exact PSD condition.
 

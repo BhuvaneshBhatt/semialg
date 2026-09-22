@@ -18,7 +18,7 @@ from .geometry_queries import (
     is_path_connected,
 )
 from .internal_symbols import fresh_real_dummy
-from .moments import region_centroid, region_covariance, region_moment
+from .moments import region_moment
 from .normalization import normalize_formula, normalize_point, normalize_problem_variables
 from .optimization import function_range, semialgebraic_maximize, semialgebraic_minimize
 from .optimization_results import FunctionRangeResult, OptimizationResult
@@ -31,12 +31,10 @@ from .reasoning import (
     region_subset,
 )
 from .regions.operations import (
+    explicit_region_components,
     region_closure,
     region_dimension,
     region_interior,
-)
-from .regions.operations import (
-    region_components as explicit_region_components,
 )
 
 
@@ -147,6 +145,17 @@ def intersects(left, right, variables=None, *, strategy: str | None = None) -> b
     return not is_disjoint(left, right, variables, strategy=strategy)
 
 
+def is_interior_disjoint(left, right, variables=None, *, strategy: str | None = None) -> bool:
+    """Return whether two regions have disjoint ambient interiors.
+
+    Boundary contact is permitted: two closed regions that meet only along
+    their boundaries are interior-disjoint.
+    """
+    left_interior = region_interior(left, variables, strategy=strategy)
+    right_interior = region_interior(right, variables, strategy=strategy)
+    return region_disjoint(left_interior, right_interior, variables, strategy=strategy)
+
+
 def is_dense_in(subset, ambient, variables=None, *, strategy: str | None = None) -> bool:
     """Return whether ``subset`` is dense in ``ambient`` in the ambient Euclidean topology."""
     left = normalize_formula(subset)
@@ -176,9 +185,10 @@ def connected_components(region, variables=None) -> tuple[sp.Expr, ...]:
     if factorized is not None:
         return factorized
     if len(vars_) == 1:
-        explicit = explicit_region_components(formula, vars_)
-        if len(explicit) != 1:
-            return explicit
+        # The one-dimensional reducer returns exact maximal interval/point
+        # components, so use it even when the set is connected. Rebuilding a
+        # single component from CAD cells needlessly fragments the formula.
+        return explicit_region_components(formula, vars_)
     graph = extract_cad_connectivity(formula, vars_)
     return tuple(component.as_formula(closed=False) for component in graph.components)
 
@@ -277,16 +287,6 @@ def width(region, direction, variables=None) -> sp.Expr:
     return sp.simplify(hi.value - lo.value)
 
 
-def centroid(region, variables, **kwargs):
-    """Return the exact centroid of a measurable semialgebraic region."""
-    return region_centroid(region, variables, **kwargs)
-
-
-def covariance_matrix(region, variables, **kwargs):
-    """Return the exact covariance matrix of the uniform measure on a region."""
-    return region_covariance(region, variables, **kwargs)
-
-
 def moment_matrix(region, variables, **kwargs) -> sp.Matrix:
     """Return the normalized raw second-moment matrix ``E[x x.T]``."""
     formula = normalize_formula(region)
@@ -341,39 +341,15 @@ def scale(region, factor, variables=None) -> sp.Expr:
     return sp.simplify(formula.xreplace({v: v / factor for v in vars_}))
 
 
-def affine_transform(region, matrix, offset=None, variables=None) -> sp.Expr:
-    """Return the exact affine image ``A*x + b`` in the original coordinates."""
-    from .geometry_queries import semialgebraic_image
+def linear_image(region, matrix, variables=None):
+    """Return the exact linear image ``A*x``.
 
-    formula = normalize_formula(region)
-    vars_ = normalize_problem_variables(variables, formula)
-    A = sp.Matrix(matrix)
-    if A.cols != len(vars_) or A.rows != len(vars_):
-        raise ValueError("matrix must be square with dimension len(variables)")
-    b = sp.zeros(len(vars_), 1) if offset is None else sp.Matrix(tuple(map(sp.sympify, offset)))
-    if b.shape != (len(vars_), 1):
-        raise ValueError("offset must have the same dimension as variables")
-    from .affine_geometry import analyze_affine_map
+    This is the zero-offset specialization of :func:`semialg.affine_image` and
+    uses the same representation-dispatching contract.
+    """
+    from .region_transformations import affine_image
 
-    analysis = analyze_affine_map(A, offset=tuple(b))
-    if analysis.invertible and analysis.inverse_matrix is not None:
-        # For a nonsingular affine map, membership in the image is exactly
-        # membership of the inverse image point. Avoiding existential QE here
-        # also prevents needless root-function reconstruction for linear maps.
-        inverse_point = analysis.inverse_matrix * (sp.Matrix(vars_) - b)
-        substitutions = dict(zip(vars_, tuple(inverse_point), strict=True))
-        return sp.simplify(formula.xreplace(substitutions))
-
-    xvec = sp.Matrix(vars_)
-    mapping = tuple(A * xvec + b)
-    targets = tuple(fresh_real_dummy(f"{v.name}_aff") for v in vars_)
-    image = semialgebraic_image(mapping, formula, vars_, image_variables=targets)
-    return sp.simplify(image.xreplace(dict(zip(targets, vars_, strict=True))))
-
-
-def linear_image(region, matrix, variables=None) -> sp.Expr:
-    """Return the exact linear image ``A*x`` in the original coordinates."""
-    return affine_transform(region, matrix, None, variables)
+    return affine_image(region, matrix, None, variables)
 
 
 def squared_distance_range(left, right=None, variables=None, *, return_result: bool = False):
@@ -454,6 +430,7 @@ __all__ = [
     "is_equal",
     "is_disjoint",
     "intersects",
+    "is_interior_disjoint",
     "is_dense_in",
     "contains_point",
     "connected_components",
@@ -466,13 +443,10 @@ __all__ = [
     "diameter",
     "support_function",
     "width",
-    "centroid",
     "moment_matrix",
-    "covariance_matrix",
     "inertia_tensor",
     "translate",
     "scale",
-    "affine_transform",
     "linear_image",
     "minkowski_sum",
     "squared_distance_range",

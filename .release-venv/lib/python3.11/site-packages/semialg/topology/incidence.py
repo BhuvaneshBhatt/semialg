@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
 
 import sympy as sp
 
@@ -12,6 +13,7 @@ from ..cad_algorithms.polynomial_utils import exact_univariate_poly
 from ..exact_arithmetic import exact_truth
 from ..reconstruct.cylindrical import path_condition
 from ..reconstruct.root_functions import root_of
+from .sample_context import CylindricalSampleContext
 
 
 def cell_dimension(cell: CADCell, cells_by_level: Mapping[int, Sequence[CADCell]]) -> int:
@@ -76,6 +78,24 @@ def is_cell_in_closure(
     return _truth_at_cell_sample(condition, target, variables)
 
 
+@lru_cache(maxsize=4096)
+def _closed_assignment_items(
+    items: tuple[tuple[sp.Symbol, sp.Expr], ...], excluded: sp.Symbol
+) -> tuple[tuple[sp.Symbol, sp.Expr], ...]:
+    """Return the cached closed cylindrical prefix before ``excluded``."""
+    context = CylindricalSampleContext.from_mapping(dict(items))
+    return tuple(context.assignment_before(excluded).items())
+
+
+@lru_cache(maxsize=4096)
+def _fully_closed_assignment_items(
+    items: tuple[tuple[sp.Symbol, sp.Expr], ...],
+) -> tuple[tuple[sp.Symbol, sp.Expr], ...]:
+    """Return the cached fully closed cylindrical sample assignment."""
+    context = CylindricalSampleContext.from_mapping(dict(items))
+    return tuple(context.full_assignment().items())
+
+
 def _specialize_root_functions(expr: sp.Expr, assignments: Mapping[sp.Symbol, sp.Expr]) -> sp.Expr:
     """Specialize opaque ``root_of`` nodes without substituting their fiber variable.
 
@@ -92,7 +112,11 @@ def _specialize_root_functions(expr: sp.Expr, assignments: Mapping[sp.Symbol, sp
         polynomial, fiber, index = node.args
         if not isinstance(fiber, sp.Symbol) or not index.is_Integer:
             raise ValueError("malformed root_of expression in CAD topology formula")
-        base_subs = {var: value for var, value in assignments.items() if var != fiber}
+        # Close the cylindrical sample tower before substituting it into this
+        # root polynomial.  Higher-level sample coordinates may themselves be
+        # root functions over lower coordinates; substituting the raw mapping
+        # in one pass leaves those dependencies symbolic.
+        base_subs = dict(_closed_assignment_items(tuple(assignments.items()), fiber))
         # Root functions are determined by the primitive part in the fibre
         # variable.  Removing parameter content *before* specialization avoids
         # false degeneration at a boundary such as root_of(x*y, y, 0) at x=0,
@@ -103,6 +127,12 @@ def _specialize_root_functions(expr: sp.Expr, assignments: Mapping[sp.Symbol, sp
         except (sp.PolynomialError, TypeError, ValueError):
             primitive = polynomial
         specialized = sp.expand(primitive.subs(base_subs))
+        unresolved_parameters = specialized.free_symbols - {fiber}
+        if unresolved_parameters:
+            names = ", ".join(sorted(symbol.name for symbol in unresolved_parameters))
+            raise ValueError(
+                "root_of remains parameterized after cell-sample specialization: " + names
+            )
         root_index = int(index)
         try:
             # ``real_roots`` repeats roots according to multiplicity.  That is
@@ -136,7 +166,13 @@ def _truth_condition_at_assignments(
     if isinstance(condition, sp.Not):
         return not _truth_condition_at_assignments(condition.args[0], assignments)
     specialized = _specialize_root_functions(condition, assignments)
-    value = sp.simplify(specialized.subs(assignments))
+    needed = specialized.free_symbols.intersection(assignments)
+    if needed:
+        closed = dict(_fully_closed_assignment_items(tuple(assignments.items())))
+        substitutions = {symbol: closed[symbol] for symbol in needed}
+    else:
+        substitutions = {}
+    value = sp.simplify(specialized.subs(substitutions))
     return exact_truth(value)
 
 
@@ -146,7 +182,7 @@ def _truth_at_cell_sample(
     assignments = cell_sample_subs(cell, variables)
     try:
         return _truth_condition_at_assignments(condition, assignments)
-    except (ValueError, NotImplementedError, sp.PolynomialError):
+    except (NotImplementedError, ValueError, sp.PolynomialError):
         # Incidence is certification-sensitive.  Failure to establish exact
         # truth is not evidence of incidence.
         return False

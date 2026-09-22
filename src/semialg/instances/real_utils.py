@@ -7,6 +7,7 @@ import sympy as sp
 from sympy.core.relational import Relational
 from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 
+from .._zero_testing import certified_zero
 from ..exact_arithmetic import compare_exact_reals
 from ..structural_keys import symbol_identity_key
 
@@ -130,7 +131,7 @@ def is_reliably_zero(expr: object) -> bool:
     except _RECOVERABLE_ERRORS:
         pass
     try:
-        return bool(value.equals(0))
+        return certified_zero(value) is True
     except _RECOVERABLE_ERRORS:
         return False
 

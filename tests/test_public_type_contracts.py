@@ -39,7 +39,7 @@ def test_affine_box_clip_is_obtained_through_clipping_operation() -> None:
 
 
 def test_geometry_and_standard_region_are_exercised_through_concrete_region() -> None:
-    region = semialg.IntervalRegion(0, 1)
+    region = semialg.Interval(0, 1)
 
     assert isinstance(region, semialg.Geometry)
     assert isinstance(region, semialg.StandardRegion)

@@ -2,24 +2,22 @@ import pytest
 import sympy as sp
 
 from semialg import (
-    BallRegion,
-    BoxRegion,
-    CapsuleRegion,
-    CylinderRegion,
-    IntervalRegion,
-    ParallelepipedRegion,
-    ParallelogramRegion,
+    Ball,
+    BooleanRegion,
+    Box,
+    Capsule,
+    Cylinder,
+    Interval,
+    Parallelepiped,
+    Parallelogram,
     ParametricRegion,
-    PolygonRegion,
-    PrismRegion,
-    PyramidRegion,
-    RegionDifference,
-    RegionIntersection,
-    RegionUnion,
-    SimplexRegion,
-    SphereRegion,
-    SphericalShellRegion,
-    StadiumRegion,
+    Polygon,
+    Prism,
+    Pyramid,
+    Simplex,
+    Sphere,
+    SphericalShell,
+    Stadium,
 )
 from semialg.parametric_integration import (
     integrate_over_parametric_region,
@@ -63,43 +61,43 @@ def test_parametric_region_requires_positive_multiplicity():
 def test_interval_and_box_reject_reversed_bounds():
     x = sp.Symbol("x", real=True)
     with pytest.raises(ValueError, match="lower endpoint"):
-        IntervalRegion(2, 1)
+        Interval(2, 1)
     with pytest.raises(ValueError, match="lower endpoint"):
-        BoxRegion(((0, 1), (2, 1)))
-    assert integrate_over_standard_region(1, IntervalRegion(1, 2), [x]) == 1
+        Box(((0, 1), (2, 1)))
+    assert integrate_over_standard_region(1, Interval(1, 2), [x]) == 1
 
 
 def test_radial_regions_reject_invalid_radii():
     constructors = (
-        lambda: BallRegion((0, 0), -1),
-        lambda: SphereRegion((0, 0, 0), -1),
-        lambda: CylinderRegion((0, 0, 0), (0, 0, 1), -1),
-        lambda: StadiumRegion((0, 0), (1, 0), -1),
-        lambda: CapsuleRegion((0, 0, 0), (0, 0, 1), -1),
+        lambda: Ball((0, 0), -1),
+        lambda: Sphere((0, 0, 0), -1),
+        lambda: Cylinder((0, 0, 0), (0, 0, 1), -1),
+        lambda: Stadium((0, 0), (1, 0), -1),
+        lambda: Capsule((0, 0, 0), (0, 0, 1), -1),
     )
     for make_region in constructors:
         with pytest.raises(ValueError, match="nonnegative"):
             make_region()
     with pytest.raises(ValueError, match="shell radii"):
-        SphericalShellRegion((0, 0, 0), (2, 1))
+        SphericalShell((0, 0, 0), (2, 1))
     with pytest.raises(ValueError, match="nonnegative"):
-        SphericalShellRegion((0, 0, 0), (-1, 2))
+        SphericalShell((0, 0, 0), (-1, 2))
 
 
 def test_standard_regions_validate_ambient_dimensions():
     with pytest.raises(ValueError, match="same dimension"):
-        SimplexRegion(((0, 0), (1, 0, 0)))
+        Simplex(((0, 0), (1, 0, 0)))
     with pytest.raises(ValueError, match="origin dimension"):
-        ParallelogramRegion((0, 0), ((1, 0), (0, 1, 0)))
+        Parallelogram((0, 0), ((1, 0), (0, 1, 0)))
     with pytest.raises(ValueError, match="origin dimension"):
-        ParallelepipedRegion((0, 0, 0), ((1, 0, 0), (0, 1)))
-    base = PolygonRegion(((0, 0), (1, 0), (0, 1)))
+        Parallelepiped((0, 0, 0), ((1, 0, 0), (0, 1)))
+    base = Polygon(((0, 0), (1, 0), (0, 1)))
     with pytest.raises(ValueError, match="base ambient dimension"):
-        PrismRegion(base, (0, 0, 1))
+        Prism(base, (0, 0, 1))
     with pytest.raises(ValueError, match="base ambient dimension"):
-        PyramidRegion(base, (0, 0, 1))
+        Pyramid(base, (0, 0, 1))
     with pytest.raises(ValueError, match="same dimension"):
-        CylinderRegion((0, 0), (0, 0, 1), 1)
+        Cylinder((0, 0), (0, 0, 1), 1)
 
 
 def test_interval_measure_identity_for_small_rational_intervals():
@@ -108,7 +106,7 @@ def test_interval_measure_identity_for_small_rational_intervals():
     for lower in endpoints:
         for upper in endpoints:
             if lower <= upper:
-                region = IntervalRegion(lower, upper)
+                region = Interval(lower, upper)
                 expected = sp.Integer(1) if lower == upper else upper - lower
                 assert integrate_over_standard_region(1, region, [x]) == expected
 
@@ -116,49 +114,48 @@ def test_interval_measure_identity_for_small_rational_intervals():
 def test_interval_boolean_measure_identities():
     x = sp.Symbol("x", real=True)
     cases = (
-        (IntervalRegion(0, 2), IntervalRegion(1, 3)),
-        (IntervalRegion(0, 1), IntervalRegion(2, 3)),
-        (IntervalRegion(-1, 3), IntervalRegion(0, 1)),
+        (Interval(0, 2), Interval(1, 3)),
+        (Interval(0, 1), Interval(2, 3)),
+        (Interval(-1, 3), Interval(0, 1)),
     )
     for left, right in cases:
         m_left = integrate_over_standard_region(1, left, [x])
         m_right = integrate_over_standard_region(1, right, [x])
-        m_inter = integrate_over_standard_region(1, RegionIntersection(left, right), [x])
-        m_union = integrate_over_standard_region(1, RegionUnion(left, right), [x])
+        m_inter = integrate_over_standard_region(1, BooleanRegion.intersection(left, right), [x])
+        m_union = integrate_over_standard_region(1, BooleanRegion.union(left, right), [x])
         assert sp.simplify(m_union + m_inter - m_left - m_right) == 0
-        m_diff = integrate_over_standard_region(1, RegionDifference(left, right), [x])
+        m_diff = integrate_over_standard_region(1, BooleanRegion.difference(left, right), [x])
         assert sp.simplify(m_diff - (m_left - m_inter)) == 0
 
 
 def test_region_difference_of_disjoint_intervals_preserves_left_region():
     x = sp.Symbol("x", real=True)
-    left = IntervalRegion(0, 1)
-    right = IntervalRegion(2, 3)
-    assert integrate_over_standard_region(1, RegionDifference(left, right), [x]) == 1
+    left = Interval(0, 1)
+    right = Interval(2, 3)
+    assert integrate_over_standard_region(1, BooleanRegion.difference(left, right), [x]) == 1
 
 
 def test_degenerate_standard_region_dimensions_are_not_overstated():
-    assert BoxRegion(((0, 0), (0, 1))).dimension() == 1
-    assert SimplexRegion(((0, 0), (1, 0), (2, 0))).dimension() == 1
-    assert ParallelogramRegion((0, 0), ((1, 0), (2, 0))).dimension() == 1
-    assert ParallelepipedRegion((0, 0, 0), ((1, 0, 0), (2, 0, 0))).dimension() == 1
-    assert BallRegion((0, 0), 0).dimension() == 0
-    assert SphereRegion((0, 0, 0), 0).dimension() == 0
-    assert SphericalShellRegion((0, 0, 0), (1, 1)).dimension() == 2
-    assert CylinderRegion((0, 0, 0), (0, 0, 1), 0).dimension() == 1
-    assert CapsuleRegion((0, 0, 0), (0, 0, 1), 0).dimension() == 1
+    assert Box(((0, 0), (0, 1))).dimension() == 1
+    assert Simplex(((0, 0), (1, 0), (2, 0))).dimension() == 1
+    assert Parallelogram((0, 0), ((1, 0), (2, 0))).dimension() == 1
+    assert Ball((0, 0), 0).dimension() == 0
+    assert Sphere((0, 0, 0), 0).dimension() == 0
+    assert SphericalShell((0, 0, 0), (1, 1)).dimension() == 2
+    assert Cylinder((0, 0, 0), (0, 0, 1), 0).dimension() == 1
+    assert Capsule((0, 0, 0), (0, 0, 1), 0).dimension() == 1
 
 
 def test_stadium_rejects_nonplanar_endpoints_but_capsule_allows_them():
     with pytest.raises(ValueError, match="two-dimensional"):
-        StadiumRegion((0, 0, 0), (1, 0, 0), 1)
-    assert CapsuleRegion((0, 0, 0), (1, 0, 0), 1).ambient_dimension() == 3
+        Stadium((0, 0, 0), (1, 0, 0), 1)
+    assert Capsule((0, 0, 0), (1, 0, 0), 1).ambient_dimension() == 3
 
 
 def test_polygon_rejects_self_intersection_and_accepts_closed_vertex_list():
     with pytest.raises(ValueError, match="self-intersect"):
-        PolygonRegion(((0, 0), (2, 2), (0, 2), (2, 0)))
-    square = PolygonRegion(((0, 0), (1, 0), (1, 1), (0, 1), (0, 0)))
+        Polygon(((0, 0), (2, 2), (0, 2), (2, 0)))
+    square = Polygon(((0, 0), (1, 0), (1, 1), (0, 1), (0, 0)))
     assert len(square.vertices) == 4
 
 
@@ -166,48 +163,46 @@ def test_boolean_region_validates_arity_and_ambient_dimension():
     from semialg.standard_regions import BooleanRegion
 
     with pytest.raises(ValueError, match="exactly two"):
-        BooleanRegion("difference", (IntervalRegion(0, 1),))
+        BooleanRegion("difference", (Interval(0, 1),))
     with pytest.raises(ValueError, match="exactly one"):
-        BooleanRegion("complement", (IntervalRegion(0, 1), IntervalRegion(2, 3)))
+        BooleanRegion("complement", (Interval(0, 1), Interval(2, 3)))
     with pytest.raises(ValueError, match="ambient dimension"):
-        BooleanRegion("union", (IntervalRegion(0, 1), BallRegion((0, 0), 1)))
+        BooleanRegion("union", (Interval(0, 1), Ball((0, 0), 1)))
 
 
 def test_boolean_intersection_dimension_handles_dimension_drop():
-    assert RegionIntersection(IntervalRegion(0, 1), IntervalRegion(1, 2)).dimension() == 0
+    assert BooleanRegion.intersection(Interval(0, 1), Interval(1, 2)).dimension() == 0
 
 
 def test_concave_polygon_integration_uses_nonoverlapping_triangulation():
     x, y = sp.symbols("x y", real=True)
-    polygon = PolygonRegion(((0, 0), (3, 0), (3, 3), (2, 3), (2, 1), (1, 1), (1, 3), (0, 3)))
+    polygon = Polygon(((0, 0), (3, 0), (3, 3), (2, 3), (2, 1), (1, 1), (1, 3), (0, 3)))
     assert integrate_over_standard_region(1, polygon, (x, y)) == 7
 
 
 def test_empty_and_open_degenerate_regions_have_empty_set_dimension():
-    from semialg import PointRegion
+    from semialg import FinitePointSet
 
-    assert PointRegion(()).dimension() == -1
-    assert IntervalRegion(0, 0).dimension() == 0
-    assert IntervalRegion(0, 0, lower_closed=False).dimension() == -1
+    assert FinitePointSet(()).dimension() == -1
+    assert Interval(0, 0).dimension() == 0
+    assert Interval(0, 0, lower_closed=False).dimension() == -1
     with pytest.raises(ValueError, match="at least one vertex"):
-        SimplexRegion(())
-    with pytest.raises(ValueError, match="three-dimensional"):
-        from semialg import TetrahedronRegion
-
-        TetrahedronRegion(((0, 0), (1, 0), (0, 1), (1, 1)))
+        Simplex(())
+    degenerate = Simplex(((0, 0), (1, 0), (0, 1), (1, 1)))
+    assert degenerate.dimension() == 2
+    assert not degenerate.is_nondegenerate()
 
 
 def test_standard_region_dimension_never_exceeds_ambient_dimension():
     regions = (
-        BoxRegion(((0, 0), (0, 1))),
-        SimplexRegion(((0, 0), (1, 0), (2, 0))),
-        ParallelogramRegion((0, 0), ((1, 0), (2, 0))),
-        ParallelepipedRegion((0, 0, 0), ((1, 0, 0), (2, 0, 0))),
-        BallRegion((0, 0), 0),
-        SphereRegion((0, 0, 0), 0),
-        CylinderRegion((0, 0, 0), (0, 0, 1), 0),
-        StadiumRegion((0, 0), (1, 0), 0),
-        CapsuleRegion((0, 0, 0), (0, 0, 1), 0),
+        Box(((0, 0), (0, 1))),
+        Simplex(((0, 0), (1, 0), (2, 0))),
+        Parallelogram((0, 0), ((1, 0), (2, 0))),
+        Ball((0, 0), 0),
+        Sphere((0, 0, 0), 0),
+        Cylinder((0, 0, 0), (0, 0, 1), 0),
+        Stadium((0, 0), (1, 0), 0),
+        Capsule((0, 0, 0), (0, 0, 1), 0),
     )
     assert all(region.dimension() <= region.ambient_dimension() for region in regions)
 
@@ -215,7 +210,7 @@ def test_standard_region_dimension_never_exceeds_ambient_dimension():
 def test_transformed_region_validates_base_and_coordinate_count_early():
     from semialg import TransformedRegion
 
-    base = BoxRegion(((0, 1), (0, 1)))
+    base = Box(((0, 1), (0, 1)))
     with pytest.raises(ValueError, match="base variable count"):
         TransformedRegion(base, (0,), (sp.Symbol("u"),))
     with pytest.raises(TypeError, match="StandardRegion"):
@@ -226,4 +221,4 @@ def test_boolean_region_rejects_nonregion_members_early():
     from semialg.standard_regions import BooleanRegion
 
     with pytest.raises(TypeError, match="StandardRegion"):
-        BooleanRegion("union", (IntervalRegion(0, 1), sp.true))  # type: ignore[arg-type]
+        BooleanRegion("union", (Interval(0, 1), sp.true))  # type: ignore[arg-type]

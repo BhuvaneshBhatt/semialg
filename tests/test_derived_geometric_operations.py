@@ -1,7 +1,7 @@
 import sympy as sp
 
 from semialg import (
-    affine_transform,
+    affine_image,
     argmax_set,
     argmin_set,
     centroid,
@@ -105,12 +105,12 @@ def test_moment_centroid_covariance_and_inertia_conveniences():
     assert inertia_tensor(square, [x, y]) == sp.diag(sp.Rational(4, 3), sp.Rational(4, 3))
 
 
-def test_affine_transform_translate_scale_and_minkowski_sum():
+def test_affine_image_translate_scale_and_minkowski_sum():
     x = sp.symbols("x", real=True)
     interval = sp.And(x >= 0, x <= 1)
     assert is_equal(translate(interval, (2,), [x]), sp.And(x >= 2, x <= 3), [x])
     assert is_equal(scale(interval, 2, [x]), sp.And(x >= 0, x <= 2), [x])
-    affine = affine_transform(interval, [[2]], [1], [x])
+    affine = affine_image(interval, [[2]], [1], [x])
     assert is_equal(affine, sp.And(x >= 1, x <= 3), [x])
     summed = minkowski_sum(interval, sp.And(x >= 2, x <= 4), [x])
     assert is_equal(summed, sp.And(x >= 2, x <= 5), [x])

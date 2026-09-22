@@ -14,13 +14,14 @@ not claim a verbatim implementation of either paper.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import sympy as sp
 
 from ._linear_relations import certified_sign
 from .algebraic.rational_univariate import RationalUnivariateError
+from .decision_portfolio import CertifiedDecisionResult
 from .solve.zero_dimensional import is_zero_dimensional, solve_zero_dimensional_system
 from .witness_heuristics import _certified_negative_point, find_negative_witness_fast
 
@@ -376,22 +377,34 @@ def zeng_negative_point(
 def polynomial_nonnegative(
     polynomial: sp.Expr,
     variables: Sequence[sp.Symbol],
-    **kwargs,
-) -> bool:
-    """Return a certified global nonnegativity decision via the portfolio dispatcher."""
-    from .decision_portfolio import polynomial_nonnegative_decision
+    *,
+    strategy: str = "auto",
+    sos_backend: str | Callable[[sp.Expr, list[sp.Symbol]], object] = "auto",
+    return_result: bool = False,
+    random_lines: int = 8,
+    seed: int = 1234,
+) -> bool | CertifiedDecisionResult:
+    """Decide certified global polynomial nonnegativity.
 
-    strategy = kwargs.pop("strategy", "auto")
-    sos_backend = kwargs.pop("sos_backend", "auto")
-    if kwargs:
-        # Preserve direct Zeng tuning for callers that explicitly request it.
-        if strategy != "zeng":
-            names = ", ".join(sorted(kwargs))
-            raise TypeError(f"Zeng-specific options require strategy='zeng': {names}")
-        result = zeng_negative_point(polynomial, variables, **kwargs)
-        return not result.require_decision()
-    return polynomial_nonnegative_decision(
-        polynomial, variables, strategy=strategy, sos_backend=sos_backend
+    The default return is the mathematical Boolean. Set ``return_result=True``
+    to obtain the structured certified portfolio trace, including the selected
+    backend, ordered attempts, witness, and certificate.
+
+    ``strategy`` may be ``"auto"``, ``"sos"``, ``"zeng"``, ``"ars"``,
+    or ``"cad"``. Automatic mode tries exact-verified SOS search, then the
+    Zeng/ARS specialized route, then complete CAD. ``random_lines`` and ``seed``
+    tune only the Zeng witness-search stage.
+    """
+    from .decision_portfolio import _polynomial_nonnegative_portfolio
+
+    return _polynomial_nonnegative_portfolio(
+        polynomial,
+        variables,
+        strategy=strategy,
+        sos_backend=sos_backend,
+        return_result=return_result,
+        random_lines=random_lines,
+        seed=seed,
     )
 
 

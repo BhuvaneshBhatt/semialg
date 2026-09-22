@@ -7,7 +7,7 @@ from semialg.decomposition.components import components_from_cell_set
 from semialg.decomposition.cylindrical import cad
 
 
-def test_interval_boundary_closure_interior_exterior():
+def test_interval_boundary_interior_of_closure_exterior():
     x = sp.Symbol("x", real=True)
     interior = cad(x**2 <= 1, [x], operation="interior", return_result=True)
     closure = cad(x**2 < 1, [x], operation="closure", return_result=True)

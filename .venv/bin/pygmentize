@@ -1,4 +1,4 @@
-#!/Users/bbhatt/git/Portfolio/semialg/.venv/bin/python
+#!/Users/bbhatt/git/Portfolio/semialg/.venv/bin/python3.11
 import sys
 from pygments.cmdline import main
 if __name__ == '__main__':

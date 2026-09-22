@@ -8,14 +8,14 @@ from semialg.instances import coordinate_bounds
 from semialg.simplify.equality import simplify_equalities
 
 
-def test_affine_equality_simplification_is_invariant_under_nonzero_constant_scaling():
+def test_affine_equality_simplification_ignores_nonzero_scaling():
     x, y = sp.symbols("x y", real=True)
     base = sp.And(sp.Eq(2 * x + y, 0), y >= -2, y <= 2)
     scaled = sp.And(sp.Eq(-6 * x - 3 * y, 0), y >= -2, y <= 2)
     assert is_equal(simplify_equalities(base), simplify_equalities(scaled), [x, y])
 
 
-def test_coordinate_bounds_are_invariant_under_conjunct_reordering_and_redundancy():
+def test_coordinate_bounds_ignore_order_and_redundancy():
     x = sp.Symbol("x", real=True)
     first = coordinate_bounds(sp.And(x > -2, x <= 3, x <= 5), (x,))
     second = coordinate_bounds(sp.And(x <= 5, x <= 3, x > -2), (x,))

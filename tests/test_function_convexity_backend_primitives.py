@@ -61,7 +61,7 @@ def test_relative_strict_feasibility_preserves_affine_hull_equalities():
     assert 0 < result.witness[x] < 1
 
 
-def test_relative_strict_feasibility_does_not_strictify_inequality_tight_on_hull():
+def test_relative_feasibility_preserves_hull_equality():
     x, y = sp.symbols("x y", real=True)
     constraints = sp.And(sp.Eq(y, 0), y >= 0, x >= 0, x <= 1)
     assert strict_feasible(constraints, [x, y], relative=True)

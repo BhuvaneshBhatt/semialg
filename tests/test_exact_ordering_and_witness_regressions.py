@@ -61,11 +61,11 @@ def test_zero_dimensional_reality_filter_rejects_complex_solutions_exactly() -> 
 
 
 def test_nonsingular_affine_image_uses_exact_inverse_description() -> None:
-    from semialg import affine_transform, is_compact, region_dimension
+    from semialg import affine_image, is_compact, region_dimension
 
     x, y = sp.symbols("x y", real=True)
     box = sp.And(x >= -1, x <= 1, y >= -2, y <= 2)
-    image = affine_transform(box, [[1, 1], [0, 2]], [3, -1], [x, y])
+    image = affine_image(box, [[1, 1], [0, 2]], [3, -1], [x, y])
     expected = sp.And(y >= -5, y <= 3, 2 * x - y >= 5, 2 * x - y <= 9)
 
     assert sp.simplify_logic(sp.Equivalent(image, expected)) is sp.true

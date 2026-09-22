@@ -14,12 +14,11 @@ from semialg.parametric_integration import integrate_over_parametric_region
 from semialg.region_integrate import integrate_over_region
 from semialg.standard_region_integrate import integrate_over_standard_region
 from semialg.standard_regions import (
-    BoxRegion,
-    IntervalRegion,
+    Box,
+    Interval,
     ParametricRegion,
-    PolyhedronRegion,
-    SimplexRegion,
-    TetrahedronRegion,
+    Simplex,
+    TetrahedralComplex,
     TransformedRegion,
 )
 from semialg.symbolic_regions import as_semialgebraic_region
@@ -27,7 +26,7 @@ from semialg.symbolic_regions import as_semialgebraic_region
 
 def test_noninjective_transformed_interval_integrates_image_not_preimages() -> None:
     x, t = sp.symbols("x t", real=True)
-    region = TransformedRegion(IntervalRegion(-1, 1), (t**2,), (t,))
+    region = TransformedRegion(Interval(-1, 1), (t**2,), (t,))
 
     assert region.dimension() == 1
     formula = as_semialgebraic_region(region, (x,)).quantifier_free_formula()
@@ -37,7 +36,7 @@ def test_noninjective_transformed_interval_integrates_image_not_preimages() -> N
 
 def test_rank_reducing_transformed_box_uses_image_dimension() -> None:
     x, y, u, v = sp.symbols("x y u v", real=True)
-    region = TransformedRegion(BoxRegion(((0, 1), (0, 1))), (u, 0), (u, v))
+    region = TransformedRegion(Box(((0, 1), (0, 1))), (u, 0), (u, v))
 
     assert region.dimension() == 1
     assert integrate_over_standard_region(1, region, (x, y)) == 1
@@ -45,7 +44,7 @@ def test_rank_reducing_transformed_box_uses_image_dimension() -> None:
 
 def test_degenerate_simplex_uses_intrinsic_image_measure() -> None:
     x, y = sp.symbols("x y", real=True)
-    region = SimplexRegion(((0, 0), (1, 0), (2, 0)))
+    region = Simplex(((0, 0), (1, 0), (2, 0)))
 
     assert region.dimension() == 1
     assert integrate_over_standard_region(1, region, (x, y)) == 2
@@ -76,15 +75,15 @@ def test_intrinsic_dimension_uses_exact_real_geometry() -> None:
 
 def test_polyhedron_allows_face_sharing_but_rejects_volume_overlap() -> None:
     x, y, z = sp.symbols("x y z", real=True)
-    upper = TetrahedronRegion(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)))
-    lower = TetrahedronRegion(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, -1)))
-    nested = TetrahedronRegion(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, sp.Rational(1, 2))))
+    upper = Simplex(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)))
+    lower = Simplex(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, -1)))
+    nested = Simplex(((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, sp.Rational(1, 2))))
 
     assert integrate_over_standard_region(
-        1, PolyhedronRegion((upper, lower)), (x, y, z)
+        1, TetrahedralComplex((upper, lower)), (x, y, z)
     ) == sp.Rational(1, 3)
     with pytest.raises(ValueError, match="disjoint interiors"):
-        integrate_over_standard_region(1, PolyhedronRegion((upper, nested)), (x, y, z))
+        integrate_over_standard_region(1, TetrahedralComplex((upper, nested)), (x, y, z))
 
 
 def test_cache_clear_invalidates_live_context_mirror() -> None:
@@ -125,8 +124,8 @@ def test_explicitly_shared_context_is_thread_safe() -> None:
     d=st.integers(-5, 5),
 )
 def test_interval_boolean_membership_identities(a: int, b: int, c: int, d: int) -> None:
-    left = IntervalRegion(min(a, b), max(a, b))
-    right = IntervalRegion(min(c, d), max(c, d))
+    left = Interval(min(a, b), max(a, b))
+    right = Interval(min(c, d), max(c, d))
     x = sp.Symbol("x", real=True)
     left_formula = as_semialgebraic_region(left, (x,)).formula
     right_formula = as_semialgebraic_region(right, (x,)).formula

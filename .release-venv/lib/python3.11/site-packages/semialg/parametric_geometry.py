@@ -297,25 +297,25 @@ def _ellipsoid_factor(shape: sp.MatrixBase) -> sp.ImmutableMatrix:
 
 def _standard_region_charts(region) -> tuple[ParametricChart, ...] | None:
     from .standard_regions import (
-        BallRegion,
-        BoxRegion,
+        Ball,
+        Box,
         Ellipsoid,
         EllipsoidBoundary,
-        IntervalRegion,
-        ParallelepipedRegion,
-        ParallelogramRegion,
+        FinitePointSet,
+        Interval,
+        Parallelepiped,
+        Parallelogram,
         ParametricRegion,
-        PointRegion,
-        PolygonRegion,
-        PolyhedronRegion,
-        SimplexRegion,
-        SphereRegion,
+        Polygon,
+        Simplex,
+        Sphere,
+        TetrahedralComplex,
     )
 
     if isinstance(region, ParametricRegion):
         chart = _chart_from_parametric_region(region)
         return None if chart is None else (chart,)
-    if isinstance(region, SphereRegion):
+    if isinstance(region, Sphere):
         if region.ambient_dimension() == 1:
             left = tuple(sp.simplify(c - region.radius) for c in region.center)
             right = tuple(sp.simplify(c + region.radius) for c in region.center)
@@ -324,7 +324,7 @@ def _standard_region_charts(region) -> tuple[ParametricChart, ...] | None:
                 ParametricChart((), (), sp.true, right, 0, "sphere_point"),
             )
         return (_radial_chart(region.center, region.radius, surface=True, source="sphere"),)
-    if isinstance(region, BallRegion):
+    if isinstance(region, Ball):
         return (_radial_chart(region.center, region.radius, surface=False, source="ball"),)
     if isinstance(region, EllipsoidBoundary):
         factor = _ellipsoid_factor(region.shape_matrix)
@@ -336,11 +336,11 @@ def _standard_region_charts(region) -> tuple[ParametricChart, ...] | None:
     if isinstance(region, Ellipsoid):
         factor = _ellipsoid_factor(region.shape_matrix)
         return (_radial_chart(region.center, 1, surface=False, affine=factor, source="ellipsoid"),)
-    if isinstance(region, PointRegion):
+    if isinstance(region, FinitePointSet):
         return tuple(
             ParametricChart((), (), sp.true, tuple(point), 0, "point") for point in region.points
         )
-    if isinstance(region, IntervalRegion):
+    if isinstance(region, Interval):
         if not (_finite_bound(region.lower) and _finite_bound(region.upper)):
             return None
         try:
@@ -367,7 +367,7 @@ def _standard_region_charts(region) -> tuple[ParametricChart, ...] | None:
                 "interval",
             ),
         )
-    if isinstance(region, BoxRegion):
+    if isinstance(region, Box):
         params: list[sp.Symbol] = []
         bounds: list[tuple[sp.Symbol, sp.Expr, sp.Expr]] = []
         mapping: list[sp.Expr] = []
@@ -399,15 +399,15 @@ def _standard_region_charts(region) -> tuple[ParametricChart, ...] | None:
                 "box",
             ),
         )
-    if isinstance(region, SimplexRegion):
+    if isinstance(region, Simplex):
         return (_simplex_chart(region, 0),)
-    if isinstance(region, PolygonRegion):
+    if isinstance(region, Polygon):
         return tuple(
             _simplex_chart(triangle, i) for i, triangle in enumerate(region.triangulation())
         )
-    if isinstance(region, PolyhedronRegion):
+    if isinstance(region, TetrahedralComplex):
         return tuple(_simplex_chart(tet, i) for i, tet in enumerate(region.tetrahedra))
-    if isinstance(region, (ParallelogramRegion, ParallelepipedRegion)):
+    if isinstance(region, (Parallelogram, Parallelepiped)):
         params = tuple(sp.Dummy(f"u{i + 1}", real=True) for i in range(len(region.vectors)))
         mapped = sp.Matrix(region.origin)
         for param, vector in zip(params, region.vectors, strict=True):

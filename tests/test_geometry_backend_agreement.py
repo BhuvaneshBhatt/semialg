@@ -1,7 +1,7 @@
 import pytest
 import sympy as sp
 
-from semialg import Ball, BoxRegion, Polygon, Simplex, Sphere
+from semialg import Ball, Box, Polygon, Simplex, Sphere
 from semialg.region_integrate import integrate_over_region
 from semialg.standard_region_integrate import integrate_over_standard_region
 
@@ -23,7 +23,7 @@ def _formula_integral(region, expression, variables, *, dimension):
     ("region", "variables", "expression"),
     [
         (
-            BoxRegion(((0, 2), (-1, 1))),
+            Box(((0, 2), (-1, 1))),
             sp.symbols("x y", real=True),
             sp.Symbol("x", real=True) ** 2,
         ),

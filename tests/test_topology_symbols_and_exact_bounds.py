@@ -9,10 +9,10 @@ from semialg.geometry_queries import (
     distance_to_region,
     fiber,
     path_between,
-    semialgebraic_image,
     semialgebraic_projection,
 )
 from semialg.instances.witness_generation import safe_int_ceiling_bound, safe_integer_floor_bound
+from semialg.region_transformations import region_image
 from semialg.regions.operations import region_closure, region_dimension, region_interior
 from semialg.simplify.implication import _is_unsatisfiable_cached
 
@@ -66,9 +66,9 @@ def test_projection_resolves_string_variable_against_contextual_symbol():
 
 def test_image_preserves_unspecified_free_parameter():
     x, a, y = sp.symbols("x a y", real=True)
-    result = semialgebraic_image(
-        x,
+    result = region_image(
         sp.And(x >= 0, x <= a),
+        x,
         variables=[x],
         image_variables=[y],
     )

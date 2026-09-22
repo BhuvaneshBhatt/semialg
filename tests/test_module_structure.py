@@ -29,9 +29,9 @@ def test_symbolic_region_exports_coercion_and_predicates():
     assert symbolic_regions.as_semialgebraic_region is region_coercion.as_semialgebraic_region
     assert symbolic_regions.RegionElement is region_predicates.RegionElement
     assert symbolic_regions.RegionNotElement is region_predicates.RegionNotElement
-    assert symbolic_regions.RSubset is region_predicates.RSubset
-    assert symbolic_regions.RDisjoint is region_predicates.RDisjoint
-    assert symbolic_regions.REqual is region_predicates.REqual
+    assert symbolic_regions.RegionSubset is region_predicates.RegionSubset
+    assert symbolic_regions.RegionDisjoint is region_predicates.RegionDisjoint
+    assert symbolic_regions.RegionEqual is region_predicates.RegionEqual
 
 
 def test_top_level_public_namespace_has_one_registry_source_of_truth():

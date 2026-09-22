@@ -6,7 +6,7 @@ import sympy as sp
 
 from semialg import (
     is_equal,
-    semialgebraic_image,
+    region_image,
     semialgebraic_projection,
 )
 
@@ -14,9 +14,9 @@ from semialg import (
 def test_linear_image_reconstructs_as_polynomial_disk_and_reenters_cad():
     x, y, u, v = sp.symbols("x y u v", real=True)
 
-    image = semialgebraic_image(
-        [x + y, x - y],
+    image = region_image(
         x**2 + y**2 <= 1,
+        [x + y, x - y],
         [x, y],
         image_variables=[u, v],
     )

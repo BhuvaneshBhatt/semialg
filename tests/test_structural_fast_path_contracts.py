@@ -32,7 +32,7 @@ def test_ambiguous_descartes_interval_reports_exact_sturm_fallback():
     assert certificate.root_count == 4
 
 
-def test_sector_sampling_delegates_overlapping_algebraic_bounds_to_shared_separator():
+def test_sector_sampling_uses_shared_separator():
     source = inspect.getsource(choose_sector_sample)
     assert "rational_between_algebraic_reals" in source
     assert "range(32)" not in source

@@ -8,13 +8,30 @@ risk = "low"
 contracts = ["public-surface", "distribution-metadata"]
 tests = ["tests/test_package_metadata.py"]
 
+[apis."active_constraints"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_semialgebraic_local_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."ActiveConstraintResult"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "active_constraints"
+
 [apis."affine_image"]
 kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_affine_geometry_images.py", "tests/test_affine_region_transformations.py"]
-evidence_file_count = 2
+evidence_file_count = 6
 coverage_status = "expanded"
 
 [apis."affine_preimage"]
@@ -32,16 +49,7 @@ owner = "function-analysis"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_function_convexity_backend_primitives.py", "tests/test_public_api_medium_risk_contracts.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
-
-[apis."affine_transform"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geometry_identities.py"]
-evidence_file_count = 4
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."AffineBoxClip"]
@@ -77,11 +85,11 @@ coverage_status = "expanded"
 
 [apis."apply_quantifiers"]
 kind = "function"
-owner = "decision"
+owner = "geometry"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_critical_risk_contracts.py", "tests/test_quantifier_expressions.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."argmax_set"]
@@ -127,13 +135,6 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_affine_geometry_images.py", "tests/test_canonical_quadric_geometry.py"]
 
-[apis."BallRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_quadric_geometry.py", "tests/test_geometry_protocol.py"]
-
 [apis."betti_number"]
 kind = "function"
 owner = "geometry"
@@ -159,12 +160,20 @@ tests = ["tests/test_geometry_queries.py", "tests/test_public_api_high_risk_cont
 evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."BoxRegion"]
+[apis."Box"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/regions/test_equivalent_formulations.py", "tests/regions/test_region_interoperability.py"]
+
+[apis."BranchTangentGeometry"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "local_branch_geometry"
 
 [apis."cad"]
 kind = "function"
@@ -183,7 +192,34 @@ contracts = ["public-surface", "factory-return", "production-path"]
 tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
 production = "as_cad_region"
 
-[apis."CapsuleRegion"]
+[apis."canonicalize_polygon"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_polytope_geometry.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."canonicalize_polyhedron"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_polytope_geometry.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."canonicalize_region"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_polytope_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."Capsule"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
@@ -192,10 +228,19 @@ tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_standard_regi
 
 [apis."centroid"]
 kind = "function"
-owner = "geometry"
+owner = "integration"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geometry_identities.py"]
+evidence_file_count = 5
+coverage_status = "expanded"
+
+[apis."certified_radicalization"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_reduced_algebraic_varieties.py", "tests/test_root_api_multidimensional_algebraic_solving.py"]
 evidence_file_count = 3
 coverage_status = "expanded"
 
@@ -208,7 +253,7 @@ tests = ["tests/test_sphere_constructors.py"]
 
 [apis."classify_real_roots"]
 kind = "function"
-owner = "algebraic"
+owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/properties/test_public_api_differential.py", "tests/test_direct_return_contracts.py"]
@@ -233,26 +278,46 @@ tests = ["tests/test_derived_geometric_operations.py", "tests/test_public_api_hi
 evidence_file_count = 2
 coverage_status = "expanded"
 
+[apis."closure_of_interior"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_api_high_risk_contracts.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."component_constraint_descriptions"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_constraint_certificates.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."ComponentConstraintDescription"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "component_constraint_descriptions"
+
+[apis."ComponentIntersectionGeometry"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "local_branch_geometry"
+
 [apis."Cone"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_canonical_cylinder_cone_geometry.py", "tests/test_geometry_ownership_contracts.py"]
-
-[apis."ConeRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_cylinder_cone_geometry.py", "tests/test_standard_region_integration.py"]
-
-[apis."ConicRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_polyhedral_geometry.py", "tests/test_geometry_ownership_contracts.py"]
 
 [apis."connected_component_count"]
 kind = "function"
@@ -278,7 +343,7 @@ owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_deep_mathematical_edge_cases.py", "tests/test_derived_geometric_operations.py"]
-evidence_file_count = 5
+evidence_file_count = 9
 coverage_status = "expanded"
 
 [apis."contains_point"]
@@ -286,14 +351,32 @@ kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_derived_geometric_operations.py", "tests/test_public_api_high_risk_contracts.py"]
+tests = ["tests/test_derived_geometric_operations.py", "tests/test_public_api_direct_contracts.py"]
+evidence_file_count = 3
+coverage_status = "expanded"
+
+[apis."convert_region"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."convex_hull"]
+kind = "function"
+owner = "function-analysis"
+risk = "medium"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
 [apis."convexity_certificate"]
 kind = "function"
-owner = "geometry"
-risk = "high"
+owner = "function-analysis"
+risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_convexity_hierarchy.py", "tests/test_factory_result_contracts.py"]
 evidence_file_count = 4
@@ -310,11 +393,11 @@ coverage_status = "expanded"
 
 [apis."covariance_matrix"]
 kind = "function"
-owner = "geometry"
+owner = "integration"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geometry_identities.py"]
-evidence_file_count = 2
+evidence_file_count = 4
 coverage_status = "expanded"
 
 [apis."critical_value_image"]
@@ -359,12 +442,23 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_canonical_cylinder_cone_geometry.py", "tests/test_geometry_assumption_contracts.py"]
 
-[apis."CylinderRegion"]
-kind = "type"
+[apis."decompose_polytope"]
+kind = "function"
 owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_cylinder_cone_geometry.py", "tests/test_standard_region_integration.py"]
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_polytope_geometry.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."deduplicate_indexed_vertices"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
 
 [apis."diameter"]
 kind = "function"
@@ -380,8 +474,8 @@ kind = "function"
 owner = "solving"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_medium_risk_contracts.py", "tests/test_standard_region_geometry.py"]
-evidence_file_count = 2
+tests = ["tests/test_public_api_medium_risk_contracts.py", "tests/test_root_api_multidimensional_algebraic_solving.py"]
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."discretize_solution"]
@@ -389,8 +483,8 @@ kind = "function"
 owner = "solving"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_solve_semialgebraic_extended.py", "tests/test_solve_semialgebraic_set_operations.py"]
-evidence_file_count = 2
+tests = ["tests/test_root_api_adequacy_strengthening.py", "tests/test_solve_semialgebraic_extended.py"]
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."distance_between_regions"]
@@ -449,7 +543,7 @@ owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_boundary_and_differential_properties.py", "tests/test_cache_semantic_invariance.py"]
-evidence_file_count = 18
+evidence_file_count = 22
 coverage_status = "expanded"
 
 [apis."euler_characteristic"]
@@ -466,7 +560,7 @@ kind = "type"
 owner = "decision"
 risk = "medium"
 contracts = ["public-surface", "construction"]
-tests = ["tests/robustness/test_cached_state_contracts.py", "tests/test_quantifier_expressions.py"]
+tests = ["tests/robustness/test_cached_state_contracts.py", "tests/test_quantifier_elimination.py"]
 
 [apis."extrema_set"]
 kind = "function"
@@ -504,28 +598,35 @@ coverage_status = "expanded"
 
 [apis."find_negative_point"]
 kind = "function"
-owner = "optimization"
+owner = "geometry"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_polynomial_positivity.py", "tests/test_public_api_critical_risk_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."find_negative_witness_fast"]
 kind = "function"
-owner = "solving"
+owner = "geometry"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_critical_risk_contracts.py", "tests/test_witness_heuristics.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
+[apis."FinitePointSet"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_geometry_protocol.py", "tests/test_geometry_public_types.py"]
+
 [apis."ForAll"]
 kind = "type"
 owner = "decision"
 risk = "medium"
 contracts = ["public-surface", "construction"]
-tests = ["tests/test_quantifier_expressions.py"]
+tests = ["tests/test_quantifier_elimination.py", "tests/test_quantifier_expressions.py"]
 
 [apis."function_convex_partition"]
 kind = "function"
@@ -614,6 +715,15 @@ owner = "function-analysis"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_function_property_extensions.py", "tests/test_public_api_medium_risk_contracts.py"]
+evidence_file_count = 3
+coverage_status = "expanded"
+
+[apis."geodesic_refinement"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
@@ -623,7 +733,7 @@ owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "inheritance", "production-path"]
 tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
-production = "IntervalRegion"
+production = "Interval"
 
 [apis."HalfSpace"]
 kind = "type"
@@ -642,13 +752,11 @@ evidence_file_count = 2
 coverage_status = "expanded"
 
 [apis."Hexahedron"]
-kind = "function"
+kind = "type"
 owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_named_solid_constructors.py", "tests/test_polyhedral_representation.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_boundary_topology.py", "tests/test_named_solid_constructors.py"]
 
 [apis."HRepresentation"]
 kind = "type"
@@ -673,13 +781,39 @@ tests = ["tests/test_named_solid_constructors.py", "tests/test_public_api_high_r
 evidence_file_count = 2
 coverage_status = "expanded"
 
+[apis."implicitize_polynomial_map"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_polynomial_map_implicitization.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."implied_polynomial_inequality"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_constraint_certificates.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."ImpliedPolynomialInequality"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "implied_polynomial_inequality"
+
 [apis."implies"]
 kind = "function"
 owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_decision_boolean_contracts.py", "tests/test_decision_public_contracts.py"]
-evidence_file_count = 4
+evidence_file_count = 5
 coverage_status = "expanded"
 
 [apis."inertia_tensor"]
@@ -688,6 +822,24 @@ owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geometry_identities.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."inner_polygons"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."inner_polyhedra"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
@@ -700,6 +852,15 @@ tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_boolean_
 evidence_file_count = 28
 coverage_status = "expanded"
 
+[apis."interior_of_closure"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_api_high_risk_contracts.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
 [apis."intersects"]
 kind = "function"
 owner = "geometry"
@@ -709,12 +870,29 @@ tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geome
 evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."IntervalRegion"]
+[apis."Interval"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_geometry_measure_contracts.py", "tests/test_geometry_ownership_contracts.py"]
+
+[apis."irreducible_components"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_reduced_algebraic_varieties.py", "tests/test_root_api_multidimensional_algebraic_solving.py"]
+evidence_file_count = 3
+coverage_status = "expanded"
+
+[apis."IrreducibleAlgebraicComponent"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "irreducible_components"
 
 [apis."is_bijective"]
 kind = "function"
@@ -763,8 +941,8 @@ coverage_status = "expanded"
 
 [apis."is_convex"]
 kind = "function"
-owner = "geometry"
-risk = "high"
+owner = "function-analysis"
+risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_convexity_certified_fast_paths.py", "tests/test_convexity_hierarchy.py"]
 evidence_file_count = 4
@@ -785,7 +963,7 @@ owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geometry_identities.py"]
-evidence_file_count = 5
+evidence_file_count = 6
 coverage_status = "expanded"
 
 [apis."is_empty"]
@@ -803,7 +981,7 @@ owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/properties/test_semialgebraic_invariance_extended.py", "tests/release/test_installed_wheel_contract.py"]
-evidence_file_count = 14
+evidence_file_count = 15
 coverage_status = "expanded"
 
 [apis."is_full_dimensional"]
@@ -842,6 +1020,15 @@ tests = ["tests/test_public_api_family_contracts.py", "tests/test_public_api_med
 evidence_file_count = 3
 coverage_status = "expanded"
 
+[apis."is_interior_disjoint"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_region_api_normalization.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
 [apis."is_open"]
 kind = "function"
 owner = "geometry"
@@ -862,8 +1049,8 @@ coverage_status = "expanded"
 
 [apis."is_real_valued"]
 kind = "function"
-owner = "decision"
-risk = "high"
+owner = "solving"
+risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_assumption_matrix_contracts.py", "tests/test_root_api_behavioral_expansion.py"]
 evidence_file_count = 4
@@ -893,12 +1080,12 @@ owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/properties/test_parameter_and_cache_invariance.py", "tests/properties/test_public_api_differential.py"]
-evidence_file_count = 22
+evidence_file_count = 24
 coverage_status = "expanded"
 
 [apis."is_singular"]
 kind = "function"
-owner = "geometry"
+owner = "algebraic"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_algebraic_geometry_conveniences.py", "tests/test_public_api_high_risk_contracts.py"]
@@ -907,7 +1094,7 @@ coverage_status = "expanded"
 
 [apis."is_smooth"]
 kind = "function"
-owner = "geometry"
+owner = "algebraic"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_algebraic_geometry_conveniences.py", "tests/test_public_api_high_risk_contracts.py"]
@@ -946,8 +1133,8 @@ kind = "function"
 owner = "solving"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_medium_risk_contracts.py", "tests/test_zero_dimensional_solver_backend.py"]
-evidence_file_count = 2
+tests = ["tests/test_public_api_medium_risk_contracts.py", "tests/test_root_api_multidimensional_algebraic_solving.py"]
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."level_set"]
@@ -975,14 +1162,48 @@ tests = ["tests/test_derived_geometric_operations.py", "tests/test_public_api_hi
 evidence_file_count = 2
 coverage_status = "expanded"
 
+[apis."local_branch_geometry"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_local_branch_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
 [apis."local_dimension"]
 kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_api_high_risk_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
+
+[apis."local_dimension_strata"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_root_api_multidimensional_algebraic_solving.py", "tests/test_stratified_singular_geometry.py"]
+evidence_file_count = 3
+coverage_status = "expanded"
+
+[apis."LocalBranchGeometry"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "local_branch_geometry"
+
+[apis."LocalDimensionStratum"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "local_dimension_strata"
 
 [apis."matrix_definiteness"]
 kind = "function"
@@ -990,7 +1211,7 @@ owner = "function-analysis"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_function_convexity_backend_primitives.py", "tests/test_robustness_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."matrix_pd_on"]
@@ -1026,8 +1247,25 @@ owner = "function-analysis"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_function_convexity_backend_primitives.py", "tests/test_public_api_medium_risk_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
+
+[apis."minimal_prime_intersections"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_root_api_multidimensional_algebraic_solving.py", "tests/test_stratified_singular_geometry.py"]
+evidence_file_count = 3
+coverage_status = "expanded"
+
+[apis."MinimalPrimeIntersection"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "minimal_prime_intersections"
 
 [apis."minkowski_sum"]
 kind = "function"
@@ -1037,6 +1275,22 @@ contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geometry_identities.py"]
 evidence_file_count = 4
 coverage_status = "expanded"
+
+[apis."MixedCellTetrahedralization"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "tetrahedralize_cell"
+
+[apis."MixedMeshTetrahedralization"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "tetrahedralize_cells"
 
 [apis."moment_matrix"]
 kind = "function"
@@ -1056,12 +1310,47 @@ tests = ["tests/test_derived_geometric_operations.py", "tests/test_public_api_hi
 evidence_file_count = 2
 coverage_status = "expanded"
 
+[apis."nonnegative_combination_certificate"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_constraint_certificates.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."NonnegativeCombinationCertificate"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "nonnegative_combination_certificate"
+
 [apis."Octahedron"]
 kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_named_solid_constructors.py", "tests/test_public_api_high_risk_contracts.py"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
+evidence_file_count = 4
+coverage_status = "expanded"
+
+[apis."outer_polygons"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."outer_polyhedra"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
@@ -1072,19 +1361,56 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_canonical_polyhedral_geometry.py", "tests/test_geometry_measure_contracts.py"]
 
-[apis."ParallelepipedRegion"]
+[apis."Parallelogram"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_polyhedral_geometry.py", "tests/test_standard_region_validation.py"]
+tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_geometry_public_types.py"]
 
-[apis."ParallelogramRegion"]
+[apis."parameterization_critical_locus"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_parameterization_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."parameterization_critical_values"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_parameterization_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."parameterization_geometry"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_parameterization_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."ParameterizationGeometry"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_geometry_sampling_contracts.py"]
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "parameterization_geometry"
+
+[apis."parametric_cad"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_conditional_parameter_results.py", "tests/test_direct_return_contracts.py"]
+evidence_file_count = 8
+coverage_status = "expanded"
 
 [apis."ParametricRegion"]
 kind = "type"
@@ -1108,7 +1434,7 @@ owner = "solving"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_api_medium_risk_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."plot_solution"]
@@ -1117,7 +1443,7 @@ owner = "solving"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_plot_solution_formula_fallback.py", "tests/test_public_api_medium_risk_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."Point"]
@@ -1127,82 +1453,199 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_affine_canonical_geometry.py", "tests/test_affine_region_transformations.py"]
 
-[apis."PointRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_geometry_protocol.py", "tests/test_geometry_sampling_contracts.py"]
-
 [apis."Polygon"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "construction"]
-tests = ["tests/test_affine_geometry_images.py", "tests/test_canonical_polyhedral_geometry.py"]
+tests = ["tests/test_affine_geometry_images.py", "tests/test_boundary_topology.py"]
 
-[apis."PolygonRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_polyhedral_geometry.py", "tests/test_standard_region_geometry.py"]
-
-[apis."PolyhedronRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_geometry_sampling_contracts.py"]
-
-[apis."polynomial_nonnegative"]
+[apis."polygon_vertices"]
 kind = "function"
-owner = "optimization"
-risk = "critical"
+owner = "geometry"
+risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_polynomial_positivity.py", "tests/test_public_api_critical_risk_contracts.py"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."polynomial_nonnegative_decision"]
+[apis."polygonal_region_from_paths"]
 kind = "function"
-owner = "optimization"
-risk = "critical"
+owner = "geometry"
+risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/release/test_installed_wheel_contract.py", "tests/test_certified_decision_portfolio.py"]
-evidence_file_count = 4
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."Polytope"]
+[apis."PolygonalComponent"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
+
+[apis."PolygonalSet"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
+
+[apis."polyhedral_boolean"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."polyhedral_intersection"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."PolyhedralComponent"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_boundary_topology.py", "tests/test_geometry_conversion_decomposition.py"]
+
+[apis."PolyhedralCone"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_canonical_polyhedral_geometry.py", "tests/test_geometry_ownership_contracts.py"]
 
+[apis."PolyhedralShell"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_boundary_topology.py", "tests/test_geometry_conversion_decomposition.py"]
+
+[apis."Polyhedron"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_boundary_topology.py", "tests/test_geometry_conversion_decomposition.py"]
+
+[apis."polyhedron_face_indices"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."polyhedron_vertices"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_boundary_topology.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."polynomial_constraints"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_semialgebraic_local_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."polynomial_nonnegative"]
+kind = "function"
+owner = "geometry"
+risk = "critical"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/release/test_installed_wheel_contract.py", "tests/test_certified_decision_portfolio.py"]
+evidence_file_count = 6
+coverage_status = "expanded"
+
+[apis."PolynomialConstraint"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "polynomial_constraints"
+
+[apis."PolynomialConstraintClause"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "polynomial_constraints"
+
+[apis."PolynomialConstraintSystem"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "polynomial_constraints"
+
+[apis."PolynomialMapImplicitizationResult"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "implicitize_polynomial_map"
+
+[apis."Polytope"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_canonical_polyhedral_geometry.py", "tests/test_generation_refinement_convex_hull.py"]
+
+[apis."PolytopeDecomposition"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "triangulate_polytope"
+
 [apis."Prism"]
 kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_named_solid_constructors.py", "tests/test_public_api_high_risk_contracts.py"]
-evidence_file_count = 2
+tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_named_solid_constructors.py"]
+evidence_file_count = 4
 coverage_status = "expanded"
 
-[apis."PrismRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_standard_region_validation.py"]
+[apis."project_region"]
+kind = "function"
+owner = "decision"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_quantifier_elimination.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
 
 [apis."prove_negative"]
 kind = "function"
 owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_reasoning.py", "tests/test_symbolic_sign_proofs.py"]
-evidence_file_count = 2
+tests = ["tests/test_reasoning.py", "tests/test_root_api_adequacy_strengthening.py"]
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."prove_nonnegative"]
@@ -1225,11 +1668,11 @@ coverage_status = "expanded"
 
 [apis."prove_nonzero"]
 kind = "function"
-owner = "function-analysis"
+owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_function_convexity_backend_primitives.py", "tests/test_public_api_critical_risk_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."prove_positive"]
@@ -1243,11 +1686,11 @@ coverage_status = "expanded"
 
 [apis."prove_zero"]
 kind = "function"
-owner = "function-analysis"
+owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_function_convexity_backend_primitives.py", "tests/test_public_api_critical_risk_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."Pyramid"]
@@ -1255,16 +1698,26 @@ kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_named_solid_constructors.py", "tests/test_public_api_high_risk_contracts.py"]
+tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_named_solid_constructors.py"]
+evidence_file_count = 4
+coverage_status = "expanded"
+
+[apis."quantifier_eliminate"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_quantifier_elimination.py", "tests/test_unified_public_api_secondary_evidence.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."PyramidRegion"]
+[apis."QuantifierEliminationResult"]
 kind = "type"
-owner = "geometry"
+owner = "decision"
 risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_standard_region_validation.py"]
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "quantifier_eliminate"
 
 [apis."random_point"]
 kind = "function"
@@ -1272,7 +1725,7 @@ owner = "solving"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_medium_risk_contracts.py", "tests/test_region_sampling_measurement.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."random_points"]
@@ -1281,6 +1734,24 @@ owner = "solving"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_medium_risk_contracts.py", "tests/test_region_sampling_measurement.py"]
+evidence_file_count = 3
+coverage_status = "expanded"
+
+[apis."random_polygon"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."random_polytope"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
@@ -1293,7 +1764,7 @@ tests = ["tests/test_affine_canonical_geometry.py", "tests/test_geometry_ownersh
 
 [apis."real_algebraic_feasibility"]
 kind = "function"
-owner = "solving"
+owner = "algebraic"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_real_algebraic_feasibility.py", "tests/test_robustness_contracts.py"]
@@ -1302,11 +1773,11 @@ coverage_status = "expanded"
 
 [apis."reduce_formula"]
 kind = "function"
-owner = "decision"
+owner = "solving"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_certified_decision_portfolio.py", "tests/test_public_api_direct_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."reduce_region_integral"]
@@ -1317,6 +1788,48 @@ contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_canonical_simplification_and_cad_integration.py", "tests/test_higher_dimensional_cylindrical_exploitation.py"]
 evidence_file_count = 6
 coverage_status = "expanded"
+
+[apis."reduced_component_singular_loci"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_reduced_algebraic_varieties.py", "tests/test_root_api_multidimensional_algebraic_solving.py"]
+evidence_file_count = 3
+coverage_status = "expanded"
+
+[apis."ReducedAlgebraicVariety"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "certified_radicalization"
+
+[apis."ReducedComponentSingularLocus"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "reduced_component_singular_loci"
+
+[apis."redundant_polynomial_inequalities"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_constraint_certificates.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."RedundantPolynomialInequality"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "redundant_polynomial_inequalities"
 
 [apis."region_active_boundary_strata"]
 kind = "function"
@@ -1345,15 +1858,6 @@ tests = ["tests/test_parametric_geometry.py", "tests/test_public_api_high_risk_c
 evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."region_centroid"]
-kind = "function"
-owner = "integration"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_high_risk_contracts.py", "tests/test_region_moments.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
-
 [apis."region_closure"]
 kind = "function"
 owner = "geometry"
@@ -1363,15 +1867,6 @@ tests = ["tests/test_cad_semantic_region_topology.py", "tests/test_public_api_fa
 evidence_file_count = 7
 coverage_status = "expanded"
 
-[apis."region_closure_interior"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_api_high_risk_contracts.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
-
 [apis."region_complement"]
 kind = "function"
 owner = "geometry"
@@ -1379,24 +1874,6 @@ risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_region_operations.py"]
 evidence_file_count = 3
-coverage_status = "expanded"
-
-[apis."region_components"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_region_operations.py", "tests/test_region_ops.py"]
-evidence_file_count = 3
-coverage_status = "expanded"
-
-[apis."region_covariance"]
-kind = "function"
-owner = "integration"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_high_risk_contracts.py", "tests/test_region_moments.py"]
-evidence_file_count = 2
 coverage_status = "expanded"
 
 [apis."region_difference"]
@@ -1422,8 +1899,8 @@ kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_region_image_preimage.py", "tests/test_region_relations_operations.py"]
-evidence_file_count = 2
+tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_geometry_queries.py"]
+evidence_file_count = 7
 coverage_status = "expanded"
 
 [apis."region_interior"]
@@ -1433,15 +1910,6 @@ risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_cad_semantic_region_topology.py", "tests/test_public_api_family_contracts.py"]
 evidence_file_count = 7
-coverage_status = "expanded"
-
-[apis."region_interior_closure"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_api_high_risk_contracts.py"]
-evidence_file_count = 2
 coverage_status = "expanded"
 
 [apis."region_intersection"]
@@ -1485,8 +1953,8 @@ kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_region_image_preimage.py", "tests/test_region_relations_operations.py"]
-evidence_file_count = 2
+tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_geometry_queries.py"]
+evidence_file_count = 6
 coverage_status = "expanded"
 
 [apis."region_product"]
@@ -1525,6 +1993,15 @@ tests = ["tests/test_public_api_direct_contracts.py", "tests/test_singular_locus
 evidence_file_count = 2
 coverage_status = "expanded"
 
+[apis."region_symmetric_difference"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_region_api_normalization.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
 [apis."region_union"]
 kind = "function"
 owner = "geometry"
@@ -1543,14 +2020,13 @@ tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_api_hig
 evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."RegionDifference"]
-kind = "function"
+[apis."RegionConversion"]
+kind = "type"
 owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_high_risk_contracts.py", "tests/test_standard_region_validation.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "convert_region"
 
 [apis."RegionElement"]
 kind = "type"
@@ -1559,15 +2035,6 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_structural_identity_and_geometry_contracts.py"]
 
-[apis."RegionIntersection"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_high_risk_contracts.py", "tests/test_standard_region_validation.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
-
 [apis."RegionNotElement"]
 kind = "type"
 owner = "geometry"
@@ -1575,30 +2042,30 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_symbolic_regions.py"]
 
-[apis."RegionSymmetricDifference"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_public_api_high_risk_contracts.py", "tests/test_standard_region_integration.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
-
-[apis."RegionUnion"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/test_standard_region_integration.py", "tests/test_standard_region_validation.py"]
-evidence_file_count = 2
-coverage_status = "expanded"
-
 [apis."RegularPolygon"]
 kind = "function"
 owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_canonical_polygon_constructors.py", "tests/test_public_api_high_risk_contracts.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."relative_boundary"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_semialgebraic_local_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."relative_interior"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_semialgebraic_local_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
@@ -1613,11 +2080,11 @@ coverage_status = "expanded"
 
 [apis."resolve_formula"]
 kind = "function"
-owner = "decision"
+owner = "solving"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_critical_risk_contracts.py", "tests/test_public_api_direct_contracts.py"]
-evidence_file_count = 2
+evidence_file_count = 4
 coverage_status = "expanded"
 
 [apis."ResourceLimitError"]
@@ -1655,15 +2122,6 @@ tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_derived_
 evidence_file_count = 3
 coverage_status = "expanded"
 
-[apis."semialgebraic_image"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_geometry_queries.py"]
-evidence_file_count = 5
-coverage_status = "expanded"
-
 [apis."semialgebraic_maximize"]
 kind = "function"
 owner = "optimization"
@@ -1691,15 +2149,6 @@ tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_cad_opti
 evidence_file_count = 15
 coverage_status = "expanded"
 
-[apis."semialgebraic_preimage"]
-kind = "function"
-owner = "geometry"
-risk = "high"
-contracts = ["public-surface", "behavioral-call"]
-tests = ["tests/properties/test_public_api_metamorphic.py", "tests/test_geometry_queries.py"]
-evidence_file_count = 4
-coverage_status = "expanded"
-
 [apis."semialgebraic_projection"]
 kind = "function"
 owner = "geometry"
@@ -1707,6 +2156,15 @@ risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_documentation_example_gallery.py", "tests/test_geometry_queries.py"]
 evidence_file_count = 5
+coverage_status = "expanded"
+
+[apis."semialgebraic_tangent_cone"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_semialgebraic_local_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
 coverage_status = "expanded"
 
 [apis."SemialgebraicRegion"]
@@ -1757,16 +2215,9 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_affine_region_transformations.py", "tests/test_canonical_polyhedral_geometry.py"]
 
-[apis."SimplexRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_polyhedral_geometry.py", "tests/test_geometry_protocol.py"]
-
 [apis."simplify_boole"]
 kind = "function"
-owner = "decision"
+owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_canonical_simplification_and_cad_integration.py", "tests/test_exact_arithmetic_and_symbol_resolution.py"]
@@ -1775,7 +2226,7 @@ coverage_status = "expanded"
 
 [apis."simplify_piecewise"]
 kind = "function"
-owner = "decision"
+owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_symbolic_piecewise_systems.py", "tests/test_symbolic_simplification.py"]
@@ -1811,29 +2262,37 @@ coverage_status = "expanded"
 
 [apis."singular_locus"]
 kind = "function"
-owner = "geometry"
+owner = "algebraic"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_algebraic_geometry_queries.py", "tests/test_documentation_example_gallery.py"]
-evidence_file_count = 2
+evidence_file_count = 4
 coverage_status = "expanded"
+
+[apis."SingularGeometryStratum"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "stratified_singular_geometry"
 
 [apis."solvability_conditions"]
 kind = "function"
-owner = "optimization"
+owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_conditional_parameter_results.py", "tests/test_factory_result_contracts.py"]
-evidence_file_count = 5
+evidence_file_count = 6
 coverage_status = "expanded"
 
 [apis."solve_real_algebraic_set"]
 kind = "function"
-owner = "solving"
+owner = "algebraic"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_public_api_critical_risk_contracts.py", "tests/test_real_algebraic_feasibility.py"]
-evidence_file_count = 2
+evidence_file_count = 3
 coverage_status = "expanded"
 
 [apis."solve_semialgebraic"]
@@ -1842,7 +2301,7 @@ owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/properties/test_parameter_and_cache_invariance.py", "tests/properties/test_public_api_differential.py"]
-evidence_file_count = 26
+evidence_file_count = 27
 coverage_status = "expanded"
 
 [apis."Sphere"]
@@ -1852,14 +2311,7 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_affine_geometry_images.py", "tests/test_canonical_quadric_geometry.py"]
 
-[apis."SphereRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_canonical_quadric_geometry.py", "tests/test_standard_region_integration.py"]
-
-[apis."SphericalShellRegion"]
+[apis."SphericalShell"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
@@ -1875,7 +2327,7 @@ tests = ["tests/test_derived_geometric_operations.py", "tests/test_public_api_hi
 evidence_file_count = 2
 coverage_status = "expanded"
 
-[apis."StadiumRegion"]
+[apis."Stadium"]
 kind = "type"
 owner = "geometry"
 risk = "medium"
@@ -1888,7 +2340,24 @@ owner = "geometry"
 risk = "medium"
 contracts = ["public-surface", "inheritance", "production-path"]
 tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
-production = "IntervalRegion"
+production = "Interval"
+
+[apis."stratified_singular_geometry"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_stratified_singular_geometry.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."StratifiedSingularGeometry"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "stratified_singular_geometry"
 
 [apis."strict_feasible"]
 kind = "function"
@@ -1896,6 +2365,15 @@ owner = "function-analysis"
 risk = "medium"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_function_convexity_backend_primitives.py", "tests/test_public_api_medium_risk_contracts.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."subdivide_triangular_faces"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_generation_refinement_convex_hull.py", "tests/test_geometry_generation_api.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
 
@@ -1937,7 +2415,7 @@ coverage_status = "expanded"
 
 [apis."tangent_dimension"]
 kind = "function"
-owner = "geometry"
+owner = "algebraic"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_algebraic_geometry_conveniences.py", "tests/test_public_api_high_risk_contracts.py"]
@@ -1953,6 +2431,31 @@ tests = ["tests/test_algebraic_geometry_queries.py", "tests/test_documentation_e
 evidence_file_count = 4
 coverage_status = "expanded"
 
+[apis."TetrahedralComplex"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_geometry_ownership_contracts.py"]
+
+[apis."tetrahedralize_cell"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_polytope_geometry.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."tetrahedralize_cells"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_polytope_geometry.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
 [apis."Tetrahedron"]
 kind = "function"
 owner = "geometry"
@@ -1961,13 +2464,6 @@ contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_named_solid_constructors.py", "tests/test_public_api_high_risk_contracts.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
-
-[apis."TetrahedronRegion"]
-kind = "type"
-owner = "geometry"
-risk = "medium"
-contracts = ["public-surface", "construction"]
-tests = ["tests/test_geometry_ownership_contracts.py", "tests/test_geometry_sampling_contracts.py"]
 
 [apis."topology_summary"]
 kind = "function"
@@ -2008,6 +2504,15 @@ risk = "medium"
 contracts = ["public-surface", "construction"]
 tests = ["tests/test_canonical_polygon_constructors.py"]
 
+[apis."triangulate_polytope"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_geometry_conversion_decomposition.py", "tests/test_polytope_geometry.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
 [apis."UnsupportedFragmentError"]
 kind = "exception"
 owner = "errors"
@@ -2015,6 +2520,15 @@ risk = "high"
 contracts = ["public-surface", "inheritance", "construction"]
 tests = ["tests/test_public_result_contracts.py"]
 gaps = ["raising-site"]
+
+[apis."verify_nonnegative_combination_certificate"]
+kind = "function"
+owner = "geometry"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_constraint_certificates.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
 
 [apis."width"]
 kind = "function"
@@ -2025,11 +2539,35 @@ tests = ["tests/test_derived_geometric_operations.py", "tests/test_derived_geome
 evidence_file_count = 2
 coverage_status = "expanded"
 
+[apis."zariski_closure"]
+kind = "function"
+owner = "algebraic"
+risk = "high"
+contracts = ["public-surface", "behavioral-call"]
+tests = ["tests/test_polynomial_map_implicitization.py", "tests/test_unified_public_api_secondary_evidence.py"]
+evidence_file_count = 2
+coverage_status = "expanded"
+
+[apis."ZariskiClosureResult"]
+kind = "type"
+owner = "algebraic"
+risk = "medium"
+contracts = ["public-surface", "factory-return", "production-path"]
+tests = ["tests/test_public_api_direct_contracts.py", "tests/test_public_type_contracts.py"]
+production = "zariski_closure"
+
 [apis."zeng_negative_point"]
 kind = "function"
-owner = "optimization"
+owner = "geometry"
 risk = "high"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_certified_decision_portfolio.py", "tests/test_polynomial_positivity.py"]
 evidence_file_count = 2
 coverage_status = "expanded"
+
+[apis."Zonotope"]
+kind = "type"
+owner = "geometry"
+risk = "medium"
+contracts = ["public-surface", "construction"]
+tests = ["tests/test_geometry_public_types.py"]

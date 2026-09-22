@@ -21,6 +21,41 @@ from .optimization_results import (
 _EXPECTED_ERRORS = (TypeError, ValueError, ArithmeticError, NotImplementedError, PolynomialError)
 
 
+def _validated_parameter_sample(
+    condition: sp.Expr,
+    parameters: tuple[sp.Symbol, ...],
+    candidate: Mapping[sp.Symbol, sp.Expr] | None = None,
+) -> dict[sp.Symbol, sp.Expr]:
+    """Return an exact representative satisfying a parameter guard."""
+    from .instances.real_fallbacks import satisfies_formula
+    from .sampling import sample_point
+
+    def valid(point):
+        if point is None or any(parameter not in point for parameter in parameters):
+            return False
+        try:
+            return satisfies_formula(condition, point, strict=True)
+        except _EXPECTED_ERRORS:
+            return False
+
+    if valid(candidate):
+        return {parameter: sp.simplify(candidate[parameter]) for parameter in parameters}
+    try:
+        sampled = sample_point(
+            condition,
+            parameters,
+            strategy="complete",
+            strict=True,
+            exact=True,
+            default_sampling_radius=8,
+        )
+    except _EXPECTED_ERRORS:
+        sampled = None
+    if valid(sampled):
+        return {parameter: sp.simplify(sampled[parameter]) for parameter in parameters}
+    raise NotImplementedError("could not certify a representative parameter sample")
+
+
 def _normalize_parameters_for_problem(
     parameters: Sequence[sp.Symbol | str],
     *expressions: sp.Expr,
@@ -43,8 +78,6 @@ def _parameter_guards(
         solution = extract_cylindrical_solution(parameter_domain, parameters, selected_only=True)
     except (NotImplementedError, ValueError, TypeError, ArithmeticError, PolynomialError):
         solution = None
-    from .parameter_stratification import _validated_parameter_sample
-
     if solution is None or not solution.cells:
         sample = _validated_parameter_sample(parameter_domain, parameters)
         return parameter_domain, ((parameter_domain, sample),)

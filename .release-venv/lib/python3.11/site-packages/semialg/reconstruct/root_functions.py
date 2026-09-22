@@ -55,11 +55,6 @@ class root_of(sp.Function):
         return super()._eval_subs(old, new)
 
 
-# ``RootFunction`` denotes the typed CAD root-function object; ``root_of`` is
-# only its exact symbolic presentation when no simpler expression is certified.
-RootFunction = AlgebraicRootFunction
-
-
 def root_function_expr(poly: sp.Expr, fiber_var: sp.Symbol, root_index: int) -> sp.Expr:
     poly = primitive_fiber_polynomial(poly, fiber_var)
     return AlgebraicRootFunction(poly, fiber_var, int(root_index)).as_expr()
@@ -67,7 +62,6 @@ def root_function_expr(poly: sp.Expr, fiber_var: sp.Symbol, root_index: int) -> 
 
 __all__ = [
     "AlgebraicRootFunction",
-    "RootFunction",
     "primitive_fiber_polynomial",
     "root_function_expr",
     "root_of",

@@ -7,6 +7,7 @@ from itertools import product
 
 import sympy as sp
 
+from ..._zero_testing import certified_zero
 from ...dimension_validation import require_same_length
 
 
@@ -77,7 +78,7 @@ def _certify_point(
     for eq in equations:
         try:
             residual = sp.simplify(eq.subs(subst))
-            if residual != 0 and residual.is_zero is not True and residual.equals(0) is not True:
+            if certified_zero(residual) is not True:
                 exact_zero = False
             residuals.append(abs(complex(sp.N(residual, 30))))
         except (ArithmeticError, TypeError, ValueError, NotImplementedError):
@@ -240,26 +241,10 @@ def orchestrate_trans_search(
     )
 
 
-def solve_bounded_trans_sys(
-    formula: sp.Expr,
-    variables: Sequence[sp.Symbol],
-    *,
-    search_box: SearchBox | None = None,
-    grid_points_per_axis: int = 3,
-) -> SystemRootFallbackResult:
-    return orchestrate_trans_search(
-        formula,
-        variables,
-        search_box=search_box,
-        grid_points_per_axis=grid_points_per_axis,
-    )
-
-
 __all__ = [
     "CertifiedPoint",
     "CompletenessCertificate",
     "SystemRootFallbackResult",
     "SearchBox",
     "orchestrate_trans_search",
-    "solve_bounded_trans_sys",
 ]

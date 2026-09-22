@@ -54,3 +54,18 @@ def test_ellipsoid_constructor_uses_shared_assumptions_contract():
     assert ellipsoid.is_valid(sp.And(a > 0, b > 0)) is True
     with pytest.raises(ValueError, match="validity conditions contradict"):
         Ellipsoid((0, 0), sp.diag(a, b), assumptions=a < 0)
+
+
+def test_ellipsoid_preserves_unresolved_matrix_conditions():
+    a, b, c = sp.symbols("a b c", real=True)
+    ellipsoid = Ellipsoid((0, 0), ((a, b), (c, a)))
+    assert (
+        sp.Eq(b, c) in ellipsoid.construction_conditions
+        or sp.Eq(c, b) in ellipsoid.construction_conditions
+    )
+    assert len(ellipsoid.construction_conditions) == 3
+
+
+def test_ellipsoid_rejects_certified_nonsymmetric_numeric_matrix():
+    with pytest.raises(ValueError, match="symmetric"):
+        Ellipsoid((0, 0), ((2, 1), (0, 2)))

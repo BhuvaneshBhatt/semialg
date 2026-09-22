@@ -8,21 +8,18 @@ from .congruence import (
     ModularSolveResult,
     combine_mod_crt,
     eliminate_one_var,
-    find_modular_instance,
     find_quant_free_mod_inst,
     norm_mod_form,
     rec_solve_basis,
     simp_mod_ineqs,
     solve_mod_lin_sys,
     solve_mod_poly_sys,
-    solve_modular_system,
     solve_quant_free_mod_sys,
     solve_quantified_modular_system,
 )
 from .diophantine import (
     IntEqnSolveResult,
     detect_binary_homog_eqn,
-    detect_int_lin_elim,
     detect_sum_eqn,
     reduce_int_divis,
     solve_binary_eqn,
@@ -108,7 +105,7 @@ from .special_families import (
     solve_sum_of_squares_fam,
     solve_two_cubes_family,
 )
-from .thue import ThueFamilyDescriptor, detect_binary_fam, solve_binary_bounded, solve_binary_lll
+from .thue import ThueFamilyDescriptor, detect_binary_fam, solve_binary_lll, solve_thue_family
 
 __all__ = [
     "ModularSolveResult",
@@ -122,13 +119,10 @@ __all__ = [
     "find_quant_free_mod_inst",
     "eliminate_one_var",
     "solve_quantified_modular_system",
-    "solve_modular_system",
-    "find_modular_instance",
     "LinDivisReduction",
     "detect_lin_reduction",
     "apply_lin_reduction",
     "IntEqnSolveResult",
-    "detect_int_lin_elim",
     "reduce_int_divis",
     "solve_int_divis",
     "solve_int_branches",
@@ -150,7 +144,6 @@ __all__ = [
     "detect_int_problem_fam",
     "ThueFamilyDescriptor",
     "detect_binary_fam",
-    "solve_binary_bounded",
     "IntegerSolveRequest",
     "IntSolverRegistration",
     "default_int_registry",
@@ -175,6 +168,7 @@ __all__ = [
     "rec_reduce_sys",
     "find_int_recursion",
     "solve_binary_lll",
+    "solve_thue_family",
     "detect_pell_family",
     "solve_pell_family",
     "ModularQuantifierBlock",

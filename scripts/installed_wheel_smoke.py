@@ -34,7 +34,7 @@ def _public_api_smoke() -> None:
     assert decomposition.complete
     assert semialg.replay_certificate(decomposition).verified is True
 
-    positivity = semialg.polynomial_nonnegative_decision((x**2 + 1), (x,))
+    positivity = semialg.polynomial_nonnegative((x**2 + 1), (x,), return_result=True)
     assert positivity.decision is True
 
 

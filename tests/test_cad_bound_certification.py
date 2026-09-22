@@ -102,7 +102,7 @@ def test_explicit_or_declines_overlapping_pieces_to_avoid_double_counting():
     assert extract_explicit_cylindrical_solution(formula, (x,)) is None
 
 
-def test_explicit_or_accepts_provably_disjoint_pieces_and_certifies_decomposition():
+def test_explicit_or_certifies_disjoint_pieces():
     x = sp.symbols("x", real=True)
     formula = sp.Or(sp.And(x >= 0, x <= 1), sp.And(x > 1, x <= 2))
     solution = extract_explicit_cylindrical_solution(formula, (x,))

@@ -106,7 +106,7 @@ def test_budget_limited_non_equidimensional_piece_is_not_certified_complete():
     assert not result.pieces[0].equidimensional
 
 
-def test_real_reduction_collapses_sum_of_squares_hypersurface_to_regular_point_piece():
+def test_real_reduction_collapses_sum_of_squares():
     x, y = sp.symbols("x y", real=True)
     result = equidimensional_decomposition((x**2 + y**2,), (x, y))
 
@@ -141,7 +141,7 @@ def test_monomial_minimal_primes_avoid_branch_budget_false_incompleteness():
     }
 
 
-def test_monomial_minimal_primes_remove_embedded_component_under_reduced_semantics():
+def test_monomial_primes_remove_embedded_component():
     x, y = sp.symbols("x y", real=True)
     # I=(x^2, x*y) has radical (x). The associated coordinate prime (x, y)
     # is embedded and must not survive reduced-set decomposition.
@@ -196,7 +196,7 @@ def test_factor_incidence_budget_counts_minimal_candidates_not_naive_branches():
     assert len(result.pieces) == 2
 
 
-def test_rabinowitsch_saturation_exactly_removes_component_in_splitter_hyperplane():
+def test_rabinowitsch_saturation_removes_splitter_component():
     from semialg.algebraic.equality_ideal import EqualityIdealContext
     from semialg.algebraic_decomposition import _saturate_generators
 
@@ -350,7 +350,7 @@ def test_squarefree_regular_chain_certifies_monomial_curve_branch():
     assert verify_decomposition_certificate(result.certificate)
 
 
-def test_squarefree_regular_chain_does_not_trust_triangular_shape_without_same_ideal():
+def test_squarefree_chain_requires_same_ideal():
     from semialg.algebraic.equality_ideal import EqualityIdealContext
     from semialg.algebraic_decomposition import _squarefree_regular_chain_certified
 

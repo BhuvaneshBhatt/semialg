@@ -26,6 +26,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 import semialg  # noqa: E402
+from semialg._public_api import PUBLIC_EXPORTS  # noqa: E402
 
 ALLOWED_CONTRACTS = {
     "behavioral-call",
@@ -49,7 +50,6 @@ CRITICAL_APIS = {
     "is_satisfiable",
     "is_tautology",
     "polynomial_nonnegative",
-    "polynomial_nonnegative_decision",
     "prove_negative",
     "prove_nonnegative",
     "prove_nonpositive",
@@ -69,9 +69,35 @@ CRITICAL_APIS = {
 INDIRECT_TYPES = {
     "AffineBoxClip": ("factory-return", "clip_affine_subspace_to_box"),
     "CADRegion": ("factory-return", "as_cad_region"),
-    "Geometry": ("inheritance", "IntervalRegion"),
-    "StandardRegion": ("inheritance", "IntervalRegion"),
+    "Geometry": ("inheritance", "Interval"),
+    "StandardRegion": ("inheritance", "Interval"),
     "CriticalValueImage": ("factory-return", "critical_value_image"),
+    "ActiveConstraintResult": ("factory-return", "active_constraints"),
+    "ComponentConstraintDescription": ("factory-return", "component_constraint_descriptions"),
+    "ImpliedPolynomialInequality": ("factory-return", "implied_polynomial_inequality"),
+    "IrreducibleAlgebraicComponent": ("factory-return", "irreducible_components"),
+    "LocalBranchGeometry": ("factory-return", "local_branch_geometry"),
+    "NonnegativeCombinationCertificate": ("factory-return", "nonnegative_combination_certificate"),
+    "ParameterizationGeometry": ("factory-return", "parameterization_geometry"),
+    "PolynomialConstraintSystem": ("factory-return", "polynomial_constraints"),
+    "PolynomialMapImplicitizationResult": ("factory-return", "implicitize_polynomial_map"),
+    "ReducedAlgebraicVariety": ("factory-return", "certified_radicalization"),
+    "ReducedComponentSingularLocus": ("factory-return", "reduced_component_singular_loci"),
+    "RedundantPolynomialInequality": ("factory-return", "redundant_polynomial_inequalities"),
+    "StratifiedSingularGeometry": ("factory-return", "stratified_singular_geometry"),
+    "ZariskiClosureResult": ("factory-return", "zariski_closure"),
+    "RegionConversion": ("factory-return", "convert_region"),
+    "BranchTangentGeometry": ("factory-return", "local_branch_geometry"),
+    "ComponentIntersectionGeometry": ("factory-return", "local_branch_geometry"),
+    "LocalDimensionStratum": ("factory-return", "local_dimension_strata"),
+    "MinimalPrimeIntersection": ("factory-return", "minimal_prime_intersections"),
+    "SingularGeometryStratum": ("factory-return", "stratified_singular_geometry"),
+    "PolynomialConstraint": ("factory-return", "polynomial_constraints"),
+    "PolynomialConstraintClause": ("factory-return", "polynomial_constraints"),
+    "MixedCellTetrahedralization": ("factory-return", "tetrahedralize_cell"),
+    "MixedMeshTetrahedralization": ("factory-return", "tetrahedralize_cells"),
+    "PolytopeDecomposition": ("factory-return", "triangulate_polytope"),
+    "QuantifierEliminationResult": ("factory-return", "quantifier_eliminate"),
 }
 
 EXCEPTION_PROFILES = {
@@ -124,7 +150,7 @@ def _direct_call_evidence(names: set[str]) -> dict[str, list[str]]:
     return {name: sorted(paths) for name, paths in evidence.items()}
 
 
-def _owner(documentation_target: str) -> str:
+def _owner(name: str, documentation_target: str) -> str:
     page = documentation_target.split("#", 1)[0]
     if page.endswith("decision_and_qe.md"):
         return "decision"
@@ -143,6 +169,21 @@ def _owner(documentation_target: str) -> str:
     if page.endswith("package_metadata.md"):
         return "package"
     if page.endswith("regions.md") or page.endswith("cad.md"):
+        return "geometry"
+    if page.endswith("root_api_usage.md"):
+        module = PUBLIC_EXPORTS[name]
+        if any(token in module for token in ("algebraic", "incidence")):
+            return "algebraic"
+        if "optimization" in module:
+            return "optimization"
+        if "integrat" in module or "moment" in module or "measure" in module:
+            return "integration"
+        if any(token in module for token in ("decision", "reasoning", "parameters")):
+            return "decision"
+        if any(token in module for token in ("solv", "sampling")):
+            return "solving"
+        if any(token in module for token in ("function", "convex")):
+            return "function-analysis"
         return "geometry"
     raise ValueError(f"no coverage owner for documentation target {documentation_target!r}")
 
@@ -186,7 +227,7 @@ def render_manifest() -> str:
     ]
     for name in sorted(exported, key=lambda item: (item.lower(), item)):
         kind = _kind(name)
-        owner = _owner(documentation[name])
+        owner = _owner(name, documentation[name])
         risk = _risk(name, kind, owner)
         production: str | None = None
         gaps: list[str] = []

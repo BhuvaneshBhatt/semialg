@@ -15,7 +15,7 @@ def test_rur_distributes_small_boolean_branches_inside_conjunction():
     assert result.points == ((0, 2), (1, 2))
 
 
-def test_rur_ignores_tautological_equalities_and_detects_false_numeric_equalities():
+def test_rur_handles_constant_equalities():
     x = sp.symbols("x")
     sat = solve_formula_with_rur(sp.And(sp.Eq(x, 1), sp.Eq(0, 0)), (x,))
     unsat = solve_formula_with_rur(sp.And(sp.Eq(x, 1), sp.Eq(0, 1)), (x,))

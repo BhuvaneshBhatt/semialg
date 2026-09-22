@@ -34,19 +34,7 @@ from .gtz import (
     verify_saturation_stabilization_certificate,
 )
 from .hilbert import ideal_degree
-from .ideal_ops import canonical_qq_basis_uncached, intersection_all_qq, qq_ideal_equal_uncached
-
-
-def _canonical_qq_basis(
-    generators: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
-) -> tuple[sp.Expr, ...]:
-    return canonical_qq_basis_uncached(generators, variables)
-
-
-def _qq_ideal_equal(
-    left: Sequence[sp.Expr], right: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
-) -> bool:
-    return qq_ideal_equal_uncached(left, right, variables)
+from .ideal_ops import intersection_all_qq, qq_ideal_equal_uncached
 
 
 def _intersection_all(
@@ -265,7 +253,7 @@ def zero_dimensional_primary_decomposition(
             )
         )
 
-    if not _qq_ideal_equal(
+    if not qq_ideal_equal_uncached(
         _intersection_all(
             [component.ambient_generators for component in components],
             ambient_variables,
@@ -333,7 +321,7 @@ def verify_zero_dimensional_primary_certificate(
             return False
         if not minimal_certificate.minimal_primes_complete:
             return False
-        if not _qq_ideal_equal(
+        if not qq_ideal_equal_uncached(
             minimal_certificate.source_equations, ambient_source, ambient_variables
         ):
             return False
@@ -363,13 +351,15 @@ def verify_zero_dimensional_primary_certificate(
             sat = component.saturation_certificate
             if tuple(sat.variables) != ambient_variables:
                 return False
-            if not _qq_ideal_equal(sat.source_generators, ambient_source, ambient_variables):
+            if not qq_ideal_equal_uncached(
+                sat.source_generators, ambient_source, ambient_variables
+            ):
                 return False
             if sp.expand(sat.splitter - separator) != 0:
                 return False
             if not verify_saturation_stabilization_certificate(sat):
                 return False
-            if not _qq_ideal_equal(
+            if not qq_ideal_equal_uncached(
                 component.ambient_generators, sat.saturated_generators, ambient_variables
             ):
                 return False
@@ -377,13 +367,13 @@ def verify_zero_dimensional_primary_certificate(
             radical = _canonical_field_generators(component.ambient_radical, vars_, field)
             if mapped != tuple(component.generators) or radical != tuple(component.radical):
                 return False
-            if not _qq_ideal_equal(
+            if not qq_ideal_equal_uncached(
                 (*relations, *component.generators),
                 component.ambient_generators,
                 ambient_variables,
             ):
                 return False
-            if not _qq_ideal_equal(
+            if not qq_ideal_equal_uncached(
                 (*relations, *component.radical),
                 component.ambient_radical,
                 ambient_variables,
@@ -399,7 +389,7 @@ def verify_zero_dimensional_primary_certificate(
             [component.ambient_generators for component in certificate.components],
             ambient_variables,
         )
-        return _qq_ideal_equal(reconstructed, ambient_source, ambient_variables)
+        return qq_ideal_equal_uncached(reconstructed, ambient_source, ambient_variables)
     except (
         ArithmeticError,
         TypeError,

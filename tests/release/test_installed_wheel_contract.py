@@ -77,7 +77,7 @@ def test_representative_exact_public_computations():
     x = sp.Symbol("x", real=True)
     assert semialg.is_satisfiable((x >= -1) & (x <= 1), (x,))
     assert semialg.is_equal(x**2 <= 1, (x >= -1) & (x <= 1), (x,))
-    result = semialg.polynomial_nonnegative_decision(x**2 + 1, (x,), sos_backend="none")
+    result = semialg.polynomial_nonnegative(x**2 + 1, (x,), sos_backend="none")
     assert result is True
 
 

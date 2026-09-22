@@ -13,18 +13,18 @@ from semialg.parametric_geometry import bounded_parametric_cover
 from semialg.polyhedral_clipping import clip_affine_subspace_to_box
 from semialg.region_analysis import region_boundary_result
 from semialg.regions.operations import region_dimension
-from semialg.standard_regions import BoxRegion, ParametricRegion, SimplexRegion
+from semialg.standard_regions import Box, ParametricRegion, Simplex
 
 
 def test_bounded_parametric_cover_reuses_structured_region_geometry():
-    box = BoxRegion(((0, 2), (-1, 1)))
+    box = Box(((0, 2), (-1, 1)))
     cover = bounded_parametric_cover(box)
     assert cover.exact
     assert len(cover.charts) == 1
     assert cover.certified_dimension() == 2
     assert region_dimension(box) == 2
 
-    triangle = SimplexRegion(((0, 0), (1, 0), (0, 1)))
+    triangle = Simplex(((0, 0), (1, 0), (0, 1)))
     tri_cover = bounded_parametric_cover(triangle)
     assert tri_cover.certified_dimension() == 2
     assert region_dimension(triangle) == 2

@@ -1,6 +1,6 @@
 import sympy as sp
 
-from semialg import BoxRegion, Polytope
+from semialg import Box, Polytope
 from semialg.topology.semialgebraic import (
     component_decomposition,
     dimension_strata,
@@ -10,7 +10,7 @@ from semialg.topology.semialgebraic import (
 
 
 def test_square_triangulation():
-    square = BoxRegion(((0, 1), (0, 1)))
+    square = Box(((0, 1), (0, 1)))
     triangulation = triangulate_region(square)
     assert triangulation.certified
     assert triangulation.dimension == 2
@@ -19,7 +19,7 @@ def test_square_triangulation():
 
 
 def test_cube_pulling_triangulation():
-    cube = BoxRegion(((0, 1), (0, 1), (0, 1)))
+    cube = Box(((0, 1), (0, 1), (0, 1)))
     triangulation = triangulate_region(cube)
     assert triangulation.dimension == 3
     assert triangulation.complex.simplex_count == 6

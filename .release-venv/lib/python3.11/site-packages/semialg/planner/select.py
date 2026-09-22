@@ -17,8 +17,6 @@ from .features import feature_signature
 from .heuristics import choose_best_variable_order
 from .strategy_memory import StrategyMemory
 
-PROJECTION_EC = PROJECTION_MCCALLUM
-
 
 @dataclass(frozen=True)
 class StrategySelection:
@@ -57,7 +55,7 @@ def select_strat_analysis(
             partial = True
             notes.append("Selected TTICAD due to disjunction/branch structure.")
         elif f.has_ecs and f.variable_count >= 2:
-            backend = PROJECTION_EC if f.ec_density >= 0.3 else PROJECTION_MCCALLUM
+            backend = PROJECTION_MCCALLUM
             partial = f.quantifier_alternations > 0
             notes.append(
                 "Selected reduced projection because equational constraints are available."

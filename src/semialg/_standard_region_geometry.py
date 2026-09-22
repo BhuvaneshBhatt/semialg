@@ -10,7 +10,7 @@ from collections.abc import Sequence
 
 import sympy as sp
 
-from ._zero_testing import certified_equal
+from ._zero_testing import certified_equal, certified_sign, certified_zero
 from .exact_arithmetic import compare_exact_reals
 
 _PointData = tuple[sp.Expr, ...]
@@ -34,47 +34,27 @@ def _validate_same_dimension(points: Sequence[_PointData], *, label: str) -> int
 def _validate_nonnegative(value: sp.Expr, *, label: str) -> None:
     """Reject values that are provably negative, allowing symbolic unknowns."""
 
-    try:
-        if compare_exact_reals(value, sp.Integer(0)) < 0:
-            raise ValueError(f"{label} must be nonnegative") from None
-    except (TypeError, ValueError, NotImplementedError):
-        if sp.simplify(value).is_negative is True:
-            raise ValueError(f"{label} must be nonnegative") from None
+    if certified_sign(value) == -1:
+        raise ValueError(f"{label} must be nonnegative")
 
 
 def _validate_interval(lower: sp.Expr, upper: sp.Expr, *, label: str = "bounds") -> None:
     """Reject an interval whose endpoint order is provably reversed."""
 
-    try:
-        reversed_order = compare_exact_reals(lower, upper) > 0
-    except (TypeError, ValueError, NotImplementedError):
-        reversed_order = sp.simplify(lower - upper).is_positive is True
-    if reversed_order:
+    if certified_sign(lower - upper) == 1:
         raise ValueError(f"{label} have lower endpoint greater than upper endpoint")
 
 
 def _provably_zero(value: sp.Expr) -> bool:
     """Return whether an exact symbolic quantity can be certified as zero."""
 
-    simplified = sp.simplify(value)
-    if simplified == 0 or simplified.is_zero is True:
-        return True
-    try:
-        return compare_exact_reals(simplified, sp.Integer(0)) == 0
-    except (TypeError, ValueError, NotImplementedError):
-        return False
+    return certified_zero(value) is True
 
 
 def _provably_nonpositive(value: sp.Expr) -> bool:
     """Return whether an exact symbolic quantity can be certified as nonpositive."""
 
-    simplified = sp.simplify(value)
-    if simplified.is_nonpositive is True:
-        return True
-    try:
-        return compare_exact_reals(simplified, sp.Integer(0)) <= 0
-    except (TypeError, ValueError, NotImplementedError):
-        return False
+    return certified_sign(value) in (-1, 0)
 
 
 def _validate_triangle_sides(a: sp.Expr, b: sp.Expr, c: sp.Expr) -> None:
@@ -144,29 +124,35 @@ def _sympify_square_matrix(matrix: object, *, dimension: int, label: str) -> sp.
 
 
 def _positive_definite_conditions(matrix: sp.ImmutableMatrix) -> tuple[sp.Expr, ...]:
-    """Return unresolved Sylvester conditions, rejecting a provably invalid matrix."""
+    """Return exact symmetry/Sylvester conditions for positive definiteness.
 
-    if matrix != matrix.T:
-        if any(
-            certified_equal(matrix[i, j], matrix[j, i]) is not True
-            for i in range(matrix.rows)
-            for j in range(i)
-        ):
-            raise ValueError("ellipsoid shape matrix must be symmetric")
+    Construction rejects only certified contradictions. Parameter-dependent
+    symmetry and principal-minor signs remain explicit validity conditions so
+    callers may discharge them with assumptions instead of losing information.
+    """
+
+    conditions: list[sp.Expr] = []
+    for i in range(matrix.rows):
+        for j in range(i):
+            equality = certified_equal(matrix[i, j], matrix[j, i])
+            if equality is False:
+                # Unequal symbol-free entries are a certified contradiction.
+                if not (matrix[i, j] - matrix[j, i]).free_symbols:
+                    raise ValueError("ellipsoid shape matrix must be symmetric")
+                conditions.append(sp.Eq(matrix[i, j], matrix[j, i]))
+            elif equality is None:
+                conditions.append(sp.Eq(matrix[i, j], matrix[j, i]))
     symmetric = sp.ImmutableMatrix(
-        matrix.rows, matrix.cols, lambda i, j: sp.simplify((matrix[i, j] + matrix[j, i]) / 2)
+        matrix.rows, matrix.cols, lambda i, j: sp.cancel((matrix[i, j] + matrix[j, i]) / 2)
     )
-    status = symmetric.is_positive_definite
-    if status is False:
-        raise ValueError("ellipsoid shape matrix must be positive definite")
-    conditions = []
     for size in range(1, symmetric.rows + 1):
-        condition = sp.simplify(symmetric[:size, :size].det() > 0)
-        if condition is sp.false:
+        determinant = sp.factor(symmetric[:size, :size].det())
+        sign = certified_sign(determinant)
+        if sign in (-1, 0):
             raise ValueError("ellipsoid shape matrix must be positive definite")
-        if condition is not sp.true:
-            conditions.append(condition)
-    return tuple(conditions)
+        if sign is None:
+            conditions.append(determinant > 0)
+    return tuple(dict.fromkeys(conditions))
 
 
 def _sphere_through_points(points: Sequence[Sequence[object]]) -> tuple[_PointData, sp.Expr]:

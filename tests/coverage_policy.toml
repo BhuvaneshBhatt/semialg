@@ -3,7 +3,7 @@ source_root = "src/semialg"
 require_branches = true
 
 [overall]
-# Preserve the Phase-5 gate until a fresh full branch-coverage run justifies a raise.
+# Keep this threshold until a complete branch-coverage run justifies raising it.
 floor_combined = 74.5
 next_combined_target = 76.0
 
@@ -77,7 +77,6 @@ directories = [
   "src/semialg/cad_algorithms",
   "src/semialg/decomposition",
   "src/semialg/ec",
-  "src/semialg/generic",
   "src/semialg/tticad",
 ]
 files = ["src/semialg/model.py", "src/semialg/tti.py"]

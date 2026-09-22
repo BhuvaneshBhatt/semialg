@@ -83,9 +83,7 @@ backend proves attainment of the global minimum and solves zero-dimensional
 gradient loci exactly. Positive-dimensional gradient loci are no longer an automatic
 incomplete case: negativity on the critical locus is encoded by introducing a real
 slack variable `u` and the equality `f*u**2 + 1 = 0`, then certified with the ARS
-positive-dimensional equality-feasibility backend. Coercivity is certified separately from the literature-specific reduction; see the coercivity section below. Unsupported cases remain incomplete. The current backend is Zeng-family inspired rather than a verbatim implementation of [ZZ2004]. `polynomial_nonnegative` and `find_negative_point` provide
-convenience APIs. `polynomial_nonnegative_decision` exposes the certified portfolio
-trace. Automatic global nonnegativity dispatch tries an optional SOS search whose
+positive-dimensional equality-feasibility backend. Coercivity is certified separately from the literature-specific reduction; see the coercivity section below. Unsupported cases remain incomplete. The current backend is Zeng-family inspired rather than a verbatim implementation of [ZZ2004]. `polynomial_nonnegative` is the single public global-nonnegativity entry point: it returns a Boolean by default and, with `return_result=True`, exposes the certified portfolio trace. `find_negative_point` provides the specialized witness-oriented convenience API. Automatic global nonnegativity dispatch tries an optional SOS search whose
 Gram certificate must verify exactly, then Zeng (including its ARS handoff), and
 finally complete semialgebraic decision/CAD. `prove_nonnegative` and
 `prove_nonpositive` consume this same portfolio before general implication/QE.
@@ -116,12 +114,7 @@ rationally reconstructed, the exact coefficient equations are solved again, and 
 result is accepted only after exact Gram-identity and LDL PSD verification. Missing
 solvers or unrecoverable numerical candidates remain incomplete results. Explicit
 SOS requests bypass the automatic performance planner.
-When current `symbopt` returns its richer exact `SOSCertificate`, `semialg` prefers
-that recovered certificate over the flattened compatibility `gram_matrix` field. Rich-certificate
-metadata is treated only as a conservative gate: `semialg` reconstructs the Gram proof
-and independently rechecks the exact polynomial identity and PSD condition. Older
-`symbopt` integrations using the flattened `monomial_basis`/`gram_matrix`
-contract.
+When `symbopt` returns an exact `SOSCertificate`, `semialg` uses its proof data as a proposal. Certificate metadata is only a conservative gate: `semialg` reconstructs the Gram proof and independently rechecks the exact polynomial identity and PSD condition. Backends that provide `monomial_basis` and `gram_matrix` are handled through the same verification boundary.
 
 This keeps the proof boundary inside `semialg` while optimization-oriented search
 remains in `symbopt`.

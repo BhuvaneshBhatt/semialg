@@ -1,15 +1,14 @@
-import pytest
 import sympy as sp
 
-from semialg import BallRegion, BoxRegion, Geometry, PointRegion, SemialgebraicRegion, SimplexRegion
+from semialg import Ball, Box, FinitePointSet, Geometry, SemialgebraicRegion, Simplex
 
 
 def test_standard_regions_share_geometry_protocol():
     regions = (
-        PointRegion((1, 2)),
-        BoxRegion(((0, 1), (-1, 2))),
-        BallRegion((0, 0), 2),
-        SimplexRegion(((0, 0), (1, 0), (0, 1))),
+        FinitePointSet((1, 2)),
+        Box(((0, 1), (-1, 2))),
+        Ball((0, 0), 2),
+        Simplex(((0, 0), (1, 0), (0, 1))),
     )
     assert all(isinstance(region, Geometry) for region in regions)
     assert [region.intrinsic_dimension for region in regions] == [0, 2, 2, 2]
@@ -18,14 +17,14 @@ def test_standard_regions_share_geometry_protocol():
 
 def test_as_formula_uses_existing_semialgebraic_lowering():
     x, y = sp.symbols("x y", real=True)
-    ball = BallRegion((1, -1), 3)
+    ball = Ball((1, -1), 3)
     formula = ball.as_formula((x, y))
     assert sp.simplify(formula ^ ((x - 1) ** 2 + (y + 1) ** 2 <= 9)) is sp.false
 
 
 def test_as_formula_can_eliminate_structural_quantifiers():
     x, y = sp.symbols("x y", real=True)
-    simplex = SimplexRegion(((0, 0), (1, 0), (0, 1)))
+    simplex = Simplex(((0, 0), (1, 0), (0, 1)))
     raw = simplex.as_formula((x, y))
     assert raw.has(sp.Symbol) and "Exists" in type(raw).__name__
     quantifier_free = simplex.as_formula((x, y), eliminate=True)
@@ -37,7 +36,7 @@ def test_as_formula_can_eliminate_structural_quantifiers():
 
 def test_contains_and_boundary_delegate_to_symbolic_geometry():
     x = sp.symbols("x", real=True)
-    box = BoxRegion(((0, 1),))
+    box = Box(((0, 1),))
     assert box.contains((sp.Rational(1, 2),)) is True
     assert box.contains((2,)) is False
     boundary = box.boundary((x,), strategy="syntactic")
@@ -45,6 +44,7 @@ def test_contains_and_boundary_delegate_to_symbolic_geometry():
     assert sp.simplify(boundary.formula ^ sp.Or(sp.Eq(x, 0), sp.Eq(x, 1))) is sp.false
 
 
-def test_affine_hull_is_optional_capability():
-    with pytest.raises(NotImplementedError, match="structural affine hull"):
-        BallRegion((0, 0), 1).affine_hull()
+def test_affine_hull_for_full_dimensional_standard_region():
+    hull = Ball((0, 0), 1).affine_hull()
+    assert hull.dimension() == 2
+    assert hull.contains((3, -2)) is True

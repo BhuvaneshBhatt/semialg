@@ -46,7 +46,7 @@ def test_explicit_parameter_argument_matches_automatic_parameter_detection():
     assert result.select({a: -1}) == "strictly_decreasing"
 
 
-def test_function_convexity_automatically_returns_conditions_for_free_parameters():
+def test_convexity_returns_free_parameter_conditions():
     x, a = sp.symbols("x a", real=True)
     result = function_convexity(a * x**2, [x])
     assert isinstance(result, ParameterStratifiedResult)

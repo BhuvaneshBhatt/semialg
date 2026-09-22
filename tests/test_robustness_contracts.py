@@ -11,7 +11,7 @@ from semialg import (
     is_injective,
     is_surjective,
     matrix_definiteness,
-    polynomial_nonnegative_decision,
+    polynomial_nonnegative,
     real_algebraic_feasibility,
     tangent_cone,
     tangent_space,
@@ -60,10 +60,8 @@ def test_constant_matrix_unknown_remains_unknown():
 
 def test_single_answer_decisions_default_to_mathematical_values():
     x = sp.Symbol("x", real=True)
-    assert polynomial_nonnegative_decision(x**2 + 1, (x,), sos_backend="none") is True
-    detailed = polynomial_nonnegative_decision(
-        x**2 + 1, (x,), sos_backend="none", return_result=True
-    )
+    assert polynomial_nonnegative(x**2 + 1, (x,), sos_backend="none") is True
+    detailed = polynomial_nonnegative(x**2 + 1, (x,), sos_backend="none", return_result=True)
     assert isinstance(detailed, CertifiedDecisionResult)
     assert detailed.decision is True
 

@@ -1,7 +1,7 @@
 import pytest
 import sympy as sp
 
-from semialg import Ball, Cylinder, Ellipsoid, SphericalShellRegion, Torus, Triangle
+from semialg import Ball, Cylinder, Ellipsoid, SphericalShell, Torus, Triangle
 
 
 @pytest.mark.parametrize(
@@ -9,7 +9,7 @@ from semialg import Ball, Cylinder, Ellipsoid, SphericalShellRegion, Torus, Tria
     [
         (lambda r: Ball((0, 0), r), lambda r: r >= 0, lambda r: r < 0),
         (
-            lambda r: SphericalShellRegion((0, 0), (0, r)),
+            lambda r: SphericalShell((0, 0), (0, r)),
             lambda r: r >= 0,
             lambda r: r < 0,
         ),

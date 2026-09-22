@@ -22,13 +22,13 @@ from .cylindrical import (
     cad,
     cad_text,
 )
-from .generic import (
-    GenericCADFunction,
-    GenericCADResult,
-    GenericCase,
-    GenericOutput,
-    generic_cad,
-    generic_cad_text,
+from .parametric import (
+    ParametricCADCase,
+    ParametricCADFunction,
+    ParametricCADOutput,
+    ParametricCADResult,
+    parametric_cad,
+    parametric_cad_text,
 )
 
 __all__ = [
@@ -42,10 +42,10 @@ __all__ = [
     "CellGraph",
     "CellSet",
     "ComponentResult",
-    "GenericCADFunction",
-    "GenericCADResult",
-    "GenericCase",
-    "GenericOutput",
+    "ParametricCADFunction",
+    "ParametricCADResult",
+    "ParametricCADCase",
+    "ParametricCADOutput",
     "TopoOp",
     "build_cad_tree",
     "cad",
@@ -54,6 +54,6 @@ __all__ = [
     "component_instances",
     "component_instances_text",
     "components_from_cell_set",
-    "generic_cad",
-    "generic_cad_text",
+    "parametric_cad",
+    "parametric_cad_text",
 ]

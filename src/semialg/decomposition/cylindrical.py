@@ -540,6 +540,12 @@ def _make_result(
         "formula_form": options.formula_form,
         "max_formula_terms": options.max_formula_terms,
         "max_preprocess_aux_vars": options.max_preprocess_aux_vars,
+        "resource_limits": {
+            "max_cells": options.max_cells,
+            "timeout": options.timeout,
+            "backend_enforced": False,
+        },
+        "planner": {"requested_strategy": options.strategy, "effective_backend": cad_obj.backend},
     }
     return CADResult(
         formula=output_formula,
@@ -715,6 +721,15 @@ def cad(
                     "qe_formula": qe_formula,
                     "preprocess_elimination_limited": False,
                     "max_preprocess_aux_vars": options.max_preprocess_aux_vars,
+                    "resource_limits": {
+                        "max_cells": options.max_cells,
+                        "timeout": options.timeout,
+                        "backend_enforced": False,
+                    },
+                    "planner": {
+                        "requested_strategy": options.strategy,
+                        "effective_backend": result.cad.backend,
+                    },
                 }
             )
             result = CADResult(

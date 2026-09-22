@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping, Sequence
 
 import sympy as sp
 
-from .exact_arithmetic import compare_exact_reals
+from ._zero_testing import certified_sign
 from .formula import to_sympy
 from .symbol_resolution import normalize_variables as resolve_variables
 from .symbol_resolution import resolve_symbol
@@ -224,11 +224,7 @@ def normalize_bounds(
             raise ValueError(f"duplicate bound for variable {var!r}")
         lower_expr = sp.sympify(lower)
         upper_expr = sp.sympify(upper)
-        try:
-            reversed_bounds = compare_exact_reals(lower_expr, upper_expr) > 0
-        except (TypeError, ValueError, NotImplementedError):
-            reversed_bounds = sp.simplify(lower_expr - upper_expr).is_positive is True
-        if reversed_bounds:
+        if certified_sign(lower_expr - upper_expr) == 1:
             raise ValueError(f"lower bound exceeds upper bound for {var!r}")
         result[var] = (lower_expr, upper_expr)
     return result

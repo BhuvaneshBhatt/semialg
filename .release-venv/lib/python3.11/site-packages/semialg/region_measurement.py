@@ -55,14 +55,15 @@ def region_measure(
     region: object,
     variables: Sequence[sp.Symbol | str] | None = None,
     *,
-    measure_dimension: object = "intrinsic",
+    measure_dimension: object = None,
     return_result: bool = False,
 ) -> sp.Expr | MeasureResult:
     """Return exact Euclidean/Hausdorff measure of a region when supported.
 
-    Canonical geometry defaults to intrinsic measure. Formula regions delegate
-    to :func:`semialgebraic_measure` and therefore retain its ambient-measure
-    behavior unless another dimension is requested explicitly.
+    With ``measure_dimension=None``, canonical geometry uses intrinsic measure
+    while formula regions use ambient Lebesgue measure. Pass ``"intrinsic"``,
+    ``"ambient"``, or an integer dimension to override that abstraction-aware
+    default explicitly. Formula regions delegate to :func:`semialgebraic_measure`.
     """
 
     from .standard_regions import Ellipsoid, StandardRegion
@@ -72,10 +73,11 @@ def region_measure(
 
         if variables is None:
             raise ValueError("variables are required for formula-region measure")
+        formula_dimension = "ambient" if measure_dimension is None else measure_dimension
         return semialgebraic_measure(
             region,
             variables,
-            measure_dimension=measure_dimension,
+            measure_dimension=formula_dimension,
             return_result=return_result,
         )
 
@@ -146,15 +148,15 @@ def geometry_centroid(
     """Return the centroid of a canonical geometry under uniform intrinsic measure."""
 
     from .standard_regions import (
-        BallRegion,
+        Ball,
         Ellipsoid,
         EllipsoidBoundary,
-        ParallelepipedRegion,
-        ParallelogramRegion,
-        PointRegion,
-        SimplexRegion,
-        SphereRegion,
-        SphericalShellRegion,
+        FinitePointSet,
+        Parallelepiped,
+        Parallelogram,
+        Simplex,
+        Sphere,
+        SphericalShell,
         StandardRegion,
     )
 
@@ -169,24 +171,22 @@ def geometry_centroid(
     if measure == 0 or measure in (sp.oo, -sp.oo, sp.zoo):
         raise ValueError("centroid requires finite nonzero measure")
 
-    if isinstance(region, PointRegion):
+    if isinstance(region, FinitePointSet):
         coords = tuple(
             sp.simplify(sum(point[i] for point in region.points) / len(region.points))
             for i in range(region.ambient_dimension())
         )
         method = "point_average"
-    elif isinstance(
-        region, (BallRegion, SphereRegion, SphericalShellRegion, Ellipsoid, EllipsoidBoundary)
-    ):
+    elif isinstance(region, (Ball, Sphere, SphericalShell, Ellipsoid, EllipsoidBoundary)):
         coords = tuple(region.center)
         method = "central_symmetry"
-    elif isinstance(region, SimplexRegion):
+    elif isinstance(region, Simplex):
         coords = tuple(
             sp.simplify(sum(vertex[i] for vertex in region.vertices) / len(region.vertices))
             for i in range(region.ambient_dimension())
         )
         method = "simplex_barycenter"
-    elif isinstance(region, (ParallelogramRegion, ParallelepipedRegion)):
+    elif isinstance(region, (Parallelogram, Parallelepiped)):
         coords = tuple(
             sp.simplify(
                 region.origin[i] + sp.Rational(1, 2) * sum(vector[i] for vector in region.vectors)

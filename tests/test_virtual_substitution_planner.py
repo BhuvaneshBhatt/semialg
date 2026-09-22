@@ -8,7 +8,7 @@ from semialg.qe.virtual_substitution import (
 from semialg.solve import reduce_text
 
 
-def test_planner_uses_virtual_substitution_for_existential_quadratic_disk_projection():
+def test_planner_uses_virtual_substitution_for_disk():
     x, y = sp.symbols("x y", real=True)
 
     result = reduce_text(

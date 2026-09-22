@@ -12,7 +12,7 @@ from semialg.convexity import (
 )
 
 
-def test_complete_one_dimensional_classifier_rejects_disconnected_single_relation():
+def test_1d_classifier_rejects_disconnected_relation():
     x = sp.symbols("x", real=True)
     cert = convexity_certificate(x**2 >= 1, (x,))
 

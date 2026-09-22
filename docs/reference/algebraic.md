@@ -1,7 +1,7 @@
 # Algebraic roots and exact finite solving reference
 ## Family contract
 
-**computer algebra systeml return.** Algebraic APIs represent, isolate, compare, classify, and solve exact real algebraic roots and finite polynomial systems.
+**Mathematical return.** Algebraic APIs represent, isolate, compare, classify, and solve exact real algebraic roots and finite polynomial systems.
 
 **Exactness and certification.** Root identity/order and algebraic signs use exact arithmetic, isolating information, or number-field/RUR machinery rather than fixed-precision comparison.
 
@@ -438,3 +438,49 @@ embedded, localized, and three-variable cases.  It times the computation but
 accepts a benchmark result only when the resulting GTZ certificate replays.
 The same printed examples can be used for external comparison with Singular's
 `primdecGTZ`; Singular is not required at runtime.
+
+
+## Polynomial-map implicitization and Zariski closures
+
+`implicitize_polynomial_map(mapping, parameters, ...)` computes the exact
+elimination ideal of a polynomial map graph.  The optional `domain_equations`
+restrict the parameter space algebraically; semialgebraic inequalities are not
+accepted because their effect on the Zariski closure requires a separate
+density argument.  `return_result=True` exposes both the graph Groebner basis
+and the reduced image equations.
+
+`zariski_closure(mapping, parameters, ...)` presents the same exact elimination
+as a conjunction of polynomial equalities in the image coordinates.  This is
+the algebraic closure of the polynomial image, not the exact real
+semialgebraic image; use `region_image` when inequalities and real image
+semantics must be retained.
+
+The result of `implicitize_polynomial_map(..., return_result=True)` can be
+passed directly to `singular_locus`, which applies the Jacobian criterion in
+the implicit image coordinates.  For example, `(t**2, t**3)` implicitizes to
+the cusp and its singular locus contains the origin.
+
+
+## Certified reduced varieties and component singularities
+
+`certified_radicalization(equations, variables)` computes `sqrt(I)` through the certified regular-chain radical engine and replays its certificate before exposing the reduced generators. `irreducible_components(...)` is stricter: it returns components only when the radical cover is certified complete and every irredundant component has a primality certificate, so the result is a complete minimal-prime decomposition.
+
+`singular_locus(...)` now radicalizes by default before applying the Jacobian criterion. Thus `x**2 = 0` and `x = 0` define the same smooth reduced line. `reduced_component_singular_loci(...)` computes the Jacobian singular locus on each certified irreducible component independently, distinguishing singularities intrinsic to a component from intersections between otherwise smooth components.
+
+## Stratified singular geometry
+
+`MinimalPrimeIntersection`, `LocalDimensionStratum`, `SingularGeometryStratum`, and `StratifiedSingularGeometry` are the structured results for this layer. `minimal_prime_intersections()` computes exact intersections of certified minimal-prime components by ideal sums. `local_dimension_strata()` returns constructible loci on which local algebraic dimension is constant. `stratified_singular_geometry()` combines those results with each reduced component's intrinsic Jacobian singular locus and refines component membership into disjoint constructible singular strata. Component crossings are represented separately from intrinsic singularities.
+
+## Local branch and reduced variety geometry
+
+`ReducedAlgebraicVariety`, `IrreducibleAlgebraicComponent`, and
+`ReducedComponentSingularLocus` make the reduced algebraic variety explicit before
+singularity analysis. `PolynomialMapImplicitizationResult` and `ZariskiClosureResult`
+record exact elimination results without identifying a Zariski closure with a real
+semialgebraic image.
+
+`LocalBranchGeometry`, `BranchTangentGeometry`, and `ComponentIntersectionGeometry`
+separate intrinsic branch singularities from intersections of distinct minimal-prime
+components. `local_branch_geometry()` computes tangent-cone and tangent-space data,
+tangent-dimension excess, local multiplicity/degree information, and certified
+transversality information at the supplied exact point.

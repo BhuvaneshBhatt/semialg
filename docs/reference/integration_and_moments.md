@@ -1,13 +1,15 @@
 # Integration, measure, and moments reference
 ## Family contract
 
-**Common mathematical result.** Integration APIs return exact symbolic integrals over supported semialgebraic regions; measure and moment APIs are derived exact integrals with dimension-aware semantics.
+**Mathematical return.** Integration APIs return exact symbolic integrals over supported semialgebraic regions; measure and moment APIs are derived exact integrals with dimension-aware semantics.
 
 **Exactness and certification.** Bounds/cells used for exact integration are derived from certified semialgebraic decompositions. Numerical quadrature is not silently substituted for an unsupported exact integral.
 
 **Algorithm.** The implementation reduces regions to exact bounds/cells, supports Boolean decomposition and intrinsic regular strata, and can integrate univariate parameter fibers using CAD-controlled algebraic root-function endpoints.
 
 **Complexity and limitations.** Arbitrary singular mixed-dimensional stratification and fully general multidimensional parametric algebraic integration remain incomplete.
+
+
 
 
 ## Primary API overview
@@ -18,8 +20,8 @@ This table is the substantive coverage target for the primary APIs assigned to t
 |---|---|---|
 | `integrate_over_region` | function | Integrate ``integrand`` over a supported semialgebraic region. |
 | `reduce_region_integral` | function | Reduce a supported region integral to explicit iterated integrals. |
-| `region_centroid` | function | Return the centroid of a finite-measure semialgebraic region. |
-| `region_covariance` | function | Return the covariance matrix of the uniform measure on a region. |
+| `centroid` | function | Return the centroid of a finite-measure semialgebraic region. |
+| `covariance_matrix` | function | Return the covariance matrix of the uniform measure on a region. |
 | `region_moment` | function | Return a raw moment integral over a semialgebraic region. |
 | `region_measure` | function | Return intrinsic or ambient measure for canonical geometry and formula regions. |
 | `semialgebraic_measure` | function | Return the exact measure of a supported semialgebraic set. |
@@ -42,7 +44,7 @@ Returns a reduced integral representation without necessarily evaluating it imme
 
 ## `region_measure` and geometry methods
 
-`region_measure(region, measure_dimension="intrinsic")` is the geometry-oriented measure API. Canonical `Geometry.measure()` uses intrinsic Hausdorff measure by default, so curves and surfaces have their natural length/area while their higher-dimensional ambient measure is zero. `Geometry.centroid()` uses the same intrinsic measure. Structural formulas are used for standard regions, with intrinsic charts or semialgebraic integration as exact fallbacks.
+`region_measure(region, measure_dimension=None)` is the unified measure front door. With the default `None`, canonical geometry uses intrinsic Hausdorff measure while formula regions use ambient Lebesgue measure. Explicit `"intrinsic"`, `"ambient"`, or integer dimensions override that abstraction-aware default. Canonical `Geometry.measure()` still defaults explicitly to intrinsic measure; `SemialgebraicRegion.measure()` defaults explicitly to ambient measure. Formula-only workflows that need bounds or parameter stratification should use `semialgebraic_measure`.
 
 ## `semialgebraic_measure`
 
@@ -59,8 +61,8 @@ Parametric integration preserves the actual ambient SymPy symbol identities and 
 ## Moments
 
 - `region_moment`
-- `region_centroid`
-- `region_covariance`
+- `centroid`
+- `covariance_matrix`
 
 These build on the exact region-integration machinery.
 
@@ -78,7 +80,7 @@ See [Region integration](../region_integration.md), [Moments](../moments.md), an
 
 ## Derived moment tensors
 
-`centroid` and `covariance_matrix` are concise public aliases for `region_centroid` and `region_covariance`. `moment_matrix` returns the normalized raw second moment `E[x x.T]`. `inertia_tensor` returns the unit-density tensor
+`centroid` and `covariance_matrix` are the canonical normalized first- and second-central-moment APIs. `moment_matrix` returns the normalized raw second moment `E[x x.T]`. `inertia_tensor` returns the unit-density tensor
 
 `∫_S (||x||^2 I - x x.T) dx`
 

@@ -4,7 +4,7 @@ import pytest
 import sympy as sp
 
 from semialg import (
-    affine_transform,
+    affine_image,
     centroid,
     coordinate_range,
     is_closed,
@@ -106,6 +106,6 @@ def test_generated_boxes_have_known_volume_centroid_and_dimension(bounds):
 @pytest.mark.slow
 def test_nonsingular_affine_image_preserves_full_dimension_of_box():
     box = sp.And(x >= -1, x <= 1, y >= -2, y <= 2)
-    image = affine_transform(box, [[1, 1], [0, 2]], [3, -1], [x, y])
+    image = affine_image(box, [[1, 1], [0, 2]], [3, -1], [x, y])
     assert region_dimension(image, [x, y]) == 2
     assert is_compact(image, [x, y])
