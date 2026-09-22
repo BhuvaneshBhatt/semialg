@@ -87,8 +87,6 @@ For operational details, see [Exactness and certification](concepts/exactness_an
 |---|---|---|---|
 | Arbitrary-degree parameter root counts | Exact when stratification succeeds | Partial-to-broad | Uses subresultant/Sturm coefficient sign invariance plus parameter-space CAD; compact low-degree classifiers remain preferred. |
 | Semialgebraic graph conditions | Exact | Broad recursive fragment | Supported graph functions may occur inside relational constraints and `Piecewise` branch conditions, with auxiliary variables eliminated by exact CAD/QE. |
-
 | Function monotonicity | Exact for supported univariate semialgebraic functions; derivative-sign fast path, strictness via derivative-zero dimension, pairwise graph/QE fallback, automatic parameter conditions |
-
 | Exact smoothness loci | Exact for polynomial/rational functions and univariate supported semialgebraic joins | `function_smoothness` reports continuity, C^k order, smoothness, and exceptional loci. |
 | Mapping properties | Exact for polynomial/rational and graph-supported semialgebraic maps | `function_mapping_properties` certifies injectivity/surjectivity/bijectivity with image and witnesses. |
