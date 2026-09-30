@@ -394,7 +394,7 @@ def _implicit_monotone_root_bound(
     return (kind, root, closed)
 
 
-def _explicit_cylindrical_cell_from_conjunction(
+def _cylindrical_cell_from_conjunction(
     expr: sp.Expr,
     variables: Sequence[sp.Symbol | str],
     *,
@@ -571,7 +571,7 @@ def extract_explicit_cylindrical_solution(
     cells: list[CylindricalSolutionCell] = []
     pieces = _or_pieces(formula)
     for i, piece in enumerate(pieces):
-        cell = _explicit_cylindrical_cell_from_conjunction(piece, vars_, cell_index=i)
+        cell = _cylindrical_cell_from_conjunction(piece, vars_, cell_index=i)
         if cell is None:
             return None
         cells.append(cell)
@@ -596,7 +596,7 @@ def extract_explicit_cylindrical_solution(
     )
 
 
-def structured_cad_cells_to_vertical_bounds_2d(
+def cad_cells_to_vertical_bounds_2d(
     cells: Sequence[StructuredCADCell],
 ) -> tuple[VerticalBoundCell2D, ...]:
     """Convert two-dimensional structured CAD cells to vertical bounds."""
@@ -635,11 +635,11 @@ def extract_vertical_bounds_from_cad_2d(
 
     decomposition = extract_structured_cad_cells(condition_or_cad, variables, selected_only=True)
     cells = decomposition.full_dimensional_cells if full_dimensional_only else decomposition.cells
-    return structured_cad_cells_to_vertical_bounds_2d(cells)
+    return cad_cells_to_vertical_bounds_2d(cells)
 
 
 __all__ = [
     "extract_explicit_cylindrical_solution",
-    "structured_cad_cells_to_vertical_bounds_2d",
+    "cad_cells_to_vertical_bounds_2d",
     "extract_vertical_bounds_from_cad_2d",
 ]

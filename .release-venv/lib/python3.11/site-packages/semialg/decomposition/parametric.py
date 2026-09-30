@@ -10,7 +10,8 @@ from ..algebraic.samples import sample_to_expr
 from ..cad_algorithms.lifting.stack import CADCell
 from ..context import with_computation_context
 from ..domains import apply_assumptions, normalize_assumptions, normalize_domain
-from ..formula import Formula, parse_formula, parse_formula_text, to_sympy
+from ..formula import Formula, parse_formula, parse_formula_text
+from ..normalization import normalize_formula
 from ..qe.complete import cells_to_formula
 from ..simplify.formula import simplify_qe_formula
 from ..symbol_resolution import build_symbol_table
@@ -451,14 +452,7 @@ def parametric_cad(
     var_tuple = _normalize_variables(variables)
     param_tuple = _normalize_variables(parameters)
     all_symbols = (*param_tuple, *var_tuple)
-    if isinstance(formula, Formula):
-        base_raw = to_sympy(formula)
-    else:
-        base_raw = (
-            formula
-            if isinstance(formula, (sp.Basic, sp.logic.boolalg.Boolean))
-            else sp.sympify(formula)
-        )
+    base_raw = normalize_formula(formula)
     formula_with_assumptions = apply_assumptions(base_raw, assumptions)
     base_expr, _ = _normalize_formula(formula_with_assumptions)
     cad_result = cad(

@@ -8,7 +8,7 @@ import sympy as sp
 from ._errors import EXACT_OPERATION_ERRORS as _RECOVERABLE_ERRORS
 from ._region_integrate_geometry import _radial_radii_squared, _vertical_slice_data
 from ._zero_testing import certified_zero
-from .implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+from .implicit_geometry import cylindrical_vertical_bounds_2d
 from .interval_decomposition import finite_real_roots as _finite_real_roots  # noqa: F401
 from .region_integral_results import (
     RegionIntegralPiece,
@@ -85,7 +85,7 @@ def _reduce_cylindrical_vertical_bounds_2d(
     """Reduce supported CAD-like 2D cylindrical formulas to vertical pieces."""
 
     try:
-        cells = decompose_cylindrical_formula_to_vertical_bounds_2d(condition, (x, y))
+        cells = cylindrical_vertical_bounds_2d(condition, (x, y))
     except NotImplementedError:
         return None
     pieces: list[RegionIntegralPiece] = []
@@ -244,7 +244,7 @@ def _explicit_integration_orders(
     return (variables,)
 
 
-def _reduce_with_best_explicit_cylindrical_order(
+def _reduce_with_best_cylindrical_order(
     integrand: sp.Expr,
     condition: sp.Expr,
     variables: tuple[sp.Symbol, ...],

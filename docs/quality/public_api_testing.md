@@ -16,7 +16,7 @@ treated as proof of adequate behavior.
 Public classes that users normally receive from factories are tested through those
 production paths. This includes `CADRegion`, `AffineBoxClip`, and standard-region base
 classes. Exception base classes are checked through their inheritance and representative
-raising sites rather than by merely instantiating them.
+raising sites instead of by merely instantiating them.
 
 ## Adequacy policy
 
@@ -98,7 +98,7 @@ The oracles include explicit SymPy sets, elementary antiderivatives, factor mult
 counts, and closed-form extrema. Related public APIs can share implementation paths, so
 agreement alone is insufficient. The affine feasibility differential check additionally
 disables presolve and the variety shortcut on its complete-CAD path, and rejects an
-unknown truth value rather than treating it as false.
+unknown truth value instead of treating it as false.
 
 To reproduce the generated API checks with a fixed seed:
 
@@ -108,7 +108,7 @@ python -m pytest -q tests/properties/test_public_api_metamorphic.py tests/proper
 
 Use another seed to explore additional inputs. A passing seeded run establishes the
 tested invariants for its examples; it does not establish exhaustive input or branch
-coverage, and the ordinary test count counts properties rather than generated examples.
+coverage, and the ordinary test count counts properties instead of generated examples.
 
 ## Failure-path contracts
 
@@ -126,7 +126,7 @@ the explicit rejection of unimplemented time/cell budgets, including warm-cache 
 An explicit internal sampler hook checks exception boundaries: an expected unsupported
 sampling case returns no witness, but unexpected assertion and runtime errors propagate.
 Candidate witnesses are checked for completeness and membership. Tests require specific exception classes and meaningful
-message fragments rather than accepting arbitrary exceptions. The public
+message fragments instead of accepting arbitrary exceptions. The public
 `UnsupportedFragmentError` production-raising-site gap remains recorded in the inventory;
 these tests do not create an artificial raising site merely to satisfy coverage.
 
@@ -144,7 +144,7 @@ production-path contracts are:
 operations; it does not merely instantiate the classes. `UnsupportedFragmentError`
 remains the explicit exception: the package currently exposes the type but has no
 production raising site, so its construction/inheritance contract and the inventory gap
-remain visible rather than fabricating a failure path.
+remain visible instead of fabricating a failure path.
 
 Structured result and certificate classes follow the same rule.
 `tests/test_factory_result_contracts.py` obtains representative CAD, parameter, root,
@@ -176,7 +176,7 @@ rules for increasing floors.
 
 ## Semantic coherence contracts
 
-`tests/test_decision_semantic_coherence.py` keeps a small, non-slow set of identities between the everyday decision APIs. These are deliberately redundant at the **mathematical** level but not at the implementation-contract level:
+`tests/test_decision_semantic_coherence.py` keeps a small, non-slow set of identities between the everyday decision APIs. These are explicitly redundant at the **mathematical** level but not at the implementation-contract level:
 
 - `implies(A, B)` agrees with unsatisfiability of `A & ~B`;
 - `equivalent(A, B)` agrees with implication in both directions;
@@ -199,4 +199,4 @@ Tests use assertions; README and guide examples normally do not repeat the same 
 
 ## Root-level adequacy gate
 
-File-level call coverage is necessary but not sufficient. The root API also has a named-contract adequacy gate: every exported function must be exercised by at least two independently named tests, while critical decision/solver APIs require at least three. The current function-by-function audit is recorded in [Root API adequacy audit](root-api-adequacy.md). The audit deliberately labels functions with exactly two contracts as *adequate-minimum* rather than pretending that a test count proves mathematical completeness.
+File-level call coverage is necessary but not sufficient. The root API also has a named-contract adequacy gate: every exported function must be exercised by at least two independently named tests, while critical decision/solver APIs require at least three. The current function-by-function audit is recorded in [Root API adequacy audit](root-api-adequacy.md). The audit explicitly labels functions with exactly two contracts as *adequate-minimum* instead of pretending that a test count proves mathematical completeness.

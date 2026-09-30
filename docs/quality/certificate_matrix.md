@@ -29,5 +29,5 @@
 Use `result_diagnostics(result)` for a stable summary of method choice, counters, cache statistics, and certification metadata. This is useful in regression tests because deterministic work counters are more portable than tight wall-clock thresholds.
 ## Certificate contract tests
 
-Public replayable certificate families follow a shared test contract: a valid baseline must replay, proof-bearing dataclass fields are mutated one at a time, serialized certificates must replay after package caches are cleared, and verifiers that accept an external problem statement must reject certificates bound to a different problem. Nested GTZ node/component certificates are checked through the enclosing GTZ primary-decomposition verifier rather than treated as independent top-level proofs.
+Public replayable certificate families follow a shared test contract: a valid baseline must replay, proof-bearing dataclass fields are mutated one at a time, serialized certificates must replay after package caches are cleared, and verifiers that accept an external problem statement must reject certificates bound to a different problem. Nested GTZ node/component certificates are checked through the enclosing GTZ primary-decomposition verifier instead of treated as independent top-level proofs.
 

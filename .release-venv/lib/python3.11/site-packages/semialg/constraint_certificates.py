@@ -59,7 +59,7 @@ def _ge_polynomial(relation: sp.Expr, variables: tuple[sp.Symbol, ...]) -> sp.Ex
     return expr
 
 
-def verify_nonnegative_combination_certificate(cert, variables) -> bool:
+def verify_nonnegative_certificate(cert, variables) -> bool:
     """Replay an exact nonnegative-combination and optional SOS certificate.
 
     The verifier is a trust boundary: malformed typed payloads are rejected
@@ -125,20 +125,20 @@ def nonnegative_combination_certificate(
             continue
         residual = sp.expand(target - sum(v * p for v, p in zip(solution, ps, strict=True)))
         cert = NonnegativeCombinationCertificate(target, ps, tuple(solution), residual)
-        if verify_nonnegative_combination_certificate(cert, vars_):
+        if verify_nonnegative_certificate(cert, vars_):
             return cert
     if sos_certificate is not None:
         cert = NonnegativeCombinationCertificate(
             target, ps, tuple(sp.S.Zero for _ in ps), target, sos_certificate
         )
-        return cert if verify_nonnegative_combination_certificate(cert, vars_) else None
+        return cert if verify_nonnegative_certificate(cert, vars_) else None
     if allow_sos:
         search = search_sos_certificate(target, vars_)
         if search.certified:
             cert = NonnegativeCombinationCertificate(
                 target, ps, tuple(sp.S.Zero for _ in ps), target, search.certificate
             )
-            if verify_nonnegative_combination_certificate(cert, vars_):
+            if verify_nonnegative_certificate(cert, vars_):
                 return cert
     return None
 
@@ -212,7 +212,7 @@ __all__ = [
     "ImpliedPolynomialInequality",
     "RedundantPolynomialInequality",
     "ComponentConstraintDescription",
-    "verify_nonnegative_combination_certificate",
+    "verify_nonnegative_certificate",
     "nonnegative_combination_certificate",
     "implied_polynomial_inequality",
     "redundant_polynomial_inequalities",

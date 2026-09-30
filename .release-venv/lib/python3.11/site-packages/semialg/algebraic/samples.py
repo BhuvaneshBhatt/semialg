@@ -1381,7 +1381,7 @@ class FiberRootContext:
     def _descend_intvl_partition(
         self, left: sp.Rational, right: sp.Rational, local_rank: int, count: int
     ) -> tuple[sp.Rational, sp.Rational, int, int]:
-        """Descend previously certified splits without creating new endpoints."""
+        """Descend certified splits without creating new endpoints."""
         while count > 1:
             split = CACHE.root_intvl_splits.get(self._intvl_cert_key(left, right))
             if split is None:

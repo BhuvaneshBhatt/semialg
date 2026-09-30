@@ -217,7 +217,7 @@ def _sphere_monomial_centered_integral(exponents: tuple[int, ...], radius: sp.Ex
     return sp.simplify(radius ** (degree + n - 1) * angular / sp.gamma(sp.Rational(degree + n, 2)))
 
 
-def _integrate_polynomial_over_centered_region(
+def _integrate_over_centered_region(
     expr: sp.Expr,
     variables: tuple[sp.Symbol, ...],
     center: tuple[sp.Expr, ...],
@@ -468,22 +468,22 @@ def integrate_over_standard_region(
             precision=precision,
         )  # type: ignore[return-value]
     if isinstance(region, Ball) and not isinstance(region, Sphere):
-        fast = _integrate_polynomial_over_centered_region(
+        fast = _integrate_over_centered_region(
             expr, vars_, region.center, region.radius, surface=False
         )
         if fast is not None:
             return fast
     if isinstance(region, Sphere):
-        fast = _integrate_polynomial_over_centered_region(
+        fast = _integrate_over_centered_region(
             expr, vars_, region.center, region.radius, surface=True
         )
         if fast is not None:
             return fast
     if isinstance(region, SphericalShell):
-        outer = _integrate_polynomial_over_centered_region(
+        outer = _integrate_over_centered_region(
             expr, vars_, region.center, region.outer_radius, surface=False
         )
-        inner = _integrate_polynomial_over_centered_region(
+        inner = _integrate_over_centered_region(
             expr, vars_, region.center, region.inner_radius, surface=False
         )
         if outer is not None and inner is not None:

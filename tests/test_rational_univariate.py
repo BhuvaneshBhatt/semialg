@@ -5,7 +5,7 @@ from semialg.algebraic.rational_univariate import (
     evaluate_relation_at_point,
     filter_rur_solutions_by_constraints,
     sign_of_algebraic_expression,
-    solve_and_filter_zero_dimensional_system_with_rur,
+    solve_and_filter_with_rur,
     solve_rur_semialgebraic_system,
 )
 
@@ -59,7 +59,7 @@ def test_filter_candidate_points_directly():
 
 def test_structured_solution_object_exposes_assignments_and_satisfiability():
     x, y = sp.symbols("x y")
-    result = solve_and_filter_zero_dimensional_system_with_rur(
+    result = solve_and_filter_with_rur(
         [y - x**2, y - 1],
         [x, y],
         sp.And(x < 0, y > 0),

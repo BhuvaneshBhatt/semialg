@@ -28,4 +28,4 @@ Set constructors use the `region_*` prefix: `region_union`, `region_intersection
 
 ## Small specialized entry points
 
-Some thin functions encode standard mathematical vocabulary rather than duplicate semantics. `matrix_pd_on` and `matrix_psd_on` specialize `matrix_definiteness`; `linear_image` specializes `affine_image`; and `is_connected` shares the semialgebraic connectedness contract with `is_path_connected`.
+Some thin functions encode standard mathematical vocabulary instead of duplicate semantics. `matrix_pd_on` and `matrix_psd_on` specialize `matrix_definiteness`; `linear_image` specializes `affine_image`; and `is_connected` shares the semialgebraic connectedness contract with `is_path_connected`.

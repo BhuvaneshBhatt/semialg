@@ -12,7 +12,7 @@ This generated audit evaluates every root-level public function by **semantic te
 
 ## Results
 
-**218/218 adequate; 0 need deepening.**
+**234/238 adequate; 4 need deepening.**
 
 | API | Owner | Risk | Status | Dimensions | Missing |
 |---|---|---|---|---|---|
@@ -29,12 +29,14 @@ This generated audit evaluates every root-level public function by **semantic te
 | `affine_preimage` | geometry | high | adequate | boundary-degenerate, invalid-failure, nominal, representation, round-trip | — |
 | `affine_relative_interior_formula` | function-analysis | medium | adequate | boundary-degenerate, negative, nominal | — |
 | `analyze_affine_map` | geometry | high | adequate | boundary-degenerate, invalid-failure, metamorphic, negative, nominal, parameter-regime, round-trip | — |
+| `angular_map_image` | geometry | high | needs-deepening | nominal | a second semantic dimension; an independent, boundary, failure, or parameter-sensitive detector |
 | `apply_quantifiers` | geometry | critical | adequate | nominal, parameter-regime, round-trip | — |
 | `argmax_set` | geometry | high | adequate | boundary-degenerate, nominal | — |
 | `argmin_set` | geometry | high | adequate | boundary-degenerate, metamorphic, nominal | — |
 | `as_cad_region` | geometry | high | adequate | independent-oracle, metamorphic, nominal | — |
 | `as_semialgebraic_region` | geometry | high | adequate | metamorphic, negative, nominal, property-generated, representation | — |
 | `betti_number` | geometry | high | adequate | boundary-degenerate, nominal | — |
+| `blowup_charts` | geometry | high | adequate | metamorphic, nominal | — |
 | `bounding_box` | geometry | high | adequate | metamorphic, nominal | — |
 | `cad` | geometry | critical | adequate | boundary-degenerate, differential, independent-oracle, invalid-failure, metamorphic, negative, nominal, representation, round-trip | — |
 | `canonicalize_polygon` | geometry | high | adequate | metamorphic, nominal, property-generated, representation | — |
@@ -50,19 +52,22 @@ This generated audit evaluates every root-level public function by **semantic te
 | `connected_component_count` | geometry | high | adequate | boundary-degenerate, nominal | — |
 | `connected_component_samples` | geometry | high | adequate | boundary-degenerate, nominal | — |
 | `connected_components` | geometry | high | adequate | boundary-degenerate, metamorphic, negative, nominal, property-generated | — |
+| `contact_order` | geometry | high | adequate | certificate, nominal | — |
 | `contains_point` | geometry | high | adequate | boundary-degenerate, independent-oracle, nominal | — |
 | `convert_region` | geometry | high | adequate | boundary-degenerate, nominal, round-trip | — |
 | `convex_hull` | function-analysis | medium | adequate | nominal, representation | — |
 | `convexity_certificate` | function-analysis | medium | adequate | boundary-degenerate, certificate, invalid-failure, nominal, property-generated | — |
 | `coordinate_range` | geometry | high | adequate | differential, metamorphic, nominal, property-generated | — |
+| `correlated_map_image` | geometry | high | adequate | invalid-failure, metamorphic, nominal, parameter-regime | — |
 | `covariance_matrix` | integration | high | adequate | metamorphic, nominal | — |
 | `critical_value_image` | geometry | high | adequate | boundary-degenerate, nominal | — |
 | `critical_values` | geometry | high | adequate | boundary-degenerate, nominal | — |
+| `curve_selection` | geometry | high | adequate | certificate, nominal | — |
 | `decompose_polytope` | geometry | high | adequate | independent-semantic, nominal | — |
 | `deduplicate_indexed_vertices` | geometry | high | adequate | boundary-degenerate, metamorphic, nominal | — |
 | `diameter` | geometry | high | adequate | metamorphic, nominal | — |
-| `discretize_region_geometry` | solving | medium | adequate | independent-oracle, metamorphic, negative, nominal, round-trip-presentation | — |
-| `discretize_solution` | solving | medium | adequate | boundary-degenerate, nominal | — |
+| `discretize_region_geometry` | geometry | high | adequate | independent-oracle, metamorphic, negative, nominal, round-trip-presentation | — |
+| `discretize_solution` | geometry | high | adequate | boundary-degenerate, nominal | — |
 | `distance_between_regions` | geometry | high | adequate | metamorphic, nominal | — |
 | `distance_set` | geometry | high | adequate | metamorphic, nominal | — |
 | `distance_to_region` | geometry | high | adequate | metamorphic, nominal | — |
@@ -70,12 +75,12 @@ This generated audit evaluates every root-level public function by **semantic te
 | `euler_characteristic` | geometry | high | adequate | independent-semantic, nominal | — |
 | `extrema_set` | geometry | high | adequate | boundary-degenerate, independent-semantic, nominal | — |
 | `fiber` | geometry | high | adequate | differential, independent-oracle, independent-semantic, invalid-failure, nominal | — |
-| `find_instance` | solving | medium | adequate | certificate, differential, independent-oracle, nominal | — |
+| `find_instance` | solving | medium | adequate | assumptions, certificate, differential, independent-oracle, nominal, parameter-regime, property-generated | — |
 | `find_negative_point` | geometry | critical | adequate | boundary-degenerate, certificate, negative, nominal | — |
 | `find_negative_witness_fast` | geometry | critical | adequate | certificate, invalid-failure, negative, nominal, property-generated | — |
 | `function_convex_partition` | function-analysis | medium | adequate | nominal, parameter-regime, property-generated | — |
 | `function_convexity` | function-analysis | medium | adequate | boundary-degenerate, certificate, independent-oracle, invalid-failure, negative, nominal, parameter-regime, property-generated | — |
-| `function_domain` | decision | high | adequate | metamorphic, nominal, representation | — |
+| `function_domain` | function-analysis | medium | adequate | metamorphic, nominal, representation | — |
 | `function_mapping_properties` | function-analysis | medium | adequate | boundary-degenerate, metamorphic, nominal, parameter-regime, property-generated | — |
 | `function_monotonic_partition` | function-analysis | medium | adequate | boundary-degenerate, nominal, parameter-regime, property-generated | — |
 | `function_monotonicity` | function-analysis | medium | adequate | boundary-degenerate, certificate, differential, negative, nominal, parameter-regime, property-generated | — |
@@ -124,9 +129,18 @@ This generated audit evaluates every root-level public function by **semantic te
 | `is_zero_dimensional` | solving | medium | adequate | boundary-degenerate, invalid-failure, metamorphic, nominal | — |
 | `level_set` | geometry | high | adequate | boundary-degenerate, independent-semantic, nominal | — |
 | `linear_image` | geometry | high | adequate | metamorphic, nominal | — |
+| `local_algebraic_strata` | geometry | high | adequate | independent-oracle, nominal | — |
+| `local_bound` | geometry | high | adequate | certificate, nominal | — |
 | `local_branch_geometry` | algebraic | high | adequate | negative, nominal, representation | — |
+| `local_components` | geometry | high | adequate | boundary-degenerate, metamorphic, negative, nominal, property-generated | — |
 | `local_dimension` | geometry | high | adequate | boundary-degenerate, independent-oracle, nominal | — |
 | `local_dimension_strata` | algebraic | high | adequate | boundary-degenerate, metamorphic, nominal | — |
+| `local_geometry` | geometry | high | needs-deepening | nominal | a second semantic dimension; an independent, boundary, failure, or parameter-sensitive detector |
+| `local_germ` | geometry | high | adequate | boundary-degenerate, certificate, invalid-failure, nominal, property-generated | — |
+| `local_image` | geometry | high | adequate | certificate, nominal | — |
+| `local_preimage` | geometry | high | adequate | boundary-degenerate, certificate, invalid-failure, nominal, property-generated | — |
+| `local_range` | geometry | high | adequate | certificate, nominal | — |
+| `local_sign_strata` | geometry | high | adequate | metamorphic, nominal, property-generated | — |
 | `matrix_definiteness` | function-analysis | medium | adequate | independent-oracle, metamorphic, nominal | — |
 | `matrix_pd_on` | function-analysis | medium | adequate | invalid-failure, nominal, parameter-regime | — |
 | `matrix_psd_on` | function-analysis | medium | adequate | invalid-failure, nominal, parameter-regime | — |
@@ -139,13 +153,16 @@ This generated audit evaluates every root-level public function by **semantic te
 | `nonnegative_combination_certificate` | geometry | high | adequate | certificate, negative, nominal | — |
 | `outer_polygons` | geometry | high | adequate | boundary-degenerate, metamorphic, nominal | — |
 | `outer_polyhedra` | geometry | high | adequate | boundary-degenerate, independent-semantic, nominal | — |
+| `parameter_strata` | geometry | high | adequate | certificate, metamorphic, nominal, parameter-regime, property-generated | — |
 | `parameterization_critical_locus` | geometry | high | adequate | boundary-degenerate, nominal, parameter-regime | — |
 | `parameterization_critical_values` | geometry | high | adequate | boundary-degenerate, nominal, parameter-regime | — |
 | `parameterization_geometry` | geometry | high | adequate | boundary-degenerate, nominal, parameter-regime | — |
 | `parametric_cad` | geometry | high | adequate | boundary-degenerate, certificate, independent-oracle, negative, nominal, parameter-regime | — |
 | `path_between` | geometry | high | adequate | independent-oracle, nominal | — |
-| `plot_region_geometry` | solving | medium | adequate | independent-oracle, negative, nominal, round-trip-presentation | — |
-| `plot_solution` | solving | medium | adequate | nominal, representation, round-trip-presentation | — |
+| `path_independent` | geometry | high | adequate | certificate, nominal | — |
+| `plot_region_geometry` | geometry | high | adequate | independent-oracle, negative, nominal, round-trip-presentation | — |
+| `plot_solution` | geometry | high | adequate | nominal, representation, round-trip-presentation | — |
+| `point_in_closure` | geometry | high | adequate | boundary-degenerate, metamorphic, nominal, representation | — |
 | `polygon_vertices` | geometry | high | adequate | boundary-degenerate, metamorphic, nominal | — |
 | `polygonal_region_from_paths` | geometry | high | adequate | nominal, representation | — |
 | `polyhedral_boolean` | geometry | high | adequate | metamorphic, nominal | — |
@@ -194,11 +211,12 @@ This generated audit evaluates every root-level public function by **semantic te
 | `region_variables` | geometry | high | adequate | independent-oracle, independent-semantic, nominal, parameter-regime | — |
 | `relative_boundary` | algebraic | high | adequate | boundary-degenerate, metamorphic, nominal | — |
 | `relative_interior` | algebraic | high | adequate | boundary-degenerate, metamorphic, nominal | — |
-| `replay_certificate` | geometry | critical | adequate | boundary-degenerate, certificate, invalid-failure, metamorphic, nominal, property-generated, round-trip | — |
+| `replay_certificate` | algebraic | critical | adequate | boundary-degenerate, certificate, invalid-failure, metamorphic, nominal, property-generated, round-trip | — |
 | `resolve_formula` | solving | critical | adequate | boundary-degenerate, certificate, independent-oracle, negative, nominal | — |
 | `sample_point` | solving | medium | adequate | boundary-degenerate, certificate, nominal | — |
 | `sample_points` | solving | medium | adequate | certificate, invalid-failure, negative, nominal, property-generated | — |
 | `scale` | geometry | high | adequate | boundary-degenerate, metamorphic, nominal, round-trip | — |
+| `semialgebraic_function_graph` | function-analysis | medium | adequate | boundary-degenerate, independent-oracle, invalid-failure, negative, nominal | — |
 | `semialgebraic_maximize` | optimization | high | adequate | boundary-degenerate, independent-oracle, metamorphic, nominal | — |
 | `semialgebraic_measure` | integration | high | adequate | boundary-degenerate, independent-oracle, invalid-failure, metamorphic, negative, nominal, parameter-regime, property-generated | — |
 | `semialgebraic_minimize` | optimization | high | adequate | boundary-degenerate, certificate, differential, independent-oracle, invalid-failure, metamorphic, nominal, parameter-regime, round-trip | — |
@@ -218,19 +236,21 @@ This generated audit evaluates every root-level public function by **semantic te
 | `squared_distance_range` | geometry | high | adequate | metamorphic, nominal | — |
 | `stratified_singular_geometry` | algebraic | high | adequate | boundary-degenerate, negative, nominal | — |
 | `strict_feasible` | function-analysis | medium | adequate | boundary-degenerate, nominal | — |
+| `structured_proof_diagnostics` | geometry | high | needs-deepening | negative, nominal | an independent, boundary, failure, or parameter-sensitive detector |
 | `subdivide_triangular_faces` | geometry | high | adequate | independent-semantic, nominal | — |
 | `sublevel_set` | geometry | high | adequate | boundary-degenerate, independent-semantic, nominal | — |
 | `superlevel_set` | geometry | high | adequate | boundary-degenerate, independent-semantic, nominal | — |
 | `support_function` | geometry | high | adequate | metamorphic, nominal | — |
-| `tangent_cone` | geometry | high | adequate | independent-oracle, negative, nominal, parameter-regime | — |
+| `tangent_cone` | algebraic | high | adequate | independent-oracle, negative, nominal, parameter-regime | — |
 | `tangent_dimension` | algebraic | high | adequate | boundary-degenerate, differential, independent-oracle, nominal | — |
-| `tangent_space` | geometry | high | adequate | independent-oracle, negative, nominal, parameter-regime | — |
+| `tangent_space` | algebraic | high | adequate | independent-oracle, negative, nominal, parameter-regime | — |
 | `tetrahedralize_cell` | geometry | high | adequate | independent-oracle, nominal | — |
 | `tetrahedralize_cells` | geometry | high | adequate | independent-semantic, nominal | — |
 | `topology_summary` | geometry | high | adequate | independent-oracle, metamorphic, nominal | — |
 | `translate` | geometry | high | adequate | boundary-degenerate, invalid-failure, metamorphic, nominal, property-generated, round-trip | — |
 | `triangulate_polytope` | geometry | high | adequate | independent-oracle, nominal | — |
-| `verify_nonnegative_combination_certificate` | geometry | high | adequate | certificate, invalid-failure, negative, nominal | — |
+| `vanishing_order` | geometry | high | needs-deepening | nominal | a second semantic dimension; an independent, boundary, failure, or parameter-sensitive detector |
+| `verify_nonnegative_certificate` | geometry | high | adequate | certificate, invalid-failure, negative, nominal | — |
 | `width` | geometry | high | adequate | metamorphic, nominal | — |
 | `zariski_closure` | algebraic | high | adequate | differential, independent-oracle, nominal | — |
 | `zeng_negative_point` | geometry | high | adequate | certificate, invalid-failure, negative, nominal | — |

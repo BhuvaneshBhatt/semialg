@@ -4,7 +4,7 @@ import sympy as sp
 
 from semialg import integrate_over_region, reduce_region_integral, region_boundary
 from semialg.implicit_geometry import (
-    decompose_cylindrical_formula_to_vertical_bounds_2d,
+    cylindrical_vertical_bounds_2d,
     decompose_implicit_formula,
     extract_symbolic_box_bounds,
     semialgebraic_level_function,
@@ -33,9 +33,7 @@ def test_extract_symbolic_box_bounds():
 
 def test_cylindrical_vertical_bounds_reduce_triangle_like_cell():
     x, y = sp.symbols("x y", real=True)
-    cells = decompose_cylindrical_formula_to_vertical_bounds_2d(
-        sp.And(x >= 0, x <= 1, y >= x, y <= 1), [x, y]
-    )
+    cells = cylindrical_vertical_bounds_2d(sp.And(x >= 0, x <= 1, y >= x, y <= 1), [x, y])
     full = [cell for cell in cells if cell.is_full_dimensional]
     assert len(full) == 1
     assert full[0].x_interval == (0, 1)

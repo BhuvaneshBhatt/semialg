@@ -31,21 +31,21 @@ internals cannot replace the root function.
 | expert | `certified_independent_localization` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.certified_independent_localization` |
 | expert | `contract_localized_ideal` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.contract_localized_ideal` |
 | expert | `saturation_stabilization` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.saturation_stabilization` |
-| expert | `verify_independent_localization_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_independent_localization_certificate` |
-| expert | `verify_localization_contraction_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_localization_contraction_certificate` |
-| expert | `verify_saturation_stabilization_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_saturation_stabilization_certificate` |
-| expert | `verify_zero_dimensional_primary_certificate` | `semialg.algebraic.gtz_zero_dim` | `semialg.algebraic.gtz_zero_dim.verify_zero_dimensional_primary_certificate` |
+| expert | `verify_localization_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_localization_certificate` |
+| expert | `verify_contraction_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_contraction_certificate` |
+| expert | `verify_saturation_certificate` | `semialg.algebraic.gtz` | `semialg.algebraic.gtz.verify_saturation_certificate` |
+| expert | `verify_zero_dim_primary_certificate` | `semialg.algebraic.gtz_zero_dim` | `semialg.algebraic.gtz_zero_dim.verify_zero_dim_primary_certificate` |
 | expert | `zero_dimensional_primary_decomposition` | `semialg.algebraic.gtz_zero_dim` | `semialg.algebraic.gtz_zero_dim.zero_dimensional_primary_decomposition` |
 | expert | `ThomEncoding` | `semialg.algebraic.thom` | `semialg.algebraic.thom.ThomEncoding` |
 | expert | `associated_primes` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.associated_primes` |
-| expert | `certified_radical_minimal_prime_decomposition` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.certified_radical_minimal_prime_decomposition` |
+| expert | `certified_minimal_primes` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.certified_minimal_primes` |
 | expert | `primary_decomposition` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.primary_decomposition` |
 | expert | `radical_ideal` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.radical_ideal` |
 | expert | `recursive_regular_chain_decomposition` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.recursive_regular_chain_decomposition` |
 | expert | `verify_minimal_prime_decomposition_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_minimal_prime_decomposition_certificate` |
 | expert | `verify_primary_decomposition_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_primary_decomposition_certificate` |
 | expert | `verify_radical_ideal_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_radical_ideal_certificate` |
-| expert | `verify_regular_chain_decomposition_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_regular_chain_decomposition_certificate` |
+| expert | `verify_regular_chain_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_regular_chain_certificate` |
 | expert | `verify_triangular_primality_certificate` | `semialg.algebraic_decomposition` | `semialg.algebraic_decomposition.verify_triangular_primality_certificate` |
 | expert | `compress_primitive_element` | `semialg.algebraic_function_fields` | `semialg.algebraic_function_fields.compress_primitive_element` |
 | expert | `maybe_compress_primitive_element` | `semialg.algebraic_function_fields` | `semialg.algebraic_function_fields.maybe_compress_primitive_element` |
@@ -80,7 +80,7 @@ internals cannot replace the root function.
 | expert | `IntrinsicStratification` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.IntrinsicStratification` |
 | expert | `RootOrderCertificate` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.RootOrderCertificate` |
 | expert | `stratify_intrinsic_solution` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.stratify_intrinsic_solution` |
-| expert | `structured_cad_cells_to_vertical_bounds_2d` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.structured_cad_cells_to_vertical_bounds_2d` |
+| expert | `cad_cells_to_vertical_bounds_2d` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.cad_cells_to_vertical_bounds_2d` |
 | expert | `StructuredCADCell` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.StructuredCADCell` |
 | expert | `StructuredCADCellDecomposition` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.StructuredCADCellDecomposition` |
 | expert | `StructuredCADLevel` | `semialg.cad_algorithms.cells` | `semialg.cad_algorithms.cells.StructuredCADLevel` |
@@ -171,7 +171,7 @@ internals cannot replace the root function.
 | expert | `suggest_cad_variable_order` | `semialg.heuristics` | `semialg.heuristics.suggest_cad_variable_order` |
 | expert | `suggest_variable_order` | `semialg.heuristics` | `semialg.heuristics.suggest_variable_order` |
 | expert | `VariableOrderScore` | `semialg.heuristics` | `semialg.heuristics.VariableOrderScore` |
-| expert | `decompose_cylindrical_formula_to_vertical_bounds_2d` | `semialg.implicit_geometry` | `semialg.implicit_geometry.decompose_cylindrical_formula_to_vertical_bounds_2d` |
+| expert | `cylindrical_vertical_bounds_2d` | `semialg.implicit_geometry` | `semialg.implicit_geometry.cylindrical_vertical_bounds_2d` |
 | expert | `decompose_implicit_formula` | `semialg.implicit_geometry` | `semialg.implicit_geometry.decompose_implicit_formula` |
 | expert | `extract_symbolic_box_bounds` | `semialg.implicit_geometry` | `semialg.implicit_geometry.extract_symbolic_box_bounds` |
 | expert | `ImplicitFormulaPiece` | `semialg.implicit_geometry` | `semialg.implicit_geometry.ImplicitFormulaPiece` |
@@ -524,4 +524,4 @@ internals cannot replace the root function.
 
 Public mathematical operations return the most direct complete mathematical object by default when one is unambiguous. Structured `*Result` objects are opt-in metadata containers in those cases via `return_result=True`. In particular, optimization returns `[extremum, optimizer_points]`, instance APIs return instance mappings, zero-dimensional solving returns exact point tuples, generic CAD follows its `output`, and complete-QE APIs return the eliminated formula.
 
-Structured objects remain the default where the structure itself is the mathematical answer rather than diagnostic wrapping. Examples include `CADPathResult` for `path_between`, `RootClassificationResult` for `classify_real_roots`, tangent-space/tangent-cone results, preprocessing/presolve results, border-basis results, and validation/certificate result types.
+Structured objects remain the default where the structure itself is the mathematical answer instead of diagnostic wrapping. Examples include `CADPathResult` for `path_between`, `RootClassificationResult` for `classify_real_roots`, tangent-space/tangent-cone results, preprocessing/presolve results, border-basis results, and validation/certificate result types.

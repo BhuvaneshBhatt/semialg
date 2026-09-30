@@ -135,7 +135,7 @@ def _monotonicity_parameter_condition(
     return sp.simplify_logic(sp.Not(violation_condition), force=True)
 
 
-def _function_monotonicity_with_parameters(
+def _monotonicity_with_parameters(
     expression: sp.Expr,
     variable: sp.Symbol,
     parameters: tuple[sp.Symbol, ...],
@@ -222,7 +222,7 @@ def _graph_function_sign_univariate_domain(
     return sign, None
 
 
-def _function_monotonicity_without_parameters(
+def _monotonicity_without_parameters(
     expression: sp.Expr,
     variable: sp.Symbol,
     explicit_domain: sp.Expr,

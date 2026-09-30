@@ -43,7 +43,7 @@ complex_.f_vector
 complex_.euler_characteristic()
 ```
 
-`CADCellComplex` groups selected cells by dimension and records exact codimension-one closure incidence. For curved algebraic cells, incidence uses the source CAD's recursive closure logic rather than reconstructing radicals and launching a second QE problem.
+`CADCellComplex` groups selected cells by dimension and records exact codimension-one closure incidence. For curved algebraic cells, incidence uses the source CAD's recursive closure logic instead of reconstructing radicals and launching a second QE problem.
 
 ## Integration from the same CAD
 

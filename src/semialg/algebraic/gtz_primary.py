@@ -348,12 +348,12 @@ def _compute_fraction_field_zero_dimensional(
         tuple(components),
     )
     result = FractionFieldZeroDimensionalResult(params, vars_, tuple(components), True, certificate)
-    if not verify_fraction_field_zero_dimensional_certificate(certificate):
+    if not verify_fraction_field_zero_dim_certificate(certificate):
         raise ArithmeticError("internal fraction-field primary certificate verification failed")
     return result
 
 
-def verify_fraction_field_zero_dimensional_certificate(
+def verify_fraction_field_zero_dim_certificate(
     certificate: FractionFieldZeroDimensionalCertificate,
 ) -> bool:
     try:
@@ -829,7 +829,7 @@ __all__ = [
     "clear_gtz_caches",
     "gtz_cache_info",
     "gtz_primary_decomposition",
-    "verify_fraction_field_zero_dimensional_certificate",
+    "verify_fraction_field_zero_dim_certificate",
     "verify_gtz_primary_decomposition_certificate",
 ]
 

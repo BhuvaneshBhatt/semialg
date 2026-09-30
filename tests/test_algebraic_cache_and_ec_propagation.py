@@ -2,7 +2,7 @@ import sympy as sp
 
 from semialg.algebraic import algebraic_cache_stats, clear_algebraic_caches
 from semialg.algebraic.comparison import compare_samples
-from semialg.algebraic.rational_univariate import compute_rational_univariate_representation
+from semialg.algebraic.rational_univariate import compute_rur
 from semialg.algebraic.roots import isolate_real_roots
 from semialg.algebraic.signs import sign_at_sample
 from semialg.cad_algorithms.bounds import AlgebraicRootFunction
@@ -42,9 +42,9 @@ def test_rur_construction_cache_reuses_identical_system():
     clear_algebraic_caches()
     x, y = sp.symbols("x y", real=True)
     system = (x + y - 1, x - y)
-    first = compute_rational_univariate_representation(system, (x, y))
+    first = compute_rur(system, (x, y))
     before = algebraic_cache_stats()
-    second = compute_rational_univariate_representation(system, (x, y))
+    second = compute_rur(system, (x, y))
     after = algebraic_cache_stats()
     assert first == second
     assert after.rur_hits > before.rur_hits

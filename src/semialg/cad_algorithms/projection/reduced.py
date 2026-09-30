@@ -113,7 +113,7 @@ def _candidate_ec(
     for poly in active:
         expr = sp.expand(poly.as_expr())
         for ec in expanded_ecs:
-            if sp.expand(expr - ec) == 0 or sp.expand(expr + ec) == 0:
+            if expr == ec or expr == -ec:
                 matches.append((ec, poly))
                 break
     if not matches:
@@ -121,7 +121,7 @@ def _candidate_ec(
     ranked = rank_eq_cons([expr for expr, _ in matches], tuple(active[0].gens) if active else ())
     best = ranked[0].expr
     for expr, poly in matches:
-        if sp.expand(expr - best) == 0 or sp.expand(expr + best) == 0:
+        if expr == best or expr == -best:
             return poly
     return matches[0][1]
 
@@ -133,6 +133,7 @@ def reduced_projection_step(
     *,
     theory: ReducedTheory,
     equational_constraints: Sequence[sp.Expr] = (),
+    _normalized_basis: tuple[sp.Poly, ...] | None = None,
 ) -> tuple[sp.Poly, ...]:
     """Construct a diagnostic reduced-projection step.
 
@@ -148,7 +149,7 @@ def reduced_projection_step(
     back to the full Collins projection step for that level.
     """
 
-    basis = squarefree_basis(polys)
+    basis = _normalized_basis if _normalized_basis is not None else squarefree_basis(polys)
     active = [poly for poly in basis if _degree(poly, var) > 0]
     inactive = [poly for poly in basis if _degree(poly, var) == 0]
     projected: list[sp.Poly] = []
@@ -166,7 +167,7 @@ def reduced_projection_step(
     if theory in {"mccallum", "lazard", "tticad"}:
         projected.extend(subres_discrim(designated, var, lower_gens))
     for other in active:
-        if sp.expand(other.as_expr() - designated.as_expr()) != 0:
+        if sp.expand(other.as_expr()) != sp.expand(designated.as_expr()):
             projected.extend(_resultant(designated, other, var, lower_gens))
     return squarefree_basis(projected)
 
@@ -193,7 +194,8 @@ def build_reduced_proj_tower(
     reduced_levels: list[int] = []
     for level in range(len(vars_tuple), 1, -1):
         var = vars_tuple[level - 1]
-        active = [poly for poly in squarefree_basis(current) if _degree(poly, var) > 0]
+        normalized = squarefree_basis(current)
+        active = [poly for poly in normalized if _degree(poly, var) > 0]
         uses_reduced_operator = _candidate_ec(active, equational_constraints) is not None
         reduced = reduced_projection_step(
             current,
@@ -201,6 +203,7 @@ def build_reduced_proj_tower(
             vars_tuple[: level - 1],
             theory=theory,
             equational_constraints=equational_constraints,
+            _normalized_basis=normalized,
         )
         if uses_reduced_operator:
             reduced_levels.append(level)

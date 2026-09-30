@@ -10,7 +10,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from semialg import connected_components
-from semialg.algebraic.rational_univariate import solve_zero_dimensional_system_with_rur
+from semialg.algebraic.rational_univariate import solve_with_rur
 from semialg.cad_algorithms.reduced import decomp_form_reduced_safe
 from semialg.formula import parse_formula
 from semialg.parameters import root_count_conditions
@@ -89,7 +89,7 @@ def test_generated_rur_algebraic_field_transition_preserves_solution(index):
         sp.expand(scalar * (y - x)),
     )
 
-    solutions = solve_zero_dimensional_system_with_rur(equations, (x, y), real=True)
+    solutions = solve_with_rur(equations, (x, y), real=True)
 
     assert solutions == ((-sp.sqrt(2), -sp.sqrt(2)), (sp.sqrt(2), sp.sqrt(2)))
 

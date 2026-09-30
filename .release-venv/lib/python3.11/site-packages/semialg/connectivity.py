@@ -307,9 +307,7 @@ def build_cad_adjacency_graph(
     )
 
 
-def _quadratic_zero_set_structurally_connected(
-    factor: sp.Expr, variables: Sequence[sp.Symbol]
-) -> bool | None:
+def _quadratic_zero_set_connected(factor: sp.Expr, variables: Sequence[sp.Symbol]) -> bool | None:
     """Decide connectedness for affine or definite-quadratic zero sets cheaply."""
     vars_ = tuple(variables)
     try:
@@ -386,7 +384,7 @@ def factorized_equality_components(
     factor_components: list[sp.Expr] = []
     for factor in factor_exprs:
         factor_formula = sp.Eq(factor, 0)
-        structural = _quadratic_zero_set_structurally_connected(factor, variables)
+        structural = _quadratic_zero_set_connected(factor, variables)
         if structural is not True:
             graph = extract_cad_connectivity(factor_formula, variables)
             if graph.component_count != 1:

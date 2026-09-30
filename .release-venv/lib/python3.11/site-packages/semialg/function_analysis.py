@@ -367,8 +367,8 @@ def function_monotonicity(
     """
 
     from ._function_analysis_monotonicity import (
-        _function_monotonicity_with_parameters,
-        _function_monotonicity_without_parameters,
+        _monotonicity_with_parameters,
+        _monotonicity_without_parameters,
     )
 
     normalized_expression = sp.sympify(expression)
@@ -403,13 +403,13 @@ def function_monotonicity(
     if normalized_variable in normalized_parameters:
         raise ValueError("variable and parameters must be disjoint")
     if normalized_parameters:
-        return _function_monotonicity_with_parameters(
+        return _monotonicity_with_parameters(
             normalized_expression,
             normalized_variable,
             normalized_parameters,
             normalized_domain,
         )
-    result = _function_monotonicity_without_parameters(
+    result = _monotonicity_without_parameters(
         normalized_expression, normalized_variable, normalized_domain
     )
     return result if return_result else result.classification
@@ -453,8 +453,8 @@ def function_convexity(
     """
 
     from ._function_analysis_convexity import (
-        _function_convexity_with_parameters,
-        _function_convexity_without_parameters,
+        _convexity_with_parameters,
+        _convexity_without_parameters,
     )
 
     normalized_expression = sp.sympify(expression)
@@ -476,7 +476,7 @@ def function_convexity(
             )
         )
     if normalized_parameters:
-        return _function_convexity_with_parameters(
+        return _convexity_with_parameters(
             normalized_expression,
             normalized_variables,
             normalized_parameters,
@@ -487,7 +487,7 @@ def function_convexity(
     analysis = _FunctionAnalysisContext(
         normalized_expression, normalized_variables, explicit_domain_norm
     )
-    result = _function_convexity_without_parameters(
+    result = _convexity_without_parameters(
         normalized_expression, normalized_variables, explicit_domain_norm, analysis=analysis
     )
     result = _augment_convexity_result(

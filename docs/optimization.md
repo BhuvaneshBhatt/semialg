@@ -112,7 +112,7 @@ $$
 
 Thus unattained infima are represented correctly.  In programmatic code, these
 relations can be represented directly with semialg's `ForAll` and `Exists`
-nodes rather than hand-built quantifier tuples.  For example, the lower-bound
+nodes instead of hand-built quantifier tuples.  For example, the lower-bound
 condition has the shape `ForAll(x, Implies(C, f >= t))`, while tightness nests
 `Exists` beneath `ForAll`.  `sample_result` on a parametric optimization branch
 is representative convenience data only; the quantified relation is the
@@ -120,11 +120,11 @@ stratum-wide answer.
 
 ## Boolean domains
 
-Bounded DNF expansion is used for disjunctive domains. Each feasible branch is optimized exactly and the branch optima are compared algebraically. Expansion is bounded; very large Boolean formulas may be declined rather than expanded exponentially.
+Bounded DNF expansion is used for disjunctive domains. Each feasible branch is optimized exactly and the branch optima are compared algebraically. Expansion is bounded; very large Boolean formulas may be declined instead of expanded exponentially.
 
 ## Current limits
 
-The optimizer is strongest for low-dimensional polynomial problems whose KKT/active loci are zero-dimensional, safely reducible by equalities, or affordable for exact CAD range certification. Positive-dimensional critical loci are detected explicitly and recursively reduced when possible rather than being silently treated as failed finite solves. Higher-dimensional open/unbounded problems may still be declined when the estimated complete image-CAD cost exceeds the configured policy, and noncompact optimization at infinity has no dedicated asymptotic-critical-point algorithm. General non-polynomial optimization and SOS/SDP certificate search are outside the exact pipeline.
+The optimizer is strongest for low-dimensional polynomial problems whose KKT/active loci are zero-dimensional, safely reducible by equalities, or affordable for exact CAD range certification. Positive-dimensional critical loci are detected explicitly and recursively reduced when possible instead of being without reporting treated as failed finite solves. Higher-dimensional open/unbounded problems may still be declined when the estimated complete image-CAD cost exceeds the configured policy, and noncompact optimization at infinity has no dedicated asymptotic-critical-point algorithm. General non-polynomial optimization and SOS/SDP certificate search are outside the exact pipeline.
 
 
 ## Direct parametric relation reconstruction

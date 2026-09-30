@@ -5,8 +5,8 @@ import sympy as sp
 
 from semialg import connected_components, is_connected
 from semialg.algebraic.rational_univariate import (
-    compute_rational_univariate_representation,
-    solve_zero_dimensional_system_with_rur,
+    compute_rur,
+    solve_with_rur,
 )
 from semialg.cad_algorithms.reduced import decomp_form_reduced_safe
 from semialg.formula import parse_formula
@@ -116,7 +116,7 @@ def test_rur_solution_is_invariant_under_nonzero_algebraic_scaling(scalar):
     base = (x**2 - 2, y - x)
     equations = tuple(sp.expand(scalar * equation) for equation in base)
 
-    solutions = solve_zero_dimensional_system_with_rur(equations, (x, y), real=True)
+    solutions = solve_with_rur(equations, (x, y), real=True)
 
     assert solutions == ((-sp.sqrt(2), -sp.sqrt(2)), (sp.sqrt(2), sp.sqrt(2)))
 
@@ -126,9 +126,9 @@ def test_rur_cache_and_domain_transition_do_not_change_solutions():
     rational = (x**2 - 2, y - x)
     algebraic = tuple(sp.expand(sp.sqrt(3) * equation) for equation in rational)
 
-    rational_rep = compute_rational_univariate_representation(rational, (x, y))
-    algebraic_rep = compute_rational_univariate_representation(algebraic, (x, y))
-    rational_again = solve_zero_dimensional_system_with_rur(rational, (x, y), real=True)
+    rational_rep = compute_rur(rational, (x, y))
+    algebraic_rep = compute_rur(algebraic, (x, y))
+    rational_again = solve_with_rur(rational, (x, y), real=True)
 
     assert str(rational_rep.defining_polynomial.domain) == "QQ"
     assert getattr(algebraic_rep.defining_polynomial.domain, "is_AlgebraicField", False)

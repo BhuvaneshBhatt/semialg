@@ -50,7 +50,7 @@ def _componentwise_leq(left: Sequence[int], right: Sequence[int]) -> bool:
     return all(a <= b for a, b in zip(left, right, strict=True))
 
 
-def _is_not_divisible_by_any_leading_monomial(
+def _avoids_leading_monomials(
     candidate: Sequence[int], leading_exponents: Sequence[Sequence[int]]
 ) -> bool:
     return not any(_componentwise_leq(leading, candidate) for leading in leading_exponents)
@@ -151,7 +151,7 @@ def _standard_exponents(
     basis = [
         tuple(candidate)
         for candidate in candidates
-        if _is_not_divisible_by_any_leading_monomial(candidate, leading_exponents)
+        if _avoids_leading_monomials(candidate, leading_exponents)
     ]
     if not basis or basis[0] != tuple(0 for _ in range(variable_count)):
         basis.sort(key=lambda exp: (sum(exp), exp))
@@ -188,6 +188,70 @@ def _coefficient_vector(
     return sp.Matrix(
         [coefficient_rules.get(tuple(exponent), sp.Integer(0)) for exponent in basis_exponents]
     )
+
+
+def _variable_multiplication_matrices(
+    groebner_basis: sp.polys.polytools.GroebnerBasis,
+    variables: Sequence[sp.Symbol],
+    basis_exponents: Sequence[Sequence[int]],
+    domain,
+) -> tuple[sp.Matrix, ...]:
+    """Build quotient multiplication matrices one variable at a time.
+
+    Each column is the normal form of ``x_i * b_j``.  This requires
+    ``n * D`` reductions for ``n`` variables and quotient dimension ``D``,
+    instead of constructing all ``D**2`` products of basis monomials.
+    """
+    basis_monomials = [_monomial_from_exponent(variables, exponent) for exponent in basis_exponents]
+    matrices: list[sp.Matrix] = []
+    for variable in variables:
+        columns = [
+            _coefficient_vector(
+                _normal_form(groebner_basis, variable * monomial),
+                variables,
+                basis_exponents,
+                domain,
+            )
+            for monomial in basis_monomials
+        ]
+        matrices.append(sp.Matrix.hstack(*columns) if columns else sp.zeros(0, 0))
+    return tuple(matrices)
+
+
+def _basis_product_vector(
+    exponent: Sequence[int],
+    basis_index: int,
+    variable_matrices: Sequence[sp.Matrix],
+) -> sp.Matrix:
+    """Return coordinates of a standard monomial times one basis element."""
+    dimension = variable_matrices[0].rows if variable_matrices else 0
+    vector = sp.eye(dimension).col(basis_index)
+    for matrix, power in zip(variable_matrices, exponent, strict=True):
+        for _ in range(int(power)):
+            vector = matrix * vector
+    return vector
+
+
+def _trace_pairing_from_variable_matrices(
+    basis_exponents: Sequence[Sequence[int]],
+    variable_matrices: Sequence[sp.Matrix],
+) -> tuple[sp.Matrix, sp.Matrix]:
+    """Return traces of basis multiplications and the quotient trace pairing."""
+    dimension = len(basis_exponents)
+    basis_matrices: list[sp.Matrix] = []
+    for exponent in basis_exponents:
+        matrix = sp.eye(dimension)
+        for variable_matrix, power in zip(variable_matrices, exponent, strict=True):
+            if power:
+                matrix = matrix * (variable_matrix ** int(power))
+        basis_matrices.append(matrix)
+    traces = sp.Matrix([matrix.trace() for matrix in basis_matrices])
+    pairing = sp.zeros(dimension, dimension)
+    for left, matrix in enumerate(basis_matrices):
+        for right in range(dimension):
+            product_coordinates = matrix[:, right]
+            pairing[left, right] = (product_coordinates.T * traces)[0]
+    return traces, pairing
 
 
 def _multiplication_tensor(
@@ -233,34 +297,30 @@ def _squarefree_part(poly: sp.Poly) -> sp.Poly:
 
 
 def _select_separating_linear_form(
-    groebner_basis: sp.polys.polytools.GroebnerBasis,
     variables: Sequence[sp.Symbol],
     parameter: sp.Symbol,
     basis_exponents: Sequence[Sequence[int]],
-    tensor: Sequence[Sequence[sp.Matrix]],
+    variable_matrices: Sequence[sp.Matrix],
     domain,
     *,
     max_attempts: int = 64,
 ) -> tuple[sp.Expr, sp.Poly, sp.Poly, sp.Matrix, list[sp.Matrix], int]:
-    """Choose a separating linear form whose quotient-algebra characteristic polynomial distinguishes all geometric solutions."""
+    """Choose a separating linear form using variable multiplication matrices."""
     dimension = len(basis_exponents)
-    trace_of_basis_mult = sp.Matrix(
-        [sum(tensor[i][j][j] for j in range(dimension)) for i in range(dimension)]
+    trace_of_basis_mult, trace_pairing = _trace_pairing_from_variable_matrices(
+        basis_exponents, variable_matrices
     )
-    trace_pairing = sp.zeros(dimension, dimension)
-    for left in range(dimension):
-        for right in range(dimension):
-            trace_pairing[left, right] = (tensor[left][right].T * trace_of_basis_mult)[0]
     expected_distinct_roots = trace_pairing.rank()
-
     if max_attempts < 1:
         raise RationalUnivariateError("max_attempts must be positive")
-
     for attempt in range(1, max_attempts + 1):
-        linear_form = sum((attempt**idx) * variable for idx, variable in enumerate(variables))
-        remainder = _normal_form(groebner_basis, linear_form)
-        coordinate_vector = _coefficient_vector(remainder, variables, basis_exponents, domain)
-        multiplication = _multiplication_matrix(coordinate_vector, tensor)
+        coefficients = tuple(attempt**idx for idx in range(len(variables)))
+        linear_form = sum(
+            coeff * variable for coeff, variable in zip(coefficients, variables, strict=True)
+        )
+        multiplication = sp.zeros(dimension, dimension)
+        for coeff, matrix in zip(coefficients, variable_matrices, strict=True):
+            multiplication += coeff * matrix
         characteristic = sp.Poly(
             multiplication.charpoly(parameter).as_expr(), parameter, domain=domain
         )
@@ -271,7 +331,7 @@ def _select_separating_linear_form(
             denominator = derivative.quo(gcd)
             powers = [sp.eye(dimension).col(0)]
             for _ in range(1, squarefree.degree()):
-                powers.append(sp.simplify(multiplication * powers[-1]))
+                powers.append(multiplication * powers[-1])
             return (
                 linear_form,
                 squarefree,

@@ -31,7 +31,7 @@ For a projection, one can always write an existential formula. If
 \{x:\exists y\,S(x,y)\}.
 \]
 
-Use `semialgebraic_projection` rather than manually constructing the quantifier unless the quantified formula itself is the object you want to study.
+Use `semialgebraic_projection` instead of manually constructing the quantifier unless the quantified formula itself is the object you want to study.
 
 Similarly,
 

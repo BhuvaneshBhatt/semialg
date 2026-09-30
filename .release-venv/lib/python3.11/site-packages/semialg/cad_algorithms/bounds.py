@@ -268,11 +268,9 @@ class AlgebraicRootFunction(CADBound):
         # RUR is a second exact backend for fixed-coefficient zero-dimensional
         # fiber problems.  It returns exact expressions, which we then isolate.
         try:
-            from ..algebraic.rational_univariate import solve_zero_dimensional_system_with_rur
+            from ..algebraic.rational_univariate import solve_with_rur
 
-            points = solve_zero_dimensional_system_with_rur(
-                (specialized,), (self.fiber_variable,), real=True
-            )
+            points = solve_with_rur((specialized,), (self.fiber_variable,), real=True)
             values = sorted((p[0] for p in points), key=cmp_to_key(compare_exact_reals))
             if 0 <= self.root_index < len(values):
                 value = values[self.root_index]

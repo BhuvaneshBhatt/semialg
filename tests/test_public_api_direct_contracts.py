@@ -121,6 +121,11 @@ PRIMARY_CONTRACT_NAMES = (
     "connected_component_samples",
     "connected_components",
     "contains_point",
+    "PointInClosureResult",
+    "point_in_closure",
+    "SemialgebraicFunctionGraph",
+    "UnsupportedFunctionGraph",
+    "semialgebraic_function_graph",
     "convexity_certificate",
     "coordinate_range",
     "covariance_matrix",
@@ -277,7 +282,7 @@ PRIMARY_CONTRACT_NAMES = (
     "implied_polynomial_inequality",
     "redundant_polynomial_inequalities",
     "nonnegative_combination_certificate",
-    "verify_nonnegative_combination_certificate",
+    "verify_nonnegative_certificate",
     "component_constraint_descriptions",
     "NonnegativeCombinationCertificate",
     "ImpliedPolynomialInequality",
@@ -319,6 +324,35 @@ PRIMARY_CONTRACT_NAMES = (
     "QuantifierEliminationResult",
     "quantifier_eliminate",
     "project_region",
+    "BlowupChart",
+    "CorrelatedMapImageResult",
+    "CurveSelectionWitness",
+    "LocalAlgebraicStrata",
+    "LocalBoundCertificate",
+    "LocalGeometry",
+    "LocalGerm",
+    "LocalRangeResult",
+    "LocalSignStratum",
+    "ParameterStratum",
+    "ProofDiagnostics",
+    "angular_map_image",
+    "blowup_charts",
+    "contact_order",
+    "correlated_map_image",
+    "curve_selection",
+    "local_algebraic_strata",
+    "local_bound",
+    "local_components",
+    "local_geometry",
+    "local_germ",
+    "local_image",
+    "local_preimage",
+    "local_range",
+    "local_sign_strata",
+    "parameter_strata",
+    "path_independent",
+    "structured_proof_diagnostics",
+    "vanishing_order",
 )
 
 
@@ -448,3 +482,11 @@ def test_new_region_boolean_and_topological_relations_are_directly_callable():
     assert semialg.contains_point(symmetric, (sp.Rational(1, 2),), (x,))
     assert not semialg.contains_point(symmetric, (1,), (x,))
     assert semialg.is_interior_disjoint(left, right, (x,))
+
+
+def test_root_semialgebraic_function_graph_has_direct_behavioral_call():
+    import sympy as sp
+
+    x, y = sp.symbols("x y", real=True)
+    graph = semialg.semialgebraic_function_graph(sp.Abs(x), y)
+    assert graph.supported

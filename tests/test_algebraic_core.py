@@ -693,3 +693,25 @@ def test_fiber_context_nullification_accepts_algebraic_extension_coefficients():
 
     assert nullified.is_nullified_at_parent()
     assert not nonnullified.is_nullified_at_parent()
+
+
+def test_cached_sector_sample_remains_strictly_between_refined_bounds():
+    from semialg.algebraic.cache import CACHE
+    from semialg.algebraic.sample_points import choose_sector_sample
+    from semialg.algebraic.samples import AlgebraicRoot, RationalInterval
+
+    x = sp.Symbol("x", real=True)
+    left = AlgebraicRoot(sp.Poly(x**2 - 2, x), RationalInterval(1, 2), 1)
+    right = AlgebraicRoot(sp.Poly(x**2 - 3, x), RationalInterval(1, 2), 1)
+
+    CACHE.clear()
+    first = choose_sector_sample(left, right)
+    refined_left = refine_isol_intvl(left, steps=4)
+    refined_right = refine_isol_intvl(right, steps=4)
+    second = choose_sector_sample(refined_left, refined_right)
+
+    assert compare_samples(refined_left, second) < 0
+    assert compare_samples(second, refined_right) < 0
+    # The cache may reuse the old sample only when it still satisfies the
+    # refined certificate; correctness does not depend on cache identity.
+    assert compare_samples(refined_left, first) < 0 or second != first

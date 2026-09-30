@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 from semialg._linear_relations import linear_relation_bound, safe_linear_solution
 from semialg.instances import coordinate_bounds, is_bounded_solution_set
 from semialg.instances.real_fallbacks import is_valid_numeric_value
-from semialg.qe.complete import _canonicalize_same_kind_quantifier_blocks
+from semialg.qe.complete import _merge_quantifier_blocks
 from semialg.structural_keys import point_key, symbol_identity_key
 
 
@@ -89,9 +89,7 @@ def test_quantifier_canonicalization_respects_assumptions():
     xp = sp.Symbol("x", positive=True)
     q1 = (("exists", xr), ("exists", xp))
     q2 = (("exists", xp), ("exists", xr))
-    assert _canonicalize_same_kind_quantifier_blocks(
-        q1
-    ) == _canonicalize_same_kind_quantifier_blocks(q2)
+    assert _merge_quantifier_blocks(q1) == _merge_quantifier_blocks(q2)
 
 
 @settings(max_examples=40, deadline=None)
@@ -175,7 +173,7 @@ def test_same_name_symbol_canonicalization_is_permutation_invariant(
     quantifiers = [("exists", xr), ("exists", xp)]
     if reverse_quantifiers:
         quantifiers.reverse()
-    assert _canonicalize_same_kind_quantifier_blocks(tuple(quantifiers)) == (
+    assert _merge_quantifier_blocks(tuple(quantifiers)) == (
         ("exists", min((xr, xp), key=symbol_identity_key)),
         ("exists", max((xr, xp), key=symbol_identity_key)),
     )

@@ -5,7 +5,7 @@
 
 **Exactness and certification.** Root order, sign/truth invariance, and cell reconstruction are exact on certified paths. Reduced projection is used only when its side conditions are established; otherwise the implementation falls back conservatively.
 
-**Algorithm.** Projection constructs lower-dimensional control polynomials; lifting decomposes fibers into sections and sectors. Variable ordering can materially change cost.
+**Algorithms.** Projection constructs lower-dimensional control polynomials; lifting decomposes fibers into sections and sectors. Variable ordering can materially change cost.
 
 **Complexity and limitations.** CAD is a general but potentially expensive backend. Prefer task-specific APIs unless the decomposition itself is needed. See [CAD concepts](../concepts/cad.md).
 
@@ -14,7 +14,7 @@
 
 ## Primary API overview
 
-This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|
@@ -172,11 +172,11 @@ Builds a parameter-aware/generic CAD. By default the direct return follows `outp
 ## Structured cell APIs
 
 - `extract_structured_cad_cells`
-- `structured_cad_cells_to_vertical_bounds_2d`
+- `cad_cells_to_vertical_bounds_2d`
 - `extract_vertical_bounds_from_cad_2d`
 - `cylindrical_solution_from_structured`
 
-These expose typed cylindrical structure rather than requiring callers to parse arbitrary Boolean formulas.
+These expose typed cylindrical structure instead of requiring callers to parse arbitrary Boolean formulas.
 
 ## Connectivity
 
@@ -189,7 +189,7 @@ These derive adjacency/components from CAD cell information.
 
 Public CAD types include `CADBound`, `CADCellBoundsCertificate`, `StructuredCADLevel`, `StructuredCADCell`, `StructuredCADCellDecomposition`, `CADResult`, and related result/certificate objects.
 
-Algebraic section bounds can be represented by certified root functions rather than approximate decimal endpoints.
+Algebraic section bounds can be represented by certified root functions instead of approximate decimal endpoints.
 
 ## Exactness
 

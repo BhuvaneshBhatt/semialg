@@ -32,7 +32,7 @@ over binary floating-point literals when exact semantics are intended:
 0.333333333333
 ```
 
-A float is already an inexact input. `semialg` does not silently recover the exact rational number the user may have intended.
+A float is already an inexact input. `semialg` does not without reporting recover the exact rational number the user may have intended.
 
 ## Variables and parameters
 
@@ -46,7 +46,7 @@ x^2\le a,
 
 `x` may be an integration variable while `a` is a parameter.
 
-When an API accepts explicit `variables=[...]`, symbols not listed there may remain parameters rather than being implicitly eliminated. Use the API's `parameters=` argument when available to make the distinction explicit.
+When an API accepts explicit `variables=[...]`, symbols not listed there may remain parameters instead of being implicitly eliminated. Use the API's `parameters=` argument when available to make the distinction explicit.
 
 ## Symbol identity matters
 
@@ -91,4 +91,4 @@ Algorithms introduce collision-free internal `Dummy` symbols for graph variables
 
 Equivalent semialgebraic sets can have many syntactic formulas. The simplification layer computes a **stable canonical form for the supported polynomial fragment**: polynomial relation residuals are primitive and deterministically oriented, repeated zero-set multiplicities are removed, compatible scalar bounds are merged, Boolean branches are normalized, and guarded CAD implication checks remove provable semantic redundancy. Reapplying the simplifier is idempotent on this fragment.
 
-This is not presented as a globally minimum Boolean formula: globally minimizing arbitrary semialgebraic formulas would require a cost model and can be computationally much harder than establishing equivalence. Callers that need mathematical equality rather than stable presentation should still use semantic predicates such as `equivalent` or `is_equal`.
+This is not presented as a globally minimum Boolean formula: globally minimizing arbitrary semialgebraic formulas would require a cost model and can be computationally much harder than establishing equivalence. Callers that need mathematical equality instead of stable presentation should still use semantic predicates such as `equivalent` or `is_equal`.

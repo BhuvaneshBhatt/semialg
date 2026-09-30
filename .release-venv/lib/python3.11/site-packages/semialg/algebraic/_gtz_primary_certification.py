@@ -14,9 +14,9 @@ from .equality_ideal import EqualityIdealContext
 from .gtz import (
     IndependentLocalizationCertificate,
     SaturationStabilizationCertificate,
-    verify_independent_localization_certificate,
-    verify_localization_contraction_certificate,
-    verify_saturation_stabilization_certificate,
+    verify_contraction_certificate,
+    verify_localization_certificate,
+    verify_saturation_certificate,
 )
 from .gtz_primary import (
     _canonical_qq_basis,
@@ -27,11 +27,11 @@ from .gtz_primary import (
     _intersection_all,
     _qq_ideal_equal,
     _remove_redundant,
-    verify_fraction_field_zero_dimensional_certificate,
+    verify_fraction_field_zero_dim_certificate,
 )
 from .gtz_zero_dim import (
     ZeroDimensionalPrimaryCertificate,
-    verify_zero_dimensional_primary_certificate,
+    verify_zero_dim_primary_certificate,
 )
 from .hilbert import ideal_degree
 
@@ -130,7 +130,7 @@ def _verify_node(node: GTZNodeCertificate) -> tuple[bool, tuple[object, ...]]:
             return context.inconsistent, tuple()
         if node.kind == "zero_dimensional":
             certificate = node.zero_dimensional_certificate
-            if certificate is None or not verify_zero_dimensional_primary_certificate(certificate):
+            if certificate is None or not verify_zero_dim_primary_certificate(certificate):
                 return False, tuple()
             if not _qq_ideal_equal(certificate.source_generators, source, vars_):
                 return False, tuple()
@@ -144,7 +144,7 @@ def _verify_node(node: GTZNodeCertificate) -> tuple[bool, tuple[object, ...]]:
         local = node.local_primary_certificate
         if localization is None or local is None:
             return False, tuple()
-        if not verify_independent_localization_certificate(localization):
+        if not verify_localization_certificate(localization):
             return False, tuple()
         if not _qq_ideal_equal(localization.source_generators, source, vars_):
             return False, tuple()
@@ -159,7 +159,7 @@ def _verify_node(node: GTZNodeCertificate) -> tuple[bool, tuple[object, ...]]:
             local.parameters,
         ):
             return False, tuple()
-        if not verify_fraction_field_zero_dimensional_certificate(local):
+        if not verify_fraction_field_zero_dim_certificate(local):
             return False, tuple()
         if len(node.contracted_components) != len(local.components):
             return False, tuple()
@@ -167,9 +167,9 @@ def _verify_node(node: GTZNodeCertificate) -> tuple[bool, tuple[object, ...]]:
         for evidence, local_component in zip(
             node.contracted_components, local.components, strict=True
         ):
-            if not verify_localization_contraction_certificate(evidence.primary_contraction):
+            if not verify_contraction_certificate(evidence.primary_contraction):
                 return False, tuple()
-            if not verify_localization_contraction_certificate(evidence.radical_contraction):
+            if not verify_contraction_certificate(evidence.radical_contraction):
                 return False, tuple()
             if not _ff_ideal_equal(
                 evidence.primary_contraction.localized_generators,
@@ -222,7 +222,7 @@ def _verify_node(node: GTZNodeCertificate) -> tuple[bool, tuple[object, ...]]:
         residual = node.residual
         if split is None or residual is None:
             return False, tuple()
-        if not verify_saturation_stabilization_certificate(split):
+        if not verify_saturation_certificate(split):
             return False, tuple()
         if not _qq_ideal_equal(split.source_generators, source, vars_):
             return False, tuple()

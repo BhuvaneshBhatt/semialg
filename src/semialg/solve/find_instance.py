@@ -13,7 +13,7 @@ from ..decomposition.components import component_instances
 from ..formula import Formula, ParsedPrenexFormula, parse_formula, parse_quant_form_text, to_sympy
 from ..instances.real_fallbacks import find_real_witnesses, satisfies_formula
 from ..partial.qe import lazy_find_inst_form
-from ..qe.virtual_substitution import try_quadratic_virtual_substitution_witness
+from ..qe.virtual_substitution import try_quadratic_vs_witness
 from ..status import SolverStatus
 from ..structural_keys import symbol_identity_key
 from ..symbol_resolution import build_symbol_table
@@ -288,7 +288,7 @@ def _real_instances(
     )
 
 
-def _quadratic_virtual_substitution_instance(
+def _quadratic_vs_instance(
     parsed: ParsedPrenexFormula, count: int, strategy: str
 ) -> InstanceResult | None:
     """Find one real witness by eliminating existential quadratic variables.
@@ -353,7 +353,7 @@ def _quadratic_virtual_substitution_instance(
         )
         return base.first()
 
-    witness = try_quadratic_virtual_substitution_witness(
+    witness = try_quadratic_vs_witness(
         parsed.vars,
         parsed.quantifiers,
         parsed.matrix_expr,
@@ -464,6 +464,70 @@ def _boolean_instances(expr: sp.Expr, vars_: Sequence[sp.Symbol], count: int) ->
     )
 
 
+def _real_symbol_assumption_constraint(symbol: sp.Symbol, neutral: sp.Symbol) -> sp.Expr:
+    """Lower sign assumptions on a public symbol to explicit neutral-variable constraints."""
+    if symbol.is_positive is True:
+        return neutral > 0
+    if symbol.is_negative is True:
+        return neutral < 0
+    if symbol.is_nonnegative is True:
+        return neutral >= 0
+    if symbol.is_nonpositive is True:
+        return neutral <= 0
+    if symbol.is_nonzero is True:
+        return sp.Ne(neutral, 0)
+    return sp.true
+
+
+def _lower_real_symbol_assumptions(
+    expr: sp.Expr, variables: tuple[sp.Symbol, ...]
+) -> tuple[sp.Expr, tuple[sp.Symbol, ...], dict[sp.Symbol, sp.Symbol]]:
+    """Use assumption-neutral solver variables and preserve public sign assumptions."""
+    if not any(
+        v.is_positive is True
+        or v.is_negative is True
+        or v.is_nonnegative is True
+        or v.is_nonpositive is True
+        or v.is_nonzero is True
+        for v in variables
+    ):
+        return expr, variables, {}
+    neutral = tuple(sp.Dummy(f"{v.name}_real", real=True) for v in variables)
+    public_to_neutral = dict(zip(variables, neutral, strict=True))
+    constraints = tuple(
+        _real_symbol_assumption_constraint(public, internal)
+        for public, internal in zip(variables, neutral, strict=True)
+    )
+    lowered = sp.And(expr.xreplace(public_to_neutral), *constraints)
+    return lowered, neutral, public_to_neutral
+
+
+def _restore_instance_variables(
+    result: InstanceResult,
+    public_variables: tuple[sp.Symbol, ...],
+    internal_variables: tuple[sp.Symbol, ...],
+) -> InstanceResult:
+    reverse = dict(zip(internal_variables, public_variables, strict=True))
+    instances = tuple(
+        {reverse.get(var, var): value for var, value in point.items()} for point in result.instances
+    )
+    approximate = tuple(
+        {reverse.get(var, var): value for var, value in point.items()}
+        for point in result.approximate
+    )
+    return InstanceResult(
+        instances,
+        approximate,
+        public_variables,
+        result.domain,
+        result.status,
+        result.method,
+        exact=result.exact,
+        diagnostics=result.diagnostics,
+        random_seed=result.random_seed,
+    )
+
+
 def find_instance(
     formula: sp.Expr | Formula,
     variables: Sequence[sp.Symbol | str] | None = None,
@@ -503,15 +567,19 @@ def find_instance(
             instances=[], variables=vars_, domain=dom, method="empty_instance_request"
         )
     elif dom is SolveDomain.REALS:
+        public_vars = vars_
+        lowered_expr, solver_vars, lowered = _lower_real_symbol_assumptions(expr, vars_)
         result = _real_instances(
-            expr,
-            parse_formula(expr),
-            vars_,
+            lowered_expr,
+            parse_formula(lowered_expr),
+            solver_vars,
             count,
             strategy,
             random_seed=random_seed,
             strict=strict,
         )
+        if lowered:
+            result = _restore_instance_variables(result, public_vars, solver_vars)
     elif dom is SolveDomain.COMPLEXES:
         result = _complex_instances(expr, vars_, count)
     elif dom is SolveDomain.INTEGERS:
@@ -606,7 +674,7 @@ def find_instance_formula(
                 diagnostics={"rur_result": rur_result},
             )
         else:
-            vs_result = _quadratic_virtual_substitution_instance(parsed, inst_count, strategy_name)
+            vs_result = _quadratic_vs_instance(parsed, inst_count, strategy_name)
             if vs_result is not None and (
                 vs_result.found or vs_result.status == SolverStatus.UNSAT
             ):

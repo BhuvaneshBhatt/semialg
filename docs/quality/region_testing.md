@@ -1,6 +1,6 @@
 # Region testing strategy
 
-Region tests are organized by mathematical contract under `tests/regions/` rather than by private implementation module.
+Region tests are organized by mathematical contract under `tests/regions/` instead of by private implementation module.
 
 - `test_equivalent_formulations.py`: representation independence.
 - `test_projection_and_maps.py`: projection/image/preimage identities.

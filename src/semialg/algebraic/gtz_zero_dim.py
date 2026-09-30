@@ -31,7 +31,7 @@ from .equality_ideal import EqualityIdealContext
 from .gtz import (
     SaturationStabilizationCertificate,
     saturation_stabilization,
-    verify_saturation_stabilization_certificate,
+    verify_saturation_certificate,
 )
 from .hilbert import ideal_degree
 from .ideal_ops import intersection_all_qq, qq_ideal_equal_uncached
@@ -180,7 +180,7 @@ def zero_dimensional_primary_decomposition(
     coefficient_field: object | None = None,
 ) -> ZeroDimensionalPrimaryResult:
     """Compute primary components for a zero-dimensional ideal in ``K[X]``."""
-    from ..algebraic_decomposition import certified_radical_minimal_prime_decomposition
+    from ..algebraic_decomposition import certified_minimal_primes
 
     vars_ = tuple(variables)
     field = coefficient_field or RationalFunctionField(())
@@ -211,7 +211,7 @@ def zero_dimensional_primary_decomposition(
             "zero-dimensional primary decomposition requires a zero-dimensional ideal over the coefficient field"
         )
 
-    minimal = certified_radical_minimal_prime_decomposition(ambient_source, ambient_variables)
+    minimal = certified_minimal_primes(ambient_source, ambient_variables)
     if not minimal.minimal_primes_complete or minimal.certificate is None:
         return ZeroDimensionalPrimaryResult(
             vars_, field, tuple(), False, False, "minimal_prime_decomposition_incomplete"
@@ -282,12 +282,12 @@ def zero_dimensional_primary_decomposition(
         "gtz3_algebraic_lift" if coefficient_symbols else "gtz3_qq",
         certificate,
     )
-    if not verify_zero_dimensional_primary_certificate(certificate):
+    if not verify_zero_dim_primary_certificate(certificate):
         raise ArithmeticError("internal zero-dimensional primary certificate verification failed")
     return result
 
 
-def verify_zero_dimensional_primary_certificate(
+def verify_zero_dim_primary_certificate(
     certificate: ZeroDimensionalPrimaryCertificate,
 ) -> bool:
     """Replay field validity, maximal-prime separation, saturation, and transport."""
@@ -357,7 +357,7 @@ def verify_zero_dimensional_primary_certificate(
                 return False
             if sp.expand(sat.splitter - separator) != 0:
                 return False
-            if not verify_saturation_stabilization_certificate(sat):
+            if not verify_saturation_certificate(sat):
                 return False
             if not qq_ideal_equal_uncached(
                 component.ambient_generators, sat.saturated_generators, ambient_variables
@@ -405,6 +405,6 @@ __all__ = [
     "ZeroDimensionalPrimaryCertificate",
     "ZeroDimensionalPrimaryComponent",
     "ZeroDimensionalPrimaryResult",
-    "verify_zero_dimensional_primary_certificate",
+    "verify_zero_dim_primary_certificate",
     "zero_dimensional_primary_decomposition",
 ]

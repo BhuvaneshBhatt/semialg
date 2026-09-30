@@ -1,0 +1,7 @@
+{
+  "case": "17 active trivariate polynomials, six declared equational constraints, 200 repetitions",
+  "baseline_median_s": 0.0038863005,
+  "candidate_median_s": 0.0033439120,
+  "improvement_percent": 13.96,
+  "change": "compare already-expanded EC expressions structurally instead of repeatedly expanding sums and differences"
+}

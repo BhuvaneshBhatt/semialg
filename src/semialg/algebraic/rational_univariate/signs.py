@@ -6,7 +6,7 @@ import sympy as sp
 
 from ...formulas.boolean import RELATION_TYPES, relation_residual
 from ..exact_sign import exact_algebraic_sign
-from .construction import compute_rational_univariate_representation
+from .construction import compute_rur
 from .representation import FilteredRationalUnivariateSolutions, RationalUnivariateError
 from .solve import solve_rur_representation
 
@@ -132,7 +132,7 @@ def solve_rur_semialgebraic_system(
     simplified_constraints = ideal.simplify_constraints(constraint_formula)
     if simplified_constraints is sp.false or simplified_constraints == sp.false:
         return tuple()
-    representation = compute_rational_univariate_representation(
+    representation = compute_rur(
         equality_tuple, variables, parameter, max_separating_attempts=max_separating_attempts
     )
     candidate_points = solve_rur_representation(representation, real=real)
@@ -145,7 +145,7 @@ def solve_rur_semialgebraic_system(
     return filtered
 
 
-def solve_and_filter_zero_dimensional_system_with_rur(
+def solve_and_filter_with_rur(
     equalities: Iterable[sp.Expr],
     variables: Sequence[sp.Symbol],
     constraints: sp.Expr | bool | Iterable[sp.Expr | bool] = sp.true,
@@ -161,7 +161,7 @@ def solve_and_filter_zero_dimensional_system_with_rur(
 
     ideal = EqualityIdealContext(equality_tuple, variables)
     if ideal.inconsistent:
-        representation = compute_rational_univariate_representation(
+        representation = compute_rur(
             equality_tuple, variables, parameter, max_separating_attempts=max_separating_attempts
         )
         return FilteredRationalUnivariateSolutions(
@@ -174,7 +174,7 @@ def solve_and_filter_zero_dimensional_system_with_rur(
     else:
         constraint_formula = sp.And(*tuple(constraints))
     simplified_constraints = ideal.simplify_constraints(constraint_formula)
-    representation = compute_rational_univariate_representation(
+    representation = compute_rur(
         equality_tuple, variables, parameter, max_separating_attempts=max_separating_attempts
     )
     if simplified_constraints is sp.false or simplified_constraints == sp.false:

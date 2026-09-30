@@ -1,6 +1,6 @@
 # Parameter-stratified and conditional results
 
-Many exact symbolic answers depend on parameter regions. `semialg` represents these answers explicitly rather than attaching an unconditional expression to a representative sample.
+Many exact symbolic answers depend on parameter regions. `semialg` represents these answers explicitly instead of attaching an unconditional expression to a representative sample.
 
 ## Public API
 
@@ -54,7 +54,7 @@ Three claims are checked independently:
 
 `verify_parameter_stratification` returns a `ParameterStratificationCertificate` containing these checks, overlap conditions, and any uncovered condition.
 
-A sampled CAD fiber is evidence for a parameter cell, not automatically a symbolic formula valid on the whole cell. `ParametricCADResult.as_stratified_result()` therefore exposes guarded `ParametricCADCase` objects rather than promoting representative fibers to unconditional answers.
+A sampled CAD fiber is evidence for a parameter cell, not automatically a symbolic formula valid on the whole cell. `ParametricCADResult.as_stratified_result()` therefore exposes guarded `ParametricCADCase` objects instead of promoting representative fibers to unconditional answers.
 
 ## Optimization and range relations
 
@@ -71,6 +71,6 @@ For semialgebraic regions whose inequalities contain symbolic parameters, region
 
 ## Representative parameter samples
 
-A representative sample is auxiliary data, not a proof that an arbitrary convenient parameter value belongs to a stratum. When CAD supplies a cell sample, semialg validates it against that cell. When a finer parameter decomposition is unavailable, the fallback searches for and validates an exact representative of the full parameter condition. It never assumes that zero is feasible. If no representative can be certified for a nonempty stratum, the operation raises `NotImplementedError` rather than specializing the problem at an invalid point.
+A representative sample is auxiliary data, not a proof that an arbitrary convenient parameter value belongs to a stratum. When CAD supplies a cell sample, semialg validates it against that cell. When a finer parameter decomposition is unavailable, the fallback searches for and validates an exact representative of the full parameter condition. It never assumes that zero is feasible. If no representative can be certified for a nonempty stratum, the operation raises `NotImplementedError` instead of specializing the problem at an invalid point.
 
 Sampled fibers are constructed through the same internal path for CAD cells and fallback strata, so specialization and validation semantics remain consistent.

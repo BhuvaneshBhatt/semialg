@@ -66,7 +66,7 @@ def get_kernel_dict(
         ),
         "display_name": "Python %i (ipykernel)" % sys.version_info[0],
         "language": "python",
-        "metadata": {"debugger": True, "supported_encryption": "curve"},
+        "metadata": {"debugger": True, "supported_encryption": ["curve"]},
         "kernel_protocol_version": "5.5",
     }
 
@@ -174,7 +174,7 @@ def install(
     python_arguments = None
 
     # addresses the debugger warning from debugpy about frozen modules
-    if sys.version_info >= (3, 11) and platform.python_implementation() == "CPython":
+    if platform.python_implementation() == "CPython":
         if not frozen_modules:
             # disable frozen modules
             python_arguments = ["-Xfrozen_modules=off"]

@@ -1,6 +1,6 @@
 # Geometric queries
 
-The high-level geometry layer composes CAD/QE, exact optimization, and local polynomial algebra rather than introducing separate numerical approximations.
+The high-level geometry layer composes CAD/QE, exact optimization, and local polynomial algebra instead of introducing separate numerical approximations.
 
 ## Projection, image, preimage, and fibers
 
@@ -70,7 +70,7 @@ from semialg import (
 )
 ```
 
-`is_connected` and `is_path_connected` agree for semialgebraic sets. `connected_components` uses the semantic CAD adjacency graph and returns one formula per certified component rather than merely returning top-level Boolean disjuncts.
+`is_connected` and `is_path_connected` agree for semialgebraic sets. `connected_components` uses the semantic CAD adjacency graph and returns one formula per certified component instead of merely returning top-level Boolean disjuncts.
 
 ## Extrema and level sets
 

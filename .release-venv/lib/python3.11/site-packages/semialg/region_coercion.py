@@ -313,12 +313,3 @@ def as_semialgebraic_region(
 
 
 __all__ = ["as_semialgebraic_region"]
-
-
-# ``symbolic_regions`` historically re-exports this operation.  Install the
-# canonical implementation object after this module is fully initialized so the
-# re-export preserves object identity without creating a second implementation
-# or an eager circular import.
-from . import symbolic_regions as _symbolic_regions  # noqa: E402
-
-_symbolic_regions.as_semialgebraic_region = as_semialgebraic_region

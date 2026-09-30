@@ -4,7 +4,7 @@ semialg follows an **exact-first** policy. This does not mean every symbolic-loo
 
 ## Public exactness contract
 
-For exact/certified APIs, `semialg` does **not** silently replace an unsupported exact computation with a fixed-precision numerical approximation. A specialized exact backend may decline; the planner may then try another exact backend or a complete CAD path. If the requested exact operation is unsupported or cannot be certified by the implemented method, the operation should fail explicitly or return a result whose incomplete/candidate status is explicit in that API's contract.
+For exact/certified APIs, `semialg` does **not** without reporting replace an unsupported exact computation with a fixed-precision numerical approximation. A specialized exact backend may decline; the planner may then try another exact backend or a complete CAD path. If the requested exact operation is unsupported or cannot be certified by the implemented method, the operation should fail explicitly or return a result whose incomplete/candidate status is explicit in that API's contract.
 
 **Exact does not mean inexpensive.** Complete real quantifier elimination can be extremely costly even when the final answer is simple.
 
@@ -26,7 +26,7 @@ Numerical computation is permitted in different roles depending on the API. The 
 | Plotting / discretization | Yes | No; these are presentation APIs |
 | `exact=False` sampling/integration modes | Yes | No; inexactness is explicit |
 
-A useful implementation principle follows: **numerics may suggest; they may not silently certify an exact API.**
+A useful implementation principle follows: **numerics may suggest; they may not without reporting certify an exact API.**
 
 ## Exact representation
 
@@ -50,7 +50,7 @@ Structured result objects expose certification information where the distinction
 
 Some algorithms first generate candidates using KKT systems, active sets, structural heuristics, variable-order estimates, or pilot lifting. A candidate may be exact as a point while the statement “this is the global optimum” is not yet certified.
 
-semialg should not silently upgrade candidate generation into a proof. Certification is a separate operation.
+semialg should not without reporting upgrade candidate generation into a proof. Certification is a separate operation.
 
 ## Numerical approximation
 
@@ -60,7 +60,7 @@ For example, public sampling can opt into numerical random sampling with `exact=
 
 ## Conservative failure
 
-If semialg cannot establish an exact comparison, root order, CAD invariant, or global certificate within the supported method, the preferred behavior is to decline that exact step rather than make a fixed-precision guess.
+If semialg cannot establish an exact comparison, root order, CAD invariant, or global certificate within the supported method, the preferred behavior is to decline that exact step instead of make a fixed-precision guess.
 
 This matters for very close algebraic values. A comparison based on 50 or 100 decimal digits can still be wrong; certified root ordering therefore uses exact algebraic comparison and isolating information.
 
@@ -78,7 +78,7 @@ Likewise, an exact candidate value can exist without a completed global certific
 
 ## Parameter-dependent exactness
 
-For parametric optimization or range problems, a mathematically exact result may naturally be a first-order relation with explicit quantifiers rather than a compact quantifier-free `Piecewise` expression. semialg can retain that exact relation instead of automatically triggering a second expensive QE merely for presentation.
+For parametric optimization or range problems, a mathematically exact result may naturally be a first-order relation with explicit quantifiers instead of a compact quantifier-free `Piecewise` expression. semialg can retain that exact relation instead of automatically triggering a second expensive QE merely for presentation.
 
 ## Practical rule
 

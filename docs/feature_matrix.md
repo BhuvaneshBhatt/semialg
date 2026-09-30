@@ -26,7 +26,7 @@ This matrix separates three questions that are easy to conflate in symbolic soft
 | Region Boolean operations | Exact | Partial | Unified formula/`SemialgebraicRegion` operations plus reusable shared-CAD Boolean combination through `CADRegion`. |
 | Region predicates | Exact | Partial | Subset/equality/disjointness and supported boundedness/closedness/compactness paths; convexity has exact affine, 1-D, quadratic, polynomial-Hessian, domain-relative, topology/witness, and complete-QE stages. |
 | Topology | Exact | Partial | Connected components, exact CAD cell complexes with codimension-one incidence, local dimension, compact-support Euler characteristic, certified zero/one-dimensional and compact-convex BPR roadmaps, b0 generally, b1 for compact sets of dimension at most one, and trivial positive Betti numbers for certified compact convex sets; oriented higher homology and higher-dimensional critical-point roadmaps remain unimplemented. |
-| Explicit path construction | Exact where returned | Partial | Explicit in one dimension; higher-dimensional output is a certified cell/connector chain rather than a full roadmap parameterization. |
+| Explicit path construction | Exact where returned | Partial | Explicit in one dimension; higher-dimensional output is a certified cell/connector chain instead of a full roadmap parameterization. |
 | Region integration | Exact geometry; evaluation may be symbolic or explicitly numeric | Partial | Standard shapes and typed CAD-cell iterated integrals; exact symbolic antiderivatives may remain unevaluated. |
 | Intrinsic measure | Exact | Partial | Certified regular CAD graph strata with induced Hausdorff metric; singular/uncertified strata are explicitly declined. |
 | Moments / centroid / covariance | Exact when underlying integral is exact | Partial | Built on region integration. |
@@ -76,7 +76,7 @@ Complete QE applies conservative affine substitution and exact Fourier–Motzkin
 
 ## Parameter-dependent computation
 
-First-class stratified results are available for several parameter-dependent operations. Some results retain exact quantified relations rather than launching a second expensive QE solely to produce a compact `Piecewise` expression.
+First-class stratified results are available for several parameter-dependent operations. Some results retain exact quantified relations instead of launching a second expensive QE solely to produce a compact `Piecewise` expression.
 
 For operational details, see [Exactness and certification](concepts/exactness_and_certification.md), [How semialg chooses an algorithm](concepts/algorithm_selection.md), and [Limitations](limitations.md).
 
@@ -90,3 +90,15 @@ For operational details, see [Exactness and certification](concepts/exactness_an
 | Function monotonicity | Exact for supported univariate semialgebraic functions; derivative-sign fast path, strictness via derivative-zero dimension, pairwise graph/QE fallback, automatic parameter conditions |
 | Exact smoothness loci | Exact for polynomial/rational functions and univariate supported semialgebraic joins | `function_smoothness` reports continuity, C^k order, smoothness, and exceptional loci. |
 | Mapping properties | Exact for polynomial/rational and graph-supported semialgebraic maps | `function_mapping_properties` certifies injectivity/surjectivity/bijectivity with image and witnesses. |
+
+## Local and approach geometry
+
+| Capability | Public API | Exactness / contract |
+|---|---|---|
+| Point approachable through a region | `point_in_closure` | Exact Euclidean closure membership; CAD-semantic topology by default |
+| Joint polynomial/rational map image | `correlated_map_image` | Exact graph projection preserving output correlation |
+| Directional/angular joint image | `angular_map_image` | Exact correlated image with optional unit-sphere normalization |
+| Local algebraic branches and incident strata | `local_algebraic_strata` | Certified local branch geometry joined with global singular/dimension strata |
+| Normalized proof trace | `structured_proof_diagnostics` | Stable diagnostic normalization; not a replacement for certificate replay |
+
+| Propositional skeleton certificates | Exact | Boolean contradictions/tautologies over relational atoms | Does not infer algebraic relationships between distinct atoms |

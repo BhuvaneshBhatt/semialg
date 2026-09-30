@@ -39,9 +39,9 @@ from .cell_reconstruction import cells_to_formula, finite_variety_formula
 class CellUnion:
     """A finite union of cells in a CAD projection space.
 
-    The formula field is a conservative reconstruction of the same union. The
-    cell list remains the semantic object; callers can simplify or pretty-print
-    the formula later without losing the audited CAD provenance.
+    The formula field is an exact reconstruction of the same union. The cell
+    list remains the semantic object; callers can simplify or pretty-print the
+    formula later without losing the CAD derivation.
     """
 
     variables: tuple[sp.Symbol, ...]
@@ -61,7 +61,7 @@ class CellUnion:
 
 @dataclass(frozen=True)
 class QEDiagnostics:
-    """Small audit record for the complete-CAD QE driver."""
+    """Diagnostics recorded by the complete-CAD QE driver."""
 
     requested_variables: tuple[sp.Symbol, ...]
     internal_variables: tuple[sp.Symbol, ...]
@@ -77,7 +77,7 @@ class QEDiagnostics:
 
 @dataclass(frozen=True)
 class CompleteQEResult:
-    """Result returned by the conservative Collins-based QE path.
+    """Result returned by the complete Collins-based QE path.
 
     The result keeps both a reconstructed formula and the CAD
     objects used to derive it. ``formula`` is the public quantifier-free result;
@@ -119,7 +119,7 @@ def norm_quant_map(quantifiers: Sequence[tuple[str, sp.Symbol]]) -> dict[sp.Symb
     return out
 
 
-def _canonicalize_same_kind_quantifier_blocks(
+def _merge_quantifier_blocks(
     quantifiers: Sequence[tuple[str, sp.Symbol]],
 ) -> tuple[tuple[str, sp.Symbol], ...]:
     """Canonicalize variable order inside contiguous equal-kind blocks.
@@ -483,7 +483,7 @@ def _qe_by_complete_cad_result(
     note_list = list(notes)
 
     if variable_order_strategy in {"preserve", "none"} and quantifiers:
-        canonical_quantifiers = _canonicalize_same_kind_quantifier_blocks(quantifiers)
+        canonical_quantifiers = _merge_quantifier_blocks(quantifiers)
         if canonical_quantifiers != quantifiers:
             quantifiers = canonical_quantifiers
             quantified = tuple(sym for _, sym in quantifiers)

@@ -11,7 +11,7 @@ from semialg.algebraic import (
     certify_polynomial_root_interval,
     isolate_real_roots,
     rational_between_algebraic_reals,
-    verify_polynomial_root_interval_certificate,
+    verify_root_interval_certificate,
 )
 
 pytestmark = pytest.mark.slow
@@ -51,7 +51,7 @@ def test_interval_certificate_counts_distinct_generated_rational_roots(
         expected = set()
 
     assert certificate.root_count == len(expected)
-    assert verify_polynomial_root_interval_certificate(certificate)
+    assert verify_root_interval_certificate(certificate)
 
 
 @settings(max_examples=20, deadline=None)

@@ -1,6 +1,6 @@
 # Algorithm-selection map
 
-`semialg` is exact-first: specialized algorithms are used when their hypotheses can be established, while complete exact fallbacks remain available where the package supports them. A fast path may decline; it may not silently weaken the mathematical claim.
+`semialg` is exact-first: specialized algorithms are used when their hypotheses can be established, while complete exact fallbacks remain available where the package supports them. A fast path may decline; it may not without reporting weaken the mathematical claim.
 
 ## One map of the major operations
 

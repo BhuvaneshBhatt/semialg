@@ -2,7 +2,7 @@
 
 `semialg.applications` contains thin, domain-oriented workflows built on the certified core algorithms. The application layer translates a practical question into semialgebraic decision, quantifier-elimination, range, or optimization problems and packages the result in a domain-friendly form.
 
-Core mathematical operations such as `function_range`, `semialgebraic_measure`, `integrate_over_region`, `semialgebraic_minimize`, and CAD remain in the core package. They are reusable primitives rather than applications and are not duplicated under `semialg.applications`.
+Core mathematical operations such as `function_range`, `semialgebraic_measure`, `integrate_over_region`, `semialgebraic_minimize`, and CAD remain in the core package. They are reusable primitives instead of applications and are not duplicated under `semialg.applications`.
 
 ## Robust parameter and tolerance analysis
 
@@ -48,7 +48,7 @@ result.robust_condition
 
 ## Certified symbolic-math validation
 
-The validation helpers use exact semialgebraic reasoning rather than numerical sampling.
+The validation helpers use exact semialgebraic reasoning instead of numerical sampling.
 
 ```python
 from semialg.applications import validate_identity
@@ -163,7 +163,7 @@ check = verify_polynomial_invariant(
 assert check.valid
 ```
 
-When an implication fails, the result retains an exact counterexample whenever the decision layer can construct one. This API verifies a **supplied** invariant; discovering invariants or barrier certificates is a different and substantially harder synthesis problem. The current workflow is state-only and rejects undeclared symbolic parameters rather than silently quantifying them.
+When an implication fails, the result retains an exact counterexample whenever the decision layer can construct one. This API verifies a **supplied** invariant; discovering invariants or barrier certificates is a different and substantially harder synthesis problem. The current workflow is state-only and rejects undeclared symbolic parameters instead of without reporting quantifying them.
 
 ## Polynomial response-surface analysis
 
@@ -204,7 +204,7 @@ result.lie_derivative
 # -2*x**2
 ```
 
-By default the derivative condition is strict away from the equilibrium. Set `derivative_strict=False` to verify the weaker nonpositive derivative condition. The application verifies a supplied candidate; it does not synthesize Lyapunov functions. Undeclared symbolic parameters are rejected rather than silently quantified.
+By default the derivative condition is strict away from the equilibrium. Set `derivative_strict=False` to verify the weaker nonpositive derivative condition. The application verifies a supplied candidate; it does not synthesize Lyapunov functions. Undeclared symbolic parameters are rejected instead of without reporting quantified.
 
 ## Barrier-certificate verification
 
@@ -257,7 +257,7 @@ result.directions[y].classification
 # 'strictly_increasing'
 ```
 
-Classifications are `constant`, `strictly_increasing`, `strictly_decreasing`, `nondecreasing`, `nonincreasing`, or `mixed`. They are certified from derivative signs. On disconnected domains, interpret these as coordinate-wise derivative statements along line segments that remain inside the domain rather than as an ordering claim between arbitrary disconnected points.
+Classifications are `constant`, `strictly_increasing`, `strictly_decreasing`, `nondecreasing`, `nonincreasing`, or `mixed`. They are certified from derivative signs. On disconnected domains, interpret these as coordinate-wise derivative statements along line segments that remain inside the domain instead of as an ordering claim between arbitrary disconnected points.
 
 ## Constraint redundancy analysis
 
@@ -316,11 +316,11 @@ The maximum absolute error is obtained by maximizing the polynomial square
 (f-g)^2
 \]
 
-and then taking its exact nonnegative square root. This keeps the optimization problem polynomial rather than introducing `Abs` into the optimizer. The current application expects exact polynomial coefficients and rejects undeclared symbolic parameters.
+and then taking its exact nonnegative square root. This keeps the optimization problem polynomial instead of introducing `Abs` into the optimizer. The current application expects exact polynomial coefficients and rejects undeclared symbolic parameters.
 
 ## Parameter regime analysis
 
-Parameter-regime analysis exposes exact qualitative changes as certified semialgebraic strata rather than sampled parameter values.
+Parameter-regime analysis exposes exact qualitative changes as certified semialgebraic strata instead of sampled parameter values.
 
 `analyze_parameter_regimes()` partitions parameter space by real solvability of a semialgebraic system:
 
@@ -380,4 +380,4 @@ uniform = geometric_probability(
 uniform.probability  # 1/2
 ```
 
-The probability application inherits the exact integration engine's scope. A polynomial density can still lead to a transcendental exact value such as `pi`; exact does not mean algebraic. Unsupported integrals are declined according to the core integration contract rather than silently sampled numerically.
+The probability application inherits the exact integration engine's scope. A polynomial density can still lead to a transcendental exact value such as `pi`; exact does not mean algebraic. Unsupported integrals are declined according to the core integration contract instead of without reporting sampled numerically.

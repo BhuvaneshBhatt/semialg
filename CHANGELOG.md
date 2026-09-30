@@ -1,5 +1,18 @@
 
 
+## Version 1.3.0
+
+- Added certified local + approach geometry. Analyze whether semialgebraic sets approach a point or boundary, construct local germs and branches, study local sign behavior, and obtain proof oriented diagnostics.
+- Added local geometry for asymptotic analysis. Supportfor certified approach regions, local bounds, weighted/directional charts, and related geometry needed for multivariate asymptotic analysis.
+- Expanded parametrized semialgebraic analysis. Improved parameter conditions and stratification make it possible to partition parameter space into regions with stable geometric or logical behavior and identify exceptional/transition loci.
+- Expanded CAD and TTICAD capabilities. Improve equational-constraint handling, projection and lifting, nullification handling, and truth-table-invariant CAD support broaden the class of formulas that can be handled effectively.
+- Improved exact real-algebraic solving. Root isolation, sign determination, rational univariate representation (RUR), algebraic-number ordering, and exact solution reconstruction are more capable and robust, particularly for larger and more difficult systems.
+- Added cheap exact Boolean-structure certificates and vacuous-quantifier pruning before algebraic decision procedures.
+- Added local topology tools: local connected components, branches, approachability, germs, sign strata, etc
+- CAD, TTICAD, parameter analysis, RUR ordering, local geometry, satisfiability, and several other exact computations have been optimized, including fixes for bad slowdowns on some large Boolean and parameterized problems.
+- Improved robustness on degenerate and exceptional cases. Adds substantially broader handling and regression coverage for zero polynomials, nullification, exceptional parameter values, singular/local behavior, exact boundary cases, and difficult algebraic inputs.
+- Expanded documentation and examples, with substantially more guidance on CAD, parameterized problems, certification, approach/local geometry, and using local semialgebraic geometry in asymptotic analysis.
+
 ## Version 1.2.0
 
 - Reuse native selected CAD cells directly for `SemialgebraicRegion.components()` instead of reconstructing a structured cylindrical solution, memoize the resulting component graph/formulas.
@@ -8,8 +21,6 @@
 - Cache closed CAD paths and exact sample assignments on `NativeRegionAnalysis`; the solid-torus invariant regression remains exact and now completes in about 17.5 seconds in the validation environment.
 - Strengthen exact rational-power graph contracts, including negative rational exponents and explicit odd real-root behavior.
 - Route standard-region topology through certified finite triangulations before general CAD/roadmap machinery.
-
-# Release notes
 
 ## Version 1.1.0
 

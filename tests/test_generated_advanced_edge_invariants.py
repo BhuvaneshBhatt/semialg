@@ -8,7 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from semialg import connected_components
-from semialg.algebraic.rational_univariate import compute_rational_univariate_representation
+from semialg.algebraic.rational_univariate import compute_rur
 from semialg.cad_algorithms.decomposition import decomp_from_proj_tower
 from semialg.cad_algorithms.reduced import _scan_reduced_conditions, build_reduced_proj
 from semialg.parameters import root_count_conditions
@@ -90,7 +90,7 @@ def test_generated_nonreduced_rur_dimension_is_stable_over_algebraic_fields(
     alpha = (sp.Integer(1), sp.sqrt(2), sp.sqrt(3))[field_index]
     system = ((x0 - alpha) ** multiplicity, y0 - x0)
 
-    representation = compute_rational_univariate_representation(system, (x0, y0))
+    representation = compute_rur(system, (x0, y0))
 
     assert representation.quotient_dimension == multiplicity
     assert representation.geometric_solution_count == 1

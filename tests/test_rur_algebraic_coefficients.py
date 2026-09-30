@@ -7,20 +7,20 @@ from sympy.polys.polyerrors import CoercionFailed
 
 from semialg import is_satisfiable
 from semialg.algebraic.rational_univariate import (
-    compute_rational_univariate_representation,
+    compute_rur,
     solve_formula_with_rur,
-    solve_zero_dimensional_system_with_rur,
+    solve_with_rur,
 )
 
 
 def test_univariate_rur_supports_sqrt2_coefficient_field():
     x = sp.Symbol("x", real=True)
 
-    representation = compute_rational_univariate_representation(
+    representation = compute_rur(
         [x**2 - sp.sqrt(2)],
         [x],
     )
-    solutions = solve_zero_dimensional_system_with_rur(
+    solutions = solve_with_rur(
         [x**2 - sp.sqrt(2)],
         [x],
     )
@@ -32,11 +32,11 @@ def test_univariate_rur_supports_sqrt2_coefficient_field():
 def test_multivariate_rur_supports_algebraic_coefficients():
     x, y = sp.symbols("x y", real=True)
 
-    representation = compute_rational_univariate_representation(
+    representation = compute_rur(
         [x + sp.sqrt(2) * y, y - sp.sqrt(2)],
         [x, y],
     )
-    solutions = solve_zero_dimensional_system_with_rur(
+    solutions = solve_with_rur(
         [x + sp.sqrt(2) * y, y - sp.sqrt(2)],
         [x, y],
     )
@@ -48,11 +48,11 @@ def test_multivariate_rur_supports_algebraic_coefficients():
 def test_rur_constructs_common_field_for_multiple_algebraic_generators():
     x, y = sp.symbols("x y", real=True)
 
-    representation = compute_rational_univariate_representation(
+    representation = compute_rur(
         [x - sp.sqrt(2), y - sp.sqrt(3)],
         [x, y],
     )
-    solutions = solve_zero_dimensional_system_with_rur(
+    solutions = solve_with_rur(
         [x - sp.sqrt(2), y - sp.sqrt(3)],
         [x, y],
     )

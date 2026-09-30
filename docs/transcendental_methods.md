@@ -44,7 +44,7 @@ uses the ordered root brackets to determine truth on the intervening intervals.
 
 Periodic functions use SymPy's periodicity information when available.
 Representative solutions can be lifted from a fundamental domain into explicit
-periodic formulas using semialg quantifiers rather than encoding quantification
+periodic formulas using semialg quantifiers instead of encoding quantification
 implicitly through `Mod` or `ImageSet`.
 
 ## Quantifier elimination
@@ -53,7 +53,7 @@ Limited genuinely univariate transcendental quantifier blocks can be reduced by
 `eliminate_leading_real_quantifier_block`. The result records whether the
 reduction is exact and which variables remain for another backend.
 
-Problems that cannot be reduced exactly are not silently promoted to complete
+Problems that cannot be reduced exactly are not without reporting promoted to complete
 answers. `ResultSemantics` describes how an incomplete formula relates to the
 true solution set, including exact, subset, superset, window-scoped, and bounded
 approximation semantics.

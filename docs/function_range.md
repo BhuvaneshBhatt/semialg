@@ -165,7 +165,7 @@ as though `sin(x)` were independent of `x`.
 |---|---|---|
 | Polynomial or rational expression | Yes | Denominators are constrained nonzero. |
 | `Abs(f)`, `sign(f)`, and `Heaviside(f, h0)` | Yes | Arguments, including the zero value `h0`, may themselves use supported graph forms. |
-| Rational principal powers `f**(p/q)` | Yes | SymPy principal-branch real locus is preserved; negative bases are not silently reinterpreted as real odd roots. |
+| Rational principal powers `f**(p/q)` | Yes | SymPy principal-branch real locus is preserved; negative bases are not without reporting reinterpreted as real odd roots. |
 | `real_root(f, q)` canonical forms and integer powers | Yes | Odd-denominator real-root powers use a direct exact polynomial graph, including negative integer powers away from zero. |
 | Finite `Min` / `Max` | Yes | Arguments may be nested supported graph expressions. |
 | Finite `Piecewise` | Yes | Branch order is respected; supported semialgebraic function heads may occur in branch conditions. |

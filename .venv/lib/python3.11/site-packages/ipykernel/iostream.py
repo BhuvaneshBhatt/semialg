@@ -22,8 +22,9 @@ from typing import Any
 
 import zmq
 from jupyter_client.session import extract_header
-from tornado.ioloop import IOLoop
 from zmq.eventloop.zmqstream import ZMQStream
+
+from .thread import make_selector_io_loop
 
 # -----------------------------------------------------------------------------
 # Globals
@@ -67,7 +68,7 @@ class IOPubThread:
         self.background_socket = BackgroundSocket(self)
         self._master_pid = os.getpid()
         self._pipe_flag = pipe
-        self.io_loop = IOLoop(make_current=False)
+        self.io_loop = make_selector_io_loop()
         if pipe:
             self._setup_pipe_in()
         self._local = threading.local()
@@ -317,7 +318,7 @@ class IOPubThread:
         # close *all* event pipes, created in any thread
         # event pipes can only be used from other threads while self.thread.is_alive()
         # so after thread.join, this should be safe
-        for _thread, event_pipe in self._event_pipes.items():
+        for event_pipe in self._event_pipes.values():
             event_pipe.close()
 
     def close(self):
@@ -604,8 +605,8 @@ class OutStream(TextIOBase):
 
     @parent_header.setter
     def parent_header(self, value):
+        self._parent_header.set(value)
         self._parent_header_global = value
-        return self._parent_header.set(value)
 
     def isatty(self):
         """Return a bool indicating whether this is an 'interactive' stream.
@@ -631,8 +632,16 @@ class OutStream(TextIOBase):
     def _is_master_process(self):
         return os.getpid() == self._master_pid
 
+    def set_thread_parent(self, parent):
+        """Set the parent header for the calling thread only. Returns a reset token that can be used with reset_thread_parent."""
+        return self._parent_header.set(extract_header(parent))
+
+    def reset_thread_parent(self, token):
+        """Reset the parent header to undo the set_thread_parent call that returned the token."""
+        self._parent_header.reset(token)
+
     def set_parent(self, parent):
-        """Set the parent header."""
+        """Set the global and thread parent header."""
         self.parent_header = extract_header(parent)
 
     def close(self):

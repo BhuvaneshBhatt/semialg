@@ -252,13 +252,13 @@ def _affine_projection_bounds(
     return projected
 
 
-def _syntactically_closed_polynomial_formula(expr: sp.Expr) -> bool:
+def _syntactic_closure(expr: sp.Expr) -> bool:
     """Recognize finite Boolean combinations that are manifestly closed."""
 
     if expr is sp.true or expr is sp.false:
         return True
     if isinstance(expr, (sp.And, sp.Or)):
-        return all(_syntactically_closed_polynomial_formula(arg) for arg in expr.args)
+        return all(_syntactic_closure(arg) for arg in expr.args)
     if isinstance(expr, (sp.Equality, sp.LessThan, sp.GreaterThan)):
         residual = sp.expand(expr.lhs - expr.rhs)
         try:
@@ -365,7 +365,7 @@ def region_closed(
     """Return whether a semialgebraic region is closed."""
     expr = normalize_formula(region)
     vars_ = normalize_variables(variables, expr)
-    if _syntactically_closed_polynomial_formula(expr):
+    if _syntactic_closure(expr):
         return True
     return equivalent(expr, region_closure(expr, vars_), vars_, strategy=strategy)
 

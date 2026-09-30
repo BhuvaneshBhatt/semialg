@@ -1,0 +1,11 @@
+{
+  "corpus": "Wilson CAD bank, nonempty cases with 3-4 variables completing within benchmark budget",
+  "cases": 38,
+  "selected_full_score_equals_best_of_brown_and_chordal": 33,
+  "chordal_selected": 5,
+  "examples": {
+    "collision_a": {"brown": [211,3179], "chordal": [56,563], "selector_ms": 3.57, "selected_full_projection_ms": 104.32},
+    "off_center_ellipse": {"brown": [17,146], "chordal": [11,40], "selector_ms": 2.24, "selected_full_projection_ms": 8.10},
+    "collins_and_johnson": {"brown": [32,158], "chordal": [44,302], "selected": "brown", "selector_ms": 3.22}
+  }
+}

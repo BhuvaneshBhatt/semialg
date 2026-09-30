@@ -6,7 +6,7 @@ from semialg.algebraic import (
     certify_polynomial_root_interval,
     isolate_real_roots,
     rational_between_algebraic_reals,
-    verify_polynomial_root_interval_certificate,
+    verify_root_interval_certificate,
 )
 
 
@@ -21,7 +21,7 @@ def test_descartes_certifies_root_free_and_unique_intervals_without_sturm():
     assert empty.method == "descartes"
     assert unique.root_count == 1
     assert unique.method == "descartes"
-    assert verify_polynomial_root_interval_certificate(unique)
+    assert verify_root_interval_certificate(unique)
 
 
 def test_ambiguous_descartes_interval_falls_back_to_exact_sturm_count():
@@ -32,7 +32,7 @@ def test_ambiguous_descartes_interval_falls_back_to_exact_sturm_count():
     assert cert.descartes_variations is not None
     assert cert.descartes_variations > 1
     assert cert.method == "descartes+sturm"
-    assert verify_polynomial_root_interval_certificate(cert)
+    assert verify_root_interval_certificate(cert)
 
 
 def test_interval_endpoint_semantics_are_exact():

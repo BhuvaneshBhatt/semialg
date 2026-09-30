@@ -77,7 +77,7 @@ def certify_polynomial_root_interval(
     )
 
 
-def verify_polynomial_root_interval_certificate(
+def verify_root_interval_certificate(
     certificate: PolynomialRootIntervalCertificate,
     *,
     polynomial: sp.Poly | sp.Expr | None = None,

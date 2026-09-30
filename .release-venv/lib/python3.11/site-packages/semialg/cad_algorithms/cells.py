@@ -18,9 +18,9 @@ from .cylindrical_solution import (
     extract_cylindrical_solution,
 )
 from .explicit_cells import (
+    cad_cells_to_vertical_bounds_2d,
     extract_explicit_cylindrical_solution,
     extract_vertical_bounds_from_cad_2d,
-    structured_cad_cells_to_vertical_bounds_2d,
 )
 from .integration import (
     CADCellIntegral,
@@ -66,6 +66,6 @@ __all__ = [
     "StructuredCADCell",
     "StructuredCADCellDecomposition",
     "extract_structured_cad_cells",
-    "structured_cad_cells_to_vertical_bounds_2d",
+    "cad_cells_to_vertical_bounds_2d",
     "extract_vertical_bounds_from_cad_2d",
 ]

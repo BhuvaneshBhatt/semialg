@@ -4,7 +4,7 @@ from semialg import equivalent, is_satisfiable
 from semialg.formula import parse_formula
 from semialg.presolve import fourier_motzkin_eliminate
 from semialg.qe.complete import qe_by_complete_cad
-from semialg.qe.virtual_substitution.eliminate import try_quadratic_virtual_substitution_qe
+from semialg.qe.virtual_substitution.eliminate import try_quadratic_vs_qe
 
 
 def test_fourier_motzkin_matches_complete_qe_on_linear_projection():
@@ -21,7 +21,7 @@ def test_fourier_motzkin_matches_complete_qe_on_linear_projection():
 def test_virtual_substitution_matches_complete_qe_at_discriminant_boundary():
     x, a = sp.symbols("x a", real=True)
     matrix = sp.Eq(x**2, a)
-    vs = try_quadratic_virtual_substitution_qe([x, a], [("exists", x)], matrix)
+    vs = try_quadratic_vs_qe([x, a], [("exists", x)], matrix)
     assert vs is not None
     cad = qe_by_complete_cad(
         [x, a], [("exists", x)], parse_formula(matrix), free_variables=[a], return_result=True

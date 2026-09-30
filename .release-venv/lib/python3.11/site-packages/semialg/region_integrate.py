@@ -65,7 +65,7 @@ def _one_dimensional_intervals(
 
 
 from ._region_integrate_geometry import (
-    _integrate_axis_aligned_ellipse_polynomial,
+    _integrate_axis_aligned_ellipse,
     _integrate_radial_polynomial,
     _reduce_axis_aligned_ellipse,
     _reduce_box,
@@ -150,7 +150,7 @@ from ._region_integrate_cad import (
     _reduce_radial_vertical_pieces,
     _reduce_vertical_slice,
     _reduce_with_best_cad_order,
-    _reduce_with_best_explicit_cylindrical_order,
+    _reduce_with_best_cylindrical_order,
 )
 from ._region_integrate_intrinsic import (
     _integrate_intrinsic_dimension,
@@ -188,7 +188,7 @@ def _reduce_region_integral_2d(
     if pieces is not None:
         return tuple(pieces), "axis_aligned_box_iterated_integral"
     cad_formula = _formula_with_explicit_bounds(formula, bound_map)
-    ordered = _reduce_with_best_explicit_cylindrical_order(expr, cad_formula, vars_)
+    ordered = _reduce_with_best_cylindrical_order(expr, cad_formula, vars_)
     if ordered is not None and ordered[1] != vars_:
         return ordered[0], "coordinate_permuted_cylindrical_integration"
     if _has_boolean_branching(formula):
@@ -280,7 +280,7 @@ def _reduce_region_integral_nd(
     if pieces is not None:
         return tuple(pieces), "axis_aligned_box_iterated_integral"
     cad_formula = _formula_with_explicit_bounds(formula, bound_map)
-    ordered = _reduce_with_best_explicit_cylindrical_order(expr, cad_formula, vars_)
+    ordered = _reduce_with_best_cylindrical_order(expr, cad_formula, vars_)
     if ordered is not None:
         return ordered[0], (
             "coordinate_permuted_cylindrical_integration"
@@ -482,7 +482,7 @@ def integrate_over_region(
         fast_cases = (
             (_integrate_radial_polynomial(expr, formula, x, y), "radial_polynomial_moments"),
             (
-                _integrate_axis_aligned_ellipse_polynomial(expr, formula, x, y),
+                _integrate_axis_aligned_ellipse(expr, formula, x, y),
                 "axis_aligned_ellipse_polynomial_moments",
             ),
         )

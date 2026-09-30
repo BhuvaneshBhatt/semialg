@@ -10,7 +10,7 @@ from sympy.polys.polyerrors import PolynomialError
 
 from ..exact_arithmetic import compare_extended_reals
 from ..formulas.boolean import is_false_expr, is_true_expr
-from ..implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+from ..implicit_geometry import cylindrical_vertical_bounds_2d
 from ..normalization import normalize_formula, normalize_variables
 from ..presolve import fourier_motzkin_eliminate
 from ..simplify.boolean import simplify_boolean
@@ -398,7 +398,7 @@ def _boundary_from_vertical_bounds_2d(
         return None
     x, y = variables
     try:
-        cells = decompose_cylindrical_formula_to_vertical_bounds_2d(expr, (x, y))
+        cells = cylindrical_vertical_bounds_2d(expr, (x, y))
     except _EXPECTED_ERRORS:
         return None
     if not cells:

@@ -10,7 +10,7 @@ import sympy as sp
 
 from semialg.algebraic import (
     modular_groebner_basis_fraction_field,
-    verify_modular_fraction_field_groebner_certificate,
+    verify_modular_groebner_certificate,
 )
 from semialg.algebraic_function_fields import (
     MonogenicFunctionField,
@@ -46,9 +46,7 @@ def main():
                 generators, x, y, order="grevlex", domain=domain
             )
         )
-        certified = modular is not None and verify_modular_fraction_field_groebner_certificate(
-            modular.certificate
-        )
+        certified = modular is not None and verify_modular_groebner_certificate(modular.certificate)
         same = modular is not None and modular.basis == tuple(
             sp.cancel(poly.as_expr()) for poly in direct.polys
         )

@@ -8,7 +8,7 @@ These APIs expose exact semialgebraic reasoning primitives intended for higher-l
 
 **Exactness and certification.** All decisions are exact. Failed nonparametric sign and matrix-definiteness claims retain exact counterexample points when the satisfiability backend produces one; matrix definiteness also attempts to recover an exact violating quadratic-form vector after specialization. Parameter-dependent queries return `ParameterStratifiedResult` objects with semialgebraic guards. No floating-point sign sampling is accepted as proof.
 
-**Algorithm selection.** Constant symmetric matrices use exact congruence/LDL inertia. Polynomial symmetric matrices use principal minors for semidefiniteness and Sylvester leading minors for definiteness, with exact semialgebraic feasibility/QE on violations. Rank uses determinantal minors. Relative strict feasibility preserves explicit affine equalities and inequalities that are identically tight on that affine hull. Parametric affine reduction produces separate zero/nonzero pivot branches.
+**Algorithms.** Constant symmetric matrices use exact congruence/LDL inertia. Polynomial symmetric matrices use principal minors for semidefiniteness and Sylvester leading minors for definiteness, with exact semialgebraic feasibility/QE on violations. Rank uses determinantal minors. Relative strict feasibility preserves explicit affine equalities and inequalities that are identically tight on that affine hull. Parametric affine reduction produces separate zero/nonzero pivot branches.
 
 **Complexity and limitations.** Matrix minor counts grow combinatorially with dimension, and parameterized conditions may invoke complete CAD. Relative-interior support is restricted to conjunctive affine polynomial systems; arbitrary nonlinear relative interiors remain a separate problem. Parametric affine reduction handles affine pivots whose coefficients depend only on declared parameters and leaves more complicated pivots unreduced.
 
@@ -23,7 +23,7 @@ assert prove_zero(x - x, [x])
 assert prove_nonzero(x**2 + 1, [x])
 ```
 
-The existing `prove_positive`, `prove_nonnegative`, `prove_negative`, and `prove_nonpositive` functions also accept `parameters=`. A parameterized proof returns a Boolean `ParameterStratifiedResult` rather than collapsing free parameters to generic assumptions.
+The existing `prove_positive`, `prove_nonnegative`, `prove_negative`, and `prove_nonpositive` functions also accept `parameters=`. A parameterized proof returns a Boolean `ParameterStratifiedResult` instead of collapsing free parameters to generic assumptions.
 
 ### Symmetric matrix definiteness
 
@@ -34,7 +34,7 @@ assert matrix_psd_on([[x**2, 0], [0, 1]], [x])
 assert matrix_pd_on([[x**2 + 1, 0], [0, 1]], [x])
 ```
 
-`matrix_definiteness` accepts `requested="positive_semidefinite"`, `"positive_definite"`, `"negative_semidefinite"`, or `"negative_definite"`. It is the reusable backend used by polynomial Hessian convexity certification.
+`matrix_definiteness` acccepts `requested="positive_semidefinite"`, `"positive_definite"`, `"negative_semidefinite"`, or `"negative_definite"`. It is the reusable backend used by polynomial Hessian convexity certification.
 
 ### Rank and parameter strata
 
@@ -106,7 +106,7 @@ assert conditional.select({a: 0}) == "constant"
 assert conditional.select({a: -2}) == "strictly_decreasing"
 ```
 
-When symbolic quantities other than the monotonicity variable remain free, they are treated as parameters automatically and the result is an exact `ParameterStratifiedResult`. This is the same condition-generation policy used by `function_convexity`. The pairwise definition is used for parameter conditions, so strictness is expressed exactly rather than by the merely sufficient condition `f'(x) > 0`. With `return_result=True`, unconditional calls return `FunctionMonotonicityResult` containing the derivative/sign evidence and any exact pairwise counterexample.
+When symbolic quantities other than the monotonicity variable remain free, they are treated as parameters automatically and the result is an exact `ParameterStratifiedResult`. This is the same condition-generation policy used by `function_convexity`. The pairwise definition is used for parameter conditions, so strictness is expressed exactly instead of by the merely sufficient condition `f'(x) > 0`. With `return_result=True`, unconditional calls return `FunctionMonotonicityResult` containing the derivative/sign evidence and any exact pairwise counterexample.
 
 
 ## Function monotonic partition
@@ -126,7 +126,7 @@ partition based on a sign-invariant CAD for `diff(f, x, 2)`.  Cells are
 classified as convex, concave, or affine.  Supported semialgebraic/nonsmooth
 expressions fall back through function-graph algebraization when their derivative
 sign cannot be represented directly.  Parameter-dependent inflection geometry
-is represented by parameter strata rather than generic assumptions.
+is represented by parameter strata instead of generic assumptions.
 
 
 ## Function sign partition
@@ -175,8 +175,8 @@ assert tuple(kind for kind, _ in conditional.select({a: 1})) == ("negative", "ze
 
 ## Function-property performance and cache reuse
 
-The function-property layer shares lazy analysis products within each high-level query. Natural/effective domains, derivatives, gradients, Hessians, sign classifications, smoothness checks, and the univariate monotonicity partition are reused rather than recomputed by each derived property.
+The function-property layer shares lazy analysis products within each high-level query. Natural/effective domains, derivatives, gradients, Hessians, sign classifications, smoothness checks, and the univariate monotonicity partition are reused instead of recomputed by each derived property.
 
-One-dimensional set convexity uses ordered CAD-cell contiguity rather than closure-connectivity. This matters for punctured domains: `Ne(x, 0)` is not convex, and consequently `function_monotonicity(1/x, x)` is correctly classified as `"nonmonotonic"` globally even though the function is strictly decreasing on each connected component.
+One-dimensional set convexity uses ordered CAD-cell contiguity instead of closure-connectivity. This matters for punctured domains: `Ne(x, 0)` is not convex, and consequently `function_monotonicity(1/x, x)` is correctly classified as `"nonmonotonic"` globally even though the function is strictly decreasing on each connected component.
 
 Univariate convexity first classifies the exact sign of the second derivative when that derivative is semialgebraic. Polynomial/rational sign partitions use one CAD over numerator/denominator boundaries. Strong one-dimensional curvature uses the exact range of the second derivative where needed. `properties="all"` propagates implication chains and computes at most one monotonicity partition for all quasi-curvature questions. Scalar univariate mapping properties reuse strict monotonicity as an injectivity certificate before pairwise collision QE. These are proof-preserving short-circuits; unsupported transcendental cases such as `exp(x)` remain `"unknown"` in the semialgebraic core.

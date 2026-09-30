@@ -435,7 +435,7 @@ def _univariate_curvature_sign_analysis(
     )
 
 
-def _function_convexity_without_parameters(
+def _convexity_without_parameters(
     expression: sp.Expr,
     variables: tuple[sp.Symbol, ...],
     explicit_domain: sp.Expr,
@@ -708,7 +708,7 @@ def _parameterized_hessian_classification(
     )
 
 
-def _function_convexity_with_parameters(
+def _convexity_with_parameters(
     expression: sp.Expr,
     variables: tuple[sp.Symbol, ...],
     parameters: tuple[sp.Symbol, ...],

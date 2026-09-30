@@ -1,5 +1,5 @@
 include README.md CHANGELOG.md LICENSE pyproject.toml mkdocs.yml
-recursive-include docs *.md
+recursive-include docs *.md *.toml *.svg
 recursive-include examples *.py *.md
 recursive-include notebooks *.ipynb *.md
 recursive-include scripts *.py *.sh

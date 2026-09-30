@@ -1,6 +1,6 @@
 # Reference regression suite
 
-The test suite is organized around mathematical contracts rather than only line coverage. The suite exercises the same conclusion through independent algorithms wherever possible and varies process state, symbol identity, and boundary geometry.
+The test suite is organized around mathematical contracts instead of only line coverage. The suite exercises the same conclusion through independent algorithms wherever possible and varies process state, symbol identity, and boundary geometry.
 
 ## Deterministic regression tests
 
@@ -8,7 +8,7 @@ Small named regressions cover CAD, QE, algebraic solving, optimization, integrat
 
 ## Cross-backend differential tests
 
-When two exact backends apply to the same fragment, tests compare their answers semantically rather than requiring identical printed formulas. Current examples include complete CAD versus virtual substitution, specialized parametric reconstruction versus generic QE, and Fourier–Motzkin elimination versus complete QE.
+When two exact backends apply to the same fragment, tests compare their answers semantically instead of requiring identical printed formulas. Current examples include complete CAD versus virtual substitution, specialized parametric reconstruction versus generic QE, and Fourier–Motzkin elimination versus complete QE.
 
 Useful differential pairs include reduced versus complete CAD, RUR versus alternative zero-dimensional solving, and specialized geometry fast paths versus their generic quantified definitions.
 
@@ -34,7 +34,7 @@ Exact conclusions must be independent of whether caches are cold, warm, polluted
 
 ## Performance architecture tests
 
-Where possible, performance regressions are tested structurally rather than with fragile wall-clock thresholds. Examples include requiring cache-key construction to remain structural, reusing retained CAD connectivity instead of launching pairwise decision solves, and using inverse substitution for nonsingular affine images.
+Where possible, performance regressions are tested structurally instead of with fragile wall-clock thresholds. Examples include requiring cache-key construction to remain structural, reusing retained CAD connectivity instead of launching pairwise decision solves, and using inverse substitution for nonsingular affine images.
 
 A smaller number of generous wall-clock tests remain marked `slow` for catastrophic regressions.
 

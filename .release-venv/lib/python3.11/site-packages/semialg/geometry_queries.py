@@ -68,7 +68,10 @@ def semialgebraic_projection(
     missing = tuple(v for v in elim if v not in all_vars)
     if missing:
         raise ValueError(f"projection variables are not problem variables: {missing!r}")
-    kept = tuple(v for v in all_vars if v not in set(elim))
+    if len(set(elim)) != len(elim):
+        raise ValueError("projection variables must be distinct")
+    eliminated = set(elim)
+    kept = tuple(v for v in all_vars if v not in eliminated)
     if not elim:
         return formula
     result = qe_by_complete_cad(
@@ -108,8 +111,11 @@ def _semialgebraic_image_data(
         raise ValueError("image_variables must have the same length as mapping")
     if len(set(targets)) != len(targets):
         raise ValueError("image variables must be distinct")
-    if set(targets) & set(source):
+    target_set = set(targets)
+    if target_set & set(source):
         raise ValueError("image variables must be distinct from source variables")
+    if target_set & set(params):
+        raise ValueError("image variables must be distinct from parameters")
     graph = sp.And(condition, *(sp.Eq(y, f) for y, f in zip(targets, maps, strict=True)))
     result = qe_by_complete_cad(
         (*targets, *source),
@@ -380,7 +386,7 @@ def distance_between_regions(left, right, variables=None, *, return_result: bool
     return result if return_result else result.distance
 
 
-def _constant_values_on_positive_dimensional_critical_components(
+def _constant_values_on_critical_components(
     objective: sp.Expr,
     condition: sp.Expr,
     variables: tuple[sp.Symbol, ...],
@@ -450,7 +456,7 @@ def critical_values(expression, region=sp.true, variables=None) -> tuple[sp.Expr
         value = sp.simplify(expr.subs(point))
         if value not in values:
             values.append(value)
-    for value in _constant_values_on_positive_dimensional_critical_components(
+    for value in _constant_values_on_critical_components(
         expr, condition, vars_, equalities, inequalities
     ):
         if value not in values:

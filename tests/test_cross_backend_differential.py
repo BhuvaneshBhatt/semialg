@@ -2,10 +2,10 @@ import pytest
 import sympy as sp
 
 from semialg import is_equal
-from semialg.algebraic.rational_univariate import solve_zero_dimensional_system_with_rur
+from semialg.algebraic.rational_univariate import solve_with_rur
 from semialg.formula import parse_quant_form_text
 from semialg.qe.complete import qe_by_complete_cad
-from semialg.qe.virtual_substitution import try_quadratic_virtual_substitution_qe
+from semialg.qe.virtual_substitution import try_quadratic_vs_qe
 from semialg.solve import find_instance
 
 x, y, a = sp.symbols("x y a", real=True)
@@ -23,7 +23,7 @@ x, y, a = sp.symbols("x y a", real=True)
 )
 def test_virtual_substitution_matches_complete_cad(text):
     parsed = parse_quant_form_text(text, symbols={"x": x, "a": a}, variable_order=[a, x])
-    vs = try_quadratic_virtual_substitution_qe(parsed.vars, parsed.quantifiers, parsed.matrix_expr)
+    vs = try_quadratic_vs_qe(parsed.vars, parsed.quantifiers, parsed.matrix_expr)
     assert vs is not None and vs.status == "complete"
     cad = qe_by_complete_cad(
         parsed.vars,
@@ -54,7 +54,7 @@ def test_virtual_substitution_matches_complete_cad(text):
 )
 def test_rur_real_solution_count_matches_cad_existence(equations, expected_count):
     variables = [x] if all(y not in eq.free_symbols for eq in equations) else [x, y]
-    roots = solve_zero_dimensional_system_with_rur(equations, variables, real=True)
+    roots = solve_with_rur(equations, variables, real=True)
     assert len(roots) == expected_count
     formula = sp.And(*(sp.Eq(eq, 0) for eq in equations))
     witness = find_instance(formula, variables, return_result=False)

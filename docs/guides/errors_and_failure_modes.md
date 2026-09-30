@@ -7,7 +7,7 @@ Several very different outcomes can look like “the solver did not return the a
 
 ## Primary API overview
 
-This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|
@@ -20,7 +20,7 @@ This table is the substantive coverage target for the primary APIs assigned to t
 
 Examples include malformed bounds, bounds on undeclared variables, provably reversed intervals, negative geometric radii, inconsistent ambient dimensions, duplicate/missing parametric limits, and ambiguous same-name symbols.
 
-These are input-contract errors and should fail early, usually with `ValueError`, rather than being interpreted as empty geometry.
+These are input-contract errors and should fail early, usually with `ValueError`, instead of being interpreted as empty geometry.
 
 ## Infeasible or empty problem
 
@@ -30,11 +30,11 @@ A valid formula may simply have no real solution. That is a mathematical result,
 
 An optimization problem can be feasible but unbounded. This is different from an unsupported computation. Likewise, an infimum can be finite but unattained on an open set.
 
-Check structured optimization fields such as `value`, `attained`, and `certified` rather than inferring status from a single expression.
+Check structured optimization fields such as `value`, `attained`, and `certified` instead of inferring status from a single expression.
 
 ## Unsupported exact case
 
-Some valid semialgebraic problems lie outside a specialized fast path or exact representation implemented by semialg. Certified code should decline such a step rather than silently substitute a floating-point decision.
+Some valid semialgebraic problems lie outside a specialized fast path or exact representation implemented by semialg. Certified code should decline such a step instead of without reporting substitute a floating-point decision.
 
 A different backend, a simpler formulation, or complete CAD may still solve the problem.
 
@@ -72,7 +72,7 @@ Some sampling/plotting paths allow explicitly numerical operation. These results
 
 Package-specific failures derive from `semialg.errors.SemialgError`. Important subclasses distinguish unsupported fragments/strategy failure, backend failure, formula normalization, algebraic solving, quantifier elimination, reconstruction, certification, exact evaluation, dimension mismatches, and configured resource limits. `semialg.exceptions` provides the same exception classes as a dedicated exception import surface.
 
-Fallback code should catch the narrowest expected strategy exceptions it can justify. Programming defects such as `AssertionError` should propagate rather than being converted into an apparently harmless fallback.
+Fallback code should catch the narrowest expected strategy exceptions it can justify. Programming defects such as `AssertionError` should propagate instead of being converted into an apparently harmless fallback.
 
 ## Debugging checklist
 

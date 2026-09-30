@@ -7,7 +7,7 @@ Use CAD semantics to recover components and basic exact topology.
 The two-ray set has two connected components. The disk has Euler characteristic
 \(1\), whereas the closed annulus has Euler characteristic \(0\).
 
-These operations use exact CAD-cell topology rather than a sampled graph.
+These operations use exact CAD-cell topology instead of a sampled graph.
 They are therefore insensitive to numerical meshing resolution, though the
 cost can be much higher than numerical topology for large problems.
 

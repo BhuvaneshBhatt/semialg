@@ -328,7 +328,7 @@ def _flint_squarefree_part(poly: sp.Poly) -> sp.Poly:
     return sp.Poly(quotient.as_expr(), poly.gens[0], domain=poly.domain)
 
 
-def _separate_factor_interval_from_other_roots(
+def _isolate_factor_interval(
     factor: sp.Poly,
     full_poly: sp.Poly,
     interval: RationalInterval,
@@ -465,7 +465,7 @@ def _isolate_rational_coeff_roots(poly: sp.Poly) -> list[tuple[RationalInterval,
                 stack.append((node_left, split, left_v, depth + 1))
 
         for interval in factor_intervals:
-            interval = _separate_factor_interval_from_other_roots(factor, rational_poly, interval)
+            interval = _isolate_factor_interval(factor, rational_poly, interval)
             isolated.append((interval, int(multiplicity)))
 
     isolated.sort(key=lambda item: (item[0].left, item[0].right))
@@ -1315,5 +1315,5 @@ def root_multiplicity(root: AlgebraicRoot) -> int:
 # Root-certificate construction/replay is separate from isolation/refinement.
 from ._root_certification import (  # noqa: E402, F401
     certify_polynomial_root_interval,
-    verify_polynomial_root_interval_certificate,
+    verify_root_interval_certificate,
 )

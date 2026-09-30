@@ -4,7 +4,7 @@ from semialg.formula import parse_quant_form_text
 from semialg.qe.virtual_substitution import (
     VirtualSubstitutionWitnessResult,
     reconstruct_vs_value,
-    try_quadratic_virtual_substitution_witness,
+    try_quadratic_vs_witness,
 )
 from semialg.solve.find_instance import find_instance_text
 
@@ -38,7 +38,7 @@ def test_virtual_substitution_witness_for_one_quantified_variable():
         assert variables == (y,)
         return {y: sp.Rational(1, 2)}
 
-    result = try_quadratic_virtual_substitution_witness(
+    result = try_quadratic_vs_witness(
         parsed.vars, parsed.quantifiers, parsed.matrix_expr, base_finder
     )
 
@@ -80,7 +80,7 @@ def test_virtual_substitution_witness_reconstructs_two_quantified_variables():
     def base_finder(reduced_formula, variables):
         return {z: 0}
 
-    result = try_quadratic_virtual_substitution_witness(
+    result = try_quadratic_vs_witness(
         parsed.vars, parsed.quantifiers, parsed.matrix_expr, base_finder
     )
 

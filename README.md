@@ -4,11 +4,11 @@
 
 The package has certified paths that prefer an exact answer (or an explicit failure).
 
-## Why use semialg?
+## Why use `semialg`?
 
-Use semialg when the distinction between a plausible numerical answer and a mathematically certified answer matters. It is especially useful when a problem mixes polynomial equations and inequalities, Boolean conditions, parameters, (exact) algebraic numbers, or global questions such as feasibility, equivalence, projection, optimization, topology, or measure. Specialized algebraic and geometric methods handle inexpensive cases first; CAD and QE provide fallback machinery for supported real-polynomial formulas.
+`semialg` is especially useful when a problem mixes polynomial equations and inequalities, Boolean conditions, parameters, (exact) algebraic numbers, or global questions such as feasibility, equivalence, projection, optimization, topology, or measure. Specialized algebraic and geometric methods handle inexpensive cases first; CAD and QE provide fallback machinery for supported real-polynomial formulas. Cheap Boolean certificates, affine presolve, exact linear feasibility, univariate reduction, finite algebraic solving, and local geometric structure are used when their applicability conditions can be certified.
 
-A result being symbolic is not by itself a certificate. semialg distinguishes between  exact representations, certified conclusions, candidate/heuristic information, and explicitly numerical approximations. See [Exactness and certification](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/concepts/exactness_and_certification.md).
+A result being symbolic is not by itself a certificate. `semialg` distinguishes between  exact representations, certified conclusions, candidate/heuristic information, and explicitly numerical approximations. See [Exactness and certification](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/concepts/exactness_and_certification.md).
 
 If you primarily need floating-point nonlinear optimization, general numerical transcendental solving, or large numerical geometry (instead of exact semialgebraic computation), established numerical libraries will usually be a better fit. Consider SciPy for numerical optimization and nonlinear systems, SymPy/mpmath for numerical transcendental root finding, Shapely for planar computational geometry, and Trimesh for numerical 3-D mesh geometry. See the [capability matrix](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/feature_matrix.md) and [limitations](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/limitations.md) before choosing an algorithm.
 
@@ -42,13 +42,13 @@ equivalent(x**2 <= 1, (x >= -1) & (x <= 1), [x])
 # True
 ```
 
-For a decision query, semialg first tries inexpensive structure before falling back to general elimination machinery:
+For a decision query, `semialg` first tries inexpensive structure before falling back to general elimination machinery:
 
 ![Decision computation flow](https://raw.githubusercontent.com/BhuvaneshBhatt/semialg/main/docs/assets/decision-flow.svg)
 
 The [computation-flow guide](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/concepts/computation_flows.md) shows the corresponding CAD, optimization, and integration pipelines.
 
-First-order formulas can be built directly with semialg's symbolic quantifiers:
+First-order formulas can be built directly with `semialg`'s symbolic quantifiers:
 
 ```python
 from semialg import Exists, ForAll
@@ -72,7 +72,80 @@ semialgebraic_measure(x**2 + y**2 <= 1, [x, y])
 # pi
 ```
 
+## Local and approach geometry
+
+`semialg` can certify whether a point is approachable through a semialgebraic region, preserve correlations in polynomial/rational map images, and resolve local algebraic branches and incident strata near singular points. These operations are useful when downstream symbolic analysis must distinguish genuine approach geometry from independent coordinate bounds.
+
+```python
+from semialg import correlated_map_image, point_in_closure
+
+t, u, v = sp.symbols("t u v", real=True)
+image = correlated_map_image((t, t**2), sp.And(t >= -1, t <= 1), (t,), image_variables=(u, v))
+assert sp.simplify(image.formula.subs({u: sp.Rational(1, 2), v: sp.Rational(1, 4)})) is sp.true
+assert sp.simplify(image.formula.subs({u: sp.Rational(1, 2), v: sp.Rational(1, 3)})) is sp.false
+
+x, y = sp.symbols("x y", real=True)
+punctured = sp.And(x**2 + y**2 < 1, sp.Ne(x**2 + y**2, 0))
+assert point_in_closure(punctured, (0, 0), (x, y))
+```
+
+Local germs expose branch and sign information directly:
+
+```python
+from semialg import local_components, local_sign_strata
+
+crossing = sp.Eq(y**2, x**2)
+branches = local_components(crossing, (0, 0), (x, y))
+assert len(branches) == 4
+
+signs = local_sign_strata((x, y), crossing, (0, 0), (x, y))
+assert all(piece.signs in {(-1, -1), (-1, 1), (0, 0), (1, -1), (1, 1)} for piece in signs)
+```
+
+Exact real witnesses returned by `find_instance` also respect sign assumptions carried by supplied SymPy symbols.
+
+For correlated directional images, closure semantics, local germs, parameter strata, and proof diagnostics, see [Approach and local geometry](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/approach_and_local_geometry.md).
+
+For certified approach geometry used in asymptotic analysis, including germs, bounds, and weighted charts, see
+[Local geometry for asymptotic analysis](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/local-asymptotic-geometry.md).
+
 ## Core workflows
+
+### Cylindrical algebraic decomposition
+
+`cad(...)` computes an exact cylindrical algebraic decomposition and reconstructs the selected cells as a semialgebraic formula by default. Variable order is explicit and can change the shape of the decomposition without changing the represented set.
+
+```python
+from semialg import cad
+
+x, y = sp.symbols("x y", real=True)
+
+cad(x**2 + y**2 < 1, (x, y))
+# (x > -1) & (x < 1) & (y + sqrt(1 - x**2) > 0) & (y - sqrt(1 - x**2) < 0)
+
+# Intervals for univariate polynomials
+cad((x - 1)*(x - 2)**2*(x - 3)*(x - 4)*(x - 5) > 0, (x,))
+# (x > 5) | (x < 1) | ((x > 3) & (x < 4))
+
+upper_half = (x**2 + y**2 < 1) & (y > x)
+cad(upper_half, (x, y))
+cad(upper_half, (y, x)) # Note the different variable order
+
+# Mixed-dimensional Boolean geometry: a closed disk together with a line.
+cad((x**2 + y**2 <= 1) | sp.Eq(x, 1), (x, y))
+```
+
+Quantified projections combine QE with CAD. For example, projecting out `y` and then decomposing the remaining `x`-set gives an exact interval:
+
+```python
+from semialg import Exists, quantifier_eliminate
+
+projected = quantifier_eliminate(
+    Exists(y, (x**2 + y**2 < 1) & (y > x))
+)
+cad(projected, (x,))
+# (x > -1) & (x < sqrt(2)/2)
+```
 
 ### Regions and reusable CAD decompositions
 
@@ -121,7 +194,37 @@ Parametric optimization and range APIs keep quantified relations by default. Pas
 
 ### Quantifier elimination and CAD planning
 
-The complete-QE path also has a structural presolver and automatic CAD ordering. Safe affine equalities and linear innermost existential blocks are eliminated before CAD; Brown-style ordering is applied only within semantically interchangeable free/quantifier blocks. Projection-set scoring is available explicitly through `suggest_cad_variable_order(..., strategy="projection")`.
+`quantifier_eliminate(...)` is the public analogue of a real `Resolve` operation: quantified variables are eliminated while free parameters are preserved.
+
+```python
+from semialg import Exists, ForAll, quantifier_eliminate
+
+a, b, c = sp.symbols("a b c", real=True)
+
+quantifier_eliminate(Exists((x, y), x**2 + y**2 < 1))
+# True
+
+quantifier_eliminate(Exists(x, sp.Eq(a*x + b, 0)))
+# Ne(a, 0) | (Eq(a, 0) & Eq(b, 0))
+
+quantifier_eliminate(Exists(x, sp.Eq(a*x**2 + b*x + c, 0)))
+# (Eq(a, 0) & Eq(b, 0) & Eq(c, 0)) | \
+# (Eq(a, 0) & Ne(b, 0) & Eq(a*c, 0)) | \
+# (Ne(a, 0) & (4*a*c - b**2 <= 0))
+
+# A nested universal/existential problem: for which a,b does every
+# quadratic constant term c admit a real root?
+quantifier_eliminate(
+    ForAll(c, Exists(x, sp.Eq(a*x**2 + b*x + c, 0)))
+)
+# (Eq(a, 0) & (b > 0)) | (Eq(a, 0) & (b < 0))
+
+# Pure existential feasibility can collapse all the way to a truth value.
+quantifier_eliminate(Exists(x, (x**2 < 2) & (x > 1)))
+# True
+```
+
+The complete-QE path also has a structural presolver and automatic CAD ordering. Safe affine equalities and linear innermost existential blocks are eliminated before CAD; automatic Brown/chordal structural ordering is applied only within semantically interchangeable free/quantifier blocks.  Projection-set scoring is available explicitly through `suggest_cad_variable_order(..., strategy="projection")`.
 
 ```python
 from semialg.heuristics import suggest_cad_variable_order
@@ -136,7 +239,7 @@ set(score.order)
 # {x, y}
 ```
 
-Univariate parameter-dependent integrals can use algebraic CAD root functions as moving endpoints. For example, the measure of `x**2 <= a` is stratfied exactly as zero for `a <= 0` and the distance between the two ordered roots for `a > 0`; specialziation gives `4` at `a=4` and `6` at `a=9`.
+Univariate parameter-dependent integrals can use algebraic CAD root functions as moving endpoints. For example, the measure of `x**2 <= a` is stratfied exactly as zero for `a <= 0` and the distance between the two ordered roots for `a > 0`; specialization gives `4` at `a=4` and `6` at `a=9`.
 
 ### Geometric queries
 
@@ -207,9 +310,9 @@ Region topology uses CAD semantics even for atomic polynomial inequalities; comp
 
 ## Primary and specialized APIs
 
-The package root is the everyday mathematical interface. Specialized algorithms and certificate-building functions live in their owning namespaces instead of being duplicated at `semialg.*`. For example, use `semialg.parameters.root_count_conditions`, `semialg.roadmaps.roadmap`, `semialg.topology.semialgebraic.triangulate_region`, `semialg.parametric_geometry.bounded_parametric_cover`, and `semialg.map_degree.parametric_map_degree` when those are needed. See [API namespaces](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/api_namespaces.md).
+The package root is the everyday mathematical interface. Specialized algorithms and certificate-building functions live in their owning namespaces such as  `semialg.parameters.root_count_conditions`, `semialg.roadmaps.roadmap`, `semialg.topology.semialgebraic.triangulate_region`, `semialg.parametric_geometry.bounded_parametric_cover`, and `semialg.map_degree.parametric_map_degree`. See [API namespaces](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/api_namespaces.md).
 
-Semialgebraic function analysis is composition-aware for the supported graph fragment. Nested radicals/rational powers, `Abs`, `sign`, `Heaviside`, `Min`/`Max`, finite `Piecewise`, and real `re`/`im`/`conjugate` wrappers can be algebraized when their real-domain side conditions are certifiable; unsupported graphs are declined.
+Semialgebraic function analysis is composition-aware for the supported graph fragment. Nested radicals/rational powers, `Abs`, `sign`, `Heaviside`, `Min`/`Max`, finite `Piecewise`, and real `re`/`im`/`conjugate` wrappers can be "algebraized" when their real-domain side conditions are certifiable; unsupported graphs are declined.
 
 ## What semialg provides
 
@@ -314,13 +417,14 @@ A progressive executable tutorial is available in [`notebooks/semialg_demo.ipynb
 
 ## Development
 
+Contributions – whether they are bug reports, suggestions, or code – are welcome!
+
 ```bash
 ruff format .
 ruff check .
 pytest -m "not slow"
 pytest -m slow --durations=20
 pytest -m performance --durations=20
-python scripts/verify_source_quality.py
 mkdocs build --strict
 pytest -q -m slow tests/test_documentation_example_gallery.py
 ```
@@ -333,4 +437,4 @@ See [architecture guide](https://github.com/BhuvaneshBhatt/semialg/blob/main/doc
 
 ## License
 
-See [LICENSE](https://github.com/BhuvaneshBhatt/semialg/blob/main/LICENSE).
+`semialg` is licensed under the GNU General Public License version 3 only (GPL-3.0-only). See [LICENSE](https://github.com/BhuvaneshBhatt/semialg/blob/main/LICENSE).

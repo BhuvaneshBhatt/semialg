@@ -5,16 +5,14 @@
 
 **Exactness and certification.** Successful certified paths do not use fixed-precision numerical sign guesses. Specialized methods may decline and allow another exact backend to run.
 
-**Algorithm selection.** The planner may use normalization/presolve, quadratic virtual substitution for supported low-degree fragments, zero-dimensional algebraic solving where applicable, and complete or reduced CAD/QE.
+**Algorithms.** The planner may use normalization/presolve, quadratic virtual substitution for supported low-degree fragments, zero-dimensional algebraic solving where applicable, and complete or reduced CAD/QE.
 
 **Complexity and limitations.** Complete real QE has severe worst-case complexity. A specialized backend accepting a formula is a performance choice, not a weaker semantics. See [How semialg chooses an algorithm](../concepts/algorithm_selection.md).
 
 
-
-
 ## Primary API overview
 
-This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|
@@ -54,7 +52,7 @@ Decides whether a formula holds for all assignments of the declared variables.
 
 ## `implies(assumptions, conclusion, variables=None, *, ..., return_result=False)`
 
-Checks whether the assumptions imply the conclusion. A structured `ImplicationResult` can contain a validated counterexample when implication fails.
+Checks whether assumptions imply the conclusion. A structured `ImplicationResult` can contain a validated counterexample when implication fails.
 
 ## `equivalent(lhs, rhs, variables=None, *, ..., return_result=False)`
 
@@ -66,7 +64,7 @@ Primary certified real quantifier-elimination interface. It accepts semialg `Exi
 
 ## `project_region(region, eliminate, *, variables=None, strategy="auto", return_result=False)`
 
-Computes exact real existential projection through the same QE dispatcher. It is a facade over existential quantification rather than an independent projection implementation.
+Computes exact real existential projection through the same QE dispatcher. It is a facade over existential quantification instead of an independent projection implementation.
 
 ## `QuantifierEliminationResult`
 

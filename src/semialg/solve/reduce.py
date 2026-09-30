@@ -21,8 +21,8 @@ from ..formula import ParsedPrenexFormula, parse_formula, parse_quant_form_text,
 from ..inequality_reduction import reduce_conjunctive_inequalities
 from ..model import ProjectionConfig
 from ..planner.select import select_strat_for_form
-from ..qe.complete import qe_by_complete_cad, qe_from_cad
-from ..qe.virtual_substitution import try_quadratic_virtual_substitution_qe
+from ..qe.complete import norm_internal_order, qe_by_complete_cad, qe_from_cad
+from ..qe.virtual_substitution import try_quadratic_vs_qe
 from ..simplify.boolean import simplify_boolean
 from ..status import SolverStatus
 from ..structural_keys import symbol_identity_key
@@ -194,7 +194,7 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
         "vs",
     }
     if use_vs_prepass and parsed.quantifiers:
-        vs_result = try_quadratic_virtual_substitution_qe(
+        vs_result = try_quadratic_vs_qe(
             vars_,
             parsed.quantifiers,
             to_sympy(parsed.matrix),
@@ -245,6 +245,13 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
             notes=(*base.notes, f"Explicit strategy requested: {strategy_name}."),
         )
     if selection is not None and selection.backend != PROJECTION_COLLINS:
+        # QE truth propagation requires a CAD tower whose levels respect the
+        # quantifier prefix: free variables first, then quantified variables in
+        # prefix order.  The general CAD planner may choose a cheaper algebraic
+        # order, but that order is not semantically interchangeable for nested
+        # quantifiers.  Normalize the reduced-backend tower here, exactly as
+        # the complete-CAD QE driver does.
+        vars_, _, _, _ = norm_internal_order(vars_, parsed.quantifiers, parsed.matrix)
         if selection.backend == PROJECTION_TTICAD:
             safe = decompose_tticad_safe(parsed.matrix, vars_)
         else:

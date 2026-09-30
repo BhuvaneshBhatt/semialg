@@ -61,7 +61,7 @@ When all relevant polynomial signs are invariant on each cell, the original form
 
 ## Equational constraints
 
-If a conjunction contains an equation \(f=0\), solutions need only lie on that locus. Equational-constraint-aware projection can reduce projection polynomials and lifting work. Choosing a useful equation is itself an algorithmic problem; `semialg` scores candidates using projection burden rather than only syntactic degree.
+If a conjunction contains an equation \(f=0\), solutions need only lie on that locus. Equational-constraint-aware projection can reduce projection polynomials and lifting work. Choosing a useful equation is itself an algorithmic problem; `semialg` scores candidates using projection burden instead of only syntactic degree.
 
 ## Virtual substitution
 
@@ -87,7 +87,7 @@ Once a sign-invariant CAD has been built, many Boolean simplifications can be ph
 
 ## Exact optimization
 
-The package uses a hierarchy rather than one universal optimizer:
+The package uses a hierarchy instead of one universal optimizer:
 
 1. box/polytope specializations;
 2. separable Cartesian-product decomposition;

@@ -103,9 +103,9 @@ These states should not be conflated:
 - **unsupported fragment** — the implemented method does not cover the input;
 - **certification failure** — a candidate or intermediate object exists, but the required exact proof could not be established;
 - **resource limit** — a supported strategy was stopped by an explicit computational limit;
-- **implementation error** — an unexpected programming failure, which should propagate rather than masquerade as mathematical emptiness.
+- **implementation error** — an unexpected programming failure, which should propagate instead of masquerade as mathematical emptiness.
 
-When an API exposes fields such as `partial`, `complete`, `certified`, or `status`, consume those fields rather than inferring success merely from a nonempty symbolic object.
+When an API exposes fields such as `partial`, `complete`, `certified`, or `status`, consume those fields instead of inferring success merely from a nonempty symbolic object.
 
 ## Practical checklist
 

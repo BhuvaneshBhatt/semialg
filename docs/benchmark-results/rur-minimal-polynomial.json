@@ -1,0 +1,77 @@
+[
+  {
+    "case": "coupled_quadratic",
+    "D": 2,
+    "density": 0.5,
+    "charpoly": {
+      "seconds": 0.0007908029999725841,
+      "peak_py": 4878,
+      "degree": 2
+    },
+    "krylov": {
+      "seconds": 0.004156302000183132,
+      "peak_py": 23597,
+      "degree": 2
+    }
+  },
+  {
+    "case": "circle_diagonal",
+    "D": 2,
+    "density": 0.5,
+    "charpoly": {
+      "seconds": 0.0010076809999191028,
+      "peak_py": 5626,
+      "degree": 2
+    },
+    "krylov": {
+      "seconds": 0.003499821999866981,
+      "peak_py": 19776,
+      "degree": 2
+    }
+  },
+  {
+    "case": "grid_3x3",
+    "D": 9,
+    "density": 0.35802469135802467,
+    "charpoly": {
+      "seconds": 0.006508582000151364,
+      "peak_py": 25766,
+      "degree": 9
+    },
+    "krylov": {
+      "seconds": 0.0612820979999924,
+      "peak_py": 331486,
+      "degree": 8
+    }
+  },
+  {
+    "case": "grid_4x4",
+    "D": 16,
+    "density": 0.21484375,
+    "charpoly": {
+      "seconds": 0.016591858000083448,
+      "peak_py": 57336,
+      "degree": 16
+    },
+    "krylov": {
+      "seconds": 0.22391698499995982,
+      "peak_py": 743950,
+      "degree": 12
+    }
+  },
+  {
+    "case": "coupled_three_variable",
+    "D": 4,
+    "density": 0.5,
+    "charpoly": {
+      "seconds": 0.0015180309999323072,
+      "peak_py": 10050,
+      "degree": 4
+    },
+    "krylov": {
+      "seconds": 0.012730590999808555,
+      "peak_py": 40265,
+      "degree": 4
+    }
+  }
+]

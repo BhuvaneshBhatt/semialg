@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .construction import compute_rational_univariate_representation
+from .construction import compute_rur
 from .formula import solve_formula_with_rur
 from .representation import (
     FilteredRationalUnivariateSolutions,
@@ -14,13 +14,13 @@ from .signs import (
     evaluate_relation_at_point,
     filter_rur_solutions_by_constraints,
     sign_of_algebraic_expression,
-    solve_and_filter_zero_dimensional_system_with_rur,
+    solve_and_filter_with_rur,
     solve_rur_semialgebraic_system,
 )
 from .solve import (
     solve_rur_points,
     solve_rur_representation,
-    solve_zero_dimensional_system_with_rur,
+    solve_with_rur,
 )
 from .thom import (
     rur_parameter_thom_encoding,
@@ -34,8 +34,8 @@ __all__ = [
     "RationalUnivariatePoint",
     "FilteredRationalUnivariateSolutions",
     "RationalUnivariateFormulaResult",
-    "compute_rational_univariate_representation",
-    "solve_zero_dimensional_system_with_rur",
+    "compute_rur",
+    "solve_with_rur",
     "solve_rur_representation",
     "solve_rur_points",
     "sign_of_algebraic_expression",
@@ -43,7 +43,7 @@ __all__ = [
     "evaluate_boolean_formula_at_point",
     "filter_rur_solutions_by_constraints",
     "solve_rur_semialgebraic_system",
-    "solve_and_filter_zero_dimensional_system_with_rur",
+    "solve_and_filter_with_rur",
     "solve_formula_with_rur",
     "rur_parameter_thom_encoding",
     "sign_at_rur_point",

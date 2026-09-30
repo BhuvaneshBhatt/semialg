@@ -36,7 +36,6 @@ except ImportError:
     # jupyter_client < 5, use local now()
     now = datetime.now
 
-import psutil
 import zmq
 from IPython.core.error import StdinNotImplementedError
 from jupyter_client.session import Session
@@ -60,7 +59,32 @@ from ipykernel.jsonutil import json_clean
 
 from ._version import kernel_protocol_version
 from .iostream import OutStream
+from .subshell_manager import UnknownSubshellError
 from .utils import LazyDict, _async_in_context
+
+psutil: t.Any | None = None
+_NO_SUCH_PROCESS: tuple[type[BaseException], ...] = ()
+_psutil_import_attempted = False
+
+
+def _get_psutil() -> t.Any | None:
+    """Import psutil on first use, caching the (possibly None) result.
+
+    psutil is optional and its import is not cheap, so we avoid paying for
+    it unless something actually needs process/resource-usage information.
+    """
+    global psutil, _NO_SUCH_PROCESS, _psutil_import_attempted  # noqa: PLW0603
+    if not _psutil_import_attempted:
+        _psutil_import_attempted = True
+        try:
+            import psutil as _psutil
+        except ImportError:
+            pass
+        else:
+            psutil = _psutil
+            _NO_SUCH_PROCESS = (psutil.NoSuchProcess,)
+    return psutil
+
 
 _AWAITABLE_MESSAGE: str = (
     "For consistency across implementations, it is recommended that `{func_name}`"
@@ -97,7 +121,7 @@ class Kernel(SingletonConfigurable):
     # attribute to override with a GUI
     eventloop = Any(None)
 
-    processes: dict[str, psutil.Process] = {}
+    processes: dict[int, t.Any] = {}
 
     @observe("eventloop")
     def _update_eventloop(self, change):
@@ -395,7 +419,9 @@ class Kernel(SingletonConfigurable):
         """
         return True
 
-    async def dispatch_shell(self, msg, /, subshell_id: str | None = None):
+    async def dispatch_shell(
+        self, msg, /, subshell_id: str | None = None, *, concurrent: bool = False
+    ):
         """dispatch shell requests"""
         if len(msg) == 1 and msg[0].buffer == b"stop aborting":
             # Dummy "stop aborting" message to stop aborting execute requests on this subshell.
@@ -426,10 +452,12 @@ class Kernel(SingletonConfigurable):
 
         # Set the parent message for side effects.
         self.set_parent(idents, msg, channel="shell")
-        self._publish_status("busy", "shell")
+        if not concurrent:
+            self._publish_status("busy", "shell")
 
         msg_type = msg["header"]["msg_type"]
-        assert msg["header"].get("subshell_id") == subshell_id
+        if msg_type not in {"comm_msg", "comm_close"}:
+            assert msg["header"].get("subshell_id") == subshell_id
 
         if self._supports_kernel_subshells:
             stream = self.shell_channel_thread.manager.get_subshell_to_shell_channel_socket(
@@ -459,7 +487,8 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(should_handle):
             should_handle = await should_handle
         if not should_handle:
-            self._publish_status_and_flush("idle", "shell", stream)
+            if not concurrent:
+                self._publish_status_and_flush("idle", "shell", stream)
             self.log.debug("Not handling %s:%s", msg_type, msg["header"].get("msg_id"))
             return
 
@@ -468,10 +497,11 @@ class Kernel(SingletonConfigurable):
             self.log.warning("Unknown message type: %r", msg_type)
         else:
             self.log.debug("%s: %s", msg_type, msg)
-            try:
-                self.pre_handler_hook()
-            except Exception:
-                self.log.debug("Unable to signal in pre_handler_hook:", exc_info=True)
+            if not concurrent:
+                try:
+                    self.pre_handler_hook()
+                except Exception:
+                    self.log.debug("Unable to signal in pre_handler_hook:", exc_info=True)
             try:
                 result = handler(stream, idents, msg)
                 if inspect.isawaitable(result):
@@ -482,16 +512,18 @@ class Kernel(SingletonConfigurable):
                 # Ctrl-c shouldn't crash the kernel here.
                 self.log.error("KeyboardInterrupt caught in kernel.")
             finally:
-                try:
-                    self.post_handler_hook()
-                except Exception:
-                    self.log.debug("Unable to signal in post_handler_hook:", exc_info=True)
+                if not concurrent:
+                    try:
+                        self.post_handler_hook()
+                    except Exception:
+                        self.log.debug("Unable to signal in post_handler_hook:", exc_info=True)
 
         if sys.stdout is not None:
             sys.stdout.flush()
         if sys.stderr is not None:
             sys.stderr.flush()
-        self._publish_status_and_flush("idle", "shell", stream)
+        if not concurrent:
+            self._publish_status_and_flush("idle", "shell", stream)
 
     def pre_handler_hook(self):
         """Hook to execute before calling message handler"""
@@ -539,24 +571,15 @@ class Kernel(SingletonConfigurable):
         # begin polling the eventloop
         schedule_next()
 
-    async def _create_control_lock(self):
-        # This can be removed when minimum python increases to 3.10
-        self._control_lock = asyncio.Lock()
-
     def start(self):
         """register dispatchers for streams"""
         self.io_loop = ioloop.IOLoop.current()
 
+        # Create the lock before the control_stream, so the lock is guaranteed to be available.
+        self._control_lock = asyncio.Lock()
+
         if self.control_stream:
             self.control_stream.on_recv(self.dispatch_control, copy=False)
-
-        if self.control_thread and sys.version_info < (3, 10):
-            # Before Python 3.10 we need to ensure the _control_lock is created in the
-            # thread that uses it. When our minimum python is 3.10 we can remove this
-            # and always use the else below, or just assign it where it is declared.
-            self.control_thread.io_loop.add_callback(self._create_control_lock)
-        else:
-            self._control_lock = asyncio.Lock()
 
         if self.shell_stream:
             if self.shell_channel_thread:
@@ -581,14 +604,28 @@ class Kernel(SingletonConfigurable):
 
             # deserialize only the header to get subshell_id
             # Keep original message to send to subshell_id unmodified.
-            _, msg2 = self.session.feed_identities(msg, copy=False)
+            idents, msg2 = self.session.feed_identities(msg, copy=False)
             try:
                 msg3 = self.session.deserialize(msg2, content=False, copy=False)
                 subshell_id = msg3["header"].get("subshell_id")
 
+                if msg3["header"]["msg_type"] in {"comm_msg", "comm_close"} and hasattr(
+                    self, "comm_manager"
+                ):
+                    content = self.session.unpack(msg3["content"])
+                    comm = self.comm_manager.get_comm(content.get("comm_id"))
+                    if comm is not None:
+                        route = getattr(comm, "_reply_subshell_for", None)
+                        if route is not None:
+                            subshell_id = route(content.get("data"), subshell_id)
+
                 # Find inproc pair socket to use to send message to correct subshell.
                 subshell_manager = self.shell_channel_thread.manager
-                socket = subshell_manager.get_shell_channel_to_subshell_socket(subshell_id)
+                try:
+                    socket = subshell_manager.get_shell_channel_to_subshell_socket(subshell_id)
+                except UnknownSubshellError as err:
+                    self._send_unknown_subshell_reply(idents, msg3, err)
+                    return
                 assert socket is not None
                 socket.send_multipart(msg, copy=False)
             except Exception:
@@ -617,6 +654,26 @@ class Kernel(SingletonConfigurable):
         # async cells at the same time which would be a nice feature to have but is an API
         # change.
         assert asyncio_lock is not None
+        if asyncio_lock.locked() and self.session is not None:
+            try:
+                _, frames = self.session.feed_identities(msg, copy=False)
+                header = self.session.deserialize(frames, content=False, copy=False)["header"]
+            except Exception:
+                header = {}
+            if header.get("msg_type") in {"comm_open", "comm_msg", "comm_close"}:
+                # A running async cell may be waiting for a widget reply on this
+                # channel. Dispatch comms without waiting for the cell's lock.
+                shell_parent = self.get_parent("shell")
+                shell_ident = self._get_shell_context_var(self._shell_parent_ident)
+                try:
+                    comm_task = asyncio.create_task(
+                        self.dispatch_shell(msg, subshell_id=subshell_id, concurrent=True),
+                        context=copy_context(),
+                    )
+                    await comm_task
+                finally:
+                    self.set_parent(shell_ident, shell_parent, channel="shell")
+                return
         async with asyncio_lock:
             await self.dispatch_shell(msg, subshell_id=subshell_id)
 
@@ -833,7 +890,7 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(reply_content):
             reply_content = await reply_content
         else:
-            warnings.warn(
+            warnings.warn(  # type:ignore[unreachable]
                 _AWAITABLE_MESSAGE.format(func_name="do_execute", target=self.do_execute),
                 PendingDeprecationWarning,
                 stacklevel=1,
@@ -848,7 +905,7 @@ class Kernel(SingletonConfigurable):
         # clients... This seems to mitigate the problem, but we definitely need
         # to better understand what's going on.
         if self._execute_sleep:
-            time.sleep(self._execute_sleep)
+            time.sleep(self._execute_sleep)  # noqa: ASYNC251
 
         # Send the reply.
         reply_content = json_clean(reply_content)
@@ -895,7 +952,7 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(matches):
             matches = await matches
         else:
-            warnings.warn(
+            warnings.warn(  # type:ignore[unreachable]
                 _AWAITABLE_MESSAGE.format(func_name="do_complete", target=self.do_complete),
                 PendingDeprecationWarning,
                 stacklevel=1,
@@ -929,7 +986,7 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(reply_content):
             reply_content = await reply_content
         else:
-            warnings.warn(
+            warnings.warn(  # type:ignore[unreachable]
                 _AWAITABLE_MESSAGE.format(func_name="do_inspect", target=self.do_inspect),
                 PendingDeprecationWarning,
                 stacklevel=1,
@@ -954,7 +1011,7 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(reply_content):
             reply_content = await reply_content
         else:
-            warnings.warn(
+            warnings.warn(  # type:ignore[unreachable]
                 _AWAITABLE_MESSAGE.format(func_name="do_history", target=self.do_history),
                 PendingDeprecationWarning,
                 stacklevel=1,
@@ -1082,7 +1139,7 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(content):
             content = await content
         else:
-            warnings.warn(
+            warnings.warn(  # type:ignore[unreachable]
                 _AWAITABLE_MESSAGE.format(func_name="do_shutdown", target=self.do_shutdown),
                 PendingDeprecationWarning,
                 stacklevel=1,
@@ -1121,7 +1178,7 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(reply_content):
             reply_content = await reply_content
         else:
-            warnings.warn(
+            warnings.warn(  # type:ignore[unreachable]
                 _AWAITABLE_MESSAGE.format(func_name="do_is_complete", target=self.do_is_complete),
                 PendingDeprecationWarning,
                 stacklevel=1,
@@ -1143,7 +1200,7 @@ class Kernel(SingletonConfigurable):
         if inspect.isawaitable(reply_content):
             reply_content = await reply_content
         else:
-            warnings.warn(
+            warnings.warn(  # type:ignore[unreachable]
                 _AWAITABLE_MESSAGE.format(
                     func_name="do_debug_request", target=self.do_debug_request
                 ),
@@ -1172,13 +1229,19 @@ class Kernel(SingletonConfigurable):
         if not self.session:
             return
         reply_content = {"hostname": socket.gethostname(), "pid": os.getpid()}
+        psutil = _get_psutil()
+        if psutil is None:
+            reply_content["cpu_count"] = os.cpu_count()
+            reply_msg = self.session.send(stream, "usage_reply", reply_content, parent, ident)
+            self.log.debug("%s", reply_msg)
+            return
+
         current_process = psutil.Process()
         all_processes = [current_process, *current_process.children(recursive=True)]
         # Ensure 1) self.processes is updated to only current subprocesses
         # and 2) we reuse processes when possible (needed for accurate CPU)
         self.processes = {
-            process.pid: self.processes.get(process.pid, process)  # type:ignore[misc,call-overload]
-            for process in all_processes
+            process.pid: self.processes.get(process.pid, process) for process in all_processes
         }
         reply_content["kernel_cpu"] = sum(
             [
@@ -1196,7 +1259,7 @@ class Kernel(SingletonConfigurable):
         cpu_percent = psutil.cpu_percent()
         # https://psutil.readthedocs.io/en/latest/index.html?highlight=cpu#psutil.cpu_percent
         # The first time cpu_percent is called it will return a meaningless 0.0 value which you are supposed to ignore.
-        if cpu_percent is not None and cpu_percent != 0.0:  # type:ignore[redundant-expr]
+        if cpu_percent is not None and cpu_percent != 0.0:
             reply_content["host_cpu_percent"] = cpu_percent
         reply_content["cpu_count"] = psutil.cpu_count(logical=True)
         reply_content["host_virtual_memory"] = dict(psutil.virtual_memory()._asdict())
@@ -1359,14 +1422,61 @@ class Kernel(SingletonConfigurable):
             ident=idents,
         )
 
+    def _send_unknown_subshell_reply(
+        self, idents, msg: dict[str, t.Any], err: UnknownSubshellError
+    ) -> None:
+        """Send an error reply to a request addressed to a subshell that is not there.
+
+        Runs in the shell channel thread, so it writes to the shell socket
+        directly instead of going through a subshell.
+
+        The busy and idle status messages matter as much as the reply here.
+        A client tracks the completion of a request by the idle status that
+        carries it as parent, and for message types that have no reply, such as
+        the comm messages, that status is all it has to go on.
+        """
+        if not self.session:
+            return
+        msg_type = msg["header"]["msg_type"]
+        self.log.warning("Cannot handle %s %s: %s", msg_type, msg["header"]["msg_id"], err)
+        self._publish_status("busy", "shell", parent=msg)
+        content = {
+            "status": "error",
+            "ename": type(err).__name__,
+            "evalue": str(err),
+            "traceback": [],
+        }
+        md = self.init_metadata(msg)
+        md = self.finish_metadata(msg, md, content)
+        md.update({"status": "error"})
+        self.session.send(
+            self.shell_stream,
+            msg_type.rsplit("_", 1)[0] + "_reply",
+            metadata=md,
+            content=content,
+            parent=msg,
+            ident=idents,
+        )
+        self._publish_status("idle", "shell", parent=msg)
+
     def _no_raw_input(self):
         """Raise StdinNotImplementedError if active frontend doesn't support
         stdin."""
         msg = "raw_input was called, but this frontend does not support stdin."
         raise StdinNotImplementedError(msg)
 
-    def getpass(self, prompt="", stream=None):
+    def getpass(
+        self,
+        prompt: str = "",
+        stream: t.TextIO | None = None,
+        *,
+        echo_char: str | None = None,
+    ) -> str:
         """Forward getpass to frontends
+
+        The signature mirrors :func:`getpass.getpass`, which this replaces on
+        the kernel side; the parameters that only make sense for a local
+        terminal are accepted but ignored.
 
         Raises
         ------
@@ -1375,14 +1485,16 @@ class Kernel(SingletonConfigurable):
         if not self._allow_stdin:
             msg = "getpass was called, but this frontend does not support input requests."
             raise StdinNotImplementedError(msg)
-        if stream is not None:
-            import warnings
+        for name, value in (("stream", stream), ("echo_char", echo_char)):
+            if value is not None:
+                import warnings
 
-            warnings.warn(
-                "The `stream` parameter of `getpass.getpass` will have no effect when using ipykernel",
-                UserWarning,
-                stacklevel=2,
-            )
+                warnings.warn(
+                    f"The `{name}` parameter of `getpass.getpass` will have no effect"
+                    " when using ipykernel",
+                    UserWarning,
+                    stacklevel=2,
+                )
         return self._input_request(
             prompt,
             self._get_shell_context_var(self._shell_parent_ident),
@@ -1407,7 +1519,7 @@ class Kernel(SingletonConfigurable):
             password=False,
         )
 
-    def _input_request(self, prompt, ident, parent, password=False):
+    def _input_request(self, prompt, ident, parent, password=False) -> str:
         # Flush output before making the request.
         if sys.stdout is not None:
             sys.stdout.flush()
@@ -1450,7 +1562,7 @@ class Kernel(SingletonConfigurable):
                 self.log.warning("Invalid Message:", exc_info=True)
 
         try:
-            value = reply["content"]["value"]  # type:ignore[index]
+            value: str = reply["content"]["value"]  # type:ignore[index]
         except Exception:
             self.log.error("Bad input_reply: %s", parent)
             value = ""
@@ -1476,7 +1588,7 @@ class Kernel(SingletonConfigurable):
                     p.kill()
                 else:
                     p.send_signal(signum)
-            except psutil.NoSuchProcess:
+            except _NO_SUCH_PROCESS:
                 pass
 
     def _process_children(self):
@@ -1486,6 +1598,10 @@ class Kernel(SingletonConfigurable):
         - including parents and self with killpg
         - including all children that may have forked-off a new group
         """
+        psutil = _get_psutil()
+        if psutil is None:
+            return []
+
         kernel_process = psutil.Process()
         all_children = kernel_process.children(recursive=True)
         if os.name == "nt":
@@ -1527,8 +1643,8 @@ class Kernel(SingletonConfigurable):
         """Actions taken at shutdown by the kernel, called by python's atexit."""
         try:
             await self._progressively_terminate_all_children()
-        except Exception as e:
-            self.log.exception("Exception during subprocesses termination %s", e)
+        except Exception:
+            self.log.exception("Exception during subprocesses termination")
 
         finally:
             if self._shutdown_message is not None and self.session:

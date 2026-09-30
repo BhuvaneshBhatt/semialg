@@ -39,12 +39,12 @@ from .algebraic import (
     ideal_hilbert_data,
     plan_gtz_primary_decomposition,
     saturation_stabilization,
-    verify_fraction_field_zero_dimensional_certificate,
+    verify_contraction_certificate,
+    verify_fraction_field_zero_dim_certificate,
     verify_gtz_primary_decomposition_certificate,
-    verify_independent_localization_certificate,
-    verify_localization_contraction_certificate,
-    verify_saturation_stabilization_certificate,
-    verify_zero_dimensional_primary_certificate,
+    verify_localization_certificate,
+    verify_saturation_certificate,
+    verify_zero_dim_primary_certificate,
     zero_dimensional_primary_decomposition,
 )
 from .algebraic_decomposition import (
@@ -68,7 +68,7 @@ from .algebraic_decomposition import (
     TriangularPrimalityCertificate,
     TriangularPrimalityStage,
     associated_primes,
-    certified_radical_minimal_prime_decomposition,
+    certified_minimal_primes,
     certify_triangular_primality,
     equidimensional_decomposition,
     primary_decomposition,
@@ -78,7 +78,7 @@ from .algebraic_decomposition import (
     verify_minimal_prime_decomposition_certificate,
     verify_primary_decomposition_certificate,
     verify_radical_ideal_certificate,
-    verify_regular_chain_decomposition_certificate,
+    verify_regular_chain_certificate,
     verify_triangular_primality_certificate,
 )
 from .internal_symbols import collision_free_real_symbols, fresh_dummy
@@ -406,7 +406,7 @@ def irreducible_components(
     """
     eqs = _equations(equations)
     vars_ = normalize_problem_variables(variables, sp.Tuple(*eqs))
-    decomposition = certified_radical_minimal_prime_decomposition(eqs, vars_, max_pieces=max_pieces)
+    decomposition = certified_minimal_primes(eqs, vars_, max_pieces=max_pieces)
     if decomposition.certificate is None or not verify_minimal_prime_decomposition_certificate(
         decomposition.certificate
     ):
@@ -983,6 +983,8 @@ __all__ = [
     "ReducedAlgebraicVariety",
     "IrreducibleAlgebraicComponent",
     "ReducedComponentSingularLocus",
+    "LocalAlgebraicStrata",
+    "local_algebraic_strata",
     "local_branch_geometry",
     "LocalBranchGeometry",
     "BranchTangentGeometry",
@@ -1023,9 +1025,9 @@ __all__ = [
     "recursive_regular_chain_decomposition",
     "certify_triangular_primality",
     "radical_ideal",
-    "certified_radical_minimal_prime_decomposition",
+    "certified_minimal_primes",
     "equidimensional_decomposition",
-    "verify_regular_chain_decomposition_certificate",
+    "verify_regular_chain_certificate",
     "verify_radical_ideal_certificate",
     "verify_triangular_primality_certificate",
     "verify_minimal_prime_decomposition_certificate",
@@ -1051,14 +1053,14 @@ __all__ = [
     "certified_independent_localization",
     "contract_localized_ideal",
     "saturation_stabilization",
-    "verify_independent_localization_certificate",
-    "verify_localization_contraction_certificate",
-    "verify_saturation_stabilization_certificate",
+    "verify_localization_certificate",
+    "verify_contraction_certificate",
+    "verify_saturation_certificate",
     "ZeroDimensionalPrimaryCertificate",
     "ZeroDimensionalPrimaryComponent",
     "ZeroDimensionalPrimaryResult",
     "zero_dimensional_primary_decomposition",
-    "verify_zero_dimensional_primary_certificate",
+    "verify_zero_dim_primary_certificate",
     "FractionFieldZeroDimensionalCertificate",
     "FractionFieldZeroDimensionalResult",
     "GTZContractedComponentCertificate",
@@ -1071,6 +1073,42 @@ __all__ = [
     "gtz_cache_info",
     "gtz_primary_decomposition",
     "plan_gtz_primary_decomposition",
-    "verify_fraction_field_zero_dimensional_certificate",
+    "verify_fraction_field_zero_dim_certificate",
     "verify_gtz_primary_decomposition_certificate",
 ]
+
+
+@dataclass(frozen=True)
+class LocalAlgebraicStrata:
+    """Certified local branch data plus the global strata incident at a point."""
+
+    branch_geometry: LocalBranchGeometry
+    incident_singular_strata: tuple[SingularGeometryStratum, ...]
+    incident_dimension_strata: tuple[LocalDimensionStratum, ...]
+    complete: bool = True
+
+
+def local_algebraic_strata(equations, point, variables=None, *, max_pieces: int | None = None):
+    """Return exact local branches and every certified stratum incident at ``point``.
+
+    This joins the local tangent/multiplicity view with the global minimal-prime
+    stratification, so callers need not guess whether a local branch list covers
+    component intersections or dimension jumps.
+    """
+    eqs = _equations(equations)
+    vars_ = normalize_problem_variables(variables, sp.Tuple(*eqs))
+    point_map = normalize_point(point, vars_, context=(sp.Tuple(*eqs),))
+    branch = local_branch_geometry(eqs, point_map, vars_, max_pieces=max_pieces)
+    strat = stratified_singular_geometry(eqs, vars_, max_pieces=max_pieces)
+
+    def contains(formula):
+        value = sp.simplify(sp.sympify(formula).subs(point_map))
+        if value in (sp.true, True):
+            return True
+        if value in (sp.false, False):
+            return False
+        raise ValueError("stratum membership did not reduce to an exact Boolean value")
+
+    singular = tuple(s for s in strat.singular_strata if contains(s.formula))
+    dimensions = tuple(s for s in strat.local_dimension_strata if contains(s.formula))
+    return LocalAlgebraicStrata(branch, singular, dimensions, True)

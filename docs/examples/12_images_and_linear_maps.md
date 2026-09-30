@@ -17,10 +17,10 @@ u^2+v^2\le2.
 \]
 
 The raw reconstructed image formula may contain exact algebraic root-function
-boundaries rather than printing in this simplest form. The executable checks
+boundaries instead of printing in this simplest form. The executable checks
 representative interior, boundary, and exterior points. Mathematically the image
 is the disk `u**2 + v**2 <= 2`; in general, exact set equality should be checked
-semantically rather than by comparing printed formulas.
+semantically instead of by comparing printed formulas.
 
 ## Executable example
 

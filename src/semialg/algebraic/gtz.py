@@ -177,12 +177,12 @@ def certified_independent_localization(
         quotient_dimension,
         certificate,
     )
-    if not verify_independent_localization_certificate(certificate):
+    if not verify_localization_certificate(certificate):
         raise ArithmeticError("internal GTZ localization certificate verification failed")
     return result
 
 
-def verify_independent_localization_certificate(
+def verify_localization_certificate(
     certificate: IndependentLocalizationCertificate,
 ) -> bool:
     """Replay a GTZ independent-localization certificate from exact source data."""
@@ -334,12 +334,12 @@ def contract_localized_ideal(
         contracted,
     )
     result = LocalizationContractionResult(contracted, denominator, certificate)
-    if not verify_localization_contraction_certificate(certificate):
+    if not verify_contraction_certificate(certificate):
         raise ArithmeticError("internal GTZ contraction certificate verification failed")
     return result
 
 
-def verify_localization_contraction_certificate(
+def verify_contraction_certificate(
     certificate: LocalizationContractionCertificate,
 ) -> bool:
     """Replay denominator clearing, saturation, and localized re-extension exactly."""
@@ -520,12 +520,12 @@ def saturation_stabilization(
         vars_, gens, h, stable_exponent, tuple(chain), stable, companion
     )
     result = SaturationStabilizationResult(stable, stable_exponent, companion, certificate)
-    if not verify_saturation_stabilization_certificate(certificate):
+    if not verify_saturation_certificate(certificate):
         raise ArithmeticError("internal saturation-stabilization certificate failed")
     return result
 
 
-def verify_saturation_stabilization_certificate(
+def verify_saturation_certificate(
     certificate: SaturationStabilizationCertificate,
 ) -> bool:
     """Replay the colon chain, saturation, and GTZ split identity exactly."""
@@ -576,7 +576,7 @@ __all__ = [
     "certified_independent_localization",
     "contract_localized_ideal",
     "saturation_stabilization",
-    "verify_independent_localization_certificate",
-    "verify_localization_contraction_certificate",
-    "verify_saturation_stabilization_certificate",
+    "verify_localization_certificate",
+    "verify_contraction_certificate",
+    "verify_saturation_certificate",
 ]

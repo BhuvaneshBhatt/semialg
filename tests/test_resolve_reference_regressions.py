@@ -1,4 +1,4 @@
-"""Exact-real Resolve regressions adapted from the supplied historical corpus.
+"""Exact-real Resolve reference regressions.
 
 Only exact real semialgebraic cases are retained.  Numeric-precision,
 complex-default, integer/prime-domain, and system-option cases are outside this

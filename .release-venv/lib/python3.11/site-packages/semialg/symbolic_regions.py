@@ -19,9 +19,8 @@ from .normalization import normalize_formula, normalize_variables
 from .structural_keys import ordered_symbols
 
 if TYPE_CHECKING:
-    # Static export declaration only. Runtime access stays lazy through
-    # ``__getattr__`` so region_coercion remains the sole implementation owner
-    # without recreating the symbolic_regions <-> region_coercion import cycle.
+    # Keep the coercion implementation in region_coercion while exposing the
+    # canonical object lazily to avoid a module import cycle.
     from .region_coercion import as_semialgebraic_region
 
 
@@ -698,8 +697,7 @@ def _require_same_ambient(regions: Sequence[SemialgebraicRegion]) -> None:
             raise ValueError("region ambient dimensions do not match")
 
 
-# Region coercion has a separate canonical owner.  Internal calls use a lazy
-# helper so importing this core module does not create a cycle.
+# Import coercion lazily because region_coercion depends on region types defined here.
 def _coerce_region(region, variables=None):
     from .region_coercion import as_semialgebraic_region
 

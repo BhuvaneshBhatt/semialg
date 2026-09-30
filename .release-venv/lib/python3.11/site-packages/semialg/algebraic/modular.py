@@ -721,7 +721,7 @@ __all__ = [
     "ModularFractionFieldGroebnerCertificate",
     "ModularFractionFieldGroebnerResult",
     "modular_groebner_basis_fraction_field",
-    "verify_modular_fraction_field_groebner_certificate",
+    "verify_fraction_field_groebner_certificate",
     "ModularResultantCertificate",
     "ModularResultantResult",
     "modular_resultant_qq",
@@ -734,7 +734,7 @@ __all__ = [
 
 # Certificate replay is outside the computational hot paths.
 from ._modular_certification import (  # noqa: E402, F401
-    verify_modular_fraction_field_groebner_certificate,
+    verify_fraction_field_groebner_certificate,
     verify_modular_groebner_certificate,
     verify_modular_resultant_certificate,
     verify_modular_subresultant_certificate,

@@ -3,7 +3,7 @@ import sympy as sp
 from semialg.formula import parse_quant_form_text
 from semialg.qe.virtual_substitution import (
     VirtualSubstitutionQEResult,
-    try_quadratic_virtual_substitution_qe,
+    try_quadratic_vs_qe,
 )
 from semialg.solve import reduce_text
 
@@ -53,9 +53,7 @@ def test_virtual_substitution_removes_vacuous_exists():
         variable_order=[x, y],
     )
 
-    result = try_quadratic_virtual_substitution_qe(
-        parsed.vars, parsed.quantifiers, parsed.matrix_expr
-    )
+    result = try_quadratic_vs_qe(parsed.vars, parsed.quantifiers, parsed.matrix_expr)
 
     assert result is not None
     assert result.status == "complete"
@@ -71,7 +69,7 @@ def test_virtual_substitution_declines_mixed_prefix():
         variable_order=[x, y],
     )
 
-    result = try_quadratic_virtual_substitution_qe(
+    result = try_quadratic_vs_qe(
         parsed.vars, (("forall", x), ("exists", y)), parsed.matrix_expr, full=True
     )
 

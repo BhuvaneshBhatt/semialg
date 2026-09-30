@@ -6,6 +6,12 @@ Exact real algebraic computation can be expensive. CAD in particular has severe 
 
 The default planners use structural scoring, estimated lifting/root counts, algebraic-degree and coefficient-height information, bounded pilot lifting, equational constraints, partial lifting, and solve-scoped caches. Start with defaults unless you have evidence that a particular order or certification policy is poor.
 
+## Specialist-first decision routing
+
+Decision and QE entry points avoid CAD when a cheaper exact certificate applies. The routing order starts with formula normalization and Boolean-structure certificates, then uses incidence decomposition, affine presolve, exact linear feasibility, finite algebraic solving, univariate inequality reduction, and supported algebraic geometry methods. Quantifiers whose variables do not occur in the matrix are removed before projection. General CAD/QE remains the exact fallback when these methods do not settle the problem.
+
+The cheap stages have bounded structural checks or reuse computations required by later stages. A specialist may decline an input without changing its mathematical meaning; declining sends the same normalized problem to the next exact method.
+
 ## Reduce the problem before CAD
 
 Cheap symbolic simplification can have a large effect:
@@ -24,29 +30,29 @@ Different CAD variable orders can change projection degree, coefficient height, 
 
 `semialg`'s automatic planner combines structural incidence/degree scores with projection statistics, estimated lifting/root counts, and bounded pilot lifting for leading candidates. CAD-driven region integration also considers alternative coordinate orders because a good order can turn algebraic/root-function bounds into simple polynomial bounds. Expert code can inspect order suggestions through `semialg.heuristics.suggest_variable_order` and `suggest_cad_variable_order`.
 
-If you supply an order manually, benchmark it on the actual problem family rather than assuming a syntactic heuristic will generalize. Preserve logical structure: variables in one quantifier block may be reorderable, but moving variables across alternating `Exists`/`ForAll` blocks is not semantics-preserving. For reconstructed free-variable cells, also consider whether a particular cylindrical orientation is useful to the downstream task.
+If you supply an order manually, benchmark it on the actual problem family instead of assuming a syntactic heuristic will generalize. Preserve logical structure: variables in one quantifier block may be reorderable, but moving variables across alternating `Exists`/`ForAll` blocks is not semantics-preserving. For reconstructed free-variable cells, also consider whether a particular cylindrical orientation is useful to the downstream task.
 
 ## Equational constraints and partial CAD
 
 A formula containing an equation such as `f == 0` can often be decomposed more cheaply than a fully sign-invariant CAD for every polynomial. semialg propagates equational constraints across levels and can avoid lifting cells that cannot affect the formula's truth.
 
-Existential satisfiability now uses exhaustive lazy CAD before materializing a full
+Existential satisfiability uses exhaustive lazy CAD before materializing a full
 cell decomposition. It stops immediately on a certified true branch, while UNSAT is
 returned only after all relevant branches have been exhausted. Inside a single
 quantifier block the lazy driver may reorder variables with the measured CAD order
 planner because such reordering preserves semantics.
 
-Collins projection also works with exact squarefree factors rather than projecting a
+Collins projection also works with exact squarefree factors instead of projecting a
 reducible product and all of its factors simultaneously. Factor signs plus pairwise
 resultants retain the required sign/root events and reduce redundant coefficients and
 discriminants. Reduced McCallum/Lazard paths retain their conservative certification
 and Collins fallback contract.
 
-Write logical structure explicitly rather than hiding useful equalities inside opaque transformations.
+Write logical structure explicitly instead of hiding useful equalities inside opaque transformations.
 
 ## Reuse within a solve
 
-A top-level exact operation creates a computation context that reuses projection data, sign determinations, root comparisons, specializations, and RUR computations across nested work. Keep logically related work inside the high-level operation rather than manually recreating equivalent low-level calls when possible.
+A top-level exact operation creates a computation context that reuses projection data, sign determinations, root comparisons, specializations, and RUR computations across nested work. Keep logically related work inside the high-level operation instead of manually recreating equivalent low-level calls when possible.
 
 ## Optimization certification policies
 
@@ -80,7 +86,7 @@ Low-dimensional polynomial problems are the intended sweet spot. Higher-dimensio
 
 ## Structural cache keys
 
-Projection and exact-algebraic caches use immutable SymPy/`Poly` structure for identity rather than serializing expressions with `sstr` or `srepr`. This avoids repeated expression-to-string conversion in hot cache and deduplication paths and preserves exact symbol identity, including assumption-distinct symbols that share a printed name. Human-readable strings are still used for diagnostics and provenance, but not as mathematical identity keys.
+Projection and exact-algebraic caches use immutable SymPy/`Poly` structure for identity instead of serializing expressions with `sstr` or `srepr`. This avoids repeated expression-to-string conversion in hot cache and deduplication paths and preserves exact symbol identity, including assumption-distinct symbols that share a printed name. Human-readable strings are still used for diagnostics and provenance, but not as mathematical identity keys.
 
 Collins and reduced CAD projection also share the same low-level polynomial normalization and projection operations. This reduces repeated `Poly -> Expr -> Poly` conversion while keeping the projection algorithms themselves separate and auditable.
 
@@ -109,7 +115,7 @@ patching semialg internals:
 - `sign_at` and `sign_vector` expose `numeric_precision` for their explicitly
   inexact (`exact=False`) fallback.
 
-Process-local performance-cache capacities are expert controls rather than root
+Process-local performance-cache capacities are expert controls instead of root
 APIs. Use `semialg.algebraic.configure_algebraic_cache_limits(...)` for root,
 sign, comparison, specialization, and RUR caches, and
 `semialg.cad_algorithms.configure_cad_cache_limits(...)` for projection-tower,

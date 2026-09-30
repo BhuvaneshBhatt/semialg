@@ -16,7 +16,7 @@ endpoints \(\pm\sqrt a\) for \(a>0\).
 The implementation constructs a CAD in parameter-plus-fiber space so root
 number and ordering are stable on each parameter cell. It then integrates
 between exact root-function endpoints. The coalescence point \(a=0\) is part
-of the exact stratification rather than a numerically special-cased value.
+of the exact stratification instead of a numerically special-cased value.
 
 ## Executable example
 

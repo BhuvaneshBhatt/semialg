@@ -53,7 +53,7 @@ def can_use_quadratic_vs(formula: sp.Expr, variable: sp.Symbol) -> bool:
         return False
 
 
-def try_quadratic_virtual_substitution_qe(
+def try_quadratic_vs_qe(
     vars_: Sequence[sp.Symbol],
     quantifiers: Sequence[tuple[str, sp.Symbol]],
     matrix: sp.Expr,
@@ -76,7 +76,7 @@ def try_quadratic_virtual_substitution_qe(
 
     quantifier_names = {q for q, _ in normalized_quantifiers}
     if quantifier_names == {"forall"}:
-        dual = try_quadratic_virtual_substitution_qe(
+        dual = try_quadratic_vs_qe(
             vars_,
             tuple(("exists", sym) for _, sym in normalized_quantifiers),
             _to_negation_normal_form(matrix, negate=True),
@@ -160,6 +160,23 @@ def try_quadratic_virtual_substitution_qe(
 
     if not eliminated:
         return None
+
+    # Eliminating one variable can lower the degree of a variable skipped
+    # earlier in the same existential block. Revisit that block before CAD.
+    if remaining and all(kind == "exists" for kind, _ in remaining):
+        retry = try_quadratic_vs_qe(
+            vars_,
+            tuple(remaining),
+            current_formula,
+            full=False,
+            max_growth_factor=max_growth_factor,
+        )
+        if retry is not None and retry.eliminated_variables:
+            current_formula = retry.formula
+            eliminated.extend(retry.eliminated_variables)
+            remaining = list(retry.remaining_quantifiers)
+            notes.extend(retry.notes)
+
     if full and remaining:
         return None
 

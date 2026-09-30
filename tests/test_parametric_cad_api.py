@@ -21,9 +21,7 @@ def test_parametric_cad_01():
 
 @pytest.mark.slow
 def test_parametric_cad_02():
-    cases = parametric_cad_text(
-        "a*x - 1 == 0", variables=["x"], parameters=["a"], output="cases", return_result=False
-    )
+    cases = parametric_cad_text("a*x - 1 == 0", variables=["x"], parameters=["a"], output="cases")
     assert cases
     assert any(case.exceptional for case in cases)
 

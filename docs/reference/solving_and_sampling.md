@@ -1,20 +1,19 @@
 # Solving and sampling reference
+
 ## Family contract
 
 **Mathematical return.** Solving APIs return exact witnesses, finite algebraic solution representations, or samples from semialgebraic solution sets.
 
 **Exactness and certification.** Exact sampling/witness paths use algebraic values and certified sign checks. Explicit numerical sampling modes are inexact by design and are not proof substitutes.
 
-**Algorithm.** Depending on structure, solving may use virtual-substitution witnesses, RUR/zero-dimensional solving, or CAD-derived cells.
+**Algorithms.** Depending on structure, solving may use virtual-substitution witnesses, RUR/zero-dimensional solving, or CAD-derived cells.
 
 **Complexity and limitations.** A witness is evidence of satisfiability, not a complete description of a positive-dimensional solution set. Use region/CAD APIs when the full set matters.
 
 
-
-
 ## Primary API overview
 
-This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|
@@ -60,7 +59,7 @@ Returned public samples are checked against the original formula.
 
 ## Canonical-region random sampling
 
-`random_point` and `random_points` are distributional APIs rather than witness finders. For supported bounded canonical regions they sample uniformly with respect to intrinsic Euclidean/Hausdorff measure: boxes use independent uniforms, balls use radial-volume sampling, spheres use normalized Gaussian directions, simplexes use Dirichlet barycentric weights, polygons/polyhedra use measure-weighted simplex decompositions, ellipsoids use affine images of unit-ball/unit-sphere samples, and shells use the correct radial volume law. Formula regions use bounded rejection sampling and therefore require a meaningful finite sampling box for distributional interpretation. Seeds are deterministic.
+`random_point` and `random_points` are distributional APIs instead of witness finders. For supported bounded canonical regions they sample uniformly with respect to intrinsic Euclidean/Hausdorff measure: boxes use independent uniforms, balls use radial-volume sampling, spheres use normalized Gaussian directions, simplexes use Dirichlet barycentric weights, polygons/polyhedra use measure-weighted simplex decompositions, ellipsoids use affine images of unit-ball/unit-sphere samples, and shells use the correct radial volume law. Formula regions use bounded rejection sampling and therefore require a meaningful finite sampling box for distributional interpretation. Seeds are deterministic.
 
 ## `sign_at` and `sign_vector`
 
@@ -74,7 +73,7 @@ Evaluate polynomial/expression signs at exact points, including algebraic and RU
 
 ## Edge cases
 
-- `count=0` requests no samples rather than one implicit sample.
+- `count=0` requests no samples instead of one implicit sample.
 - An empty feasible set is distinct from an unsupported solving strategy.
 - String variables follow the shared symbol-resolution rules.
 
@@ -91,7 +90,7 @@ returns a simplified exact formula when symbolic structure should be retained.
 
 `function_domain(expr, variables=None)` computes recognized exact real-domain
 conditions using the same semialgebraic function-graph machinery used by range
-analysis whenever that graph is available.  The shared graph engine
+analysis whenever that graph is available. The shared graph engine
 handles rational expressions, `Abs`, `sign`, `Min`, `Max`, finite `Piecewise`
 expressions, and rational powers.  Nested graph variables are projected away by
 QE when useful, so domain constraints can be simplified back to conditions on
@@ -103,7 +102,7 @@ exponent its real-valued locus on a real base is therefore nonnegative (strictly
 positive for negative exponents).  Explicit real roots should be written with
 `sympy.real_root`.  SymPy canonicalizes an odd real root to a combination such
 as `sign(x)*Abs(x)**(1/3)`, and semialg recognizes that representation as a real
-root rather than reinterpreting ordinary `Pow`.
+root instead of reinterpreting ordinary `Pow`.
 
 ```python
 import sympy as sp

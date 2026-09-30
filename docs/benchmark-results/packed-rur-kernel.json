@@ -1,0 +1,9 @@
+{
+  "corpus": "cyclic companion matrices; five in-process repetitions per method and dimension",
+  "measurements": [
+    {"dimension":6,"charpoly_s":0.001319,"generic_krylov_s":0.018001,"packed_krylov_s":0.001996,"charpoly_peak_python_bytes":11016,"generic_krylov_peak_python_bytes":37050,"packed_krylov_peak_python_bytes":6483},
+    {"dimension":10,"charpoly_s":0.002328,"generic_krylov_s":0.053890,"packed_krylov_s":0.003936,"charpoly_peak_python_bytes":20304,"generic_krylov_peak_python_bytes":53039,"packed_krylov_peak_python_bytes":9642},
+    {"dimension":14,"charpoly_s":0.003652,"generic_krylov_s":0.120027,"packed_krylov_s":0.007061,"charpoly_peak_python_bytes":34792,"generic_krylov_peak_python_bytes":75276,"packed_krylov_peak_python_bytes":12377}
+  ],
+  "decision": "retain packed kernel for research; keep charpoly as production default"
+}

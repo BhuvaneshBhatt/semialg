@@ -5,7 +5,7 @@ from collections.abc import Iterable, Sequence
 import sympy as sp
 
 from ..._zero_testing import certified_equal
-from .construction import compute_rational_univariate_representation
+from .construction import compute_rur
 from .representation import (
     RationalUnivariatePoint,
     RationalUnivariateRepresentation,
@@ -70,7 +70,7 @@ def solve_rur_representation(
     return tuple(solutions)
 
 
-def solve_zero_dimensional_system_with_rur(
+def solve_with_rur(
     polynomials: Iterable[sp.Expr],
     variables: Sequence[sp.Symbol],
     *,
@@ -80,7 +80,7 @@ def solve_zero_dimensional_system_with_rur(
 ) -> tuple[tuple[sp.Expr, ...], ...]:
     """Return distinct exact solutions obtained from a RUR representation."""
 
-    representation = compute_rational_univariate_representation(
+    representation = compute_rur(
         polynomials, variables, parameter, max_separating_attempts=max_separating_attempts
     )
     return solve_rur_representation(representation, real=real)

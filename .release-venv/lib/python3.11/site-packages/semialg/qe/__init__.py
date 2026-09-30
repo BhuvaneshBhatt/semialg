@@ -41,8 +41,8 @@ __all__ = [
     "can_use_quadratic_vs",
     "eliminate_exists_quadratic_variable",
     "eliminate_quadratic_variable",
-    "try_quadratic_virtual_substitution_qe",
-    "try_quadratic_virtual_substitution_witness",
+    "try_quadratic_vs_qe",
+    "try_quadratic_vs_witness",
     "reconstruct_vs_value",
 ]
 
@@ -55,6 +55,6 @@ from .virtual_substitution import (
     eliminate_exists_quadratic_variable,
     eliminate_quadratic_variable,
     reconstruct_vs_value,
-    try_quadratic_virtual_substitution_qe,
-    try_quadratic_virtual_substitution_witness,
+    try_quadratic_vs_qe,
+    try_quadratic_vs_witness,
 )

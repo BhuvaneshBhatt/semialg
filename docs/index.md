@@ -29,11 +29,11 @@ semialgebraic_measure(disk, [x, y])
 # pi
 ```
 
-The central contract is **exactness rather than hidden numerical approximation**. A specialized backend may solve a problem before CAD; if it cannot, the package can conservatively fall back to a complete exact method where supported. See [Exactness and certification](concepts/exactness_and_certification.md).
+The central contract is **exactness instead of hidden numerical approximation**. A specialized backend may solve a problem before CAD; if it cannot, the package can conservatively fall back to a complete exact method where supported. See [Exactness and certification](concepts/exactness_and_certification.md).
 
 ## What semialg is not
 
-`semialg` is an exact real-algebraic/semialgebraic toolkit, not a universal symbolic or numerical solver. In particular, it is **not** a general transcendental quantifier-elimination system, a floating-point nonlinear optimizer, an SOS/SDP search package, a complete computational-homology/roadmap package, or a universal symbolic integration engine. When an operation falls outside a certified fragment, the API is designed to return an explicit unknown/unsupported result or raise a documented exception rather than silently convert a heuristic numerical answer into an exact claim.
+`semialg` is an exact real-algebraic/semialgebraic toolkit, not a universal symbolic or numerical solver. In particular, it is **not** a general transcendental quantifier-elimination system, a floating-point nonlinear optimizer, an SOS/SDP search package, a complete computational-homology/roadmap package, or a universal symbolic integration engine. When an operation falls outside a certified fragment, the API is designed to return an explicit unknown/unsupported result or raise a documented exception instead of without reporting convert a heuristic numerical answer into an exact claim.
 
 See [Limitations and scope](limitations.md) for the supported boundary of each subsystem.
 
@@ -76,7 +76,7 @@ Existing task-oriented guides remain available for [function ranges](function_ra
 
 ## Learn semialgebraic geometry
 
-If the mathematics is new to you, start with the [Introduction to semialgebraic geometry](semialgebraic_geometry/introduction.md), then continue to [Concepts and theory](semialgebraic_geometry/theory.md), [Algorithms and techniques](semialgebraic_geometry/algorithms.md), and [Applications](semialgebraic_geometry/applications.md). These pages explain the theory behind the APIs rather than assuming prior knowledge of real algebraic geometry.
+If the mathematics is new to you, start with the [Introduction to semialgebraic geometry](semialgebraic_geometry/introduction.md), then continue to [Concepts and theory](semialgebraic_geometry/theory.md), [Algorithms and techniques](semialgebraic_geometry/algorithms.md), and [Applications](semialgebraic_geometry/applications.md). These pages explain the theory behind the APIs instead of assuming prior knowledge of real algebraic geometry.
 
 ## Concepts: understand the mathematics and guarantees
 

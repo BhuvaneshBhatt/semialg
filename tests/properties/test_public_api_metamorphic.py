@@ -137,3 +137,18 @@ def test_objective_scaling_swaps_extrema_and_preserves_optimizers(center, radius
             assert objective.subs(point) == result.value
     center_result = minimum if factor > 0 else maximum
     assert {point[X] for point in center_result.points} == {center}
+
+
+@settings(max_examples=8, deadline=None)
+@given(left=SMALL, width=st.integers(1, 4), factor=NONZERO, offset=SMALL)
+def test_closure_membership_commutes_with_invertible_affine_coordinates(
+    left, width, factor, offset
+):
+    from semialg import point_in_closure
+
+    source = sp.And(X > left, X < left + width)
+    boundary = sp.Rational(left)
+    target_point = factor * boundary + offset
+    transformed = source.subs(X, (U - offset) / factor)
+    assert point_in_closure(source, (boundary,), (X,))
+    assert point_in_closure(transformed, (target_point,), (U,))

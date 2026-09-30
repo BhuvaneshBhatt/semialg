@@ -824,7 +824,7 @@ def _regular_gcd_split_generators(
     return None
 
 
-def _regular_chain_obstruction_split_generators(
+def _obstruction_split_generators(
     context: EqualityIdealContext,
     *,
     basis: tuple[sp.Expr, ...] | None = None,
@@ -1467,7 +1467,7 @@ def _intersection_all(
     return current
 
 
-def _recursive_regular_chain_prime_refinement(
+def _refine_regular_chain_primes(
     contexts: Sequence[EqualityIdealContext],
     variables: Sequence[sp.Symbol],
     *,
@@ -1625,7 +1625,7 @@ def recursive_regular_chain_decomposition(
             continue
 
         basis = _lex_basis_generators(context)
-        obstruction = _regular_chain_obstruction_split_generators(context, basis=basis)
+        obstruction = _obstruction_split_generators(context, basis=basis)
         if obstruction is not None:
             split, method = obstruction
         else:
@@ -1783,7 +1783,7 @@ def _verify_radical_union(
     return parent_in_union and union_in_parent_radical
 
 
-def verify_regular_chain_decomposition_certificate(
+def verify_regular_chain_certificate(
     certificate: RegularChainDecompositionCertificate,
 ) -> bool:
     """Independently replay a recursive regular-chain proof tree.
@@ -1892,7 +1892,7 @@ def verify_regular_chain_decomposition_certificate(
 
 def verify_radical_ideal_certificate(certificate: RadicalIdealCertificate) -> bool:
     """Verify a radical computation without rerunning its search algorithm."""
-    if not verify_regular_chain_decomposition_certificate(certificate.decomposition):
+    if not verify_regular_chain_certificate(certificate.decomposition):
         return False
     if (
         not certificate.decomposition.complete
@@ -2058,7 +2058,7 @@ def radical_ideal(
     )
 
 
-def certified_radical_minimal_prime_decomposition(
+def certified_minimal_primes(
     equations: Iterable[sp.Expr | sp.Equality],
     variables: Sequence[sp.Symbol],
     *,
@@ -2089,7 +2089,7 @@ def certified_radical_minimal_prime_decomposition(
         EqualityIdealContext.build(piece.equations, vars_) for piece in decomposition.pieces
     ]
     contexts = list(
-        _recursive_regular_chain_prime_refinement(
+        _refine_regular_chain_primes(
             contexts, vars_, max_pieces=128 if max_pieces is None else max_pieces
         )
     )
@@ -2253,7 +2253,7 @@ def _primary_component_certificate(
     # For zero-dimensional ideals use the independently certified reduced
     # decomposition: a single certified minimal prime P proves sqrt(Q)=P.
     if qctx.dimension == 0 and _prime_certificate_method(rctx) is not None:
-        reduced = certified_radical_minimal_prime_decomposition(qctx.generators, vars_)
+        reduced = certified_minimal_primes(qctx.generators, vars_)
         if (
             reduced.radical_complete
             and reduced.minimal_primes_complete
@@ -2406,7 +2406,7 @@ def _zero_dimensional_primary_decomposition(
     vars_ = tuple(variables)
     if source.dimension != 0:
         return None
-    minimal = certified_radical_minimal_prime_decomposition(source.generators, vars_)
+    minimal = certified_minimal_primes(source.generators, vars_)
     if not minimal.minimal_primes_complete:
         return None
     primes = [EqualityIdealContext.build(c.equations, vars_) for c in minimal.components]
@@ -2927,9 +2927,9 @@ __all__ = [
     "recursive_regular_chain_decomposition",
     "certify_triangular_primality",
     "radical_ideal",
-    "certified_radical_minimal_prime_decomposition",
+    "certified_minimal_primes",
     "equidimensional_decomposition",
-    "verify_regular_chain_decomposition_certificate",
+    "verify_regular_chain_certificate",
     "verify_radical_ideal_certificate",
     "verify_triangular_primality_certificate",
     "verify_minimal_prime_decomposition_certificate",

@@ -1,0 +1,94 @@
+{
+  "purpose": "Large-dimension exact-domain comparison of packed incremental Krylov elimination and domain charpoly",
+  "domains": {
+    "QQ": {
+      "16": {
+        "density": 0.1796875,
+        "packed_median_s": 0.0011023230003956996,
+        "charpoly_median_s": 0.0010028930000771652
+      },
+      "24": {
+        "density": 0.12152777777777778,
+        "packed_median_s": 0.00333479199980502,
+        "charpoly_median_s": 0.0021533100002670835
+      },
+      "32": {
+        "density": 0.091796875,
+        "packed_median_s": 0.007054115999835631,
+        "charpoly_median_s": 0.0033732209999470797,
+        "packed_peak_python_bytes": 103025,
+        "charpoly_peak_python_bytes": 168824
+      },
+      "48": {
+        "density": 0.06163194444444445,
+        "packed_median_s": 0.02373958699990908,
+        "charpoly_median_s": 0.0070882969998820045
+      },
+      "64": {
+        "density": 0.04638671875,
+        "packed_median_s": 0.04941532600014398,
+        "charpoly_median_s": 0.011718575000031706,
+        "packed_peak_python_bytes": 389168,
+        "charpoly_peak_python_bytes": 601208
+      },
+      "96": {
+        "density": 0.031032986111111112,
+        "packed_median_s": 0.1638824490000843,
+        "charpoly_median_s": 0.026817733999905613
+      },
+      "128": {
+        "density": 0.0233154296875,
+        "packed_median_s": 0.38129807699988305,
+        "charpoly_median_s": 0.04588213600027302,
+        "packed_peak_python_bytes": 1511176,
+        "charpoly_peak_python_bytes": 2277496
+      }
+    },
+    "GF(65521)": {
+      "16": {
+        "density": 0.1796875,
+        "packed_median_s": 0.0005432300004031276,
+        "charpoly_median_s": 0.0008531570001650834
+      },
+      "24": {
+        "density": 0.12152777777777778,
+        "packed_median_s": 0.0016416779999417486,
+        "charpoly_median_s": 0.0017497599997113866
+      },
+      "32": {
+        "density": 0.091796875,
+        "packed_median_s": 0.0035740339999392745,
+        "charpoly_median_s": 0.0029121959996700753,
+        "packed_peak_python_bytes": 88328,
+        "charpoly_peak_python_bytes": 167680
+      },
+      "48": {
+        "density": 0.06163194444444445,
+        "packed_median_s": 0.011344450999786204,
+        "charpoly_median_s": 0.006547402000251168
+      },
+      "64": {
+        "density": 0.04638671875,
+        "packed_median_s": 0.026335967000250093,
+        "charpoly_median_s": 0.011628350000137289,
+        "packed_peak_python_bytes": 328272,
+        "charpoly_peak_python_bytes": 605312
+      },
+      "96": {
+        "density": 0.031032986111111112,
+        "packed_median_s": 0.08187813299991831,
+        "charpoly_median_s": 0.02537999400010449
+      },
+      "128": {
+        "density": 0.0233154296875,
+        "packed_median_s": 0.1922494479999841,
+        "charpoly_median_s": 0.045273996999640076,
+        "packed_peak_python_bytes": 1257712,
+        "charpoly_peak_python_bytes": 2297232
+      }
+    }
+  },
+  "family": "cyclic companion matrix under deterministic exact similarity transform",
+  "timing_note": "medians from repeated in-process kernel calls; permanent runner uses fresh process option",
+  "memory_note": "tracemalloc peak bytes; process RSS is recorded by permanent runner"
+}

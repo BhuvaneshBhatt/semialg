@@ -70,7 +70,7 @@ def verify_modular_groebner_certificate(
     return True
 
 
-def verify_modular_fraction_field_groebner_certificate(
+def verify_fraction_field_groebner_certificate(
     certificate: ModularFractionFieldGroebnerCertificate,
 ) -> bool:
     """Replay only exact QQ(U) proof obligations; modular images are advisory."""

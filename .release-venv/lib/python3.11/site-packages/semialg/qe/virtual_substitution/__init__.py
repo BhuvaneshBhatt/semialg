@@ -4,7 +4,7 @@ from .eliminate import (
     can_use_quadratic_vs,
     eliminate_exists_quadratic_variable,
     eliminate_quadratic_variable,
-    try_quadratic_virtual_substitution_qe,
+    try_quadratic_vs_qe,
 )
 from .results import (
     QuadraticVirtualSubstitutionResult,
@@ -19,7 +19,7 @@ from .substitution import (
 )
 from .witness import (
     reconstruct_vs_value,
-    try_quadratic_virtual_substitution_witness,
+    try_quadratic_vs_witness,
 )
 
 __all__ = [
@@ -34,6 +34,6 @@ __all__ = [
     "substitute_infinity",
     "substitute_perturbed_quadratic_root",
     "substitute_quadratic_root",
-    "try_quadratic_virtual_substitution_qe",
-    "try_quadratic_virtual_substitution_witness",
+    "try_quadratic_vs_qe",
+    "try_quadratic_vs_witness",
 ]

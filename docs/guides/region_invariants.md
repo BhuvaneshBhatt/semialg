@@ -1,8 +1,8 @@
 # Region invariants
 
-Standard-region objects validate basic geometric invariants at construction time. Provably invalid geometry is rejected early rather than being allowed to produce negative measure or obscure downstream matrix errors.
+Standard-region objects validate basic geometric invariants at construction time. Provably invalid geometry is rejected early instead of being allowed to produce negative measure or obscure downstream matrix errors.
 
-Symbolic geometry is allowed when an ordering cannot yet be decided exactly; most checks reject conditions that are **provably** invalid. `Polygon` is stricter because triangulation requires a certified orientation and simple boundary, so indeterminate symbolic polygon geometry is rejected rather than guessed.
+Symbolic geometry is allowed when an ordering cannot yet be decided exactly; most checks reject conditions that are **provably** invalid. `Polygon` is stricter because triangulation requires a certified orientation and simple boundary, so indeterminate symbolic polygon geometry is rejected instead of guessed.
 
 | Region | Important constructor invariants |
 |---|---|
@@ -29,7 +29,7 @@ A region such as `Interval(2, 1)` is not interpreted as an oriented integral. It
 
 Equal endpoints or zero radius may describe a degenerate region and are not the same as reversed bounds or negative radius. Whether a downstream operation supports that lower-dimensional object depends on the operation and requested measure dimension.
 
-`dimension()` respects certified degeneracy rather than returning the nominal constructor dimension. Examples include a zero-width box coordinate, affinely dependent simplex vertices, a zero-radius ball, and a shell whose inner and outer radii coincide. The empty point set and an open interval with equal endpoints have dimension `-1`.
+`dimension()` respects certified degeneracy instead of returning the nominal constructor dimension. Examples include a zero-width box coordinate, affinely dependent simplex vertices, a zero-radius ball, and a shell whose inner and outer radii coincide. The empty point set and an open interval with equal endpoints have dimension `-1`.
 
 `Polygon` uses exact ear-clipping triangulation. Concave simple polygons are therefore represented and integrated without the over-counting that a first-vertex fan can introduce. Self-intersecting polygons are invalid because their interior semantics are ambiguous without an explicit winding rule.
 
@@ -43,7 +43,7 @@ $$
 
 not generally $\mu(A)-\mu(B)$.
 
-Boolean-region constructors also require compatible ambient dimensions and the correct operation arity. Union dimension is structural (`max` of component dimensions); interval intersections are handled exactly. For other Boolean combinations whose dimension depends on geometric incidence, convert to `SemialgebraicRegion` and use `region_dimension()` rather than relying on a structural guess.
+Boolean-region constructors also require compatible ambient dimensions and the correct operation arity. Union dimension is structural (`max` of component dimensions); interval intersections are handled exactly. For other Boolean combinations whose dimension depends on geometric incidence, convert to `SemialgebraicRegion` and use `region_dimension()` instead of relying on a structural guess.
 
 ## Parametric regions
 

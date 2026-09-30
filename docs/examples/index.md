@@ -7,7 +7,7 @@ The gallery favors small exact problems that expose the real algorithms—CAD/QE
 - [Projection as quantifier elimination](01_projection_and_qe.md) — Eliminate a coordinate from a parabolic strip and recover the exact projected interval.
 - [Exact function range on a disk](02_exact_function_range.md) — Compute every attainable value of a linear polynomial on the unit disk.
 - [Certified global polynomial optimization](03_certified_nonconvex_optimization.md) — Minimize a polynomial over a curved compact region and inspect attainment and certification.
-- [An optimizer locus with positive dimension](04_positive_dimensional_argmin.md) — Return the entire minimizer set rather than a single witness.
+- [An optimizer locus with positive dimension](04_positive_dimensional_argmin.md) — Return the entire minimizer set instead of a single witness.
 - [Connected components and Euler characteristic](05_topology_and_components.md) — Use CAD semantics to recover components and basic exact topology.
 - [Exact measure, centroid, covariance, and inertia](06_measure_centroid_and_moments.md) — Compute several geometric statistics of the unit disk from exact region integrals.
 - [Singular locus, tangent space, and exact tangent cone](07_singular_cusp_geometry.md) — Analyze the cusp y²=x³ at its singular point.
@@ -25,3 +25,8 @@ The gallery favors small exact problems that expose the real algorithms—CAD/QE
 - [Specialist APIs and owning namespaces](18_specialist_namespaces.md) — Keep the package root focused while importing root-count and map-degree workflows explicitly.
 
 - [Canonical boundary topology](19_boundary_topology.md) — Query polygon holes and polyhedral outer/cavity shells from canonical boundary representations.
+- [Closure and admissible approaches](20_closure_and_admissible_approaches.md) — Distinguish an excluded but approachable point from a point outside the closure.
+- [Correlated directional geometry](21_correlated_directional_geometry.md) — Preserve exact joint image relations that scalar coordinate ranges lose.
+- [Singular local strata](22_singular_local_strata.md) — Combine local branches with incident singular and dimension strata.
+
+- [Local germs and parameter strata](23_local_germs_and_parameter_strata.md) — Separate local sign branches and classify parameter values by exact invariant conditions.

@@ -6,7 +6,7 @@ from semialg.constraint_certificates import (
     implied_polynomial_inequality,
     nonnegative_combination_certificate,
     redundant_polynomial_inequalities,
-    verify_nonnegative_combination_certificate,
+    verify_nonnegative_certificate,
 )
 from semialg.sos_certificates import SOSCertificate
 
@@ -14,7 +14,7 @@ from semialg.sos_certificates import SOSCertificate
 def test_nonnegative_combination():
     x, y = sp.symbols("x y", real=True)
     c = nonnegative_combination_certificate(2 * x + 3 * y, (x, y), (x, y), allow_sos=False)
-    assert c is not None and verify_nonnegative_combination_certificate(c, (x, y))
+    assert c is not None and verify_nonnegative_certificate(c, (x, y))
 
 
 def test_implied_and_redundant():
@@ -40,7 +40,7 @@ def test_supplied_sos_certificate_and_components():
 
 def test_certificate_verifiers_reject_wrong_payload_types():
     x = sp.symbols("x", real=True)
-    assert verify_nonnegative_combination_certificate(object(), (x,)) is False
+    assert verify_nonnegative_certificate(object(), (x,)) is False
     from semialg.sos_certificates import verify_sos_certificate
 
     assert verify_sos_certificate(x**2, object(), (x,)) is False
@@ -66,11 +66,7 @@ def test_nonnegative_combination_verifier_rejects_malformed_typed_payloads():
 
     x = sp.symbols("x", real=True)
     cert = NonnegativeCombinationCertificate(x, (x,), (sp.Integer(1),), sp.Integer(0))
-    assert verify_nonnegative_combination_certificate(replace(cert, premises=None), (x,)) is False
-    assert (
-        verify_nonnegative_combination_certificate(replace(cert, coefficients=None), (x,)) is False
-    )
-    assert verify_nonnegative_combination_certificate(replace(cert, target=object()), (x,)) is False
-    assert (
-        verify_nonnegative_combination_certificate(replace(cert, residual=object()), (x,)) is False
-    )
+    assert verify_nonnegative_certificate(replace(cert, premises=None), (x,)) is False
+    assert verify_nonnegative_certificate(replace(cert, coefficients=None), (x,)) is False
+    assert verify_nonnegative_certificate(replace(cert, target=object()), (x,)) is False
+    assert verify_nonnegative_certificate(replace(cert, residual=object()), (x,)) is False

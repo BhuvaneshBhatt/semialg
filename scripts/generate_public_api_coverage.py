@@ -72,6 +72,11 @@ INDIRECT_TYPES = {
     "Geometry": ("inheritance", "Interval"),
     "StandardRegion": ("inheritance", "Interval"),
     "CriticalValueImage": ("factory-return", "critical_value_image"),
+    "CorrelatedMapImageResult": ("factory-return", "correlated_map_image"),
+    "LocalAlgebraicStrata": ("factory-return", "local_algebraic_strata"),
+    "PointInClosureResult": ("factory-return", "point_in_closure"),
+    "ProofDiagnostics": ("factory-return", "structured_proof_diagnostics"),
+    "SemialgebraicFunctionGraph": ("factory-return", "semialgebraic_function_graph"),
     "ActiveConstraintResult": ("factory-return", "active_constraints"),
     "ComponentConstraintDescription": ("factory-return", "component_constraint_descriptions"),
     "ImpliedPolynomialInequality": ("factory-return", "implied_polynomial_inequality"),
@@ -115,6 +120,11 @@ EXCEPTION_PROFILES = {
         "contracts": ["public-surface", "inheritance", "raising-site", "production-path"],
         "tests": ["tests/test_public_type_contracts.py", "tests/test_tunable_limits.py"],
         "production": "ResourceLimitError",
+    },
+    "UnsupportedFunctionGraph": {
+        "contracts": ["public-surface", "inheritance", "raising-site", "production-path"],
+        "tests": ["tests/test_root_function_graph_exports.py", "tests/test_function_graph.py"],
+        "production": "semialgebraic_function_graph",
     },
     "UnsupportedFragmentError": {
         "contracts": ["public-surface", "inheritance", "construction"],
@@ -168,7 +178,11 @@ def _owner(name: str, documentation_target: str) -> str:
         return "errors"
     if page.endswith("package_metadata.md"):
         return "package"
-    if page.endswith("regions.md") or page.endswith("cad.md"):
+    if (
+        page.endswith("regions.md")
+        or page.endswith("cad.md")
+        or page.endswith("approach_and_local_geometry.md")
+    ):
         return "geometry"
     if page.endswith("root_api_usage.md"):
         module = PUBLIC_EXPORTS[name]
@@ -185,7 +199,20 @@ def _owner(name: str, documentation_target: str) -> str:
         if any(token in module for token in ("function", "convex")):
             return "function-analysis"
         return "geometry"
-    raise ValueError(f"no coverage owner for documentation target {documentation_target!r}")
+    module = PUBLIC_EXPORTS.get(name, "")
+    if any(token in module for token in ("algebraic", "incidence")):
+        return "algebraic"
+    if "optimization" in module:
+        return "optimization"
+    if "integrat" in module or "moment" in module or "measure" in module:
+        return "integration"
+    if any(token in module for token in ("decision", "reasoning", "parameters", "qe")):
+        return "decision"
+    if any(token in module for token in ("solv", "sampling")):
+        return "solving"
+    if any(token in module for token in ("function", "convex")):
+        return "function-analysis"
+    return "geometry"
 
 
 def _kind(name: str) -> str:

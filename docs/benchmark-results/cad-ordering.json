@@ -1,0 +1,222 @@
+[
+  {
+    "case": "sphere_and_catastrophe",
+    "n": 3,
+    "brown": {
+      "order": [
+        "z",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        13,
+        89
+      ],
+      "seconds": 0.08568116400010695
+    },
+    "chordal": {
+      "order": [
+        "z",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        13,
+        89
+      ],
+      "seconds": 0.0013533630001347774
+    }
+  },
+  {
+    "case": "arnon_84",
+    "n": 2,
+    "brown": {
+      "order": [
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        4,
+        30
+      ],
+      "seconds": 0.0071326650001992675
+    },
+    "chordal": {
+      "order": [
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        4,
+        30
+      ],
+      "seconds": 0.0006582630001048528
+    }
+  },
+  {
+    "case": "arnon_84_2",
+    "n": 2,
+    "brown": {
+      "order": [
+        "x",
+        "y"
+      ],
+      "projection_score": [
+        8,
+        64
+      ],
+      "seconds": 0.016179158000113603
+    },
+    "chordal": {
+      "order": [
+        "x",
+        "y"
+      ],
+      "projection_score": [
+        8,
+        64
+      ],
+      "seconds": 0.001134642000124586
+    }
+  },
+  {
+    "case": "ball_and_circular_cylinder",
+    "n": 3,
+    "brown": {
+      "order": [
+        "z",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        12,
+        53
+      ],
+      "seconds": 0.024295517999917138
+    },
+    "chordal": {
+      "order": [
+        "z",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        12,
+        53
+      ],
+      "seconds": 0.0017972120001559233
+    }
+  },
+  {
+    "case": "termination_of_term_rewrite_system",
+    "n": 3,
+    "brown": {
+      "order": [
+        "y",
+        "x",
+        "r"
+      ],
+      "projection_score": [
+        11,
+        43
+      ],
+      "seconds": 0.01648885600002359
+    },
+    "chordal": {
+      "order": [
+        "y",
+        "x",
+        "r"
+      ],
+      "projection_score": [
+        11,
+        43
+      ],
+      "seconds": 0.0018317349999961152
+    }
+  },
+  {
+    "case": "collins_and_johnson",
+    "n": 3,
+    "brown": {
+      "order": [
+        "b",
+        "a",
+        "r"
+      ],
+      "projection_score": [
+        32,
+        158
+      ],
+      "seconds": 0.058826904999932594
+    },
+    "chordal": {
+      "order": [
+        "r",
+        "b",
+        "a"
+      ],
+      "projection_score": [
+        44,
+        302
+      ],
+      "seconds": 0.09594043800007057
+    }
+  },
+  {
+    "case": "collision_problem",
+    "n": 3,
+    "brown": {
+      "order": [
+        "t",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        39,
+        85
+      ],
+      "seconds": 0.05666013499990186
+    },
+    "chordal": {
+      "order": [
+        "t",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        39,
+        85
+      ],
+      "seconds": 0.002845365000212041
+    }
+  },
+  {
+    "case": "mccallum_trivariate_random_polynomial",
+    "n": 3,
+    "brown": {
+      "order": [
+        "z",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        8,
+        77
+      ],
+      "seconds": 0.0166426880000472
+    },
+    "chordal": {
+      "order": [
+        "z",
+        "y",
+        "x"
+      ],
+      "projection_score": [
+        8,
+        77
+      ],
+      "seconds": 0.0018051549998290284
+    }
+  }
+]

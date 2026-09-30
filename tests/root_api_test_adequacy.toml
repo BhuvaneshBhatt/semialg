@@ -106,7 +106,7 @@ missing = []
 [apis."active_constraints".evidence."boundary-degenerate"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_active_constraints_change_exactly_at_triangle_boundary", "tests/test_semialgebraic_local_geometry.py::test_constraints_and_active_boundary"]
 [apis."active_constraints".evidence."nominal"]
-tests = ["tests/test_root_api_multidimensional_geometry.py::test_active_constraints_change_exactly_at_triangle_boundary", "tests/test_semialgebraic_local_geometry.py::test_constraints_and_active_boundary", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_active_constraints_change_exactly_at_triangle_boundary", "tests/test_semialgebraic_local_geometry.py::test_constraints_and_active_boundary"]
 
 [apis."affine_image"]
 owner = "geometry"
@@ -181,6 +181,15 @@ tests = ["tests/test_affine_region_transformations.py::test_affine_maps_reject_n
 tests = ["tests/test_robustness_contracts.py::test_parameterized_affine_determinant_is_not_claimed_everywhere_nonzero"]
 [apis."analyze_affine_map".evidence."round-trip"]
 tests = ["tests/test_parametric_geometry.py::test_affine_map_analysis_detects_scaled_isometry_and_inverse"]
+
+[apis."angular_map_image"]
+owner = "geometry"
+risk = "high"
+status = "needs-deepening"
+dimensions = ["nominal"]
+missing = ["a second semantic dimension", "an independent, boundary, failure, or parameter-sensitive detector"]
+[apis."angular_map_image".evidence."nominal"]
+tests = ["tests/test_asymptotic_downstream_contract.py::test_semialg_limit_support_surface_is_usable_with_downstream_asymptotic", "tests/test_limit_support_geometry.py::test_angular_map_image_keeps_coordinate_correlation", "tests/test_limit_support_geometry_contracts.py::test_angular_image_sphere_constraint_changes_attainable_set"]
 
 [apis."apply_quantifiers"]
 owner = "geometry"
@@ -258,7 +267,18 @@ missing = []
 [apis."betti_number".evidence."boundary-degenerate"]
 tests = ["tests/test_roadmap_topology_core.py::test_zero_dimensional_components_match_real_roots"]
 [apis."betti_number".evidence."nominal"]
-tests = ["tests/test_initial_release_seven_recommendations.py::test_polyhedral_triangulation_drives_exact_higher_betti_numbers", "tests/test_public_api_high_risk_contracts.py::test_component_and_topology_apis_agree_on_two_intervals", "tests/test_roadmap_topology_core.py::test_compact_convex_disk_has_trivial_positive_betti_numbers", "tests/test_roadmap_topology_core.py::test_compact_curve_topology_from_components_and_euler", "tests/test_roadmap_topology_core.py::test_zero_dimensional_components_match_real_roots"]
+tests = ["tests/test_public_api_design.py::test_polyhedral_triangulation_drives_exact_higher_betti_numbers", "tests/test_public_api_high_risk_contracts.py::test_component_and_topology_apis_agree_on_two_intervals", "tests/test_roadmap_topology_core.py::test_compact_convex_disk_has_trivial_positive_betti_numbers", "tests/test_roadmap_topology_core.py::test_compact_curve_topology_from_components_and_euler", "tests/test_roadmap_topology_core.py::test_zero_dimensional_components_match_real_roots"]
+
+[apis."blowup_charts"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["metamorphic", "nominal"]
+missing = []
+[apis."blowup_charts".evidence."metamorphic"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_weighted_chart_exposes_relative_scale"]
+[apis."blowup_charts".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_asymptotic_local_geometry_contract.py::test_weighted_chart_exposes_relative_scale", "tests/test_local_asymptotic_geometry.py::test_weighted_blowup_chart"]
 
 [apis."bounding_box"]
 owner = "geometry"
@@ -333,7 +353,7 @@ missing = []
 [apis."canonicalize_region".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_canonicalize_region_is_idempotent_on_polygon", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_intersection_and_boolean_intersection_agree"]
 [apis."canonicalize_region".evidence."nominal"]
-tests = ["tests/test_polytope_geometry.py::test_canonicalize_region_dispatch", "tests/test_root_api_multidimensional_geometry.py::test_canonicalize_region_is_idempotent_on_polygon", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_intersection_and_boolean_intersection_agree", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_polytope_geometry.py::test_canonicalize_region_dispatch", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_canonicalize_region_is_idempotent_on_polygon", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_intersection_and_boolean_intersection_agree"]
 [apis."canonicalize_region".evidence."representation"]
 tests = ["tests/test_polytope_geometry.py::test_canonicalize_region_dispatch", "tests/test_root_api_multidimensional_geometry.py::test_canonicalize_region_is_idempotent_on_polygon"]
 
@@ -363,7 +383,7 @@ tests = ["tests/test_reduced_algebraic_varieties.py::test_certified_radicalizati
 [apis."certified_radicalization".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_certified_radicalization_is_invariant_under_positive_multiplicity"]
 [apis."certified_radicalization".evidence."nominal"]
-tests = ["tests/test_reduced_algebraic_varieties.py::test_certified_radicalization_removes_nilpotent_multiplicity", "tests/test_root_api_multidimensional_algebraic_solving.py::test_certified_radicalization_is_invariant_under_positive_multiplicity", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls", "tests/test_reduced_algebraic_varieties.py::test_certified_radicalization_removes_nilpotent_multiplicity", "tests/test_root_api_multidimensional_algebraic_solving.py::test_certified_radicalization_is_invariant_under_positive_multiplicity"]
 
 [apis."classify_real_roots"]
 owner = "geometry"
@@ -432,7 +452,7 @@ tests = ["tests/test_constraint_certificates.py::test_supplied_sos_certificate_a
 [apis."component_constraint_descriptions".evidence."independent-semantic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_component_constraint_descriptions_cover_each_axis_component"]
 [apis."component_constraint_descriptions".evidence."nominal"]
-tests = ["tests/test_constraint_certificates.py::test_supplied_sos_certificate_and_components", "tests/test_root_api_multidimensional_geometry.py::test_component_constraint_descriptions_cover_each_axis_component", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_constraint_certificates.py::test_supplied_sos_certificate_and_components", "tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_component_constraint_descriptions_cover_each_axis_component"]
 
 [apis."connected_component_count"]
 owner = "geometry"
@@ -473,6 +493,17 @@ tests = ["tests/test_deep_mathematical_edge_cases.py::test_reducible_disjoint_ci
 [apis."connected_components".evidence."property-generated"]
 tests = ["tests/test_generated_advanced_edge_invariants.py::test_generated_irreducible_singular_fiber_topology", "tests/test_generated_deep_mathematical_invariants.py::test_generated_singular_fiber_component_count"]
 
+[apis."contact_order"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["certificate", "nominal"]
+missing = []
+[apis."contact_order".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."contact_order".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_curve_selection_and_orders"]
+
 [apis."contains_point"]
 owner = "geometry"
 risk = "high"
@@ -495,7 +526,7 @@ missing = []
 [apis."convert_region".evidence."boundary-degenerate"]
 tests = ["tests/test_geometry_conversion_decomposition.py::test_p4_convex_polytope_boundary_reconstruction"]
 [apis."convert_region".evidence."nominal"]
-tests = ["tests/test_geometry_conversion_decomposition.py::test_p4_conversion_contract", "tests/test_geometry_conversion_decomposition.py::test_p4_convex_polytope_boundary_reconstruction", "tests/test_geometry_conversion_decomposition.py::test_p5_polyhedron_formula_convex_shell", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_geometry_conversion_decomposition.py::test_p4_conversion_contract", "tests/test_geometry_conversion_decomposition.py::test_p4_convex_polytope_boundary_reconstruction", "tests/test_geometry_conversion_decomposition.py::test_p5_polyhedron_formula_convex_shell", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls"]
 [apis."convert_region".evidence."round-trip"]
 tests = ["tests/test_geometry_conversion_decomposition.py::test_p4_convex_polytope_boundary_reconstruction"]
 
@@ -542,6 +573,21 @@ tests = ["tests/test_derived_geometric_operations.py::test_coordinate_range_diam
 [apis."coordinate_range".evidence."property-generated"]
 tests = ["tests/test_semialgebraic_property_invariants.py::test_generated_interval_measure_centroid_range_and_compactness"]
 
+[apis."correlated_map_image"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["invalid-failure", "metamorphic", "nominal", "parameter-regime"]
+missing = []
+[apis."correlated_map_image".evidence."invalid-failure"]
+tests = ["tests/test_limit_support_geometry_contracts.py::test_correlated_image_rejects_cartesian_range_overapproximation", "tests/test_local_approach_geometry_contracts.py::test_correlated_image_rejects_wrong_target_arity_and_source_collision"]
+[apis."correlated_map_image".evidence."metamorphic"]
+tests = ["tests/test_limit_support_geometry_contracts.py::test_correlated_image_is_equivariant_under_source_parameter_rename", "tests/test_local_approach_geometry_contracts.py::test_correlated_image_accepts_python_scalar_mapping"]
+[apis."correlated_map_image".evidence."nominal"]
+tests = ["tests/test_asymptotic_downstream_contract.py::test_semialg_limit_support_surface_is_usable_with_downstream_asymptotic", "tests/test_limit_support_geometry.py::test_correlated_map_image_preserves_circle_relation", "tests/test_limit_support_geometry_contracts.py::test_correlated_image_is_equivariant_under_source_parameter_rename", "tests/test_limit_support_geometry_contracts.py::test_correlated_image_rejects_cartesian_range_overapproximation", "tests/test_local_approach_geometry_contracts.py::test_correlated_image_accepts_python_scalar_mapping", "tests/test_local_approach_geometry_contracts.py::test_correlated_image_rejects_wrong_target_arity_and_source_collision"]
+[apis."correlated_map_image".evidence."parameter-regime"]
+tests = ["tests/test_limit_support_geometry_contracts.py::test_correlated_image_is_equivariant_under_source_parameter_rename"]
+
 [apis."covariance_matrix"]
 owner = "integration"
 risk = "high"
@@ -560,9 +606,9 @@ status = "adequate"
 dimensions = ["boundary-degenerate", "nominal"]
 missing = []
 [apis."critical_value_image".evidence."boundary-degenerate"]
-tests = ["tests/test_initial_release_seven_recommendations.py::test_critical_value_image_retains_positive_dimensional_singular_image", "tests/test_root_api_multidimensional_geometry.py::test_critical_value_image_contains_stationary_value_on_compact_interval"]
+tests = ["tests/test_public_api_design.py::test_critical_value_image_retains_positive_dimensional_singular_image", "tests/test_root_api_multidimensional_geometry.py::test_critical_value_image_contains_stationary_value_on_compact_interval"]
 [apis."critical_value_image".evidence."nominal"]
-tests = ["tests/test_initial_release_api_integration.py::test_critical_value_image_public_pipeline_handles_discrete_case", "tests/test_initial_release_seven_recommendations.py::test_critical_value_image_retains_positive_dimensional_singular_image", "tests/test_root_api_multidimensional_geometry.py::test_critical_value_image_contains_stationary_value_on_compact_interval"]
+tests = ["tests/test_public_api_design.py::test_critical_value_image_retains_positive_dimensional_singular_image", "tests/test_public_api_integration.py::test_critical_value_image_public_pipeline_handles_discrete_case", "tests/test_root_api_multidimensional_geometry.py::test_critical_value_image_contains_stationary_value_on_compact_interval"]
 
 [apis."critical_values"]
 owner = "geometry"
@@ -574,6 +620,17 @@ missing = []
 tests = ["tests/test_geometry_queries.py::test_critical_values_include_stationary_and_boundary_values", "tests/test_public_api_high_risk_contracts.py::test_interval_extrema_and_level_sets_have_exact_endpoint_semantics"]
 [apis."critical_values".evidence."nominal"]
 tests = ["tests/test_geometry_queries.py::test_critical_values_include_constant_positive_dimensional_kkt_component", "tests/test_geometry_queries.py::test_critical_values_include_stationary_and_boundary_values", "tests/test_public_api_high_risk_contracts.py::test_interval_extrema_and_level_sets_have_exact_endpoint_semantics"]
+
+[apis."curve_selection"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["certificate", "nominal"]
+missing = []
+[apis."curve_selection".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."curve_selection".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_cusp_geometry_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_curve_selection_and_orders", "tests/test_local_asymptotic_geometry.py::test_curve_selection_theorem_fallback"]
 
 [apis."decompose_polytope"]
 owner = "geometry"
@@ -597,7 +654,7 @@ tests = ["tests/test_boundary_topology.py::test_exact_vertex_deduplication_reind
 [apis."deduplicate_indexed_vertices".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_deduplicate_indexed_vertices_is_idempotent_and_reindexes_cells"]
 [apis."deduplicate_indexed_vertices".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_exact_vertex_deduplication_reindexes_cells_without_tolerance", "tests/test_root_api_multidimensional_geometry.py::test_deduplicate_indexed_vertices_is_idempotent_and_reindexes_cells", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_exact_vertex_deduplication_reindexes_cells_without_tolerance", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_deduplicate_indexed_vertices_is_idempotent_and_reindexes_cells"]
 
 [apis."diameter"]
 owner = "geometry"
@@ -611,8 +668,8 @@ tests = ["tests/test_derived_geometry_identities.py::test_positive_scaling_scale
 tests = ["tests/test_derived_geometric_operations.py::test_coordinate_range_diameter_nearest_and_support_operations", "tests/test_derived_geometry_identities.py::test_positive_scaling_scales_diameter_and_width", "tests/test_derived_geometry_identities.py::test_translation_preserves_diameter_and_shifts_centroid"]
 
 [apis."discretize_region_geometry"]
-owner = "solving"
-risk = "medium"
+owner = "geometry"
+risk = "high"
 status = "adequate"
 dimensions = ["independent-oracle", "metamorphic", "negative", "nominal", "round-trip-presentation"]
 missing = []
@@ -628,8 +685,8 @@ tests = ["tests/test_public_api_medium_risk_contracts.py::test_discretization_an
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_discretize_region_geometry_preserves_exact_box_vertices_under_translation", "tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_region_geometry_does_not_change_discretized_semantics"]
 
 [apis."discretize_solution"]
-owner = "solving"
-risk = "medium"
+owner = "geometry"
+risk = "high"
 status = "adequate"
 dimensions = ["boundary-degenerate", "nominal"]
 missing = []
@@ -743,16 +800,22 @@ tests = ["tests/test_geometry_queries.py::test_region_preimage_formula_and_fiber
 owner = "solving"
 risk = "medium"
 status = "adequate"
-dimensions = ["certificate", "differential", "independent-oracle", "nominal"]
+dimensions = ["assumptions", "certificate", "differential", "independent-oracle", "nominal", "parameter-regime", "property-generated"]
 missing = []
+[apis."find_instance".evidence."assumptions"]
+tests = ["tests/test_local_geometry_edge_cases.py::test_find_instance_preserves_symbol_sign_assumptions", "tests/test_local_geometry_property_contracts.py::test_multiple_witnesses_respect_assumptions_and_formula", "tests/test_local_geometry_property_contracts.py::test_witness_satisfies_lowered_symbol_assumption"]
 [apis."find_instance".evidence."certificate"]
-tests = ["tests/test_certified_decision_portfolio.py::test_find_instance_uses_ars_for_positive_dimensional_pure_equalities"]
+tests = ["tests/test_certified_decision_portfolio.py::test_find_instance_uses_ars_for_positive_dimensional_pure_equalities", "tests/test_local_geometry_property_contracts.py::test_incompatible_explicit_constraint_has_no_witness", "tests/test_local_geometry_property_contracts.py::test_multiple_witnesses_respect_assumptions_and_formula", "tests/test_local_geometry_property_contracts.py::test_witness_satisfies_lowered_symbol_assumption"]
 [apis."find_instance".evidence."differential"]
 tests = ["tests/test_cross_backend_differential.py::test_find_instance_agrees_with_existential_complete_qe", "tests/test_cross_backend_differential.py::test_rur_real_solution_count_matches_cad_existence"]
 [apis."find_instance".evidence."independent-oracle"]
 tests = ["tests/test_direct_return_contracts.py::test_instance_defaults_to_instances"]
 [apis."find_instance".evidence."nominal"]
-tests = ["tests/test_certified_decision_portfolio.py::test_find_instance_uses_ars_for_positive_dimensional_pure_equalities", "tests/test_cross_backend_differential.py::test_find_instance_agrees_with_existential_complete_qe", "tests/test_cross_backend_differential.py::test_rur_real_solution_count_matches_cad_existence", "tests/test_direct_return_contracts.py::test_instance_defaults_to_instances", "tests/test_find_instance_api.py::test_find_instance_01", "tests/test_find_instance_api.py::test_find_instance_03", "tests/test_find_instance_api.py::test_find_instance_04", "tests/test_real_instance_fallbacks.py::test_find_instance_auto_uses_fallback_diagnostics", "tests/test_root_api_behavioral_expansion.py::test_root_decision_and_solving_workflow"]
+tests = ["tests/test_certified_decision_portfolio.py::test_find_instance_uses_ars_for_positive_dimensional_pure_equalities", "tests/test_cross_backend_differential.py::test_find_instance_agrees_with_existential_complete_qe", "tests/test_cross_backend_differential.py::test_rur_real_solution_count_matches_cad_existence", "tests/test_direct_return_contracts.py::test_instance_defaults_to_instances", "tests/test_find_instance_api.py::test_find_instance_01", "tests/test_find_instance_api.py::test_find_instance_03", "tests/test_find_instance_api.py::test_find_instance_04", "tests/test_local_geometry_edge_cases.py::test_find_instance_preserves_symbol_sign_assumptions", "tests/test_local_geometry_property_contracts.py::test_incompatible_explicit_constraint_has_no_witness", "tests/test_local_geometry_property_contracts.py::test_multiple_witnesses_respect_assumptions_and_formula", "tests/test_local_geometry_property_contracts.py::test_parameter_strata_are_disjoint_and_cover_declared_cases", "tests/test_local_geometry_property_contracts.py::test_witness_satisfies_lowered_symbol_assumption", "tests/test_real_instance_fallbacks.py::test_find_instance_auto_uses_fallback_diagnostics", "tests/test_root_api_behavioral_expansion.py::test_root_decision_and_solving_workflow"]
+[apis."find_instance".evidence."parameter-regime"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_parameter_strata_are_disjoint_and_cover_declared_cases"]
+[apis."find_instance".evidence."property-generated"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_incompatible_explicit_constraint_has_no_witness", "tests/test_local_geometry_property_contracts.py::test_multiple_witnesses_respect_assumptions_and_formula", "tests/test_local_geometry_property_contracts.py::test_parameter_strata_are_disjoint_and_cover_declared_cases", "tests/test_local_geometry_property_contracts.py::test_witness_satisfies_lowered_symbol_assumption"]
 
 [apis."find_negative_point"]
 owner = "geometry"
@@ -823,8 +886,8 @@ tests = ["tests/test_function_convexity.py::test_parameterized_global_quadratic_
 tests = ["tests/test_function_property_cache_reuse.py::test_all_univariate_quasi_properties_share_one_monotonicity_partition", "tests/test_function_property_cache_reuse.py::test_convex_implications_avoid_duplicate_monotonicity_partitions", "tests/test_function_property_cache_reuse.py::test_strong_convexity_uses_univariate_second_derivative_range", "tests/test_function_property_extensions.py::test_algebraic_log_convexity_and_concavity", "tests/test_function_property_extensions.py::test_all_convexity_properties_and_pseudoconvex_stationary_logic", "tests/test_function_property_extensions.py::test_convexity_strong_and_strict_primary_results", "tests/test_function_property_extensions.py::test_parameterized_quadratic_strong_curvature"]
 
 [apis."function_domain"]
-owner = "decision"
-risk = "high"
+owner = "function-analysis"
+risk = "medium"
 status = "adequate"
 dimensions = ["metamorphic", "nominal", "representation"]
 missing = []
@@ -987,7 +1050,7 @@ tests = ["tests/test_polynomial_map_implicitization.py::test_singular_locus_of_i
 [apis."implicitize_polynomial_map".evidence."invalid-failure"]
 tests = ["tests/test_polynomial_map_implicitization.py::test_nonpolynomial_mapping_is_rejected"]
 [apis."implicitize_polynomial_map".evidence."nominal"]
-tests = ["tests/test_polynomial_map_implicitization.py::test_implicitization_respects_algebraic_parameter_domain", "tests/test_polynomial_map_implicitization.py::test_implicitize_parabola_polynomial_map", "tests/test_polynomial_map_implicitization.py::test_implicitize_twisted_cubic", "tests/test_polynomial_map_implicitization.py::test_nonpolynomial_mapping_is_rejected", "tests/test_polynomial_map_implicitization.py::test_singular_locus_of_implicitized_cusp", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_polynomial_map_implicitization.py::test_implicitization_respects_algebraic_parameter_domain", "tests/test_polynomial_map_implicitization.py::test_implicitize_parabola_polynomial_map", "tests/test_polynomial_map_implicitization.py::test_implicitize_twisted_cubic", "tests/test_polynomial_map_implicitization.py::test_nonpolynomial_mapping_is_rejected", "tests/test_polynomial_map_implicitization.py::test_singular_locus_of_implicitized_cusp", "tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls"]
 [apis."implicitize_polynomial_map".evidence."parameter-regime"]
 tests = ["tests/test_polynomial_map_implicitization.py::test_implicitization_respects_algebraic_parameter_domain"]
 
@@ -1002,7 +1065,7 @@ tests = ["tests/test_constraint_certificates.py::test_implied_and_redundant"]
 [apis."implied_polynomial_inequality".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_implied_and_redundant_polynomial_inequality_agree"]
 [apis."implied_polynomial_inequality".evidence."nominal"]
-tests = ["tests/test_constraint_certificates.py::test_implied_and_redundant", "tests/test_root_api_multidimensional_geometry.py::test_implied_and_redundant_polynomial_inequality_agree", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_constraint_certificates.py::test_implied_and_redundant", "tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_implied_and_redundant_polynomial_inequality_agree"]
 
 [apis."implies"]
 owner = "decision"
@@ -1047,7 +1110,7 @@ tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_
 [apis."inner_polygons".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries"]
 [apis."inner_polygons".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_hole_boundaries", "tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_hole_boundaries", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries"]
 
 [apis."inner_polyhedra"]
 owner = "geometry"
@@ -1060,7 +1123,7 @@ tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_
 [apis."inner_polyhedra".evidence."independent-semantic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities"]
 [apis."inner_polyhedra".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_cavities_explicit", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_cavities_explicit", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities"]
 
 [apis."integrate_over_region"]
 owner = "integration"
@@ -1081,7 +1144,7 @@ tests = ["tests/test_standard_region_integration.py::test_boolean_symmetric_diff
 [apis."integrate_over_region".evidence."negative"]
 tests = ["tests/test_boolean_region_integration.py::test_integral_over_overlapping_boolean_union_does_not_double_count_overlap"]
 [apis."integrate_over_region".evidence."nominal"]
-tests = ["tests/properties/test_public_api_metamorphic.py::test_integral_additivity_and_linearity", "tests/properties/test_public_api_metamorphic.py::test_integral_affine_change_of_variables", "tests/test_boolean_region_integration.py::test_integral_over_overlapping_boolean_union_does_not_double_count_overlap", "tests/test_canonical_simplification_and_cad_integration.py::test_cad_integration_order_search_extends_to_nested_3d_regions", "tests/test_canonical_simplification_and_cad_integration.py::test_cad_integration_selects_polynomial_coordinate_order_in_2d", "tests/test_documentation_example_gallery.py::test_gallery_core_code_paths_smoke", "tests/test_exact_arithmetic_and_symbol_resolution.py::test_region_integral_string_variable_reuses_unassumed_formula_symbol", "tests/test_factory_result_contracts.py::test_factory_results_preserve_frozen_result_contracts", "tests/test_factory_result_contracts.py::test_region_integral_result_comes_from_public_integration_operation", "tests/test_geometry_backend_agreement.py::test_canonical_and_cad_integrals_agree", "tests/test_geometry_backend_agreement.py::test_canonical_formula_intrinsic_measures_agree", "tests/test_geometry_backend_agreement.py::test_embedded_simplex_cad_measure_agrees", "tests/test_geometry_backend_agreement.py::test_embedded_simplex_intrinsic_measure_precedes_ambient_cad", "tests/test_geometry_backend_agreement.py::test_intrinsic_chart_and_formula_agree_for_line_graph", "tests/test_higher_dimensional_cylindrical_exploitation.py::test_region_integral_uses_3d_cylindrical_cells", "tests/test_image_cache_polyhedron_robustness.py::test_intrinsic_dimension_uses_exact_real_geometry", "tests/test_implicit_geometry_and_cylindrical_bounds.py::test_cylindrical_bounds_handle_disjoint_union", "tests/test_implicit_geometry_and_cylindrical_bounds.py::test_cylindrical_vertical_bounds_reduce_triangle_like_cell", "tests/test_initial_release_seven_recommendations.py::test_intrinsic_integration_sums_disjoint_regular_cad_charts", "tests/test_intrinsic_bounds_and_empty_regions.py::test_conflicting_circle_constraints_have_zero_intrinsic_measure", "tests/test_intrinsic_bounds_and_empty_regions.py::test_explicitly_empty_intrinsic_region_has_zero_measure", "tests/test_intrinsic_bounds_and_empty_regions.py::test_intrinsic_graph_integral_respects_explicit_bounds", "tests/test_intrinsic_bounds_and_empty_regions.py::test_zero_dimensional_integral_respects_explicit_bounds", "tests/test_intrinsic_region_measure.py::test_graph_curve_intrinsic_length", "tests/test_intrinsic_region_measure.py::test_intrinsic_circle_length_and_moment", "tests/test_intrinsic_region_measure.py::test_zero_dimensional_measure_counts_plane_point_system", "tests/test_intrinsic_region_measure.py::test_zero_dimensional_measure_counts_univariate_real_roots", "tests/test_parametric_algebraic_endpoint_integration.py::test_parametric_quadratic_root_endpoints_integrate_exactly", "tests/test_parametric_region_integration.py::test_parameters_require_stratified_result_for_region_integrals", "tests/test_parametric_region_integration.py::test_parametric_box_integral_in_two_dimensions", "tests/test_parametric_region_integration.py::test_parametric_interval_integral_covers_empty_and_feasible_fibers", "tests/test_public_api_failure_contracts.py::test_integral_declines_unsupported_modes", "tests/test_public_api_failure_contracts.py::test_integral_rejects_invalid_bounds_without_returning_zero", "tests/test_public_api_family_contracts.py::test_integral_matrix", "tests/test_reduce_region_integral.py::test_integrate_over_region_delegates_to_reduction_layer", "tests/test_region_integrate.py::test_integrate_over_annulus_polynomial_moments", "tests/test_region_integrate.py::test_integrate_over_one_dimensional_boolean_union_with_bounds", "tests/test_region_integrate.py::test_integrate_over_one_dimensional_semialgebraic_set", "tests/test_region_integrate.py::test_integrate_over_parabola_cap_vertical_slice", "tests/test_region_integrate.py::test_integrate_over_region_result_object", "tests/test_region_integrate.py::test_integrate_over_triangle_vertical_slice", "tests/test_region_integrate.py::test_integrate_over_unit_disk_polynomial_moments", "tests/test_region_integrate_methods.py::test_integrate_over_region_auto_falls_back_to_numeric_when_symbolic_fails", "tests/test_region_integrate_methods.py::test_integrate_over_region_numeric_method_returns_approximate_result", "tests/test_region_integrate_methods.py::test_integrate_over_region_rejects_unknown_method", "tests/test_region_integrate_methods.py::test_integrate_over_region_symbolic_is_default", "tests/test_region_integration.py::test_integrate_over_annulus_polynomial_moments", "tests/test_region_integration.py::test_integrate_over_one_dimensional_boolean_union_with_bounds", "tests/test_region_integration.py::test_integrate_over_one_dimensional_semialgebraic_set", "tests/test_region_integration.py::test_integrate_over_parabola_cap_vertical_slice", "tests/test_region_integration.py::test_integrate_over_region_result_object", "tests/test_region_integration.py::test_integrate_over_triangle_vertical_slice", "tests/test_region_integration.py::test_integrate_over_unit_disk_polynomial_moments", "tests/test_region_integration_methods.py::test_integrate_over_region_auto_falls_back_to_numeric_when_symbolic_fails", "tests/test_region_integration_methods.py::test_integrate_over_region_numeric_method_returns_approximate_result", "tests/test_region_integration_methods.py::test_integrate_over_region_rejects_unknown_method", "tests/test_region_integration_methods.py::test_integrate_over_region_symbolic_is_default", "tests/test_root_api_behavioral_expansion.py::test_root_region_measure_and_integration_workflow", "tests/test_standard_region_integration.py::test_ball_sphere_shell_cylinder_cone_capsule_constant_measures", "tests/test_standard_region_integration.py::test_boolean_symmetric_difference_and_parametric_metric_jacobian", "tests/test_standard_region_integration.py::test_polygon_tetrahedron_and_parallelogram_integrals", "tests/test_standard_shape_region_integration.py::test_axis_aligned_box_reduction_and_integration", "tests/test_standard_shape_region_integration.py::test_axis_aligned_ellipse_standard_shape", "tests/test_standard_shape_region_integration.py::test_higher_dimensional_box_standard_shape", "tests/test_standard_shape_region_integration.py::test_unit_simplex_standard_shape", "tests/test_structured_cad_cell_extraction.py::test_integrate_over_region_complete_cad_vertical_bounds", "tests/test_symbol_identity_and_region_regressions.py::test_integration_rejects_unknown_string_bound"]
+tests = ["tests/properties/test_public_api_metamorphic.py::test_integral_additivity_and_linearity", "tests/properties/test_public_api_metamorphic.py::test_integral_affine_change_of_variables", "tests/test_boolean_region_integration.py::test_integral_over_overlapping_boolean_union_does_not_double_count_overlap", "tests/test_canonical_simplification_and_cad_integration.py::test_cad_integration_order_search_extends_to_nested_3d_regions", "tests/test_canonical_simplification_and_cad_integration.py::test_cad_integration_selects_polynomial_coordinate_order_in_2d", "tests/test_documentation_example_gallery.py::test_gallery_core_code_paths_smoke", "tests/test_exact_arithmetic_and_symbol_resolution.py::test_region_integral_string_variable_reuses_unassumed_formula_symbol", "tests/test_factory_result_contracts.py::test_factory_results_preserve_frozen_result_contracts", "tests/test_factory_result_contracts.py::test_region_integral_result_comes_from_public_integration_operation", "tests/test_geometry_backend_agreement.py::test_canonical_and_cad_integrals_agree", "tests/test_geometry_backend_agreement.py::test_canonical_formula_intrinsic_measures_agree", "tests/test_geometry_backend_agreement.py::test_embedded_simplex_cad_measure_agrees", "tests/test_geometry_backend_agreement.py::test_embedded_simplex_intrinsic_measure_precedes_ambient_cad", "tests/test_geometry_backend_agreement.py::test_intrinsic_chart_and_formula_agree_for_line_graph", "tests/test_higher_dimensional_cylindrical_exploitation.py::test_region_integral_uses_3d_cylindrical_cells", "tests/test_image_cache_polyhedron_robustness.py::test_intrinsic_dimension_uses_exact_real_geometry", "tests/test_implicit_geometry_and_cylindrical_bounds.py::test_cylindrical_bounds_handle_disjoint_union", "tests/test_implicit_geometry_and_cylindrical_bounds.py::test_cylindrical_vertical_bounds_reduce_triangle_like_cell", "tests/test_intrinsic_bounds_and_empty_regions.py::test_conflicting_circle_constraints_have_zero_intrinsic_measure", "tests/test_intrinsic_bounds_and_empty_regions.py::test_explicitly_empty_intrinsic_region_has_zero_measure", "tests/test_intrinsic_bounds_and_empty_regions.py::test_intrinsic_graph_integral_respects_explicit_bounds", "tests/test_intrinsic_bounds_and_empty_regions.py::test_zero_dimensional_integral_respects_explicit_bounds", "tests/test_intrinsic_region_measure.py::test_graph_curve_intrinsic_length", "tests/test_intrinsic_region_measure.py::test_intrinsic_circle_length_and_moment", "tests/test_intrinsic_region_measure.py::test_zero_dimensional_measure_counts_plane_point_system", "tests/test_intrinsic_region_measure.py::test_zero_dimensional_measure_counts_univariate_real_roots", "tests/test_parametric_algebraic_endpoint_integration.py::test_parametric_quadratic_root_endpoints_integrate_exactly", "tests/test_parametric_region_integration.py::test_parameters_require_stratified_result_for_region_integrals", "tests/test_parametric_region_integration.py::test_parametric_box_integral_in_two_dimensions", "tests/test_parametric_region_integration.py::test_parametric_interval_integral_covers_empty_and_feasible_fibers", "tests/test_public_api_design.py::test_intrinsic_integration_sums_disjoint_regular_cad_charts", "tests/test_public_api_failure_contracts.py::test_integral_declines_unsupported_modes", "tests/test_public_api_failure_contracts.py::test_integral_rejects_invalid_bounds_without_returning_zero", "tests/test_public_api_family_contracts.py::test_integral_matrix", "tests/test_reduce_region_integral.py::test_integrate_over_region_delegates_to_reduction_layer", "tests/test_region_integrate.py::test_integrate_over_annulus_polynomial_moments", "tests/test_region_integrate.py::test_integrate_over_one_dimensional_boolean_union_with_bounds", "tests/test_region_integrate.py::test_integrate_over_one_dimensional_semialgebraic_set", "tests/test_region_integrate.py::test_integrate_over_parabola_cap_vertical_slice", "tests/test_region_integrate.py::test_integrate_over_region_result_object", "tests/test_region_integrate.py::test_integrate_over_triangle_vertical_slice", "tests/test_region_integrate.py::test_integrate_over_unit_disk_polynomial_moments", "tests/test_region_integrate_methods.py::test_integrate_over_region_auto_falls_back_to_numeric_when_symbolic_fails", "tests/test_region_integrate_methods.py::test_integrate_over_region_numeric_method_returns_approximate_result", "tests/test_region_integrate_methods.py::test_integrate_over_region_rejects_unknown_method", "tests/test_region_integrate_methods.py::test_integrate_over_region_symbolic_is_default", "tests/test_region_integration.py::test_integrate_over_annulus_polynomial_moments", "tests/test_region_integration.py::test_integrate_over_one_dimensional_boolean_union_with_bounds", "tests/test_region_integration.py::test_integrate_over_one_dimensional_semialgebraic_set", "tests/test_region_integration.py::test_integrate_over_parabola_cap_vertical_slice", "tests/test_region_integration.py::test_integrate_over_region_result_object", "tests/test_region_integration.py::test_integrate_over_triangle_vertical_slice", "tests/test_region_integration.py::test_integrate_over_unit_disk_polynomial_moments", "tests/test_region_integration_methods.py::test_integrate_over_region_auto_falls_back_to_numeric_when_symbolic_fails", "tests/test_region_integration_methods.py::test_integrate_over_region_numeric_method_returns_approximate_result", "tests/test_region_integration_methods.py::test_integrate_over_region_rejects_unknown_method", "tests/test_region_integration_methods.py::test_integrate_over_region_symbolic_is_default", "tests/test_root_api_behavioral_expansion.py::test_root_region_measure_and_integration_workflow", "tests/test_standard_region_integration.py::test_ball_sphere_shell_cylinder_cone_capsule_constant_measures", "tests/test_standard_region_integration.py::test_boolean_symmetric_difference_and_parametric_metric_jacobian", "tests/test_standard_region_integration.py::test_polygon_tetrahedron_and_parallelogram_integrals", "tests/test_standard_shape_region_integration.py::test_axis_aligned_box_reduction_and_integration", "tests/test_standard_shape_region_integration.py::test_axis_aligned_ellipse_standard_shape", "tests/test_standard_shape_region_integration.py::test_higher_dimensional_box_standard_shape", "tests/test_standard_shape_region_integration.py::test_unit_simplex_standard_shape", "tests/test_structured_cad_cell_extraction.py::test_integrate_over_region_complete_cad_vertical_bounds", "tests/test_symbol_identity_and_region_regressions.py::test_integration_rejects_unknown_string_bound"]
 [apis."integrate_over_region".evidence."parameter-regime"]
 tests = ["tests/test_parametric_region_integration.py::test_parameters_require_stratified_result_for_region_integrals"]
 [apis."integrate_over_region".evidence."representation"]
@@ -1126,7 +1189,7 @@ tests = ["tests/test_reduced_algebraic_varieties.py::test_reducible_nonradical_v
 [apis."irreducible_components".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_irreducible_components_ignore_nonzero_scalar_and_multiplicity"]
 [apis."irreducible_components".evidence."nominal"]
-tests = ["tests/test_reduced_algebraic_varieties.py::test_reducible_nonradical_variety_has_certified_minimal_primes", "tests/test_root_api_multidimensional_algebraic_solving.py::test_irreducible_components_ignore_nonzero_scalar_and_multiplicity", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls", "tests/test_reduced_algebraic_varieties.py::test_reducible_nonradical_variety_has_certified_minimal_primes", "tests/test_root_api_multidimensional_algebraic_solving.py::test_irreducible_components_ignore_nonzero_scalar_and_multiplicity"]
 
 [apis."is_bijective"]
 owner = "function-analysis"
@@ -1272,7 +1335,7 @@ tests = ["tests/test_cad_variable_order_invariance.py::test_auto_order_semantica
 [apis."is_equal".evidence."metamorphic"]
 tests = ["tests/properties/test_semialgebraic_invariance_extended.py::test_conjunction_permutation_is_semantically_invariant", "tests/properties/test_semialgebraic_invariance_extended.py::test_positive_scaling_preserves_polynomial_inequality", "tests/test_derived_geometric_operations.py::test_affine_image_translate_scale_and_minkowski_sum", "tests/test_derived_geometry_identities.py::test_argmin_set_is_invariant_under_positive_affine_objective_change", "tests/test_groebner_variety_differential.py::test_generator_scaling_and_variable_order_are_semantic_invariants", "tests/test_groebner_variety_robustness.py::test_generator_permutation_and_nonzero_scaling_preserve_solution_set", "tests/test_groebner_variety_robustness.py::test_variable_order_permutations_preserve_finite_solution_set", "tests/test_metamorphic_certificates.py::test_affine_equality_simplification_ignores_nonzero_scaling", "tests/test_presolve_semantic_equivalence_corpus.py::test_fourier_motzkin_generated_linear_cases", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_keeps_boolean_disjunction_semantics_untouched", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_preserves_complete_qe_semantics", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_reports_zero_dimensional_equalities_without_changing_formula", "tests/test_qe_polynomial_reconstruction.py::test_polynomial_sign_reconstruction_preserves_asymmetric_ray", "tests/test_region_api_normalization.py::test_region_symmetric_difference_formula_and_region_object_agree", "tests/test_root_api_multidimensional_geometry.py::test_linear_image_commutes_with_positive_scalar_interval_bounds", "tests/test_root_api_multidimensional_geometry.py::test_regularization_operators_are_idempotent_on_closed_and_open_intervals", "tests/test_root_api_multidimensional_geometry.py::test_symmetric_difference_is_commutative", "tests/test_semialgebraic_property_invariants.py::test_generated_set_algebra_identities", "tests/test_semialgebraic_property_invariants.py::test_generated_topology_identities"]
 [apis."is_equal".evidence."nominal"]
-tests = ["tests/properties/test_semialgebraic_invariance_extended.py::test_conjunction_permutation_is_semantically_invariant", "tests/properties/test_semialgebraic_invariance_extended.py::test_positive_scaling_preserves_polynomial_inequality", "tests/release/test_installed_wheel_contract.py::test_representative_exact_public_computations", "tests/test_cad_variable_order_invariance.py::test_auto_and_projection_scoring_have_identical_qe_semantics", "tests/test_cad_variable_order_invariance.py::test_auto_order_semantically_matches_preserved_order", "tests/test_cross_backend_differential.py::test_virtual_substitution_matches_complete_cad", "tests/test_derived_geometric_operations.py::test_affine_image_translate_scale_and_minkowski_sum", "tests/test_derived_geometric_operations.py::test_dense_linear_image_and_distance_set_operations", "tests/test_derived_geometric_operations.py::test_geometric_property_and_set_relation_api", "tests/test_derived_geometry_identities.py::test_argmin_set_is_invariant_under_positive_affine_objective_change", "tests/test_derived_geometry_identities.py::test_set_relation_algebra_identity_cases", "tests/test_documentation_example_gallery.py::test_gallery_core_code_paths_smoke", "tests/test_groebner_variety_differential.py::test_auto_variety_cad_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_compatible_root_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_existential_qe_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_generator_scaling_and_variable_order_are_semantic_invariants", "tests/test_groebner_variety_differential.py::test_large_auto_variety_cad_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_large_compatible_root_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_large_existential_qe_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_nested_boolean_common_equalities_match_collins", "tests/test_groebner_variety_robustness.py::test_algebraic_collins_full_elimination", "tests/test_groebner_variety_robustness.py::test_existential_qe_can_be_differentially_forced_to_collins", "tests/test_groebner_variety_robustness.py::test_generator_permutation_and_nonzero_scaling_preserve_solution_set", "tests/test_groebner_variety_robustness.py::test_variable_order_permutations_preserve_finite_solution_set", "tests/test_metamorphic_certificates.py::test_affine_equality_simplification_ignores_nonzero_scaling", "tests/test_presolve_semantic_equivalence_corpus.py::test_fourier_motzkin_generated_linear_cases", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_keeps_boolean_disjunction_semantics_untouched", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_preserves_complete_qe_semantics", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_reports_zero_dimensional_equalities_without_changing_formula", "tests/test_qe_polynomial_reconstruction.py::test_linear_image_reconstructs_as_polynomial_disk_and_reenters_cad", "tests/test_qe_polynomial_reconstruction.py::test_polynomial_sign_reconstruction_preserves_asymmetric_ray", "tests/test_qe_polynomial_reconstruction.py::test_projection_recovers_single_polynomial_sign_relation", "tests/test_region_api_normalization.py::test_region_symmetric_difference_formula_and_region_object_agree", "tests/test_region_relations_operations.py::test_interval_relations_are_exact", "tests/test_root_api_multidimensional_geometry.py::test_extrema_set_is_union_of_argmin_and_argmax_sets", "tests/test_root_api_multidimensional_geometry.py::test_linear_image_commutes_with_positive_scalar_interval_bounds", "tests/test_root_api_multidimensional_geometry.py::test_regularization_operators_are_idempotent_on_closed_and_open_intervals", "tests/test_root_api_multidimensional_geometry.py::test_symmetric_difference_is_commutative", "tests/test_semialgebraic_property_invariants.py::test_generated_set_algebra_identities", "tests/test_semialgebraic_property_invariants.py::test_generated_topology_identities"]
+tests = ["tests/installation/test_installed_wheel_contract.py::test_representative_exact_public_computations", "tests/properties/test_semialgebraic_invariance_extended.py::test_conjunction_permutation_is_semantically_invariant", "tests/properties/test_semialgebraic_invariance_extended.py::test_positive_scaling_preserves_polynomial_inequality", "tests/test_cad_variable_order_invariance.py::test_auto_and_projection_scoring_have_identical_qe_semantics", "tests/test_cad_variable_order_invariance.py::test_auto_order_semantically_matches_preserved_order", "tests/test_cross_backend_differential.py::test_virtual_substitution_matches_complete_cad", "tests/test_derived_geometric_operations.py::test_affine_image_translate_scale_and_minkowski_sum", "tests/test_derived_geometric_operations.py::test_dense_linear_image_and_distance_set_operations", "tests/test_derived_geometric_operations.py::test_geometric_property_and_set_relation_api", "tests/test_derived_geometry_identities.py::test_argmin_set_is_invariant_under_positive_affine_objective_change", "tests/test_derived_geometry_identities.py::test_set_relation_algebra_identity_cases", "tests/test_documentation_example_gallery.py::test_gallery_core_code_paths_smoke", "tests/test_groebner_variety_differential.py::test_auto_variety_cad_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_compatible_root_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_existential_qe_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_generator_scaling_and_variable_order_are_semantic_invariants", "tests/test_groebner_variety_differential.py::test_large_auto_variety_cad_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_large_compatible_root_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_large_existential_qe_variety_matches_forced_collins", "tests/test_groebner_variety_differential.py::test_nested_boolean_common_equalities_match_collins", "tests/test_groebner_variety_robustness.py::test_algebraic_collins_full_elimination", "tests/test_groebner_variety_robustness.py::test_existential_qe_can_be_differentially_forced_to_collins", "tests/test_groebner_variety_robustness.py::test_generator_permutation_and_nonzero_scaling_preserve_solution_set", "tests/test_groebner_variety_robustness.py::test_variable_order_permutations_preserve_finite_solution_set", "tests/test_metamorphic_certificates.py::test_affine_equality_simplification_ignores_nonzero_scaling", "tests/test_presolve_semantic_equivalence_corpus.py::test_fourier_motzkin_generated_linear_cases", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_keeps_boolean_disjunction_semantics_untouched", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_preserves_complete_qe_semantics", "tests/test_presolve_semantic_equivalence_corpus.py::test_presolve_reports_zero_dimensional_equalities_without_changing_formula", "tests/test_qe_polynomial_reconstruction.py::test_linear_image_reconstructs_as_polynomial_disk_and_reenters_cad", "tests/test_qe_polynomial_reconstruction.py::test_polynomial_sign_reconstruction_preserves_asymmetric_ray", "tests/test_qe_polynomial_reconstruction.py::test_projection_recovers_single_polynomial_sign_relation", "tests/test_region_api_normalization.py::test_region_symmetric_difference_formula_and_region_object_agree", "tests/test_region_relations_operations.py::test_interval_relations_are_exact", "tests/test_root_api_multidimensional_geometry.py::test_extrema_set_is_union_of_argmin_and_argmax_sets", "tests/test_root_api_multidimensional_geometry.py::test_linear_image_commutes_with_positive_scalar_interval_bounds", "tests/test_root_api_multidimensional_geometry.py::test_regularization_operators_are_idempotent_on_closed_and_open_intervals", "tests/test_root_api_multidimensional_geometry.py::test_symmetric_difference_is_commutative", "tests/test_semialgebraic_property_invariants.py::test_generated_set_algebra_identities", "tests/test_semialgebraic_property_invariants.py::test_generated_topology_identities"]
 [apis."is_equal".evidence."property-generated"]
 tests = ["tests/test_derived_geometric_operations.py::test_geometric_property_and_set_relation_api", "tests/test_presolve_semantic_equivalence_corpus.py::test_fourier_motzkin_generated_linear_cases", "tests/test_semialgebraic_property_invariants.py::test_generated_set_algebra_identities", "tests/test_semialgebraic_property_invariants.py::test_generated_topology_identities"]
 [apis."is_equal".evidence."round-trip"]
@@ -1415,9 +1478,9 @@ tests = ["tests/test_public_api_failure_contracts.py::test_decision_family_rejec
 [apis."is_satisfiable".evidence."metamorphic"]
 tests = ["tests/test_architectural_scalability.py::test_parameterized_quadratic_degree_drop_is_not_misclassified", "tests/test_architectural_scalability.py::test_satisfiability_uses_independent_incidence_components", "tests/test_cache_semantic_invariance.py::test_exact_decision_is_invariant_under_cache_pollution", "tests/test_decision_semantic_coherence.py::test_decision_predicates_are_invariant_under_variable_renaming", "tests/test_root_api_semantic_contracts.py::test_function_domain_equivalent_rational_presentations_agree"]
 [apis."is_satisfiable".evidence."negative"]
-tests = ["tests/test_architectural_scalability.py::test_parameterized_quadratic_degree_drop_is_not_misclassified", "tests/test_decision_semantic_coherence.py::test_implication_agrees_with_counterexample_unsatisfiability", "tests/test_function_graph_rational_power_contracts.py::test_explicit_odd_real_root_accepts_negative_base", "tests/test_function_graph_rational_power_contracts.py::test_negative_rational_power_excludes_zero_and_is_exact", "tests/test_structural_identity_and_geometry_contracts.py::test_singular_locus_uses_joint_jacobian_rank_not_individual_gradients"]
+tests = ["tests/test_architectural_scalability.py::test_parameterized_quadratic_degree_drop_is_not_misclassified", "tests/test_decision_fast_paths.py::test_large_boolean_skeleton_does_not_force_exponential_minimization", "tests/test_decision_semantic_coherence.py::test_implication_agrees_with_counterexample_unsatisfiability", "tests/test_function_graph_rational_power_contracts.py::test_explicit_odd_real_root_accepts_negative_base", "tests/test_function_graph_rational_power_contracts.py::test_negative_rational_power_excludes_zero_and_is_exact", "tests/test_structural_identity_and_geometry_contracts.py::test_singular_locus_uses_joint_jacobian_rank_not_individual_gradients"]
 [apis."is_satisfiable".evidence."nominal"]
-tests = ["tests/properties/test_parameter_and_cache_invariance.py::test_fast_linear_parameter_condition_matches_specialized_decision", "tests/properties/test_parameter_and_cache_invariance.py::test_fast_quadratic_parameter_condition_matches_specialized_decision", "tests/properties/test_public_api_differential.py::test_affine_feasibility_matches_elimination_under_renaming_and_order", "tests/properties/test_public_api_differential.py::test_decisions_survive_cold_warm_and_unrelated_cache_history", "tests/properties/test_public_api_differential.py::test_solver_and_cad_match_factored_quadratic_sets", "tests/release/test_installed_wheel_contract.py::test_representative_exact_public_computations", "tests/test_architectural_scalability.py::test_parameterized_quadratic_degree_drop_is_not_misclassified", "tests/test_architectural_scalability.py::test_satisfiability_uses_independent_incidence_components", "tests/test_boundary_and_differential_properties.py::test_strict_and_nonstrict_touching_boundaries_are_distinguished", "tests/test_cache_semantic_invariance.py::test_exact_decision_is_invariant_under_cache_pollution", "tests/test_certified_decision_portfolio.py::test_is_satisfiable_uses_ars_for_positive_dimensional_pure_equalities", "tests/test_decision_boolean_contracts.py::test_satisfiability_result_has_validated_witness", "tests/test_decision_exact_dispatch.py::test_is_satisfiable_returns_rur_witness_for_finite_algebraic_system", "tests/test_decision_public_contracts.py::test_decision_result_objects_match_boolean_api", "tests/test_decision_public_contracts.py::test_string_variable_reuses_unassumed_formula_symbol", "tests/test_decision_semantic_coherence.py::test_decision_predicates_are_invariant_under_variable_renaming", "tests/test_decision_semantic_coherence.py::test_implication_agrees_with_counterexample_unsatisfiability", "tests/test_decision_solving.py::test_is_satisfiable_detects_basic_real_sets", "tests/test_function_graph.py::test_heaviside_has_exact_semialgebraic_graph_including_zero_value", "tests/test_function_graph_rational_power_contracts.py::test_explicit_odd_real_root_accepts_negative_base", "tests/test_function_graph_rational_power_contracts.py::test_negative_rational_power_excludes_zero_and_is_exact", "tests/test_metamorphic_certificates.py::test_optimization_certificate_replays_feasibility_value_and_no_better_point", "tests/test_public_api_failure_contracts.py::test_decision_family_rejects_unsupported_domains", "tests/test_public_api_family_contracts.py::test_decision_matrix", "tests/test_public_result_contracts.py::test_solution_result_formula_and_membership_contract", "tests/test_region_singularity_boundary_integration.py::test_singular_locus_is_restricted_to_actual_semialgebraic_boundary", "tests/test_root_api_behavioral_expansion.py::test_root_decision_and_solving_workflow", "tests/test_root_api_semantic_contracts.py::test_function_domain_equivalent_rational_presentations_agree", "tests/test_rur_algebraic_coefficients.py::test_satisfiability_reports_rur_backend_for_algebraic_coefficients", "tests/test_semialgebraic_properties.py::test_boolean_identities_hold_for_small_semialgebraic_atoms", "tests/test_semialgebraic_properties.py::test_variable_renaming_preserves_satisfiability", "tests/test_structural_identity_and_geometry_contracts.py::test_singular_locus_uses_joint_jacobian_rank_not_individual_gradients", "tests/test_unified_solve_planner.py::test_is_satisfiable_reuses_linear_fourier_motzkin_path"]
+tests = ["tests/installation/test_installed_wheel_contract.py::test_representative_exact_public_computations", "tests/properties/test_parameter_and_cache_invariance.py::test_fast_linear_parameter_condition_matches_specialized_decision", "tests/properties/test_parameter_and_cache_invariance.py::test_fast_quadratic_parameter_condition_matches_specialized_decision", "tests/properties/test_public_api_differential.py::test_affine_feasibility_matches_elimination_under_renaming_and_order", "tests/properties/test_public_api_differential.py::test_decisions_survive_cold_warm_and_unrelated_cache_history", "tests/properties/test_public_api_differential.py::test_solver_and_cad_match_factored_quadratic_sets", "tests/test_architectural_scalability.py::test_parameterized_quadratic_degree_drop_is_not_misclassified", "tests/test_architectural_scalability.py::test_satisfiability_uses_independent_incidence_components", "tests/test_boundary_and_differential_properties.py::test_strict_and_nonstrict_touching_boundaries_are_distinguished", "tests/test_cache_semantic_invariance.py::test_exact_decision_is_invariant_under_cache_pollution", "tests/test_certified_decision_portfolio.py::test_is_satisfiable_uses_ars_for_positive_dimensional_pure_equalities", "tests/test_decision_boolean_contracts.py::test_satisfiability_result_has_validated_witness", "tests/test_decision_exact_dispatch.py::test_is_satisfiable_returns_rur_witness_for_finite_algebraic_system", "tests/test_decision_fast_paths.py::test_boolean_contradiction_avoids_algebraic_solver", "tests/test_decision_fast_paths.py::test_large_boolean_skeleton_does_not_force_exponential_minimization", "tests/test_decision_public_contracts.py::test_decision_result_objects_match_boolean_api", "tests/test_decision_public_contracts.py::test_string_variable_reuses_unassumed_formula_symbol", "tests/test_decision_semantic_coherence.py::test_decision_predicates_are_invariant_under_variable_renaming", "tests/test_decision_semantic_coherence.py::test_implication_agrees_with_counterexample_unsatisfiability", "tests/test_decision_solving.py::test_is_satisfiable_detects_basic_real_sets", "tests/test_function_graph.py::test_heaviside_has_exact_semialgebraic_graph_including_zero_value", "tests/test_function_graph_rational_power_contracts.py::test_explicit_odd_real_root_accepts_negative_base", "tests/test_function_graph_rational_power_contracts.py::test_negative_rational_power_excludes_zero_and_is_exact", "tests/test_metamorphic_certificates.py::test_optimization_certificate_replays_feasibility_value_and_no_better_point", "tests/test_public_api_failure_contracts.py::test_decision_family_rejects_unsupported_domains", "tests/test_public_api_family_contracts.py::test_decision_matrix", "tests/test_public_result_contracts.py::test_solution_result_formula_and_membership_contract", "tests/test_region_singularity_boundary_integration.py::test_singular_locus_is_restricted_to_actual_semialgebraic_boundary", "tests/test_root_api_behavioral_expansion.py::test_root_decision_and_solving_workflow", "tests/test_root_api_semantic_contracts.py::test_function_domain_equivalent_rational_presentations_agree", "tests/test_rur_algebraic_coefficients.py::test_satisfiability_reports_rur_backend_for_algebraic_coefficients", "tests/test_semialgebraic_properties.py::test_boolean_identities_hold_for_small_semialgebraic_atoms", "tests/test_semialgebraic_properties.py::test_variable_renaming_preserves_satisfiability", "tests/test_structural_identity_and_geometry_contracts.py::test_singular_locus_uses_joint_jacobian_rank_not_individual_gradients", "tests/test_unified_solve_planner.py::test_is_satisfiable_reuses_linear_fourier_motzkin_path"]
 [apis."is_satisfiable".evidence."parameter-regime"]
 tests = ["tests/properties/test_parameter_and_cache_invariance.py::test_fast_linear_parameter_condition_matches_specialized_decision", "tests/properties/test_parameter_and_cache_invariance.py::test_fast_quadratic_parameter_condition_matches_specialized_decision", "tests/test_architectural_scalability.py::test_parameterized_quadratic_degree_drop_is_not_misclassified"]
 [apis."is_satisfiable".evidence."representation"]
@@ -1531,6 +1594,28 @@ tests = ["tests/test_public_api_high_risk_contracts.py::test_linear_image_and_pr
 [apis."linear_image".evidence."nominal"]
 tests = ["tests/test_derived_geometric_operations.py::test_dense_linear_image_and_distance_set_operations", "tests/test_public_api_high_risk_contracts.py::test_linear_image_and_preimage_satisfy_membership_equivalence", "tests/test_root_api_multidimensional_geometry.py::test_linear_image_commutes_with_positive_scalar_interval_bounds"]
 
+[apis."local_algebraic_strata"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["independent-oracle", "nominal"]
+missing = []
+[apis."local_algebraic_strata".evidence."independent-oracle"]
+tests = ["tests/test_limit_support_geometry_contracts.py::test_limit_support_result_types_have_direct_construction_contracts"]
+[apis."local_algebraic_strata".evidence."nominal"]
+tests = ["tests/test_asymptotic_downstream_contract.py::test_semialg_limit_support_surface_is_usable_with_downstream_asymptotic", "tests/test_limit_support_geometry.py::test_limit_support_structured_result_construction", "tests/test_limit_support_geometry.py::test_local_algebraic_strata_records_crossing_branches", "tests/test_limit_support_geometry_contracts.py::test_limit_support_result_types_have_direct_construction_contracts", "tests/test_limit_support_geometry_contracts.py::test_local_strata_distinguish_regular_point_crossing_and_cusp"]
+
+[apis."local_bound"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["certificate", "nominal"]
+missing = []
+[apis."local_bound".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."local_bound".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_local_asymptotic_geometry.py::test_local_bound_finds_bound_and_radius", "tests/test_local_asymptotic_geometry.py::test_local_bound_finds_radius", "tests/test_local_asymptotic_geometry.py::test_local_bound_interval"]
+
 [apis."local_branch_geometry"]
 owner = "algebraic"
 risk = "high"
@@ -1540,9 +1625,26 @@ missing = []
 [apis."local_branch_geometry".evidence."negative"]
 tests = ["tests/test_local_branch_geometry.py::test_nonradical_presentation_does_not_inflate_local_geometry"]
 [apis."local_branch_geometry".evidence."nominal"]
-tests = ["tests/test_local_branch_geometry.py::test_cusp_has_tangent_excess_and_multiplicity_two", "tests/test_local_branch_geometry.py::test_nonradical_presentation_does_not_inflate_local_geometry", "tests/test_local_branch_geometry.py::test_tangent_branches_are_nontransverse", "tests/test_local_branch_geometry.py::test_transverse_crossing_has_two_smooth_branches", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_local_branch_geometry.py::test_cusp_has_tangent_excess_and_multiplicity_two", "tests/test_local_branch_geometry.py::test_nonradical_presentation_does_not_inflate_local_geometry", "tests/test_local_branch_geometry.py::test_tangent_branches_are_nontransverse", "tests/test_local_branch_geometry.py::test_transverse_crossing_has_two_smooth_branches", "tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls"]
 [apis."local_branch_geometry".evidence."representation"]
 tests = ["tests/test_local_branch_geometry.py::test_nonradical_presentation_does_not_inflate_local_geometry"]
+
+[apis."local_components"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["boundary-degenerate", "metamorphic", "negative", "nominal", "property-generated"]
+missing = []
+[apis."local_components".evidence."boundary-degenerate"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_local_component_singularity_families"]
+[apis."local_components".evidence."metamorphic"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_local_components_are_translation_equivariant"]
+[apis."local_components".evidence."negative"]
+tests = ["tests/test_local_geometry_edge_cases.py::test_local_components_do_not_merge_branches_that_reconnect_far_away"]
+[apis."local_components".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_branch_and_sign_information_for_limit_consumer", "tests/test_local_asymptotic_geometry.py::test_local_components_punctured_line", "tests/test_local_geometry_edge_cases.py::test_local_components_do_not_merge_branches_that_reconnect_far_away", "tests/test_local_geometry_property_contracts.py::test_local_component_singularity_families", "tests/test_local_geometry_property_contracts.py::test_local_components_are_translation_equivariant"]
+[apis."local_components".evidence."property-generated"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_local_component_singularity_families", "tests/test_local_geometry_property_contracts.py::test_local_components_are_translation_equivariant"]
 
 [apis."local_dimension"]
 owner = "geometry"
@@ -1568,7 +1670,85 @@ tests = ["tests/test_stratified_singular_geometry.py::test_local_dimension_strat
 [apis."local_dimension_strata".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_local_dimension_strata_are_invariant_under_equation_scaling"]
 [apis."local_dimension_strata".evidence."nominal"]
-tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_local_dimension_strata_are_invariant_under_equation_scaling", "tests/test_stratified_singular_geometry.py::test_local_dimension_strata_handle_mixed_dimensional_components", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls", "tests/test_root_api_multidimensional_algebraic_solving.py::test_local_dimension_strata_are_invariant_under_equation_scaling", "tests/test_stratified_singular_geometry.py::test_local_dimension_strata_handle_mixed_dimensional_components"]
+
+[apis."local_geometry"]
+owner = "geometry"
+risk = "high"
+status = "needs-deepening"
+dimensions = ["nominal"]
+missing = ["a second semantic dimension", "an independent, boundary, failure, or parameter-sensitive detector"]
+[apis."local_geometry".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_cusp_geometry_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_local_geometry_line"]
+
+[apis."local_germ"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["boundary-degenerate", "certificate", "invalid-failure", "nominal", "property-generated"]
+missing = []
+[apis."local_germ".evidence."boundary-degenerate"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_local_preimage_empty_and_positive_dimensional_fibers"]
+[apis."local_germ".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."local_germ".evidence."invalid-failure"]
+tests = ["tests/test_local_geometry_edge_cases.py::test_local_preimage_rejects_nonunique_exact_fiber"]
+[apis."local_germ".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_local_image_preimage", "tests/test_local_asymptotic_geometry.py::test_path_independence", "tests/test_local_geometry_edge_cases.py::test_local_preimage_rejects_nonunique_exact_fiber", "tests/test_local_geometry_property_contracts.py::test_local_preimage_empty_and_positive_dimensional_fibers", "tests/test_local_geometry_property_contracts.py::test_local_preimage_unique_algebraic_fiber"]
+[apis."local_germ".evidence."property-generated"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_local_preimage_empty_and_positive_dimensional_fibers", "tests/test_local_geometry_property_contracts.py::test_local_preimage_unique_algebraic_fiber"]
+
+[apis."local_image"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["certificate", "nominal"]
+missing = []
+[apis."local_image".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."local_image".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_local_image_preimage"]
+
+[apis."local_preimage"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["boundary-degenerate", "certificate", "invalid-failure", "nominal", "property-generated"]
+missing = []
+[apis."local_preimage".evidence."boundary-degenerate"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_local_preimage_empty_and_positive_dimensional_fibers"]
+[apis."local_preimage".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."local_preimage".evidence."invalid-failure"]
+tests = ["tests/test_local_geometry_edge_cases.py::test_local_preimage_rejects_nonunique_exact_fiber"]
+[apis."local_preimage".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_local_asymptotic_geometry.py::test_local_image_preimage", "tests/test_local_geometry_edge_cases.py::test_local_preimage_rejects_nonunique_exact_fiber", "tests/test_local_geometry_property_contracts.py::test_local_preimage_empty_and_positive_dimensional_fibers", "tests/test_local_geometry_property_contracts.py::test_local_preimage_unique_algebraic_fiber"]
+[apis."local_preimage".evidence."property-generated"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_local_preimage_empty_and_positive_dimensional_fibers", "tests/test_local_geometry_property_contracts.py::test_local_preimage_unique_algebraic_fiber"]
+
+[apis."local_range"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["certificate", "nominal"]
+missing = []
+[apis."local_range".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."local_range".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_local_bound_interval"]
+
+[apis."local_sign_strata"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["metamorphic", "nominal", "property-generated"]
+missing = []
+[apis."local_sign_strata".evidence."metamorphic"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_sign_strata_are_permutation_equivariant"]
+[apis."local_sign_strata".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_branch_and_sign_information_for_limit_consumer", "tests/test_local_asymptotic_geometry.py::test_local_sign_strata_crossing", "tests/test_local_geometry_edge_cases.py::test_sign_strata_prune_impossible_prefixes", "tests/test_local_geometry_property_contracts.py::test_incremental_sign_strata_match_exhaustive_reference", "tests/test_local_geometry_property_contracts.py::test_sign_strata_are_permutation_equivariant"]
+[apis."local_sign_strata".evidence."property-generated"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_incremental_sign_strata_match_exhaustive_reference", "tests/test_local_geometry_property_contracts.py::test_sign_strata_are_permutation_equivariant"]
 
 [apis."matrix_definiteness"]
 owner = "function-analysis"
@@ -1644,7 +1824,7 @@ tests = ["tests/test_stratified_singular_geometry.py::test_minimal_prime_interse
 [apis."minimal_prime_intersections".evidence."independent-semantic"]
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_minimal_prime_intersections_respect_max_order"]
 [apis."minimal_prime_intersections".evidence."nominal"]
-tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_minimal_prime_intersections_respect_max_order", "tests/test_stratified_singular_geometry.py::test_minimal_prime_intersections_are_deterministic_groebner_sums", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls", "tests/test_root_api_multidimensional_algebraic_solving.py::test_minimal_prime_intersections_respect_max_order", "tests/test_stratified_singular_geometry.py::test_minimal_prime_intersections_are_deterministic_groebner_sums"]
 
 [apis."minkowski_sum"]
 owner = "geometry"
@@ -1694,7 +1874,7 @@ tests = ["tests/test_constraint_certificates.py::test_nonnegative_combination", 
 [apis."nonnegative_combination_certificate".evidence."negative"]
 tests = ["tests/test_constraint_certificates.py::test_nonnegative_combination"]
 [apis."nonnegative_combination_certificate".evidence."nominal"]
-tests = ["tests/test_constraint_certificates.py::test_nonnegative_combination", "tests/test_constraint_certificates.py::test_supplied_sos_certificate_and_components", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_constraint_certificates.py::test_nonnegative_combination", "tests/test_constraint_certificates.py::test_supplied_sos_certificate_and_components", "tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls"]
 
 [apis."outer_polygons"]
 owner = "geometry"
@@ -1707,7 +1887,7 @@ tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_
 [apis."outer_polygons".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries"]
 [apis."outer_polygons".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_hole_boundaries", "tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_hole_boundaries", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries"]
 
 [apis."outer_polyhedra"]
 owner = "geometry"
@@ -1720,7 +1900,24 @@ tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_
 [apis."outer_polyhedra".evidence."independent-semantic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities"]
 [apis."outer_polyhedra".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_cavities_explicit", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_cavities_explicit", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities"]
+
+[apis."parameter_strata"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["certificate", "metamorphic", "nominal", "parameter-regime", "property-generated"]
+missing = []
+[apis."parameter_strata".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."parameter_strata".evidence."metamorphic"]
+tests = ["tests/test_local_geometry_edge_cases.py::test_parameter_strata_support_custom_invariant_cases"]
+[apis."parameter_strata".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_local_asymptotic_geometry.py::test_parameter_feasibility_strata", "tests/test_local_geometry_edge_cases.py::test_parameter_strata_support_custom_invariant_cases", "tests/test_local_geometry_property_contracts.py::test_parameter_strata_are_disjoint_and_cover_declared_cases"]
+[apis."parameter_strata".evidence."parameter-regime"]
+tests = ["tests/test_local_asymptotic_geometry.py::test_parameter_feasibility_strata", "tests/test_local_geometry_edge_cases.py::test_parameter_strata_support_custom_invariant_cases", "tests/test_local_geometry_property_contracts.py::test_parameter_strata_are_disjoint_and_cover_declared_cases"]
+[apis."parameter_strata".evidence."property-generated"]
+tests = ["tests/test_local_geometry_property_contracts.py::test_parameter_strata_are_disjoint_and_cover_declared_cases"]
 
 [apis."parameterization_critical_locus"]
 owner = "geometry"
@@ -1731,9 +1928,9 @@ missing = []
 [apis."parameterization_critical_locus".evidence."boundary-degenerate"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola"]
 [apis."parameterization_critical_locus".evidence."nominal"]
-tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola"]
 [apis."parameterization_critical_locus".evidence."parameter-regime"]
-tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola"]
 
 [apis."parameterization_critical_values"]
 owner = "geometry"
@@ -1744,9 +1941,9 @@ missing = []
 [apis."parameterization_critical_values".evidence."boundary-degenerate"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola"]
 [apis."parameterization_critical_values".evidence."nominal"]
-tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola"]
 [apis."parameterization_critical_values".evidence."parameter-regime"]
-tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_parameterization_geometry.py::test_focused_critical_queries", "tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola"]
 
 [apis."parameterization_geometry"]
 owner = "geometry"
@@ -1757,9 +1954,9 @@ missing = []
 [apis."parameterization_geometry".evidence."boundary-degenerate"]
 tests = ["tests/test_parameterization_geometry.py::test_lower_dimensional_domain_uses_intrinsic_tangent_rank"]
 [apis."parameterization_geometry".evidence."nominal"]
-tests = ["tests/test_parameterization_geometry.py::test_cusp_parameterization_critical_locus", "tests/test_parameterization_geometry.py::test_lower_dimensional_domain_uses_intrinsic_tangent_rank", "tests/test_parameterization_geometry.py::test_simplex_parameter_domain_uses_equality_tangent_space", "tests/test_parameterization_geometry.py::test_surface_parameterization_generic_rank", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_parameterization_geometry.py::test_cusp_parameterization_critical_locus", "tests/test_parameterization_geometry.py::test_lower_dimensional_domain_uses_intrinsic_tangent_rank", "tests/test_parameterization_geometry.py::test_simplex_parameter_domain_uses_equality_tangent_space", "tests/test_parameterization_geometry.py::test_surface_parameterization_generic_rank", "tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls"]
 [apis."parameterization_geometry".evidence."parameter-regime"]
-tests = ["tests/test_parameterization_geometry.py::test_cusp_parameterization_critical_locus", "tests/test_parameterization_geometry.py::test_lower_dimensional_domain_uses_intrinsic_tangent_rank", "tests/test_parameterization_geometry.py::test_simplex_parameter_domain_uses_equality_tangent_space", "tests/test_parameterization_geometry.py::test_surface_parameterization_generic_rank", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_parameterization_geometry.py::test_cusp_parameterization_critical_locus", "tests/test_parameterization_geometry.py::test_lower_dimensional_domain_uses_intrinsic_tangent_rank", "tests/test_parameterization_geometry.py::test_simplex_parameter_domain_uses_equality_tangent_space", "tests/test_parameterization_geometry.py::test_surface_parameterization_generic_rank", "tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls"]
 
 [apis."parametric_cad"]
 owner = "geometry"
@@ -1768,17 +1965,17 @@ status = "adequate"
 dimensions = ["boundary-degenerate", "certificate", "independent-oracle", "negative", "nominal", "parameter-regime"]
 missing = []
 [apis."parametric_cad".evidence."boundary-degenerate"]
-tests = ["tests/test_initial_release_seven_recommendations.py::test_parameter_strata_use_certified_nonzero_representatives", "tests/test_parameter_sample_validation.py::test_parametric_cad_feasible_samples_respect_nonzero_parameter_boundary", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_deleted_boundary_exceptional", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_nonparametric_disk_splits_interior_and_boundary", "tests/test_parametric_cad_semantics.py::test_parametric_cad_nonempty_strata_agree_with_solvability_conditions"]
+tests = ["tests/test_parameter_sample_validation.py::test_parametric_cad_feasible_samples_respect_nonzero_parameter_boundary", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_deleted_boundary_exceptional", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_nonparametric_disk_splits_interior_and_boundary", "tests/test_parametric_cad_semantics.py::test_parametric_cad_nonempty_strata_agree_with_solvability_conditions", "tests/test_public_api_design.py::test_parameter_strata_use_certified_nonzero_representatives"]
 [apis."parametric_cad".evidence."certificate"]
-tests = ["tests/test_initial_release_seven_recommendations.py::test_parameter_strata_use_certified_nonzero_representatives", "tests/test_parameter_sample_validation.py::test_parametric_cad_specialized_formula_uses_certified_sample"]
+tests = ["tests/test_parameter_sample_validation.py::test_parametric_cad_specialized_formula_uses_certified_sample", "tests/test_public_api_design.py::test_parameter_strata_use_certified_nonzero_representatives"]
 [apis."parametric_cad".evidence."independent-oracle"]
 tests = ["tests/test_direct_return_contracts.py::test_component_and_parametric_cad_defaults_are_mathematical_outputs"]
 [apis."parametric_cad".evidence."negative"]
 tests = ["tests/test_conditional_parameter_results.py::test_parametric_cad_exposes_guarded_strata_not_sample_fibers"]
 [apis."parametric_cad".evidence."nominal"]
-tests = ["tests/test_conditional_parameter_results.py::test_parametric_cad_exposes_guarded_strata_not_sample_fibers", "tests/test_direct_return_contracts.py::test_component_and_parametric_cad_defaults_are_mathematical_outputs", "tests/test_initial_release_seven_recommendations.py::test_parameter_strata_use_certified_nonzero_representatives", "tests/test_parameter_sample_validation.py::test_parametric_cad_feasible_samples_respect_nonzero_parameter_boundary", "tests/test_parameter_sample_validation.py::test_parametric_cad_samples_satisfy_their_stratum_conditions", "tests/test_parameter_sample_validation.py::test_parametric_cad_specialized_formula_uses_certified_sample", "tests/test_parametric_cad_api.py::test_parametric_cad_01", "tests/test_parametric_cad_api.py::test_parametric_cad_03", "tests/test_parametric_cad_api.py::test_parametric_cad_reuses_cases", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_deleted_boundary_exceptional", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_parameter_exceptional_cases", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_nonparametric_disk_splits_interior_and_boundary", "tests/test_parametric_cad_integration.py::test_parametric_cad_for_quadratic_feasibility", "tests/test_parametric_cad_semantics.py::test_parametric_cad_exceptional_analysis_is_provenance", "tests/test_parametric_cad_semantics.py::test_parametric_cad_generic_and_exceptional_strata_are_disjoint", "tests/test_parametric_cad_semantics.py::test_parametric_cad_nonempty_strata_agree_with_solvability_conditions", "tests/test_parametric_cad_semantics.py::test_parametric_cad_representative_fibers_preserve_original_formula", "tests/test_parametric_cad_semantics.py::test_parametric_cad_strata_cover_parameter_domain"]
+tests = ["tests/test_conditional_parameter_results.py::test_parametric_cad_exposes_guarded_strata_not_sample_fibers", "tests/test_direct_return_contracts.py::test_component_and_parametric_cad_defaults_are_mathematical_outputs", "tests/test_parameter_sample_validation.py::test_parametric_cad_feasible_samples_respect_nonzero_parameter_boundary", "tests/test_parameter_sample_validation.py::test_parametric_cad_samples_satisfy_their_stratum_conditions", "tests/test_parameter_sample_validation.py::test_parametric_cad_specialized_formula_uses_certified_sample", "tests/test_parametric_cad_api.py::test_parametric_cad_01", "tests/test_parametric_cad_api.py::test_parametric_cad_03", "tests/test_parametric_cad_api.py::test_parametric_cad_reuses_cases", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_deleted_boundary_exceptional", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_parameter_exceptional_cases", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_nonparametric_disk_splits_interior_and_boundary", "tests/test_parametric_cad_integration.py::test_parametric_cad_for_quadratic_feasibility", "tests/test_parametric_cad_semantics.py::test_parametric_cad_exceptional_analysis_is_provenance", "tests/test_parametric_cad_semantics.py::test_parametric_cad_generic_and_exceptional_strata_are_disjoint", "tests/test_parametric_cad_semantics.py::test_parametric_cad_nonempty_strata_agree_with_solvability_conditions", "tests/test_parametric_cad_semantics.py::test_parametric_cad_representative_fibers_preserve_original_formula", "tests/test_parametric_cad_semantics.py::test_parametric_cad_strata_cover_parameter_domain", "tests/test_public_api_design.py::test_parameter_strata_use_certified_nonzero_representatives"]
 [apis."parametric_cad".evidence."parameter-regime"]
-tests = ["tests/test_conditional_parameter_results.py::test_parametric_cad_exposes_guarded_strata_not_sample_fibers", "tests/test_initial_release_seven_recommendations.py::test_parameter_strata_use_certified_nonzero_representatives", "tests/test_parameter_sample_validation.py::test_parametric_cad_feasible_samples_respect_nonzero_parameter_boundary", "tests/test_parameter_sample_validation.py::test_parametric_cad_samples_satisfy_their_stratum_conditions", "tests/test_parameter_sample_validation.py::test_parametric_cad_specialized_formula_uses_certified_sample", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_parameter_exceptional_cases", "tests/test_parametric_cad_semantics.py::test_parametric_cad_strata_cover_parameter_domain"]
+tests = ["tests/test_conditional_parameter_results.py::test_parametric_cad_exposes_guarded_strata_not_sample_fibers", "tests/test_parameter_sample_validation.py::test_parametric_cad_feasible_samples_respect_nonzero_parameter_boundary", "tests/test_parameter_sample_validation.py::test_parametric_cad_samples_satisfy_their_stratum_conditions", "tests/test_parameter_sample_validation.py::test_parametric_cad_specialized_formula_uses_certified_sample", "tests/test_parametric_cad_decomposition.py::test_parametric_cad_keeps_parameter_exceptional_cases", "tests/test_parametric_cad_semantics.py::test_parametric_cad_strata_cover_parameter_domain", "tests/test_public_api_design.py::test_parameter_strata_use_certified_nonzero_representatives"]
 
 [apis."path_between"]
 owner = "geometry"
@@ -1791,9 +1988,20 @@ tests = ["tests/test_direct_return_contracts.py::test_structured_objects_that_ar
 [apis."path_between".evidence."nominal"]
 tests = ["tests/test_direct_return_contracts.py::test_structured_objects_that_are_the_mathematical_answer_remain_structured", "tests/test_geometry_queries.py::test_path_connectivity_and_path_chain_1d", "tests/test_topology_symbols_and_exact_bounds.py::test_shared_point_normalization_accepts_contextual_string_keys"]
 
+[apis."path_independent"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["certificate", "nominal"]
+missing = []
+[apis."path_independent".evidence."certificate"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer"]
+[apis."path_independent".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_local_certification_surface_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_path_independence"]
+
 [apis."plot_region_geometry"]
-owner = "solving"
-risk = "medium"
+owner = "geometry"
+risk = "high"
 status = "adequate"
 dimensions = ["independent-oracle", "negative", "nominal", "round-trip-presentation"]
 missing = []
@@ -1807,8 +2015,8 @@ tests = ["tests/test_public_api_direct_contracts.py::test_plot_region_geometry_r
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_region_geometry_does_not_change_discretized_semantics"]
 
 [apis."plot_solution"]
-owner = "solving"
-risk = "medium"
+owner = "geometry"
+risk = "high"
 status = "adequate"
 dimensions = ["nominal", "representation", "round-trip-presentation"]
 missing = []
@@ -1818,6 +2026,21 @@ tests = ["tests/test_plot_solution_formula_fallback.py::test_plot_solution_falls
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_solution_is_presentation_only_and_returns_supplied_axes"]
 [apis."plot_solution".evidence."round-trip-presentation"]
 tests = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_solution_is_presentation_only_and_returns_supplied_axes"]
+
+[apis."point_in_closure"]
+owner = "geometry"
+risk = "high"
+status = "adequate"
+dimensions = ["boundary-degenerate", "metamorphic", "nominal", "representation"]
+missing = []
+[apis."point_in_closure".evidence."boundary-degenerate"]
+tests = ["tests/test_limit_support_geometry_contracts.py::test_closure_handles_boundary_interior_exterior_and_deleted_point"]
+[apis."point_in_closure".evidence."metamorphic"]
+tests = ["tests/properties/test_public_api_metamorphic.py::test_closure_membership_commutes_with_invertible_affine_coordinates", "tests/test_limit_support_geometry_contracts.py::test_closure_commutes_with_invertible_affine_change_of_coordinates", "tests/test_limit_support_geometry_contracts.py::test_closure_is_invariant_under_equivalent_formula_and_coordinate_rename"]
+[apis."point_in_closure".evidence."nominal"]
+tests = ["tests/properties/test_public_api_metamorphic.py::test_closure_membership_commutes_with_invertible_affine_coordinates", "tests/test_asymptotic_downstream_contract.py::test_semialg_limit_support_surface_is_usable_with_downstream_asymptotic", "tests/test_limit_support_geometry_contracts.py::test_closure_commutes_with_invertible_affine_change_of_coordinates", "tests/test_limit_support_geometry_contracts.py::test_closure_handles_boundary_interior_exterior_and_deleted_point", "tests/test_limit_support_geometry_contracts.py::test_closure_is_invariant_under_equivalent_formula_and_coordinate_rename", "tests/test_point_in_closure.py::test_point_in_closure_detects_arbitrarily_near_punctured_region", "tests/test_point_in_closure.py::test_point_in_closure_respects_explicit_syntactic_strategy", "tests/test_point_in_closure.py::test_point_in_closure_returns_structured_cad_semantic_evidence"]
+[apis."point_in_closure".evidence."representation"]
+tests = ["tests/test_limit_support_geometry_contracts.py::test_closure_is_invariant_under_equivalent_formula_and_coordinate_rename"]
 
 [apis."polygon_vertices"]
 owner = "geometry"
@@ -1830,7 +2053,7 @@ tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_
 [apis."polygon_vertices".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries"]
 [apis."polygon_vertices".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_hole_boundaries", "tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_polygonal_set_orients_outer_and_hole_boundaries", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polygon_shell_accessors_partition_outer_and_inner_boundaries"]
 
 [apis."polygonal_region_from_paths"]
 owner = "geometry"
@@ -1839,7 +2062,7 @@ status = "adequate"
 dimensions = ["nominal", "representation"]
 missing = []
 [apis."polygonal_region_from_paths".evidence."nominal"]
-tests = ["tests/test_geometry_conversion_decomposition.py::test_p3_crossing_and_fill_rules", "tests/test_geometry_conversion_decomposition.py::test_p3_exact_algebraic_crossing", "tests/test_geometry_conversion_decomposition.py::test_p3_holes_disconnected_and_signed_winding_rules", "tests/test_root_api_semantic_contracts.py::test_polygonal_region_fill_orientation_representation_contract", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_geometry_conversion_decomposition.py::test_p3_crossing_and_fill_rules", "tests/test_geometry_conversion_decomposition.py::test_p3_exact_algebraic_crossing", "tests/test_geometry_conversion_decomposition.py::test_p3_holes_disconnected_and_signed_winding_rules", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_semantic_contracts.py::test_polygonal_region_fill_orientation_representation_contract"]
 [apis."polygonal_region_from_paths".evidence."representation"]
 tests = ["tests/test_root_api_semantic_contracts.py::test_polygonal_region_fill_orientation_representation_contract"]
 
@@ -1878,7 +2101,7 @@ tests = ["tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shel
 [apis."polyhedron_face_indices".evidence."metamorphic"]
 tests = ["tests/test_boundary_topology.py::test_polyhedral_shell_requires_closed_consistently_oriented_manifold"]
 [apis."polyhedron_face_indices".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_polyhedral_shell_requires_closed_consistently_oriented_manifold", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_polyhedral_shell_requires_closed_consistently_oriented_manifold", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities"]
 
 [apis."polyhedron_vertices"]
 owner = "geometry"
@@ -1891,7 +2114,7 @@ tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_
 [apis."polyhedron_vertices".evidence."independent-semantic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities"]
 [apis."polyhedron_vertices".evidence."nominal"]
-tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_cavities_explicit", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities", "tests/test_unified_public_api_secondary_evidence.py::test_restored_geometry_secondary_calls"]
+tests = ["tests/test_boundary_topology.py::test_polyhedron_keeps_components_and_cavities_explicit", "tests/test_public_api_behavioral_evidence.py::test_restored_geometry_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities"]
 
 [apis."polynomial_constraints"]
 owner = "algebraic"
@@ -1904,7 +2127,7 @@ tests = ["tests/test_semialgebraic_local_geometry.py::test_constraints_and_activ
 [apis."polynomial_constraints".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_polynomial_constraints_are_invariant_under_conjunct_reordering"]
 [apis."polynomial_constraints".evidence."nominal"]
-tests = ["tests/test_root_api_multidimensional_geometry.py::test_polynomial_constraints_are_invariant_under_conjunct_reordering", "tests/test_semialgebraic_local_geometry.py::test_constraints_and_active_boundary", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_polynomial_constraints_are_invariant_under_conjunct_reordering", "tests/test_semialgebraic_local_geometry.py::test_constraints_and_active_boundary"]
 
 [apis."polynomial_nonnegative"]
 owner = "geometry"
@@ -1919,7 +2142,7 @@ tests = ["tests/test_semantic_differential_contracts.py::test_specialized_nonneg
 [apis."polynomial_nonnegative".evidence."negative"]
 tests = ["tests/test_certified_decision_portfolio.py::test_single_public_nonnegative_api_validates_random_lines", "tests/test_polynomial_positivity.py::test_zeng_coercive_critical_values_certify_nonnegative", "tests/test_public_api_critical_risk_contracts.py::test_polynomial_nonnegative_distinguishes_global_signs"]
 [apis."polynomial_nonnegative".evidence."nominal"]
-tests = ["tests/release/test_installed_wheel_contract.py::test_representative_exact_public_computations", "tests/test_certified_decision_portfolio.py::test_auto_portfolio_respects_planner_route", "tests/test_certified_decision_portfolio.py::test_explicit_sos_strategy_bypasses_auto_cost_planner", "tests/test_certified_decision_portfolio.py::test_optional_search_backend_is_accepted_only_after_exact_verification", "tests/test_certified_decision_portfolio.py::test_portfolio_falls_back_to_cad", "tests/test_certified_decision_portfolio.py::test_single_public_nonnegative_api_validates_random_lines", "tests/test_certified_decision_portfolio.py::test_zeng_options_return_certified_decision", "tests/test_polynomial_positivity.py::test_zeng_coercive_critical_values_certify_nonnegative", "tests/test_public_api_critical_risk_contracts.py::test_polynomial_nonnegative_distinguishes_global_signs", "tests/test_robustness_contracts.py::test_single_answer_decisions_default_to_mathematical_values", "tests/test_semantic_differential_contracts.py::test_specialized_nonnegativity_decision_matches_complete_formula_truth"]
+tests = ["tests/installation/test_installed_wheel_contract.py::test_representative_exact_public_computations", "tests/test_certified_decision_portfolio.py::test_auto_portfolio_respects_planner_route", "tests/test_certified_decision_portfolio.py::test_explicit_sos_strategy_bypasses_auto_cost_planner", "tests/test_certified_decision_portfolio.py::test_optional_search_backend_is_accepted_only_after_exact_verification", "tests/test_certified_decision_portfolio.py::test_portfolio_falls_back_to_cad", "tests/test_certified_decision_portfolio.py::test_single_public_nonnegative_api_validates_random_lines", "tests/test_certified_decision_portfolio.py::test_zeng_options_return_certified_decision", "tests/test_polynomial_positivity.py::test_zeng_coercive_critical_values_certify_nonnegative", "tests/test_public_api_critical_risk_contracts.py::test_polynomial_nonnegative_distinguishes_global_signs", "tests/test_robustness_contracts.py::test_single_answer_decisions_default_to_mathematical_values", "tests/test_semantic_differential_contracts.py::test_specialized_nonnegativity_decision_matches_complete_formula_truth"]
 [apis."polynomial_nonnegative".evidence."parameter-regime"]
 tests = ["tests/test_semantic_differential_contracts.py::test_specialized_nonnegativity_decision_matches_complete_formula_truth"]
 [apis."polynomial_nonnegative".evidence."property-generated"]
@@ -1934,9 +2157,9 @@ missing = []
 [apis."project_region".evidence."boundary-degenerate"]
 tests = ["tests/test_quantifier_elimination.py::test_projection_of_hyperbola_keeps_real_nonzero_condition"]
 [apis."project_region".evidence."nominal"]
-tests = ["tests/test_quantifier_elimination.py::test_linear_projection_uses_fourier_motzkin", "tests/test_quantifier_elimination.py::test_projection_of_hyperbola_keeps_real_nonzero_condition", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls", "tests/test_quantifier_elimination.py::test_linear_projection_uses_fourier_motzkin", "tests/test_quantifier_elimination.py::test_projection_of_hyperbola_keeps_real_nonzero_condition"]
 [apis."project_region".evidence."parameter-regime"]
-tests = ["tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls"]
 
 [apis."prove_negative"]
 owner = "decision"
@@ -2039,9 +2262,9 @@ missing = []
 [apis."quantifier_eliminate".evidence."metamorphic"]
 tests = ["tests/test_quantifier_elimination.py::test_explicit_prefix_and_nested_prefix_are_equivalent"]
 [apis."quantifier_eliminate".evidence."nominal"]
-tests = ["tests/test_quantifier_elimination.py::test_affine_existential_presolve", "tests/test_quantifier_elimination.py::test_explicit_prefix_and_nested_prefix_are_equivalent", "tests/test_quantifier_elimination.py::test_groebner_consequences_enable_safe_affine_presolve", "tests/test_quantifier_elimination.py::test_independent_incidence_blocks_are_eliminated_separately", "tests/test_quantifier_elimination.py::test_quadratic_existential_projection", "tests/test_quantifier_elimination.py::test_universal_quantifier", "tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_decision_fast_paths.py::test_vacuous_quantifier_is_removed", "tests/test_local_geometry_edge_cases.py::test_universal_qe_fiber_sector_sample_is_interior", "tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls", "tests/test_quantifier_elimination.py::test_affine_existential_presolve", "tests/test_quantifier_elimination.py::test_explicit_prefix_and_nested_prefix_are_equivalent", "tests/test_quantifier_elimination.py::test_groebner_consequences_enable_safe_affine_presolve", "tests/test_quantifier_elimination.py::test_independent_incidence_blocks_are_eliminated_separately", "tests/test_quantifier_elimination.py::test_quadratic_existential_projection", "tests/test_quantifier_elimination.py::test_universal_quantifier"]
 [apis."quantifier_eliminate".evidence."parameter-regime"]
-tests = ["tests/test_unified_public_api_secondary_evidence.py::test_parameterization_and_qe_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_parameterization_and_qe_secondary_calls"]
 
 [apis."random_point"]
 owner = "solving"
@@ -2155,7 +2378,7 @@ tests = ["tests/test_reduced_algebraic_varieties.py::test_component_crossing_is_
 [apis."reduced_component_singular_loci".evidence."negative"]
 tests = ["tests/test_reduced_algebraic_varieties.py::test_component_crossing_is_not_component_singularity", "tests/test_root_api_multidimensional_algebraic_solving.py::test_reduced_component_singular_loci_detect_intrinsic_cusp_not_crossing"]
 [apis."reduced_component_singular_loci".evidence."nominal"]
-tests = ["tests/test_reduced_algebraic_varieties.py::test_component_crossing_is_not_component_singularity", "tests/test_root_api_multidimensional_algebraic_solving.py::test_reduced_component_singular_loci_detect_intrinsic_cusp_not_crossing", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls", "tests/test_reduced_algebraic_varieties.py::test_component_crossing_is_not_component_singularity", "tests/test_root_api_multidimensional_algebraic_solving.py::test_reduced_component_singular_loci_detect_intrinsic_cusp_not_crossing"]
 
 [apis."redundant_polynomial_inequalities"]
 owner = "geometry"
@@ -2168,7 +2391,7 @@ tests = ["tests/test_constraint_certificates.py::test_implied_and_redundant"]
 [apis."redundant_polynomial_inequalities".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_implied_and_redundant_polynomial_inequality_agree"]
 [apis."redundant_polynomial_inequalities".evidence."nominal"]
-tests = ["tests/test_constraint_certificates.py::test_implied_and_redundant", "tests/test_root_api_multidimensional_geometry.py::test_implied_and_redundant_polynomial_inequality_agree", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_constraint_certificates.py::test_implied_and_redundant", "tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_implied_and_redundant_polynomial_inequality_agree"]
 
 [apis."region_active_boundary_strata"]
 owner = "geometry"
@@ -2488,7 +2711,7 @@ tests = ["tests/test_root_api_multidimensional_geometry.py::test_relative_bounda
 [apis."relative_boundary".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_relative_boundary_and_interior_partition_closed_segment_in_affine_hull"]
 [apis."relative_boundary".evidence."nominal"]
-tests = ["tests/test_root_api_multidimensional_geometry.py::test_relative_boundary_and_interior_partition_closed_segment_in_affine_hull", "tests/test_semialgebraic_local_geometry.py::test_relative_topology_on_segment", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_relative_boundary_and_interior_partition_closed_segment_in_affine_hull", "tests/test_semialgebraic_local_geometry.py::test_relative_topology_on_segment"]
 
 [apis."relative_interior"]
 owner = "algebraic"
@@ -2501,10 +2724,10 @@ tests = ["tests/test_root_api_multidimensional_geometry.py::test_relative_bounda
 [apis."relative_interior".evidence."metamorphic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_relative_boundary_and_interior_partition_closed_segment_in_affine_hull"]
 [apis."relative_interior".evidence."nominal"]
-tests = ["tests/test_root_api_multidimensional_geometry.py::test_relative_boundary_and_interior_partition_closed_segment_in_affine_hull", "tests/test_semialgebraic_local_geometry.py::test_relative_topology_on_segment", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_relative_boundary_and_interior_partition_closed_segment_in_affine_hull", "tests/test_semialgebraic_local_geometry.py::test_relative_topology_on_segment"]
 
 [apis."replay_certificate"]
-owner = "geometry"
+owner = "algebraic"
 risk = "critical"
 status = "adequate"
 dimensions = ["boundary-degenerate", "certificate", "invalid-failure", "metamorphic", "nominal", "property-generated", "round-trip"]
@@ -2586,6 +2809,23 @@ tests = ["tests/properties/test_public_api_metamorphic.py::test_affine_image_pre
 [apis."scale".evidence."round-trip"]
 tests = ["tests/properties/test_public_api_metamorphic.py::test_affine_image_preimage_and_inverse_preserve_endpoints"]
 
+[apis."semialgebraic_function_graph"]
+owner = "function-analysis"
+risk = "medium"
+status = "adequate"
+dimensions = ["boundary-degenerate", "independent-oracle", "invalid-failure", "negative", "nominal"]
+missing = []
+[apis."semialgebraic_function_graph".evidence."boundary-degenerate"]
+tests = ["tests/test_function_graph.py::test_heaviside_has_exact_semialgebraic_graph_including_zero_value", "tests/test_function_graph_rational_power_contracts.py::test_negative_rational_power_excludes_zero_and_is_exact"]
+[apis."semialgebraic_function_graph".evidence."independent-oracle"]
+tests = ["tests/test_function_graph.py::test_odd_real_root_integer_powers_use_direct_exact_graph", "tests/test_public_api_direct_contracts.py::test_root_semialgebraic_function_graph_has_direct_behavioral_call"]
+[apis."semialgebraic_function_graph".evidence."invalid-failure"]
+tests = ["tests/test_root_function_graph_exports.py::test_unsupported_function_graph_is_supported_root_exception"]
+[apis."semialgebraic_function_graph".evidence."negative"]
+tests = ["tests/test_function_graph_rational_power_contracts.py::test_explicit_odd_real_root_accepts_negative_base", "tests/test_function_graph_rational_power_contracts.py::test_negative_rational_power_excludes_zero_and_is_exact"]
+[apis."semialgebraic_function_graph".evidence."nominal"]
+tests = ["tests/test_function_graph.py::test_heaviside_has_exact_semialgebraic_graph_including_zero_value", "tests/test_function_graph.py::test_odd_real_root_integer_powers_use_direct_exact_graph", "tests/test_function_graph_and_algebraization.py::test_semialgebraic_graph_is_closed_under_nested_supported_compositions", "tests/test_function_graph_and_algebraization.py::test_shared_graph_preserves_real_root_semantics", "tests/test_function_graph_rational_power_contracts.py::test_explicit_odd_real_root_accepts_negative_base", "tests/test_function_graph_rational_power_contracts.py::test_negative_rational_power_excludes_zero_and_is_exact", "tests/test_public_api_design.py::test_real_wrapper_graphs_reuse_the_real_semialgebraic_argument_graph", "tests/test_public_api_direct_contracts.py::test_root_semialgebraic_function_graph_has_direct_behavioral_call", "tests/test_root_function_graph_exports.py::test_semialgebraic_function_graph_is_supported_from_root_api", "tests/test_root_function_graph_exports.py::test_unsupported_function_graph_is_supported_root_exception"]
+
 [apis."semialgebraic_maximize"]
 owner = "optimization"
 risk = "high"
@@ -2656,11 +2896,11 @@ status = "adequate"
 dimensions = ["invalid-failure", "metamorphic", "nominal", "round-trip"]
 missing = []
 [apis."semialgebraic_projection".evidence."invalid-failure"]
-tests = ["tests/test_public_api_failure_contracts.py::test_geometry_rejects_mismatched_coordinates"]
+tests = ["tests/test_local_approach_geometry_contracts.py::test_projection_rejects_duplicate_elimination_variables", "tests/test_public_api_failure_contracts.py::test_geometry_rejects_mismatched_coordinates"]
 [apis."semialgebraic_projection".evidence."metamorphic"]
 tests = ["tests/test_qe_polynomial_reconstruction.py::test_polynomial_sign_reconstruction_preserves_asymmetric_ray"]
 [apis."semialgebraic_projection".evidence."nominal"]
-tests = ["tests/test_documentation_example_gallery.py::test_gallery_core_code_paths_smoke", "tests/test_geometry_queries.py::test_semialgebraic_projection_eliminates_existential_variable", "tests/test_public_api_failure_contracts.py::test_geometry_rejects_mismatched_coordinates", "tests/test_qe_polynomial_reconstruction.py::test_polynomial_sign_reconstruction_preserves_asymmetric_ray", "tests/test_qe_polynomial_reconstruction.py::test_projection_recovers_single_polynomial_sign_relation", "tests/test_topology_symbols_and_exact_bounds.py::test_projection_resolves_string_variable_against_contextual_symbol"]
+tests = ["tests/test_documentation_example_gallery.py::test_gallery_core_code_paths_smoke", "tests/test_geometry_queries.py::test_semialgebraic_projection_eliminates_existential_variable", "tests/test_local_approach_geometry_contracts.py::test_projection_rejects_duplicate_elimination_variables", "tests/test_public_api_failure_contracts.py::test_geometry_rejects_mismatched_coordinates", "tests/test_qe_polynomial_reconstruction.py::test_polynomial_sign_reconstruction_preserves_asymmetric_ray", "tests/test_qe_polynomial_reconstruction.py::test_projection_recovers_single_polynomial_sign_relation", "tests/test_topology_symbols_and_exact_bounds.py::test_projection_resolves_string_variable_against_contextual_symbol"]
 [apis."semialgebraic_projection".evidence."round-trip"]
 tests = ["tests/test_qe_polynomial_reconstruction.py::test_polynomial_sign_reconstruction_preserves_asymmetric_ray", "tests/test_qe_polynomial_reconstruction.py::test_projection_recovers_single_polynomial_sign_relation"]
 
@@ -2673,7 +2913,7 @@ missing = []
 [apis."semialgebraic_tangent_cone".evidence."independent-semantic"]
 tests = ["tests/test_root_api_multidimensional_geometry.py::test_semialgebraic_tangent_cone_of_halfline_is_itself"]
 [apis."semialgebraic_tangent_cone".evidence."nominal"]
-tests = ["tests/test_root_api_multidimensional_geometry.py::test_semialgebraic_tangent_cone_of_halfline_is_itself", "tests/test_semialgebraic_local_geometry.py::test_semialgebraic_tangent_cone_halfline", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls", "tests/test_root_api_multidimensional_geometry.py::test_semialgebraic_tangent_cone_of_halfline_is_itself", "tests/test_semialgebraic_local_geometry.py::test_semialgebraic_tangent_cone_halfline"]
 
 [apis."sign_at"]
 owner = "solving"
@@ -2862,7 +3102,7 @@ tests = ["tests/test_stratified_singular_geometry.py::test_crossing_lines_are_co
 [apis."stratified_singular_geometry".evidence."negative"]
 tests = ["tests/test_stratified_singular_geometry.py::test_crossing_lines_are_component_intersection_not_intrinsic_singularities"]
 [apis."stratified_singular_geometry".evidence."nominal"]
-tests = ["tests/test_stratified_singular_geometry.py::test_crossing_lines_are_component_intersection_not_intrinsic_singularities", "tests/test_stratified_singular_geometry.py::test_nonradical_input_is_reduced_before_stratification", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls", "tests/test_stratified_singular_geometry.py::test_crossing_lines_are_component_intersection_not_intrinsic_singularities", "tests/test_stratified_singular_geometry.py::test_nonradical_input_is_reduced_before_stratification"]
 
 [apis."strict_feasible"]
 owner = "function-analysis"
@@ -2874,6 +3114,17 @@ missing = []
 tests = ["tests/test_function_convexity_backend_primitives.py::test_relative_strict_feasibility_preserves_affine_hull_equalities", "tests/test_public_api_medium_risk_contracts.py::test_affine_relative_interior_and_strict_feasibility_share_the_hull"]
 [apis."strict_feasible".evidence."nominal"]
 tests = ["tests/test_function_convexity_backend_primitives.py::test_relative_feasibility_preserves_hull_equality", "tests/test_function_convexity_backend_primitives.py::test_relative_strict_feasibility_preserves_affine_hull_equalities", "tests/test_public_api_medium_risk_contracts.py::test_affine_relative_interior_and_strict_feasibility_share_the_hull"]
+
+[apis."structured_proof_diagnostics"]
+owner = "geometry"
+risk = "high"
+status = "needs-deepening"
+dimensions = ["negative", "nominal"]
+missing = ["an independent, boundary, failure, or parameter-sensitive detector"]
+[apis."structured_proof_diagnostics".evidence."negative"]
+tests = ["tests/test_local_approach_geometry_contracts.py::test_structured_diagnostics_do_not_truth_test_symbolic_metadata"]
+[apis."structured_proof_diagnostics".evidence."nominal"]
+tests = ["tests/test_limit_support_geometry.py::test_angular_map_image_keeps_coordinate_correlation", "tests/test_limit_support_geometry_contracts.py::test_angular_image_sphere_constraint_changes_attainable_set", "tests/test_limit_support_geometry_contracts.py::test_structured_diagnostics_is_stable_and_deduplicates_steps", "tests/test_local_approach_geometry_contracts.py::test_structured_diagnostics_do_not_truth_test_symbolic_metadata", "tests/test_local_approach_geometry_contracts.py::test_structured_diagnostics_recognize_critical_value_set_metadata"]
 
 [apis."subdivide_triangular_faces"]
 owner = "geometry"
@@ -2924,7 +3175,7 @@ tests = ["tests/test_derived_geometry_identities.py::test_support_function_trans
 tests = ["tests/test_derived_geometric_operations.py::test_coordinate_range_diameter_nearest_and_support_operations", "tests/test_derived_geometry_identities.py::test_minkowski_support_function_identity_for_intervals", "tests/test_derived_geometry_identities.py::test_support_function_translation_identity", "tests/test_derived_geometry_identities.py::test_width_equals_two_sided_support_sum"]
 
 [apis."tangent_cone"]
-owner = "geometry"
+owner = "algebraic"
 risk = "high"
 status = "adequate"
 dimensions = ["independent-oracle", "negative", "nominal", "parameter-regime"]
@@ -2954,7 +3205,7 @@ tests = ["tests/test_root_api_multidimensional_geometry.py::test_tangent_dimensi
 tests = ["tests/test_algebraic_geometry_conveniences.py::test_smoothness_and_point_singularity_conveniences", "tests/test_public_api_high_risk_contracts.py::test_singularity_tangent_and_thom_contracts", "tests/test_root_api_multidimensional_geometry.py::test_tangent_dimension_matches_line_and_plane_dimensions"]
 
 [apis."tangent_space"]
-owner = "geometry"
+owner = "algebraic"
 risk = "high"
 status = "adequate"
 dimensions = ["independent-oracle", "negative", "nominal", "parameter-regime"]
@@ -3033,20 +3284,29 @@ tests = ["tests/test_root_api_semantic_contracts.py::test_triangulate_polytope_p
 [apis."triangulate_polytope".evidence."nominal"]
 tests = ["tests/test_geometry_conversion_decomposition.py::test_p5_strategies_and_targets", "tests/test_polytope_geometry.py::test_placing_and_barycentric_available", "tests/test_polytope_geometry.py::test_pulling_cube_is_exact_tetrahedralization", "tests/test_polytope_geometry.py::test_simplex_pulling_is_one_simplex", "tests/test_polytope_geometry.py::test_square_pyramid_pulling_has_two_tetrahedra", "tests/test_polytope_geometry.py::test_triangular_prism_pulling_has_three_tetrahedra", "tests/test_root_api_semantic_contracts.py::test_triangulate_polytope_preserves_square_area_oracle"]
 
-[apis."verify_nonnegative_combination_certificate"]
+[apis."vanishing_order"]
+owner = "geometry"
+risk = "high"
+status = "needs-deepening"
+dimensions = ["nominal"]
+missing = ["a second semantic dimension", "an independent, boundary, failure, or parameter-sensitive detector"]
+[apis."vanishing_order".evidence."nominal"]
+tests = ["tests/test_asymptotic_local_geometry_contract.py::test_cusp_geometry_for_asymptotic_consumer", "tests/test_asymptotic_local_geometry_contract.py::test_local_geometry_root_api_regression_contracts", "tests/test_local_asymptotic_geometry.py::test_curve_selection_and_orders"]
+
+[apis."verify_nonnegative_certificate"]
 owner = "geometry"
 risk = "high"
 status = "adequate"
 dimensions = ["certificate", "invalid-failure", "negative", "nominal"]
 missing = []
-[apis."verify_nonnegative_combination_certificate".evidence."certificate"]
+[apis."verify_nonnegative_certificate".evidence."certificate"]
 tests = ["tests/test_constraint_certificates.py::test_certificate_verifiers_reject_wrong_payload_types", "tests/test_constraint_certificates.py::test_nonnegative_combination", "tests/test_constraint_certificates.py::test_nonnegative_combination_verifier_rejects_malformed_typed_payloads"]
-[apis."verify_nonnegative_combination_certificate".evidence."invalid-failure"]
+[apis."verify_nonnegative_certificate".evidence."invalid-failure"]
 tests = ["tests/test_constraint_certificates.py::test_certificate_verifiers_reject_wrong_payload_types", "tests/test_constraint_certificates.py::test_nonnegative_combination_verifier_rejects_malformed_typed_payloads"]
-[apis."verify_nonnegative_combination_certificate".evidence."negative"]
+[apis."verify_nonnegative_certificate".evidence."negative"]
 tests = ["tests/test_constraint_certificates.py::test_nonnegative_combination", "tests/test_constraint_certificates.py::test_nonnegative_combination_verifier_rejects_malformed_typed_payloads"]
-[apis."verify_nonnegative_combination_certificate".evidence."nominal"]
-tests = ["tests/test_constraint_certificates.py::test_certificate_verifiers_reject_wrong_payload_types", "tests/test_constraint_certificates.py::test_nonnegative_combination", "tests/test_constraint_certificates.py::test_nonnegative_combination_verifier_rejects_malformed_typed_payloads", "tests/test_unified_public_api_secondary_evidence.py::test_semialgebraic_constraint_secondary_calls"]
+[apis."verify_nonnegative_certificate".evidence."nominal"]
+tests = ["tests/test_constraint_certificates.py::test_certificate_verifiers_reject_wrong_payload_types", "tests/test_constraint_certificates.py::test_nonnegative_combination", "tests/test_constraint_certificates.py::test_nonnegative_combination_verifier_rejects_malformed_typed_payloads", "tests/test_public_api_behavioral_evidence.py::test_semialgebraic_constraint_secondary_calls"]
 
 [apis."width"]
 owner = "geometry"
@@ -3070,7 +3330,7 @@ tests = ["tests/test_root_api_semantic_contracts.py::test_zariski_closure_parabo
 [apis."zariski_closure".evidence."independent-oracle"]
 tests = ["tests/test_root_api_semantic_contracts.py::test_zariski_closure_parabola_matches_elimination_oracle"]
 [apis."zariski_closure".evidence."nominal"]
-tests = ["tests/test_polynomial_map_implicitization.py::test_dominant_polynomial_map_has_full_ambient_zariski_closure", "tests/test_polynomial_map_implicitization.py::test_zariski_closure_returns_exact_formula_and_metadata", "tests/test_root_api_semantic_contracts.py::test_zariski_closure_parabola_matches_elimination_oracle", "tests/test_unified_public_api_secondary_evidence.py::test_algebraic_statistics_secondary_calls"]
+tests = ["tests/test_polynomial_map_implicitization.py::test_dominant_polynomial_map_has_full_ambient_zariski_closure", "tests/test_polynomial_map_implicitization.py::test_zariski_closure_returns_exact_formula_and_metadata", "tests/test_public_api_behavioral_evidence.py::test_algebraic_statistics_secondary_calls", "tests/test_root_api_semantic_contracts.py::test_zariski_closure_parabola_matches_elimination_oracle"]
 
 [apis."zeng_negative_point"]
 owner = "geometry"

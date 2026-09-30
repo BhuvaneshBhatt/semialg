@@ -46,6 +46,8 @@ nav:
           - Symbol handling: guides/symbol_handling.md
           - Region representations: guides/region_representations.md
           - Region invariants: guides/region_invariants.md
+          - Approach and local geometry: guides/approach_and_local_geometry.md
+          - Local geometry for asymptotics: guides/local-asymptotic-geometry.md
           - Reuse one CAD: guides/cad_reuse.md
           - Exact versus numerical regions: guides/exact_vs_numerical_regions.md
           - Certified algebraic roots: guides/certified_algebraic_roots.md
@@ -80,25 +82,29 @@ nav:
       - Factorized and partial CAD: tutorials/cad_factorized_partial.md
   - Applications: applications.md
   - Benchmarks: benchmarks.md
+  - Performance research: performance-research.md
   - Limitations: limitations.md
   - Known issues: known_issues.md
   - Changelog: changelog.md
   - References: references.md
   - Quality:
+      - Testing philosophy: quality/testing_philosophy.md
       - Decision contracts: quality/decision_contracts.md
       - Certified zero/equality boundary: quality/certified_decisions.md
       - Robustness: quality/robustness.md
+      - Local geometry audit: quality/local_geometry_semantics.md
+      - Documentation consistency audit: quality/documentation_consistency.md
       - Reference regression suite: quality/reference_regression_suite.md
       - Region testing strategy: quality/region_testing.md
       - Region capability matrix: quality/region_capability_matrix.md
       - Certificate matrix: quality/certificate_matrix.md
       - Public API testing: quality/public_api_testing.md
-      - Root API adequacy audit: quality/root-api-adequacy.md
-      - Multidimensional root API testing: quality/root-api-multidimensional-testing.md
-      - Root API documentation adequacy: quality/root-api-documentation-adequacy.md
-      - Root API test adequacy: quality/root-api-test-adequacy.md
-      - No-backward-compatibility audit: quality/no-compatibility-audit.md
-      - Coverage measurements: quality/coverage_measurements.md
+      - Generated audit reports:
+          - Root API adequacy: quality/root-api-adequacy.md
+          - Multidimensional root API testing: quality/root-api-multidimensional-testing.md
+          - Documentation adequacy: quality/root-api-documentation-adequacy.md
+          - Test adequacy: quality/root-api-test-adequacy.md
+          - Coverage measurements: quality/coverage_measurements.md
   - Architecture:
       - Ownership: architecture/ownership.md
       - Region computation: architecture/region_computation.md

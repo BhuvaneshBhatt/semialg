@@ -55,11 +55,11 @@ def test_segment_counterexample_certificate_replays_from_returned_witness():
 
 
 def test_rur_points_replay_against_original_polynomial_system():
-    from semialg.algebraic.rational_univariate import solve_zero_dimensional_system_with_rur
+    from semialg.algebraic.rational_univariate import solve_with_rur
 
     x, y = sp.symbols("x y", real=True)
     system = (x**2 + y**2 - 1, x - y)
-    points = solve_zero_dimensional_system_with_rur(system, (x, y), real=True)
+    points = solve_with_rur(system, (x, y), real=True)
     assert points
     for point in points:
         assignment = dict(zip((x, y), point, strict=True))

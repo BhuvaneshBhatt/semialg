@@ -1,6 +1,6 @@
 # Limitations
 
-`semialg` is conservative by design. Exact APIs should return certified results for supported cases and decline unsupported or uncertifiable cases rather than silently promote a fixed-precision approximation into an exact symbolic claim.
+`semialg` is conservative by design. Exact APIs should return certified results for supported cases and decline unsupported or uncertifiable cases instead of without reporting promote a fixed-precision approximation into an exact symbolic claim.
 
 ## Fundamental computational limits
 
@@ -28,7 +28,7 @@ An exact result may remain a quantified first-order relation. Quantifier-free pr
 
 ## Intrinsic integration
 
-Regular triangular CAD graph strata can be integrated with the induced Hausdorff metric, and disjoint regular CAD cells are summed as a multi-chart intrinsic decomposition. General singular/non-graph stratification, overlapping chart covers, and arbitrary singular manifolds remain incomplete. Uncertified algebraic sections are not silently treated as regular.
+Regular triangular CAD graph strata can be integrated with the induced Hausdorff metric, and disjoint regular CAD cells are summed as a multi-chart intrinsic decomposition. General singular/non-graph stratification, overlapping chart covers, and arbitrary singular manifolds remain incomplete. Uncertified algebraic sections are not without reporting treated as regular.
 
 ## Formula simplification
 
@@ -74,7 +74,7 @@ The remaining limitations fall into different categories and should not be inter
 | Semialgebraic function graph coverage | Missing implementation | Actively extensible. Current exact coverage includes nested rational/algebraic graphs, `Abs`, `sign`, `Heaviside`, `Min`, `Max`, finite `Piecewise`, real `re`/`im`/`conjugate` wrappers, and broader Boolean formula composition. |
 | Parameterized real-root counts above quartic | Engineering/algorithmic | Improved: general subresultant/Sturm sign stratification is available, with conservative fallback when exact CAD construction fails. |
 | Closed-form antiderivatives after exact geometric decomposition | External symbolic-integration limitation | Exact geometry can be retained even when presentation as an elementary closed form fails; broader exact-unevaluated and certified-numerical result modes are feasible extensions. |
-| Positive-dimensional critical-value images | Partial implementation | `critical_value_image` reuses exact function-range/image-CAD analysis on supported projected KKT and singular loci. Unsupported components are conservatively omitted rather than approximated. |
+| Positive-dimensional critical-value images | Partial implementation | `critical_value_image` reuses exact function-range/image-CAD analysis on supported projected KKT and singular loci. Unsupported components are conservatively omitted instead of approximated. |
 | Corners/nonsmooth boundary strata | Partial implementation | `region_nonsmooth_locus` detects algebraic singularities plus transverse corners/ridges, and `region_active_boundary_strata` classifies active inequality sets. Full Whitney/regular stratification remains open. |
 | Betti numbers/homology | Partial | `b0` is exact generally; compact one-dimensional sets have exact `b1`; and certified triangulations now provide all Betti numbers through exact rational boundary matrices. General curved higher-dimensional sets still need broader certified triangulation/cellular incidence. |
 | Globally minimal formula representation | Fundamental/representation-dependent | Local deterministic simplification can improve, but no globally minimal representation is promised. |
@@ -86,7 +86,7 @@ intervals, boxes, simplices, polygons, polyhedra, parallelograms,
 parallelepipeds, and bounded `ParametricRegion` objects. A formula region needs
 explicit finite clipping bounds to obtain an identity-chart cover without CAD.
 If parameter-domain dimension or map rank is not certified uniformly, dimension
-queries fall back to the complete CAD implementation rather than using a
+queries fall back to the complete CAD implementation instead of using a
 generic rank as a universal statement.
 
 `parametric_map_degree` is the generic complex algebraic degree of a rational
@@ -97,3 +97,8 @@ intrinsic-integration code.
 Affine box clipping is restricted to one- and two-dimensional
 affine subspaces. General polyhedral intersections continue to use the ordinary
 region/CAD machinery.
+
+
+## Fast-path scope
+
+Specialized decision routes are exact but fragment-specific. Boolean skeleton reasoning uses only propositional relationships between identical or complementary relational atoms; it does not infer polynomial consequences. Linear, univariate, finite-system, and geometric specialists likewise run only when their preconditions are certified. Problems outside those fragments continue to CAD/QE, so a missed fast path affects performance, not correctness.

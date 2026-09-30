@@ -10,7 +10,7 @@ from ..algebraic.groebner_utils import compute_groebner_basis
 from ..algebraic.rational_univariate import (
     FilteredRationalUnivariateSolutions,
     RationalUnivariateError,
-    solve_and_filter_zero_dimensional_system_with_rur,
+    solve_and_filter_with_rur,
 )
 from ..dimension_validation import assignments_from_points
 
@@ -172,15 +172,13 @@ def solve_zero_dimensional_system(
                     ideal_analysis=analysis,
                 )
                 return result if return_result else result.points
-            filtered: FilteredRationalUnivariateSolutions = (
-                solve_and_filter_zero_dimensional_system_with_rur(
-                    equation_tuple,
-                    variable_tuple,
-                    simplified_constraints,
-                    real=real,
-                    parameter=parameter,
-                    max_separating_attempts=max_separating_attempts,
-                )
+            filtered: FilteredRationalUnivariateSolutions = solve_and_filter_with_rur(
+                equation_tuple,
+                variable_tuple,
+                simplified_constraints,
+                real=real,
+                parameter=parameter,
+                max_separating_attempts=max_separating_attempts,
             )
             result = ZeroDimensionalSolveResult(
                 variables=variable_tuple,

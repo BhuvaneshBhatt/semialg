@@ -504,7 +504,7 @@ def _reduce_axis_aligned_ellipse(
     )
 
 
-def _integrate_axis_aligned_ellipse_polynomial(
+def _integrate_axis_aligned_ellipse(
     integrand: sp.Expr,
     condition: sp.Expr,
     x: sp.Symbol,

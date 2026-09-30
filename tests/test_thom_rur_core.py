@@ -3,7 +3,7 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg.algebraic import (
-    compute_rational_univariate_representation,
+    compute_rur,
     sign_conditions_at_rur_points,
     solve_rur_points,
     thom_encoding,
@@ -35,7 +35,7 @@ def test_thom_sign_determination_at_algebraic_root():
 
 def test_rur_points_carry_thom_root_certificates():
     x, y = sp.symbols("x y", real=True)
-    representation = compute_rational_univariate_representation([x**2 - 2, y - x], (x, y))
+    representation = compute_rur([x**2 - 2, y - x], (x, y))
     points = solve_rur_points(representation)
 
     assert tuple(point.coordinates for point in points) == (
@@ -48,7 +48,7 @@ def test_rur_points_carry_thom_root_certificates():
 
 def test_rur_sign_conditions_share_univariate_certificate():
     x, y = sp.symbols("x y", real=True)
-    representation = compute_rational_univariate_representation([x**2 - 2, y - x], (x, y))
+    representation = compute_rur([x**2 - 2, y - x], (x, y))
     points = solve_rur_points(representation)
 
     signs = sign_conditions_at_rur_points((x, y, x + y, x**2 - 2), points)

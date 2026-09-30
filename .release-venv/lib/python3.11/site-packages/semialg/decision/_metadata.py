@@ -198,9 +198,9 @@ def _update_from_vertical_cells(
         return
     cells_all: tuple[object, ...] = ()
     try:
-        from ..implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+        from ..implicit_geometry import cylindrical_vertical_bounds_2d
 
-        cells_all = tuple(decompose_cylindrical_formula_to_vertical_bounds_2d(formula, variables))
+        cells_all = tuple(cylindrical_vertical_bounds_2d(formula, variables))
     except _RECOVERABLE_ERRORS:
         try:
             from ..cad_algorithms.cells import extract_vertical_bounds_from_cad_2d

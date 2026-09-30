@@ -39,8 +39,10 @@ except Exception as e:
     if e.__class__.__name__ == "DebuggerInitializationError":
         _is_debugpy_available = False
     else:
-        raise e
+        raise
 
+if t.TYPE_CHECKING:
+    from IPython.core.interactiveshell import InteractiveShell
 
 # Required for backwards compatibility
 ROUTING_ID = getattr(zmq, "ROUTING_ID", None) or zmq.IDENTITY
@@ -88,7 +90,7 @@ class VariableExplorer:
 
     def track(self):
         """Start tracking."""
-        var = get_ipython().user_ns
+        var = t.cast("InteractiveShell", get_ipython()).user_ns
         self.frame = _FakeFrame(_FakeCode("<module>", get_file_name("sys._getframe()")), var, var)
         self.tracker.track("thread1", pydevd_frame_utils.create_frames_list_from_frame(self.frame))
 
@@ -426,7 +428,7 @@ class Debugger:
         if not self.debugpy_initialized:
             tmp_dir = get_tmp_directory()
             if not Path(tmp_dir).exists():
-                Path(tmp_dir).mkdir(parents=True)
+                Path(tmp_dir).mkdir(mode=0o700, parents=True)
             host, port = self.debugpy_client.get_host_port()
             code = "import debugpy;"
             code += 'debugpy.listen(("' + host + '",' + port + "))"
@@ -443,7 +445,8 @@ class Debugger:
             self.debugpy_initialized = msg["content"]["status"] == "ok"
 
         # Don't remove leading empty lines when debugging so the breakpoints are correctly positioned
-        cleanup_transforms = get_ipython().input_transformer_manager.cleanup_transforms
+        shell = t.cast("InteractiveShell", get_ipython())
+        cleanup_transforms = shell.input_transformer_manager.cleanup_transforms
         if leading_empty_lines in cleanup_transforms:
             index = cleanup_transforms.index(leading_empty_lines)
             self._removed_cleanup[index] = cleanup_transforms.pop(index)
@@ -456,7 +459,8 @@ class Debugger:
         self.debugpy_client.disconnect_tcp_socket()
 
         # Restore remove cleanup transformers
-        cleanup_transforms = get_ipython().input_transformer_manager.cleanup_transforms
+        shell = t.cast("InteractiveShell", get_ipython())
+        cleanup_transforms = shell.input_transformer_manager.cleanup_transforms
         for index in sorted(self._removed_cleanup):
             func = self._removed_cleanup.pop(index)
             cleanup_transforms.insert(index, func)
@@ -466,7 +470,7 @@ class Debugger:
         code = message["arguments"]["code"]
         file_name = get_file_name(code)
 
-        with open(file_name, "w", encoding="utf-8") as f:
+        with open(file_name, "w", encoding="utf-8") as f:  # noqa: ASYNC230
             f.write(code)
 
         return {
@@ -496,7 +500,7 @@ class Debugger:
         reply = {"type": "response", "request_seq": message["seq"], "command": message["command"]}
         source_path = message["arguments"]["source"]["path"]
         if Path(source_path).is_file():
-            with open(source_path, encoding="utf-8") as f:
+            with open(source_path, encoding="utf-8") as f:  # noqa: ASYNC230
                 reply["success"] = True
                 reply["body"] = {"content": f.read()}
         else:
@@ -641,7 +645,8 @@ class Debugger:
         if not self.stopped_threads:
             # The code did not hit a breakpoint, we use the interpreter
             # to get the rich representation of the variable
-            result = get_ipython().user_expressions({var_name: var_name})[var_name]
+            shell = t.cast("InteractiveShell", get_ipython())
+            result = shell.user_expressions({var_name: var_name})[var_name]
             if result.get("status", "error") == "ok":
                 repr_data = result.get("data", {})
                 repr_metadata = result.get("metadata", {})
@@ -675,6 +680,15 @@ class Debugger:
         dst_var_name = message["arguments"]["dstVariableName"]
         src_var_name = message["arguments"]["srcVariableName"]
         src_frame_id = message["arguments"]["srcFrameId"]
+
+        if not str.isidentifier(dst_var_name) or not str.isidentifier(src_var_name):
+            return {
+                "type": "response",
+                "request_seq": message["seq"],
+                "success": False,
+                "command": message["command"],
+                "message": "dstVariableName and srcVariableName must be valid identifiers",
+            }
 
         expression = f"globals()['{dst_var_name}']"
         seq = message["seq"]

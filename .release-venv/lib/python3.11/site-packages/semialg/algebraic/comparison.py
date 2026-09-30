@@ -867,7 +867,7 @@ def _linear_common_factor_zero_at_root(
     return False
 
 
-def _higher_degree_common_factor_positive_at_root(
+def _common_factor_positive_at_root(
     context, certificate: FiberCommonFactorCertificate, root: AlgebraicRoot
 ) -> bool | None:
     """Return True from a direct degree-2/3 sign-change certificate.
@@ -936,7 +936,7 @@ def _common_factor_zero_at_rank(
     # root_count path.  Only repeated degree-2/3 scans pay for direct endpoint
     # signs, where those signs are shared by adjacent ranked intervals.
     if len(partial) >= 2 and degree in (2, 3):
-        direct = _higher_degree_common_factor_positive_at_root(context, certificate, root)
+        direct = _common_factor_positive_at_root(context, certificate, root)
         if direct:
             partial[root.root_index] = True
             members = frozenset(index for index, value in partial.items() if value)

@@ -125,4 +125,4 @@ f(x)\ge m\quad\text{for all }x\in S
 
 is itself a quantified semialgebraic assertion. KKT systems, discriminants, algebraic critical points, CAD, and exact range computation provide complementary methods for proving such statements.
 
-Algebraic positivity certificates such as Positivstellensatz representations form another major branch of the theory. `semialg` emphasizes exact decision/CAD and structural optimization certificates rather than a full sums-of-squares/Positivstellensatz engine.
+Algebraic positivity certificates such as Positivstellensatz representations form another major branch of the theory. `semialg` emphasizes exact decision/CAD and structural optimization certificates instead of a full sums-of-squares/Positivstellensatz engine.

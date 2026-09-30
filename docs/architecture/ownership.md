@@ -1,6 +1,6 @@
 # Architecture and API ownership
 
-`semialg` is organized by mathematical ownership rather than by the history of individual algorithms.  New code should extend the narrowest owning subsystem and should not create a second implementation of an existing mathematical decision.
+`semialg` is organized by mathematical ownership instead of by the history of individual algorithms.  New code should extend the narrowest owning subsystem and should not create a second implementation of an existing mathematical decision.
 
 | Subsystem | Ownership |
 |---|---|
@@ -33,6 +33,6 @@ recursion, root isolation/refinement, or Macaulay realization.
 
 ### Exact algebra implementation boundaries
 
-The large exact-algebra modules use semantic ownership rather than size-based splitting. Function-field representation/arithmetic remains in `algebraic_function_fields`, univariate factorization lives in `_function_field_factorization`, and primitive-element realization plus replay lives in `_function_field_compression`. Modular Gröbner realization remains in `algebraic.modular`, resultant/subresultant realization lives in `_modular_resultants`, and certificate replay lives in `_modular_certification`. GTZ recursion remains in `gtz_primary` while replay/schema validation lives in `_gtz_primary_certification`. Root isolation/refinement remains in `roots`; root-interval certificate construction/replay lives in `_root_certification`.
+The large exact-algebra modules use semantic ownership instead of size-based splitting. Function-field representation/arithmetic remains in `algebraic_function_fields`, univariate factorization lives in `_function_field_factorization`, and primitive-element realization plus replay lives in `_function_field_compression`. Modular Gröbner realization remains in `algebraic.modular`, resultant/subresultant realization lives in `_modular_resultants`, and certificate replay lives in `_modular_certification`. GTZ recursion remains in `gtz_primary` while replay/schema validation lives in `_gtz_primary_certification`. Root isolation/refinement remains in `roots`; root-interval certificate construction/replay lives in `_root_certification`.
 
-These boundaries use direct function re-exports rather than forwarding wrappers, so the split does not add calls inside computational loops.
+These boundaries use direct function re-exports instead of forwarding wrappers, so the split does not add calls inside computational loops.

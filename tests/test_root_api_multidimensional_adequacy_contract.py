@@ -45,7 +45,7 @@ def _test_directly_calls(ref: str, api: str) -> bool:
     return False
 
 
-def test_multidimensional_registry_covers_all_previously_minimum_depth_apis():
+def test_multidimensional_registry_covers_required_apis():
     registry = _registry()
     assert len(registry) == 79
     for api, item in registry.items():

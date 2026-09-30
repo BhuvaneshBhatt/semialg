@@ -45,7 +45,7 @@ Parameter APIs resolve string parameter names against the actual expression symb
 
 ## Bounds must name declared variables
 
-Shared bound normalization rejects a bound whose key does not resolve to a declared variable. This catches misspellings and accidental extra symbols instead of silently ignoring them.
+Shared bound normalization rejects a bound whose key does not resolve to a declared variable. This catches misspellings and accidental extra symbols instead of without reporting ignoring them.
 
 ```python
 # Conceptually invalid: y is not one of the declared integration variables.
@@ -54,7 +54,7 @@ Shared bound normalization rejects a bound whose key does not resolve to a decla
 
 ## Do not compare formulas by printed text
 
-Two expresssions can print the same while containing assumption-distinct symbols. semialg's decision APIs use symbolic identity and exact decision procedures rather than `str()`/`sstr()` equality as proof of equivalence.
+Two expresssions can print the same while containing assumption-distinct symbols. semialg's decision APIs use symbolic identity and exact decision procedures instead of `str()`/`sstr()` equality as proof of equivalence.
 
 ## Recommended practice
 
@@ -62,3 +62,26 @@ Two expresssions can print the same while containing assumption-distinct symbols
 - Use strings for convenience only when names are unambiguous.
 - Pass exact `Symbol` objects in reusable libraries or parameterized code.
 - Keep assumptions intentional and consistent.
+
+
+## Symbol assumptions and witnesses
+
+Sign assumptions carried by public SymPy symbols are part of the real solving
+contract.  `find_instance` lowers assumptions such as `positive`, `negative`,
+`nonnegative`, `nonpositive`, and `nonzero` to explicit constraints on
+assumption-neutral internal coordinates.  Returned witnesses are therefore
+checked against both the requested formula and the supplied symbols' sign
+domains.
+
+```python
+import sympy as sp
+from semialg import find_instance
+
+x = sp.Symbol("x", positive=True)
+point = find_instance(sp.true, (x,))
+assert point[x] > 0
+```
+
+This matters when SymPy has already simplified an assumption-implied relation:
+the solver does not treat the disappearance of that relation from the formula
+as permission to ignore the symbol's domain.

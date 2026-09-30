@@ -44,11 +44,19 @@ def choose_sector_sample(left: Sample | None, right: Sample | None) -> RationalS
     cache_key = ("sector-between", sample_identity_key(left), sample_identity_key(right))
     separator = CACHE.sector_separators.get(cache_key)
     if separator is not None:
-        return RationalSample(separator)
+        candidate = RationalSample(separator)
+        from .comparison import compare_samples
+
+        if compare_samples(left, candidate) < 0 and compare_samples(candidate, right) < 0:
+            return candidate
     cached = CACHE.specializations.get(cache_key)
     if cached is not None:
-        CACHE.stats.specialization_hits += 1
-        return RationalSample(cached)
+        candidate = RationalSample(cached)
+        from .comparison import compare_samples
+
+        if compare_samples(left, candidate) < 0 and compare_samples(candidate, right) < 0:
+            CACHE.stats.specialization_hits += 1
+            return candidate
     CACHE.stats.specialization_misses += 1
     # Overlapping isolating intervals can occur before refinement.  Delegate
     # exact separation to the shared certified-root facility so CAD lifting,

@@ -13,13 +13,13 @@ from semialg.algebraic import (
     certify_polynomial_root_interval,
     modular_groebner_basis_qq,
     verify_modular_groebner_certificate,
-    verify_polynomial_root_interval_certificate,
+    verify_root_interval_certificate,
 )
 from semialg.algebraic.gtz import (
     certified_independent_localization,
     saturation_stabilization,
-    verify_independent_localization_certificate,
-    verify_saturation_stabilization_certificate,
+    verify_localization_certificate,
+    verify_saturation_certificate,
 )
 from semialg.cache_control import clear_caches
 from semialg.polyhedral import HRepresentation, verify_h_redundancy_certificate
@@ -30,7 +30,7 @@ from ._certificate_mutation import assert_certificate_fields_reject_mutation
 def _root_case():
     x = sp.Symbol("x")
     certificate = certify_polynomial_root_interval((x**2 - 2) * (x - 3), -2, 2, var=x)
-    return certificate, verify_polynomial_root_interval_certificate
+    return certificate, verify_root_interval_certificate
 
 
 def _modular_case():
@@ -43,13 +43,13 @@ def _modular_case():
 def _localization_case():
     x, y = sp.symbols("x y")
     result = certified_independent_localization((x * y,), (x, y))
-    return result.certificate, verify_independent_localization_certificate
+    return result.certificate, verify_localization_certificate
 
 
 def _saturation_case():
     x, y = sp.symbols("x y")
     result = saturation_stabilization((x * y,), x, (x, y))
-    return result.certificate, verify_saturation_stabilization_certificate
+    return result.certificate, verify_saturation_certificate
 
 
 @pytest.mark.parametrize(
@@ -72,7 +72,7 @@ def test_root_interval_certificate_rejects_every_proof_field_mutation():
     certificate, _ = _root_case()
 
     def verifier(candidate):
-        return verify_polynomial_root_interval_certificate(
+        return verify_root_interval_certificate(
             candidate,
             polynomial=certificate.polynomial,
             var=certificate.polynomial.gens[0],
@@ -89,10 +89,10 @@ def test_root_interval_replay_binds_polynomial_variable_and_endpoint_semantics()
     x, y = sp.symbols("x y")
     certificate = certify_polynomial_root_interval(x**2 - 2, 0, 2, var=x)
 
-    assert verify_polynomial_root_interval_certificate(certificate)
-    assert not verify_polynomial_root_interval_certificate(certificate, var=y)
-    assert not verify_polynomial_root_interval_certificate(certificate, polynomial=x**2 - 3, var=x)
-    assert not verify_polynomial_root_interval_certificate(
+    assert verify_root_interval_certificate(certificate)
+    assert not verify_root_interval_certificate(certificate, var=y)
+    assert not verify_root_interval_certificate(certificate, polynomial=x**2 - 3, var=x)
+    assert not verify_root_interval_certificate(
         replace(certificate, include_left=not certificate.include_left),
         include_left=certificate.include_left,
     )
@@ -129,6 +129,7 @@ def test_every_public_certificate_type_has_an_explicit_replay_policy():
         "GTZNodeCertificate": "nested-gtz",
         "GTZPrimaryDecompositionCertificate": "standalone",
         "IndependentLocalizationCertificate": "standalone",
+        "LocalBoundCertificate": "standalone",
         "LocalizationContractionCertificate": "standalone",
         "ModularFractionFieldGroebnerCertificate": "standalone",
         "ModularGroebnerCertificate": "standalone",

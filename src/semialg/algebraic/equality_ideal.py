@@ -530,12 +530,10 @@ class EqualityIdealContext:
 
         if not self.zero_dimensional:
             raise ValueError("zero-dimensional filtering requires a finite equality variety")
-        from .rational_univariate import solve_and_filter_zero_dimensional_system_with_rur
+        from .rational_univariate import solve_and_filter_with_rur
 
         simplified = self.simplify_constraints(constraints)
-        filtered = solve_and_filter_zero_dimensional_system_with_rur(
-            self.generators, self.variables, simplified, real=True
-        )
+        filtered = solve_and_filter_with_rur(self.generators, self.variables, simplified, real=True)
         return ZeroDimensionalFilterResult(
             variables=self.variables,
             points=filtered.points,

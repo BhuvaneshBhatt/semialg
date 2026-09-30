@@ -9,7 +9,7 @@ This page is the practical bridge between the conceptual and reference documenta
 
 ## First-class quantified expressions
 
-For programmatic formulas, prefer `Exists` and `ForAll` nodes rather than manually encoding quantifier-prefix tuples.
+For programmatic formulas, prefer `Exists` and `ForAll` nodes instead of manually encoding quantifier-prefix tuples.
 
 ```python
 import sympy as sp
@@ -31,7 +31,7 @@ Quadratic virtual substitution is an exact backend for the supported low-degree 
 
 ## Variable ordering
 
-CAD is highly order-sensitive. Automatic planning preserves quantifier-block semantics while reordering variables only where logically legal. Use `suggest_variable_order` / `suggest_cad_variable_order` for diagnostics rather than guessing an order solely from printed expression size.
+CAD is highly order-sensitive. Automatic planning preserves quantifier-block semantics while reordering variables only where logically legal. Use `suggest_variable_order` / `suggest_cad_variable_order` for diagnostics instead of guessing an order solely from printed expression size.
 
 ## Finite equality varieties
 
@@ -56,11 +56,11 @@ The specialized backend has an exact fallback contract: inability to certify a f
 
 ## Reduced projection and fallback
 
-The complete backend is Collins-style projection/lifting ([Collins1975](references.md), [ACM1984](references.md)): squarefree active polynomials project content, all coefficients, discriminants, and pairwise resultants. Reduced/equational-constraint paths are McCallum/Lazard/TTICAD-style accelerators ([McCallum1988](references.md), [Brown2001](references.md), [Lazard1994](references.md), [BDEMW2016](references.md)). They are used only when their logical and invariance requirements are established; otherwise the package falls back to the complete Collins-style path rather than treating a merely algebraic resultant as a logically necessary equality. See [Algorithm references](references.md#cylindrical-algebraic-decomposition) for the exact implementation mapping.
+The complete backend is Collins-style projection/lifting ([Collins1975](references.md), [ACM1984](references.md)): squarefree active polynomials project content, all coefficients, discriminants, and pairwise resultants. Reduced/equational-constraint paths are McCallum/Lazard/TTICAD-style accelerators ([McCallum1988](references.md), [Brown2001](references.md), [Lazard1994](references.md), [BDEMW2016](references.md)). They are used only when their logical and invariance requirements are established; otherwise the package falls back to the complete Collins-style path instead of treating a merely algebraic resultant as a logically necessary equality. See [Algorithm references](references.md#cylindrical-algebraic-decomposition) for the exact implementation mapping.
 
 ## Caching
 
-Exact computation contexts and bounded process-local caches reuse projection, root, sign, specialization, comparison, and RUR work. Cache identity uses structural SymPy/polynomial keys rather than string serialization.
+Exact computation contexts and bounded process-local caches reuse projection, root, sign, specialization, comparison, and RUR work. Cache identity uses structural SymPy/polynomial keys instead of string serialization.
 
 ## Exactness
 

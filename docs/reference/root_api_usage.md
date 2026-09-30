@@ -1,12 +1,12 @@
 # Root API usage and parameter semantics
 
-This page deepens the per-function reference for public APIs whose signatures carry non-obvious mathematical or algorithmic choices. It complements the family reference pages rather than replacing their derivations and background. Examples below are deliberately small and are drawn from calls exercised by the regression suite; they are intended to expose semantics, not to benchmark performance.
+This page deepens the per-function reference for public APIs whose signatures carry non-obvious mathematical or algorithmic choices. It complements the family reference pages instead of replacing their derivations and background. Examples below are explicitly small and are drawn from calls exercised by the regression suite; they are intended to expose semantics, not to benchmark performance.
 
-**Exactness and certification.** Unless an API explicitly documents approximate presentation or randomized candidate search, mathematical decisions are exact. Candidate witnesses/certificates are checked before they are allowed to establish a result; resource exhaustion or an unsupported path is not silently converted to `False`.
+**Exactness and certification.** Unless an API explicitly documents approximate presentation or randomized candidate search, mathematical decisions are exact. Candidate witnesses/certificates are checked before they are allowed to establish a result; resource exhaustion or an unsupported path is not without reporting converted to `False`.
 
 **Algorithm/backend.** `strategy`, `method`, ordering, and resource-control parameters select *how* semialg attempts a computation. They must not change the mathematical meaning of a completed certified result. Structured-result modes expose backend/status information when it matters.
 
-**Complexity and limitations.** CAD, quantifier elimination, exact optimization, topology, and algebraic decomposition can be intrinsically expensive. Resource guards may therefore produce an incomplete/unknown status or a documented exception. Geometry helpers also require compatible ambient variables and may decline unsupported symbolic cases rather than guess.
+**Complexity and limitations.** CAD, quantifier elimination, exact optimization, topology, and algebraic decomposition can be intrinsically expensive. Resource guards may therefore produce an incomplete/unknown status or a documented exception. Geometry helpers also require compatible ambient variables and may decline unsupported symbolic cases instead of guess.
 
 ## real_algebraic_feasibility
 
@@ -30,7 +30,7 @@ Decide real algebraic feasibility.
 real_algebraic_feasibility((x**2 - 1,), (x,))
 ```
 
-This call is exercised by the regression contract “single answer decisions default to mathematical values”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “single answer decisions default to mathematical values”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## solve_real_algebraic_set
 
@@ -52,7 +52,7 @@ Return one exact real point, ``None`` for certified emptiness, or raise if incom
 solve_real_algebraic_set((x * y,), (x, y))
 ```
 
-This call is exercised by the regression contract “ars reducible positive dimensional set uses certified decomposition”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “ars reducible positive dimensional set uses certified decomposition”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## find_negative_witness_fast
 
@@ -75,7 +75,7 @@ Run cheap one-sided negative-witness strategies in deterministic order.
 find_negative_witness_fast(x**2 + y**2 - 2, (x, y))
 ```
 
-This call is exercised by the regression contract “fast witness search finds simple negative ray”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “fast witness search finds simple negative ray”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## find_negative_point
 
@@ -97,7 +97,7 @@ Return a certified negative point or ``None`` for certified nonnegativity.
 find_negative_point(x**2, (x,))
 ```
 
-This call is exercised by the regression contract “find negative point handles boundary minimum and certified absence”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “find negative point handles boundary minimum and certified absence”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polynomial_nonnegative
 
@@ -123,7 +123,7 @@ Decide certified global polynomial nonnegativity.
 polynomial_nonnegative(x**2 - 1, (x,))
 ```
 
-This call is exercised by the regression contract “polynomial nonnegative distinguishes global signs”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polynomial nonnegative distinguishes global signs”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## solvability_conditions
 
@@ -135,10 +135,10 @@ Return parameter conditions for real solvability of a constraint system.
 
 - `constraints` — Polynomial equalities/inequalities or a Boolean formula defining the feasible set.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
-- `return_stratified` — Request parameter-space strata rather than only their combined condition.
+- `return_stratified` — Request parameter-space strata instead of only their combined condition.
 
 **Result semantics.** The return contract is `sp.Expr | SolvabilityConditionsResult | ParameterStratifiedResult`; see the family reference for structured-result details and certification status.
 
@@ -148,7 +148,7 @@ Return parameter conditions for real solvability of a constraint system.
 solvability_conditions(x**2 + a < 0, [x], [a])
 ```
 
-This call is exercised by the regression contract “solvability conditions for strict negative quadratic parameter”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “solvability conditions for strict negative quadratic parameter”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## prove_zero
 
@@ -162,7 +162,7 @@ Return whether the expression is identically zero on the stated domain.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `strategy` — Algorithm-selection policy. Use the default automatic policy unless a specific exact backend is being tested or diagnosed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
 **Result semantics.** The return contract is `bool | SignProofResult | ParameterStratifiedResult`; see the family reference for structured-result details and certification status.
@@ -173,7 +173,7 @@ Return whether the expression is identically zero on the stated domain.
 semialg.prove_zero(x - x, [x])
 ```
 
-This call is exercised by the regression contract “sign primitives and parameter conditions”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “sign primitives and parameter conditions”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## prove_nonzero
 
@@ -187,7 +187,7 @@ Return whether the expression is everywhere nonzero on the stated domain.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `strategy` — Algorithm-selection policy. Use the default automatic policy unless a specific exact backend is being tested or diagnosed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
 **Result semantics.** The return contract is `bool | SignProofResult | ParameterStratifiedResult`; see the family reference for structured-result details and certification status.
@@ -198,7 +198,7 @@ Return whether the expression is everywhere nonzero on the stated domain.
 semialg.prove_nonzero(x**2 + 1, [x])
 ```
 
-This call is exercised by the regression contract “sign primitives and parameter conditions”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “sign primitives and parameter conditions”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## equivalent
 
@@ -223,7 +223,7 @@ Return whether two semialgebraic formulas define the same real set.
 equivalent(fm, cad, [y])
 ```
 
-This call is exercised by the regression contract “fourier motzkin matches complete qe on linear projection”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “fourier motzkin matches complete qe on linear projection”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## solve_semialgebraic
 
@@ -235,7 +235,7 @@ Reduce, sample, and summarize a semialgebraic system over the reals.
 
 - `constraints` — Polynomial equalities/inequalities or a Boolean formula defining the feasible set.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
 - `count` — Requested number of samples/solutions when the API supports bounded enumeration.
 - `samples` — Sampling request or sampling policy for the returned solution representation.
@@ -256,7 +256,7 @@ Reduce, sample, and summarize a semialgebraic system over the reals.
 solve_semialgebraic(x**2 <= 1, [x])
 ```
 
-This call is exercised by the regression contract “solve semialgebraic reduces univariate interval”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “solve semialgebraic reduces univariate interval”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## apply_quantifiers
 
@@ -277,7 +277,7 @@ Wrap ``formula`` in a prenex quantifier prefix.
 apply_quantifiers(matrix, prefix)
 ```
 
-This call is exercised by the regression contract “apply and split quantifiers round trip”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “apply and split quantifiers round trip”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## prove_negative
 
@@ -291,7 +291,7 @@ Return whether the expression is certified negative on the stated domain.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `strategy` — Algorithm-selection policy. Use the default automatic policy unless a specific exact backend is being tested or diagnosed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
 **Result semantics.** The return contract is `bool | SignProofResult | ParameterStratifiedResult`; see the family reference for structured-result details and certification status.
@@ -302,7 +302,7 @@ Return whether the expression is certified negative on the stated domain.
 prove_negative(-(x**2), [x])
 ```
 
-This call is exercised by the regression contract “boolean api preserved for sign provers”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “boolean api preserved for sign provers”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## prove_nonnegative
 
@@ -316,7 +316,7 @@ Return whether the expression is certified nonnegative on the stated domain.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `strategy` — Algorithm-selection policy. Use the default automatic policy unless a specific exact backend is being tested or diagnosed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
 **Result semantics.** The return contract is `bool | SignProofResult | ParameterStratifiedResult`; see the family reference for structured-result details and certification status.
@@ -327,7 +327,7 @@ Return whether the expression is certified nonnegative on the stated domain.
 prove_nonnegative(x**2, [x])
 ```
 
-This call is exercised by the regression contract “boolean api preserved for sign provers”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “boolean api preserved for sign provers”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## prove_nonpositive
 
@@ -341,7 +341,7 @@ Return whether the expression is certified nonpositive on the stated domain.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `strategy` — Algorithm-selection policy. Use the default automatic policy unless a specific exact backend is being tested or diagnosed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
 **Result semantics.** The return contract is `bool | SignProofResult | ParameterStratifiedResult`; see the family reference for structured-result details and certification status.
@@ -352,7 +352,7 @@ Return whether the expression is certified nonpositive on the stated domain.
 prove_nonpositive(-(x**2), [x])
 ```
 
-This call is exercised by the regression contract “inequality provers”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “inequality provers”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## prove_positive
 
@@ -366,7 +366,7 @@ Return whether the expression is certified positive on the stated domain.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `strategy` — Algorithm-selection policy. Use the default automatic policy unless a specific exact backend is being tested or diagnosed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
 **Result semantics.** The return contract is `bool | SignProofResult | ParameterStratifiedResult`; see the family reference for structured-result details and certification status.
@@ -377,7 +377,7 @@ Return whether the expression is certified positive on the stated domain.
 prove_positive(x**2, [x])
 ```
 
-This call is exercised by the regression contract “boolean api preserved for sign provers”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “boolean api preserved for sign provers”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## reduce_formula
 
@@ -402,7 +402,7 @@ Reduce a parsed real formula using the selected exact decision strategy.
 reduce_formula(true_existential)
 ```
 
-This call is exercised by the regression contract “reduce and resolve formula cover false universal and detailed result”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “reduce and resolve formula cover false universal and detailed result”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## resolve_formula
 
@@ -427,7 +427,7 @@ Resolve a parsed formula and return its exact solution representation.
 resolve_formula(false_universal)
 ```
 
-This call is exercised by the regression contract “reduce and resolve formula cover false universal and detailed result”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “reduce and resolve formula cover false universal and detailed result”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## cad
 
@@ -445,7 +445,7 @@ Compute a cylindrical algebraic decomposition for a real formula.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `max_cells` — Resource guard on CAD cell construction; hitting it must not be interpreted as a mathematical false result.
-- `timeout` — Optional resource time limit; exhaustion is reported as incomplete rather than silently certified.
+- `timeout` — Optional resource time limit; exhaustion is reported as incomplete instead of without reporting certified.
 - `diagnostics` — Whether to retain diagnostic information in structured results.
 - `strict` — Select strict failure behavior for incomplete/unsupported computation where the API provides it.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
@@ -461,7 +461,7 @@ Compute a cylindrical algebraic decomposition for a real formula.
 cad(formula, (X,))
 ```
 
-This call is exercised by the regression contract “unimplemented cad budgets are never silently ignored”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “unimplemented cad budgets are never without reporting ignored”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## implicitize_polynomial_map
 
@@ -472,12 +472,12 @@ Implicitize a polynomial map by exact Groebner elimination.
 **Parameter semantics.**
 
 - `mapping` — Polynomial or affine map whose image/local geometry is analyzed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `image_variables` — Coordinate symbols used for the image space.
 - `domain_equations` — Equations restricting the parameter/domain variety.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
-**Result semantics.** ``domain_equations`` may restrict the parameter space to an algebraic subvariety.  Inequalities are intentionally not accepted here: an arbitrary
+**Result semantics.** ``domain_equations`` may restrict the parameter space to an algebraic subvariety.  Inequalities are explicitly not accepted here: an arbitrary
 
 **Representative regression-backed call.**
 
@@ -485,7 +485,7 @@ Implicitize a polynomial map by exact Groebner elimination.
 implicitize_polynomial_map((sp.sin(t),), (t,))
 ```
 
-This call is exercised by the regression contract “nonpolynomial mapping is rejected”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “nonpolynomial mapping is rejected”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## minimal_prime_intersections
 
@@ -508,7 +508,7 @@ Return exact intersections among certified minimal-prime components.
 minimal_prime_intersections((x * y * z,), (x, y, z))
 ```
 
-This call is exercised by the regression contract “minimal prime intersections respect max order”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “minimal prime intersections respect max order”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## local_dimension_strata
 
@@ -530,7 +530,7 @@ Partition a reduced variety into constructible constant-local-dimension loci.
 semialg.local_dimension_strata((x * y,), (x, y))
 ```
 
-This call is exercised by the regression contract “algebraic statistics secondary calls”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “algebraic statistics secondary calls”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## local_branch_geometry
 
@@ -553,7 +553,7 @@ Return exact local branch geometry at a point of a reduced variety.
 local_branch_geometry((y**2,), {x: 0, y: 0}, (x, y))
 ```
 
-This call is exercised by the regression contract “nonradical presentation does not inflate local geometry”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “nonradical presentation does not inflate local geometry”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## stratified_singular_geometry
 
@@ -576,7 +576,7 @@ Return a certified stratified description of singular algebraic geometry.
 stratified_singular_geometry((x**2,), (x,))
 ```
 
-This call is exercised by the regression contract “nonradical input is reduced before stratification”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “nonradical input is reduced before stratification”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## certified_radicalization
 
@@ -590,7 +590,7 @@ Return a certified reduced presentation ``sqrt(<equations>)``.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `max_pieces` — Bound on decomposition pieces retained during the computation.
 
-**Result semantics.** The function refuses to return uncertified generators.  This makes the reduced ideal, rather than a possibly non-radical input presentation, the
+**Result semantics.** The function refuses to return uncertified generators.  This makes the reduced ideal, instead of a possibly non-radical input presentation, the
 
 **Representative regression-backed call.**
 
@@ -598,7 +598,7 @@ Return a certified reduced presentation ``sqrt(<equations>)``.
 certified_radicalization((x**2,), (x, y))
 ```
 
-This call is exercised by the regression contract “certified radicalization removes nilpotent multiplicity”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “certified radicalization removes nilpotent multiplicity”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## irreducible_components
 
@@ -620,7 +620,7 @@ Return all certified irreducible components of an affine variety.
 irreducible_components((x * y,), (x, y))
 ```
 
-This call is exercised by the regression contract “irreducible components ignore nonzero scalar and multiplicity”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “irreducible components ignore nonzero scalar and multiplicity”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## reduced_component_singular_loci
 
@@ -642,7 +642,7 @@ Return singular loci computed separately on certified reduced components.
 reduced_component_singular_loci((x**2 * y**2,), (x, y))
 ```
 
-This call is exercised by the regression contract “component crossing is not component singularity”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “component crossing is not component singularity”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## zariski_closure
 
@@ -653,7 +653,7 @@ Return the Zariski closure of a polynomial-map image.
 **Parameter semantics.**
 
 - `mapping` — Polynomial or affine map whose image/local geometry is analyzed.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `image_variables` — Coordinate symbols used for the image space.
 - `domain_equations` — Equations restricting the parameter/domain variety.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
@@ -666,7 +666,7 @@ Return the Zariski closure of a polynomial-map image.
 zariski_closure((s, t), (s, t), image_variables=(x, y))
 ```
 
-This call is exercised by the regression contract “dominant polynomial map has full ambient zariski closure”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “dominant polynomial map has full ambient zariski closure”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## classify_real_roots
 
@@ -678,7 +678,7 @@ Classify real roots of a univariate polynomial or polynomial family.
 
 - `polynomial` — Polynomial whose sign, geometry, or algebraic structure is requested.
 - `variable` — Single variable singled out for range/fiber/elimination analysis.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 
 **Result semantics.** The current public implementation is exact for unparameterized polynomials, complete for linear, quadratic, and cubic parameter families (including
 
@@ -688,7 +688,7 @@ Classify real roots of a univariate polynomial or polynomial family.
 classify_real_roots(X**2 + 1, X)
 ```
 
-This call is exercised by the regression contract “root classifier rejects nonpolynomials”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “root classifier rejects nonpolynomials”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## zeng_negative_point
 
@@ -711,7 +711,7 @@ Decide whether a rational polynomial is negative somewhere when certified.
 zeng_negative_point(x**3 + y**2, (x, y))
 ```
 
-This call is exercised by the regression contract “zeng odd degree fast path is one sided and exact”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “zeng odd degree fast path is one sided and exact”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## function_range
 
@@ -728,9 +728,9 @@ Return a quantifier-free formula describing a real function range.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
 - `method` — Computation-method selector; automatic mode chooses an applicable certified route.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
-- `return_stratified` — Request parameter-space strata rather than only their combined condition.
-- `eliminate_quantifiers` — Whether quantifiers are eliminated rather than preserved in simplified form.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
+- `return_stratified` — Request parameter-space strata instead of only their combined condition.
+- `eliminate_quantifiers` — Whether quantifiers are eliminated instead of preserved in simplified form.
 
 **Result semantics.** The preferred direct backend uses the semialgebraic image formulation ``exists variables. constraints and value_symbol == expression``. It first
 
@@ -740,7 +740,7 @@ Return a quantifier-free formula describing a real function range.
 function_range(1 / x, x > 0, [x], value_symbol=t)
 ```
 
-This call is exercised by the regression contract “function range univariate rational positive ray”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “function range univariate rational positive ray”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## semialgebraic_maximize
 
@@ -759,9 +759,9 @@ Return ``[maximum_or_supremum, optimizer_points]`` by default.
 - `range_cost_limit` — Resource guard for exact range computation.
 - `recursion_limit` — Explicit recursion/decomposition guard.
 - `max_boolean_branches` — Guard on Boolean branch expansion.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
-- `return_stratified` — Request parameter-space strata rather than only their combined condition.
-- `eliminate_quantifiers` — Whether quantifiers are eliminated rather than preserved in simplified form.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
+- `return_stratified` — Request parameter-space strata instead of only their combined condition.
+- `eliminate_quantifiers` — Whether quantifiers are eliminated instead of preserved in simplified form.
 
 **Result semantics.** Set ``return_result=True`` for an :class:`OptimizationResult` with attainment, certification, method, and diagnostic metadata.
 
@@ -771,7 +771,7 @@ Return ``[maximum_or_supremum, optimizer_points]`` by default.
 semialgebraic_maximize(x, [x >= 0, x <= 2], [x])
 ```
 
-This call is exercised by the regression contract “optimization defaults to value and optimizer points”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “optimization defaults to value and optimizer points”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## semialgebraic_minimize
 
@@ -790,9 +790,9 @@ Return ``[minimum_or_infimum, optimizer_points]`` by default.
 - `range_cost_limit` — Resource guard for exact range computation.
 - `recursion_limit` — Explicit recursion/decomposition guard.
 - `max_boolean_branches` — Guard on Boolean branch expansion.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
-- `return_stratified` — Request parameter-space strata rather than only their combined condition.
-- `eliminate_quantifiers` — Whether quantifiers are eliminated rather than preserved in simplified form.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
+- `return_stratified` — Request parameter-space strata instead of only their combined condition.
+- `eliminate_quantifiers` — Whether quantifiers are eliminated instead of preserved in simplified form.
 
 **Result semantics.** Set ``return_result=True`` for an :class:`OptimizationResult` with attainment, certification, method, and diagnostic metadata.
 
@@ -802,7 +802,7 @@ Return ``[minimum_or_infimum, optimizer_points]`` by default.
 semialgebraic_minimize((x - 2) ** 2, variables=[x])
 ```
 
-This call is exercised by the regression contract “optimization defaults to value and optimizer points”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “optimization defaults to value and optimizer points”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## function_smoothness
 
@@ -825,7 +825,7 @@ Report continuity, C^k order, smoothness, and exact exceptional loci.
 function_smoothness(x**3, x)
 ```
 
-This call is exercised by the regression contract “function smoothness polynomial abs sign piecewise”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “function smoothness polynomial abs sign piecewise”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## function_mapping_properties
 
@@ -849,7 +849,7 @@ Certify injectivity, surjectivity, and bijectivity of a semialgebraic map.
 function_mapping_properties(x, x)
 ```
 
-This call is exercised by the regression contract “function mapping properties scalar maps”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “function mapping properties scalar maps”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## centroid
 
@@ -875,7 +875,7 @@ Return the centroid of a finite-measure semialgebraic region.
 box.centroid()
 ```
 
-This call is exercised by the regression contract “box measure and centroid”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “box measure and centroid”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## covariance_matrix
 
@@ -901,7 +901,7 @@ Return the covariance matrix of the uniform measure on a region.
 covariance_matrix(disk, [x, y])
 ```
 
-This call is exercised by the regression contract “disk moments centroid covariance”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “disk moments centroid covariance”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## semialgebraic_measure
 
@@ -916,8 +916,8 @@ Return the exact measure of a supported semialgebraic set.
 - `bounds` — Exact coordinate bounds restricting search or construction.
 - `measure_dimension` — Dimension of the measure used for moments/centroids; useful for intrinsic lower-dimensional sets.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
-- `return_stratified` — Request parameter-space strata rather than only their combined condition.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
+- `return_stratified` — Request parameter-space strata instead of only their combined condition.
 
 **Result semantics.** The measure implementation delegates to the structural region-integral reducer with integrand ``1``. This keeps ``semialgebraic_measure`` aligned
 
@@ -927,7 +927,7 @@ Return the exact measure of a supported semialgebraic set.
 semialgebraic_measure(moved, [x])
 ```
 
-This call is exercised by the regression contract “generated affine translation invariants”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “generated affine translation invariants”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_measure
 
@@ -950,7 +950,7 @@ Return exact Euclidean/Hausdorff measure of a region when supported.
 region_measure(box)
 ```
 
-This call is exercised by the regression contract “box measure and centroid”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “box measure and centroid”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_moment
 
@@ -978,7 +978,7 @@ Return a raw moment integral over a semialgebraic region.
 region_moment(x**2 <= 1, [x])
 ```
 
-This call is exercised by the regression contract “raw moments on interval”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “raw moments on interval”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## integrate_over_region
 
@@ -996,8 +996,8 @@ Integrate ``integrand`` over a supported semialgebraic region.
 - `precision` — Presentation/numerical precision used only where approximation is explicitly part of the API.
 - `measure_dimension` — Dimension of the measure used for moments/centroids; useful for intrinsic lower-dimensional sets.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
-- `return_stratified` — Request parameter-space strata rather than only their combined condition.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
+- `return_stratified` — Request parameter-space strata instead of only their combined condition.
 
 **Result semantics.** The region is first reduced to explicit iterated-integral pieces using ``reduce_region_integral``. The ``method`` option controls evaluation:
 
@@ -1007,7 +1007,7 @@ Integrate ``integrand`` over a supported semialgebraic region.
 integrate_over_region(1, para, [x, y])
 ```
 
-This call is exercised by the regression contract “polygon tetrahedron and parallelogram integrals”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polygon tetrahedron and parallelogram integrals”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## reduce_region_integral
 
@@ -1022,7 +1022,7 @@ Reduce a supported region integral to explicit iterated integrals.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `bounds` — Exact coordinate bounds restricting search or construction.
 - `return_integrals` — Return the underlying exact integrals in addition to the reduced summary.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 
 **Result semantics.** This is the structural layer used by ``integrate_over_region``. It does not call ``sympy.integrate`` unless callers later ask to evaluate the
 
@@ -1032,7 +1032,7 @@ Reduce a supported region integral to explicit iterated integrals.
 reduce_region_integral(x + y, cond, [x, y])
 ```
 
-This call is exercised by the regression contract “cylindrical bounds handle disjoint union”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “cylindrical bounds handle disjoint union”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## quantifier_eliminate
 
@@ -1056,7 +1056,7 @@ Eliminate real quantifiers with a certified specialist-first dispatcher.
 quantifier_eliminate(ForAll(x, x**2 + a >= 0))
 ```
 
-This call is exercised by the regression contract “universal quantifier”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “universal quantifier”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_real_valued
 
@@ -1078,7 +1078,7 @@ Return whether supported domain conditions follow from assumptions.
 is_real_valued(sp.sqrt(x - 1), [x], assumptions=x < 1)
 ```
 
-This call is exercised by the regression contract “function domain and real valuedness helpers”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “function domain and real valuedness helpers”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## simplify_system
 
@@ -1104,7 +1104,7 @@ Simplify a real semialgebraic system with CAD/QE-backed checks.
 simplify_system([x > 0, x >= 0], [x])
 ```
 
-This call is exercised by the regression contract “simplify system removes redundant constraints”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “simplify system removes redundant constraints”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## simplify_boole
 
@@ -1119,7 +1119,7 @@ Simplify a semialgebraic Boolean formula over the real numbers.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `strategy` — Algorithm-selection policy. Use the default automatic policy unless a specific exact backend is being tested or diagnosed.
 - `form` — Requested output/formula form.
-- `semantic` — Whether simplification should use semantic equivalence rather than syntax alone.
+- `semantic` — Whether simplification should use semantic equivalence instead of syntax alone.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
 **Result semantics.** This is a conservative public simplifier. It first performs ordinary SymPy Boolean simplification, then uses the CAD/QE-backed decision wrappers to
@@ -1130,7 +1130,7 @@ Simplify a semialgebraic Boolean formula over the real numbers.
 simplify_boole(expr, [x, y])
 ```
 
-This call is exercised by the regression contract “simplify boole removes redundant disjunct”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “simplify boole removes redundant disjunct”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## simplify_piecewise
 
@@ -1154,7 +1154,7 @@ Simplify a Piecewise expression using semialgebraic branch conditions.
 simplify_piecewise(expr, [x])
 ```
 
-This call is exercised by the regression contract “simplify piecewise removes impossible branch”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “simplify piecewise removes impossible branch”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## convert_region
 
@@ -1170,7 +1170,7 @@ Convert a region to a certified exact or explicitly lossy representation.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 - `bounds` — Exact coordinate bounds restricting search or construction.
 - `dimension` — Requested intrinsic/ambient dimension where the constructor or analysis needs it.
-- `require_verified` — Require verification rather than accepting an unverified candidate.
+- `require_verified` — Require verification instead of accepting an unverified candidate.
 - `slices` — Slice specification for decomposition/construction.
 - `tolerance` — Numerical presentation tolerance where an API explicitly allows approximate geometry.
 - `precision` — Presentation/numerical precision used only where approximation is explicitly part of the API.
@@ -1184,7 +1184,7 @@ Convert a region to a certified exact or explicitly lossy representation.
 convert_region(p, "formula")
 ```
 
-This call is exercised by the regression contract “p4 conversion contract”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “p4 conversion contract”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polygonal_region_from_paths
 
@@ -1205,7 +1205,7 @@ Construct the exact planar filled set selected by a winding fill rule.
 polygonal_region_from_paths([bow], fill_rule="nonzero")
 ```
 
-This call is exercised by the regression contract “p3 crossing and fill rules”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “p3 crossing and fill rules”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## triangulate_polytope
 
@@ -1226,7 +1226,7 @@ Triangulate a full-dimensional convex polytope exactly and deterministically.
 triangulate_polytope(p)
 ```
 
-This call is exercised by the regression contract “simplex pulling is one simplex”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “simplex pulling is one simplex”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## decompose_polytope
 
@@ -1248,7 +1248,7 @@ Decompose a convex polytope into an exact requested cell representation.
 sa.decompose_polytope(poly)
 ```
 
-This call is exercised by the regression contract “polytope decomposition preserves triangle area”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polytope decomposition preserves triangle area”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## tetrahedralize_cell
 
@@ -1269,7 +1269,7 @@ Tetrahedralize one convex 3-cell using a global vertex ordering.
 tetrahedralize_cell(cube())
 ```
 
-This call is exercised by the regression contract “p6 cell counts and shared face conformity”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “p6 cell counts and shared face conformity”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## tetrahedralize_cells
 
@@ -1290,7 +1290,7 @@ Tetrahedralize cells conformingly using shared global vertex identifiers.
 tetrahedralize_cells(pts, cells)
 ```
 
-This call is exercised by the regression contract “adjacent cubes share same face triangulation”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “adjacent cubes share same face triangulation”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## canonicalize_polygon
 
@@ -1310,7 +1310,7 @@ Return the strongest certified canonical representation of polygonal geometry.
 sa.canonicalize_polygon(p)
 ```
 
-This call is exercised by the regression contract “canonicalize polygon is invariant under cyclic vertex rotation”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “canonicalize polygon is invariant under cyclic vertex rotation”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## canonicalize_polyhedron
 
@@ -1330,7 +1330,7 @@ Return a certified canonical polyhedral representation without unsafe convexific
 canonicalize_polyhedron(tc)
 ```
 
-This call is exercised by the regression contract “p2 nonconvex shell preserved”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “p2 nonconvex shell preserved”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## canonicalize_region
 
@@ -1350,11 +1350,11 @@ Canonicalize a supported region using exact structural recognition.
 sa.canonicalize_region(region)
 ```
 
-This call is exercised by the regression contract “canonicalize region is idempotent on polygon”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “canonicalize region is idempotent on polygon”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
-## verify_nonnegative_combination_certificate
+## verify_nonnegative_certificate
 
-`verify_nonnegative_combination_certificate(cert, variables) -> 'bool'`
+`verify_nonnegative_certificate(cert, variables) -> 'bool'`
 
 Replay an exact nonnegative-combination and optional SOS certificate.
 
@@ -1368,10 +1368,10 @@ Replay an exact nonnegative-combination and optional SOS certificate.
 **Representative regression-backed call.**
 
 ```python
-verify_nonnegative_combination_certificate(c, (x, y))
+verify_nonnegative_certificate(c, (x, y))
 ```
 
-This call is exercised by the regression contract “nonnegative combination”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “nonnegative combination”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## nonnegative_combination_certificate
 
@@ -1395,7 +1395,7 @@ Find an exact certificate target = sum(lambda_i premise_i) + SOS, lambda_i >= 0.
 semialg.nonnegative_combination_certificate(2 * x, (x,), (x,), allow_sos=False)
 ```
 
-This call is exercised by the regression contract “semialgebraic constraint secondary calls”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “semialgebraic constraint secondary calls”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## implied_polynomial_inequality
 
@@ -1418,7 +1418,7 @@ Certify that ``region`` implies a polynomial inequality.
 sa.implied_polynomial_inequality(region, 2 * X >= 0, (X,))
 ```
 
-This call is exercised by the regression contract “implied and redundant polynomial inequality agree”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “implied and redundant polynomial inequality agree”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## redundant_polynomial_inequalities
 
@@ -1439,7 +1439,7 @@ Return inequalities implied by the other constraints in their DNF clause.
 sa.redundant_polynomial_inequalities(region, (X,))
 ```
 
-This call is exercised by the regression contract “implied and redundant polynomial inequality agree”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “implied and redundant polynomial inequality agree”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## component_constraint_descriptions
 
@@ -1461,7 +1461,7 @@ Describe the real model separately on each certified irreducible closure compone
 sa.component_constraint_descriptions(sp.Eq(X * Y, 0), (X, Y))
 ```
 
-This call is exercised by the regression contract “component constraint descriptions cover each axis component”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “component constraint descriptions cover each axis component”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polynomial_constraints
 
@@ -1482,7 +1482,7 @@ Return a DNF-preserving structured polynomial constraint description.
 semialg.polynomial_constraints(region, (x, y))
 ```
 
-This call is exercised by the regression contract “constraints and active boundary”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “constraints and active boundary”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## active_constraints
 
@@ -1504,7 +1504,7 @@ Return polynomial constraints active at a feasible exact point.
 sa.active_constraints(region, (0, 0), (X, Y))
 ```
 
-This call is exercised by the regression contract “active constraints change exactly at triangle boundary”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “active constraints change exactly at triangle boundary”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## relative_interior
 
@@ -1525,7 +1525,7 @@ Return the interior relative to the certified affine hull of ``region``.
 sa.relative_interior(segment, (X, Y))
 ```
 
-This call is exercised by the regression contract “relative boundary and interior partition closed segment in affine hull”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “relative boundary and interior partition closed segment in affine hull”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## relative_boundary
 
@@ -1546,7 +1546,7 @@ Return the boundary relative to the certified affine hull of ``region``.
 sa.relative_boundary(segment, (X, Y))
 ```
 
-This call is exercised by the regression contract “relative boundary and interior partition closed segment in affine hull”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “relative boundary and interior partition closed segment in affine hull”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## semialgebraic_tangent_cone
 
@@ -1568,7 +1568,7 @@ Return the exact Bouligand tangent cone at a point of a semialgebraic set.
 sa.semialgebraic_tangent_cone(X >= 0, (0,), (X,))
 ```
 
-This call is exercised by the regression contract “semialgebraic tangent cone of halfline is itself”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “semialgebraic tangent cone of halfline is itself”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## parameterization_geometry
 
@@ -1580,7 +1580,7 @@ Analyze generic rank, rank-drop locus, image, and generic fiber dimension.
 
 - `mapping` — Polynomial or affine map whose image/local geometry is analyzed.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `image_variables` — Coordinate symbols used for the image space.
 
 **Result semantics.** The return contract is `ParameterizationGeometry`; see the family reference for structured-result details and certification status.
@@ -1591,7 +1591,7 @@ Analyze generic rank, rank-drop locus, image, and generic fiber dimension.
 semialg.parameterization_geometry((u,), sp.Eq(v, 0), (u, v))
 ```
 
-This call is exercised by the regression contract “lower dimensional domain uses intrinsic tangent rank”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “lower dimensional domain uses intrinsic tangent rank”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## parameterization_critical_locus
 
@@ -1603,7 +1603,7 @@ Return the exact generic-rank-drop locus of a parameterization.
 
 - `mapping` — Polynomial or affine map whose image/local geometry is analyzed.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 
 **Result semantics.** The return contract is `sp.Expr`; see the family reference for structured-result details and certification status.
 
@@ -1613,7 +1613,7 @@ Return the exact generic-rank-drop locus of a parameterization.
 sa.parameterization_critical_locus((t**2, t**3), sp.true, (t,))
 ```
 
-This call is exercised by the regression contract “parameterization critical locus and values for parabola”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “parameterization critical locus and values for parabola”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## parameterization_critical_values
 
@@ -1625,7 +1625,7 @@ Return the exact image of the parameterization's critical locus.
 
 - `mapping` — Polynomial or affine map whose image/local geometry is analyzed.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 - `image_variables` — Coordinate symbols used for the image space.
 
 **Result semantics.** The return contract is `sp.Expr`; see the family reference for structured-result details and certification status.
@@ -1636,7 +1636,7 @@ Return the exact image of the parameterization's critical locus.
 semialg.parameterization_critical_values((t**2, t**3), sp.true, (t,))
 ```
 
-This call is exercised by the regression contract “parameterization and qe secondary calls”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “parameterization and qe secondary calls”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_singular
 
@@ -1659,7 +1659,7 @@ Return whether ``point`` is singular on the polynomial variety.
 is_singular((cusp,), (0, 0), (x, y))
 ```
 
-This call is exercised by the regression contract “singularity tangent and thom contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “singularity tangent and thom contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_smooth
 
@@ -1681,7 +1681,7 @@ Return whether the real polynomial variety has empty singular locus.
 is_smooth([cusp], [x, y])
 ```
 
-This call is exercised by the regression contract “smoothness and point singularity conveniences”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “smoothness and point singularity conveniences”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## singular_locus
 
@@ -1705,7 +1705,7 @@ Return equations defining the singular locus of an algebraic variety.
 cusp.singular_locus()
 ```
 
-This call is exercised by the regression contract “cusp detects origin and local dimension”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “cusp detects origin and local dimension”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## tangent_dimension
 
@@ -1727,7 +1727,7 @@ Return the exact Zariski tangent-space dimension at ``point``.
 tangent_dimension((cusp,), (0, 0), (x, y))
 ```
 
-This call is exercised by the regression contract “singularity tangent and thom contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “singularity tangent and thom contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## as_cad_region
 
@@ -1749,7 +1749,7 @@ Coerce a region/formula/CAD result to a reusable :class:`CADRegion`.
 as_cad_region(box)
 ```
 
-This call is exercised by the regression contract “exact region measure and integration hooks”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “exact region measure and integration hooks”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## analyze_affine_map
 
@@ -1771,7 +1771,7 @@ Analyze an affine expression map or an explicit matrix/offset pair.
 analyze_affine_map([[sp.I]])
 ```
 
-This call is exercised by the regression contract “affine maps reject nonreal data at boundary”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “affine maps reject nonreal data at boundary”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## convexity_certificate
 
@@ -1793,7 +1793,7 @@ Decide semialgebraic set convexity through an exact staged hierarchy.
 convexity_certificate(region, (x, y))
 ```
 
-This call is exercised by the regression contract “segment counterexample certificate replays from returned witness”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “segment counterexample certificate replays from returned witness”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_convex
 
@@ -1815,7 +1815,7 @@ Return whether a semialgebraic region is convex, exactly.
 is_convex(region, (x,))
 ```
 
-This call is exercised by the regression contract “generated one dimensional interval rewrites remain convex”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “generated one dimensional interval rewrites remain convex”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## argmax_set
 
@@ -1837,7 +1837,7 @@ Return the exact global maximizer set as a semialgebraic formula.
 argmax_set(x, interval, (x,))
 ```
 
-This call is exercised by the regression contract “interval extrema and level sets have exact endpoint semantics”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “interval extrema and level sets have exact endpoint semantics”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## closest_points
 
@@ -1859,7 +1859,7 @@ Return all exact closest point pairs when the distance is attained.
 closest_points(x <= 0, x >= 2, [x])
 ```
 
-This call is exercised by the regression contract “coordinate range diameter nearest and support operations”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “coordinate range diameter nearest and support operations”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## coordinate_range
 
@@ -1882,7 +1882,7 @@ Return the exact range of one coordinate over a region.
 coordinate_range(region, x, [x])
 ```
 
-This call is exercised by the regression contract “coordinate range agrees with membership”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “coordinate range agrees with membership”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## diameter
 
@@ -1904,7 +1904,7 @@ Return the exact Euclidean diameter (supremal pairwise distance).
 diameter(moved, [x])
 ```
 
-This call is exercised by the regression contract “translation preserves diameter and shifts centroid”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “translation preserves diameter and shifts centroid”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## distance_set
 
@@ -1927,7 +1927,7 @@ Return the exact set of Euclidean pairwise distances as a formula.
 distance_set(left_point, right_point, (x,))
 ```
 
-This call is exercised by the regression contract “interval geometry queries cross check one another”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “interval geometry queries cross check one another”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## extrema_set
 
@@ -1949,7 +1949,7 @@ Return the union of the exact global minimum and maximum sets.
 extrema_set(x, interval, (x,))
 ```
 
-This call is exercised by the regression contract “interval extrema and level sets have exact endpoint semantics”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “interval extrema and level sets have exact endpoint semantics”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## has_empty_interior
 
@@ -1970,7 +1970,7 @@ Return whether the region has empty ambient interior.
 has_empty_interior(point, (x,))
 ```
 
-This call is exercised by the regression contract “dimension boundedness density and path contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “dimension boundedness density and path contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## inertia_tensor
 
@@ -1992,7 +1992,7 @@ Return the unit-density second moment-of-inertia tensor about the origin.
 inertia_tensor(square, [x, y])
 ```
 
-This call is exercised by the regression contract “moment covariance identity on centered square”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “moment covariance identity on centered square”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## intersects
 
@@ -2015,7 +2015,7 @@ Return whether two semialgebraic regions have nonempty intersection.
 intersects(left, right, [x])
 ```
 
-This call is exercised by the regression contract “disjointness and intersection are complements”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “disjointness and intersection are complements”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_interior_disjoint
 
@@ -2038,7 +2038,7 @@ Return whether two regions have disjoint ambient interiors.
 semialg.is_interior_disjoint(left, right, (x,))
 ```
 
-This call is exercised by the regression contract “new region boolean and topological relations are directly callable”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “new region boolean and topological relations are directly callable”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_bounded
 
@@ -2060,7 +2060,7 @@ Return whether the semialgebraic region is bounded.
 region.is_bounded()
 ```
 
-This call is exercised by the regression contract “known region basic invariants”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “known region basic invariants”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_closed
 
@@ -2082,7 +2082,7 @@ Return whether the semialgebraic region is closed.
 region.is_closed()
 ```
 
-This call is exercised by the regression contract “known region basic invariants”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “known region basic invariants”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_compact
 
@@ -2104,7 +2104,7 @@ Return whether the semialgebraic region is compact.
 is_compact(region, [x])
 ```
 
-This call is exercised by the regression contract “compact interval remains compact under affine bijection”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “compact interval remains compact under affine bijection”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_connected
 
@@ -2125,7 +2125,7 @@ Decide connectedness; for semialgebraic sets this equals path connectedness.
 is_connected(closed, [x])
 ```
 
-This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_dense_in
 
@@ -2148,7 +2148,7 @@ Return whether ``subset`` is dense in ``ambient`` in the ambient Euclidean topol
 is_dense_in(sp.Ne(x, 0), sp.true, [x])
 ```
 
-This call is exercised by the regression contract “dense linear image and distance set operations”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “dense linear image and distance set operations”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_disjoint
 
@@ -2171,7 +2171,7 @@ Return whether two semialgebraic regions are disjoint.
 is_disjoint(a, x > hi, [x])
 ```
 
-This call is exercised by the regression contract “generated set algebra identities”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “generated set algebra identities”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_empty
 
@@ -2193,7 +2193,7 @@ Return whether the semialgebraic region is empty.
 is_empty(closed, [x])
 ```
 
-This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_equal
 
@@ -2216,7 +2216,7 @@ Return whether two semialgebraic regions define the same set.
 is_equal(left, right, [x])
 ```
 
-This call is exercised by the regression contract “set relation algebra identity cases”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “set relation algebra identity cases”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_full_dimensional
 
@@ -2237,7 +2237,7 @@ Return whether the region has full dimension in its ambient variables.
 is_full_dimensional(closed, [x])
 ```
 
-This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_open
 
@@ -2259,7 +2259,7 @@ Return whether the semialgebraic region is open.
 is_open(opened, [x])
 ```
 
-This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “geometric property and set relation api”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_subset
 
@@ -2282,7 +2282,7 @@ Return whether one semialgebraic region is contained in another.
 is_subset(a, b, [x])
 ```
 
-This call is exercised by the regression contract “generated set algebra identities”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “generated set algebra identities”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## level_set
 
@@ -2304,7 +2304,7 @@ Return ``region ∩ {expression = value}``.
 level_set(x**2, 1, region)
 ```
 
-This call is exercised by the regression contract “level set constructors preserve region constraint”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “level set constructors preserve region constraint”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## linear_image
 
@@ -2326,7 +2326,7 @@ Return the exact linear image ``A*x``.
 sa.linear_image(interval, [[3]], (X,))
 ```
 
-This call is exercised by the regression contract “linear image commutes with positive scalar interval bounds”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “linear image commutes with positive scalar interval bounds”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## minkowski_sum
 
@@ -2348,7 +2348,7 @@ Return the exact Minkowski sum of two semialgebraic regions.
 minkowski_sum(left, right)
 ```
 
-This call is exercised by the regression contract “polytope minkowski sum from vertex sums”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polytope minkowski sum from vertex sums”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## moment_matrix
 
@@ -2370,7 +2370,7 @@ Return the normalized raw second-moment matrix ``E[x x.T]``.
 moment_matrix(square, [x, y])
 ```
 
-This call is exercised by the regression contract “moment covariance identity on centered square”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “moment covariance identity on centered square”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## nearest_point
 
@@ -2392,7 +2392,7 @@ Return all exact nearest points when the distance is attained.
 nearest_point((3,), interval, [x])
 ```
 
-This call is exercised by the regression contract “coordinate range diameter nearest and support operations”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “coordinate range diameter nearest and support operations”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## scale
 
@@ -2414,7 +2414,7 @@ Scale a region about the origin by a scalar factor.
 scale(region, lam, [x])
 ```
 
-This call is exercised by the regression contract “positive scaling scales diameter and width”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “positive scaling scales diameter and width”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## squared_distance_range
 
@@ -2437,7 +2437,7 @@ Return the exact range of squared pairwise distances.
 squared_distance_range(left_point, right_point, (x,))
 ```
 
-This call is exercised by the regression contract “interval geometry queries cross check one another”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “interval geometry queries cross check one another”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## sublevel_set
 
@@ -2460,7 +2460,7 @@ Return ``region ∩ {expression <= value}`` (or strict variant).
 sublevel_set(x**2, 1, region)
 ```
 
-This call is exercised by the regression contract “level set constructors preserve region constraint”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “level set constructors preserve region constraint”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## superlevel_set
 
@@ -2483,7 +2483,7 @@ Return ``region ∩ {expression >= value}`` (or strict variant).
 superlevel_set(x**2, 1, region)
 ```
 
-This call is exercised by the regression contract “level set constructors preserve region constraint”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “level set constructors preserve region constraint”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## support_function
 
@@ -2506,7 +2506,7 @@ Return ``sup(x·direction)`` over the region.
 support_function(right, (1,), [x])
 ```
 
-This call is exercised by the regression contract “minkowski support function identity for intervals”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “minkowski support function identity for intervals”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## translate
 
@@ -2528,7 +2528,7 @@ Translate a region by ``vector`` while preserving coordinate symbols.
 translate(interval, (2,), [x])
 ```
 
-This call is exercised by the regression contract “affine image translate scale and minkowski sum”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “affine image translate scale and minkowski sum”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## width
 
@@ -2550,7 +2550,7 @@ Return exact directional width ``max u·x - min u·x``.
 width(region, (1,), [x])
 ```
 
-This call is exercised by the regression contract “width equals two sided support sum”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “width equals two sided support sum”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## bounding_box
 
@@ -2572,7 +2572,7 @@ Compute the exact axis-aligned bounding box by coordinate optimization.
 bounding_box(interval, (x,))
 ```
 
-This call is exercised by the regression contract “interval geometry queries cross check one another”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “interval geometry queries cross check one another”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## critical_values
 
@@ -2594,7 +2594,7 @@ Return exact objective values from isolated and constant KKT components.
 critical_values(x**2, interval, (x,))
 ```
 
-This call is exercised by the regression contract “interval extrema and level sets have exact endpoint semantics”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “interval extrema and level sets have exact endpoint semantics”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## critical_value_image
 
@@ -2617,7 +2617,7 @@ Return isolated values and exact images of positive-dimensional critical loci.
 critical_value_image(x**2, sp.true, (x,))
 ```
 
-This call is exercised by the regression contract “critical value image public pipeline handles discrete case”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “critical value image public pipeline handles discrete case”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## distance_between_regions
 
@@ -2640,7 +2640,7 @@ Compute exact Euclidean distance between two semialgebraic regions.
 distance_between_regions(x <= 0, x >= 2, [x])
 ```
 
-This call is exercised by the regression contract “distances are exact”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “distances are exact”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## distance_to_region
 
@@ -2663,7 +2663,7 @@ Compute exact Euclidean distance from a point to a semialgebraic region.
 sa.distance_to_region((5,), region, (X,))
 ```
 
-This call is exercised by the regression contract “nearest point realizes distance to region”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “nearest point realizes distance to region”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## fiber
 
@@ -2676,7 +2676,7 @@ Specialize a semialgebraic family at fixed parameter/coordinate values.
 - `region` — Semialgebraic or standard region on which the operation is performed.
 - `substitutions` — Symbolic substitutions defining a parameterization or transformed representation.
 
-**Result semantics.** String keys are resolved against the actual symbols in ``region`` and an ambiguous same-name symbol is rejected rather than guessed.
+**Result semantics.** String keys are resolved against the actual symbols in ``region`` and an ambiguous same-name symbol is rejected instead of guessed.
 
 **Representative regression-backed call.**
 
@@ -2684,7 +2684,7 @@ Specialize a semialgebraic family at fixed parameter/coordinate values.
 fiber(formula, {xr: 1})
 ```
 
-This call is exercised by the regression contract “fiber rejects ambiguous same name symbol”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “fiber rejects ambiguous same name symbol”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_path_connected
 
@@ -2706,7 +2706,7 @@ Decide path connectedness via exact CAD connectivity.
 is_path_connected(region, [x])
 ```
 
-This call is exercised by the regression contract “path connectivity and path chain 1d”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “path connectivity and path chain 1d”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## path_between
 
@@ -2730,7 +2730,7 @@ Return a certified CAD cell-chain connecting two points in a region.
 path_between(region, (0,), (1,), [x])
 ```
 
-This call is exercised by the regression contract “path connectivity and path chain 1d”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “path connectivity and path chain 1d”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## semialgebraic_projection
 
@@ -2752,7 +2752,7 @@ Project ``region`` by existentially eliminating the requested variables.
 semialgebraic_projection(X >= 0, (Y,), (X,))
 ```
 
-This call is exercised by the regression contract “geometry rejects mismatched coordinates”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “geometry rejects mismatched coordinates”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## connected_component_count
 
@@ -2773,7 +2773,7 @@ Return the exact number of semialgebraically connected components.
 connected_component_count(region, (x,))
 ```
 
-This call is exercised by the regression contract “zero dimensional components match real roots”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “zero dimensional components match real roots”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## connected_component_samples
 
@@ -2794,7 +2794,7 @@ Return one exact CAD sample point from every connected component.
 connected_component_samples(region, (x,))
 ```
 
-This call is exercised by the regression contract “zero dimensional components match real roots”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “zero dimensional components match real roots”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## topology_summary
 
@@ -2816,7 +2816,7 @@ Return exact component, Euler, and supported Betti-number information.
 topology_summary(disk, (x, y))
 ```
 
-This call is exercised by the regression contract “compact convex disk has trivial positive betti numbers”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “compact convex disk has trivial positive betti numbers”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## betti_number
 
@@ -2838,7 +2838,7 @@ Return a certified Betti number when the current exact backend supports it.
 betti_number(box, 2)
 ```
 
-This call is exercised by the regression contract “polyhedral triangulation drives exact higher betti numbers”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polyhedral triangulation drives exact higher betti numbers”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## clip_affine_subspace_to_box
 
@@ -2864,7 +2864,7 @@ semialg.clip_affine_subspace_to_box(
 )
 ```
 
-This call is exercised by the regression contract “affine box clip is obtained through clipping operation”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “affine box clip is obtained through clipping operation”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## local_dimension
 
@@ -2886,7 +2886,7 @@ Exact local semialgebraic dimension at a point.
 cusp.local_dimension((0, 0))
 ```
 
-This call is exercised by the regression contract “cusp detects origin and local dimension”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “cusp detects origin and local dimension”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_boundary_result
 
@@ -2907,7 +2907,7 @@ Return exact boundary cells, membership status, active residuals, and CAD.
 region_boundary_result(closed)
 ```
 
-This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_active_boundary_strata
 
@@ -2928,7 +2928,7 @@ Stratify the exact boundary by realized active inequality constraints.
 region_active_boundary_strata(region, (x, y))
 ```
 
-This call is exercised by the regression contract “disjunctive region reports only realized active boundary cells”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “disjunctive region reports only realized active boundary cells”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_nonsmooth_locus
 
@@ -2949,7 +2949,7 @@ Return the exact recognized nonsmooth/corner locus of a region boundary.
 region_nonsmooth_locus(region, (x, y))
 ```
 
-This call is exercised by the regression contract “nonsmooth locus uses realized active sets for disjunction corner”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “nonsmooth locus uses realized active sets for disjunction corner”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_regular_locus
 
@@ -2970,7 +2970,7 @@ Return the part of ``region`` outside its algebraic boundary singular locus.
 region_regular_locus(closed)
 ```
 
-This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_singular_locus
 
@@ -2991,7 +2991,7 @@ Return the exact reduced-real singular locus on the actual boundary.
 semialg.region_singular_locus(region)
 ```
 
-This call is exercised by the regression contract “region analysis primary function contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region analysis primary function contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_singular_locus_result
 
@@ -3012,7 +3012,7 @@ Return singular-locus geometry together with completeness certification.
 semialg.region_singular_locus_result(region)
 ```
 
-This call is exercised by the regression contract “region analysis primary function contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region analysis primary function contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_boundary
 
@@ -3034,7 +3034,7 @@ Return the Euclidean boundary of a semialgebraic region.
 region_boundary(region, [x])
 ```
 
-This call is exercised by the regression contract “touching closed intervals have no internal boundary seam”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “touching closed intervals have no internal boundary seam”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_complement
 
@@ -3054,7 +3054,7 @@ Return the complement of an implicit or unified semialgebraic region.
 region_complement(x > 0)
 ```
 
-This call is exercised by the regression contract “boolean region operations”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “boolean region operations”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_difference
 
@@ -3075,7 +3075,7 @@ Return ``lhs`` minus ``rhs`` for implicit or unified regions.
 region_difference(left, right)
 ```
 
-This call is exercised by the regression contract “region operations accept unified and explicit regions”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region operations accept unified and explicit regions”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_interior
 
@@ -3097,7 +3097,7 @@ Return the Euclidean interior of a semialgebraic region.
 region_interior(region, [x])
 ```
 
-This call is exercised by the regression contract “touching closed intervals have no internal boundary seam”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “touching closed intervals have no internal boundary seam”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_symmetric_difference
 
@@ -3118,7 +3118,7 @@ Return the exact symmetric difference of two semialgebraic regions.
 sa.region_symmetric_difference(a, b)
 ```
 
-This call is exercised by the regression contract “symmetric difference is commutative”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “symmetric difference is commutative”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## affine_image
 
@@ -3141,7 +3141,7 @@ Return the exact affine image ``A*x+b`` of a region.
 affine_image(tri, A, (4, 5))
 ```
 
-This call is exercised by the regression contract “affine image preserves point and simplex structure”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “affine image preserves point and simplex structure”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## affine_preimage
 
@@ -3165,7 +3165,7 @@ Return the exact preimage under ``x -> A*x+b``.
 affine_preimage(hrep, ((1, 0),))
 ```
 
-This call is exercised by the regression contract “hrepresentation rectangular preimage is supported”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “hrepresentation rectangular preimage is supported”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_image
 
@@ -3179,7 +3179,7 @@ Return the exact image under a symbolic map.
 - `mapping` — Polynomial or affine map whose image/local geometry is analyzed.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
 - `image_variables` — Coordinate symbols used for the image space.
-- `parameters` — Symbols treated as free parameters rather than eliminated decision variables.
+- `parameters` — Symbols treated as free parameters instead of eliminated decision variables.
 
 **Result semantics.** Canonical inputs preserve canonical affine structure and otherwise return a lazy :class:`TransformedRegion`.  :class:`SemialgebraicRegion` inputs use
 
@@ -3189,7 +3189,7 @@ Return the exact image under a symbolic map.
 region_image(source, (x**2,), (x,))
 ```
 
-This call is exercised by the regression contract “polynomial image lowers to semialgebraic formula”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polynomial image lowers to semialgebraic formula”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_preimage
 
@@ -3212,7 +3212,7 @@ Return an exact symbolic preimage, preserving invertible affine structure when p
 region_preimage(target, (x**2,), (x,))
 ```
 
-This call is exercised by the regression contract “polynomial preimage is exact”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polynomial preimage is exact”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## deduplicate_indexed_vertices
 
@@ -3233,7 +3233,7 @@ Deduplicate exact vertices and remap zero-based cell indices.
 sa.deduplicate_indexed_vertices(first.vertices, first.cells)
 ```
 
-This call is exercised by the regression contract “deduplicate indexed vertices is idempotent and reindexes cells”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “deduplicate indexed vertices is idempotent and reindexes cells”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polygon_vertices
 
@@ -3253,7 +3253,7 @@ Return unique polygon vertices in deterministic first-occurrence order.
 polygon_vertices(region)
 ```
 
-This call is exercised by the regression contract “polygonal set orients outer and hole boundaries”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polygonal set orients outer and hole boundaries”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## outer_polygons
 
@@ -3273,7 +3273,7 @@ Return all outer polygon boundaries.
 outer_polygons(region)
 ```
 
-This call is exercised by the regression contract “polygonal set orients outer and hole boundaries”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polygonal set orients outer and hole boundaries”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## inner_polygons
 
@@ -3293,7 +3293,7 @@ Return all polygon hole boundaries.
 inner_polygons(region)
 ```
 
-This call is exercised by the regression contract “polygonal set orients outer and hole boundaries”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polygonal set orients outer and hole boundaries”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polyhedron_vertices
 
@@ -3313,7 +3313,7 @@ Return unique boundary vertices in deterministic first-occurrence order.
 polyhedron_vertices(solid)
 ```
 
-This call is exercised by the regression contract “polyhedron keeps components and cavities explicit”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polyhedron keeps components and cavities explicit”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polyhedron_face_indices
 
@@ -3325,7 +3325,7 @@ Return face indices grouped by boundary shell.
 
 - `region` — Semialgebraic or standard region on which the operation is performed.
 
-**Result semantics.** Each shell keeps its own local vertex indexing.  This avoids silently changing topology merely to manufacture one global coordinate array.
+**Result semantics.** Each shell keeps its own local vertex indexing.  This avoids without reporting changing topology merely to manufacture one global coordinate array.
 
 **Representative regression-backed call.**
 
@@ -3333,7 +3333,7 @@ Return face indices grouped by boundary shell.
 polyhedron_face_indices(shell)
 ```
 
-This call is exercised by the regression contract “polyhedral shell requires closed consistently oriented manifold”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polyhedral shell requires closed consistently oriented manifold”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## outer_polyhedra
 
@@ -3353,7 +3353,7 @@ Return all outer boundary shells.
 outer_polyhedra(solid)
 ```
 
-This call is exercised by the regression contract “polyhedron keeps components and cavities explicit”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polyhedron keeps components and cavities explicit”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## inner_polyhedra
 
@@ -3373,7 +3373,7 @@ Return all cavity boundary shells.
 inner_polyhedra(solid)
 ```
 
-This call is exercised by the regression contract “polyhedron keeps components and cavities explicit”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polyhedron keeps components and cavities explicit”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## convex_hull
 
@@ -3394,7 +3394,7 @@ Return the exact convex hull of a finite point set.
 semialg.convex_hull([(0, 0), (2, 0), (0, 2), (1, 1)])
 ```
 
-This call is exercised by the regression contract “exact hull and seeded generation public calls”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “exact hull and seeded generation public calls”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## random_polygon
 
@@ -3416,7 +3416,7 @@ Generate a reproducible exact convex lattice polygon.
 semialg.random_polygon(seed=4)
 ```
 
-This call is exercised by the regression contract “random generators are seeded exact”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “random generators are seeded exact”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## random_polytope
 
@@ -3439,7 +3439,7 @@ Generate a reproducible exact full-dimensional random lattice polytope.
 semialg.random_polytope(3, seed=7)
 ```
 
-This call is exercised by the regression contract “random generators are seeded exact”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “random generators are seeded exact”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## subdivide_triangular_faces
 
@@ -3460,7 +3460,7 @@ Subdivide every triangular face into four triangles using shared exact midpoints
 semialg.subdivide_triangular_faces(ico, levels=1)
 ```
 
-This call is exercised by the regression contract “triangular subdivision and geodesic projection”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “triangular subdivision and geodesic projection”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## geodesic_refinement
 
@@ -3483,7 +3483,7 @@ Refine a triangular shell and project its vertices exactly to a sphere.
 semialg.geodesic_refinement(ico, levels=1)
 ```
 
-This call is exercised by the regression contract “triangular subdivision and geodesic projection”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “triangular subdivision and geodesic projection”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polyhedral_intersection
 
@@ -3504,7 +3504,7 @@ Return the exact canonical intersection of two full-dimensional convex polytopes
 sa.polyhedral_intersection(a, b)
 ```
 
-This call is exercised by the regression contract “polyhedral intersection and boolean intersection agree”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polyhedral intersection and boolean intersection agree”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## polyhedral_boolean
 
@@ -3526,7 +3526,7 @@ Exact structure-preserving convex-polyhedral Boolean fast path.
 sa.polyhedral_boolean("intersection", a, b)
 ```
 
-This call is exercised by the regression contract “polyhedral intersection and boolean intersection agree”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “polyhedral intersection and boolean intersection agree”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## RegularPolygon
 
@@ -3549,7 +3549,7 @@ Return a canonical regular polygon as a :class:`Polygon`.
 RegularPolygon(4)
 ```
 
-This call is exercised by the regression contract “regular polygon returns canonical polygon”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “regular polygon returns canonical polygon”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## Cube
 
@@ -3570,7 +3570,7 @@ Return an axis-aligned cube as a canonical :class:`Parallelepiped`.
 Cube(side=0)
 ```
 
-This call is exercised by the regression contract “named solid positive lengths are validated”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “named solid positive lengths are validated”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## Tetrahedron
 
@@ -3592,7 +3592,7 @@ Return a tetrahedron as a canonical :class:`Simplex`.
 Tetrahedron(vertices)
 ```
 
-This call is exercised by the regression contract “explicit tetrahedron preserves vertices”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “explicit tetrahedron preserves vertices”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## Octahedron
 
@@ -3613,7 +3613,7 @@ Return a regular octahedron as a canonical :class:`Polytope`.
 Octahedron()
 ```
 
-This call is exercised by the regression contract “triangular subdivision and geodesic projection”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “triangular subdivision and geodesic projection”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## Icosahedron
 
@@ -3634,7 +3634,7 @@ Return a regular icosahedron as a canonical :class:`Polytope`.
 Icosahedron(edge=3)
 ```
 
-This call is exercised by the regression contract “regular platonic polytope edges”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “regular platonic polytope edges”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## Dodecahedron
 
@@ -3655,7 +3655,7 @@ Return a regular dodecahedron as a canonical :class:`Polytope`.
 Dodecahedron(edge=3)
 ```
 
-This call is exercised by the regression contract “regular platonic polytope edges”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “regular platonic polytope edges”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## Prism
 
@@ -3676,7 +3676,7 @@ Extrude a vertex-defined base by ``vector`` and return a polytope.
 Prism(base, (0, 0, 1))
 ```
 
-This call is exercised by the regression contract “standard regions validate ambient dimensions”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “standard regions validate ambient dimensions”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## Pyramid
 
@@ -3697,7 +3697,7 @@ Join a vertex-defined base to an apex and return a polytope.
 Pyramid(base, (0, 0, 1))
 ```
 
-This call is exercised by the regression contract “standard regions validate ambient dimensions”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “standard regions validate ambient dimensions”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## as_semialgebraic_region
 
@@ -3718,7 +3718,7 @@ Coerce a formula or explicit :class:`Geometry` to ``SemialgebraicRegion``.
 region.as_semialgebraic_region()
 ```
 
-This call is exercised by the regression contract “membership forms agree”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “membership forms agree”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## interior_of_closure
 
@@ -3740,7 +3740,7 @@ Return interior(closure(region)).
 interior_of_closure(closed)
 ```
 
-This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## closure_of_interior
 
@@ -3762,7 +3762,7 @@ Return closure(interior(region)).
 closure_of_interior(opened)
 ```
 
-This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## region_variables
 
@@ -3784,7 +3784,7 @@ Return coordinate variables, parameters, or all symbols of a region.
 region_variables(closed)
 ```
 
-This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “region regularization and variable contracts”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_regular_closed_region
 
@@ -3806,7 +3806,7 @@ Return whether a region equals the closure of its interior.
 is_regular_closed_region(closed)
 ```
 
-This call is exercised by the regression contract “regular open and closed region operations”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “regular open and closed region operations”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## is_regular_open_region
 
@@ -3828,7 +3828,7 @@ Return whether a region equals the interior of its closure.
 is_regular_open_region(opened)
 ```
 
-This call is exercised by the regression contract “regular open and closed region operations”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “regular open and closed region operations”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## simplify_region
 
@@ -3840,7 +3840,7 @@ Canonicalize a symbolic semialgebraic region formula.
 
 - `region` — Semialgebraic or standard region on which the operation is performed.
 - `variables` — Ordered real variables of the problem; their order is semantically significant for elimination, coordinates, or returned tuples.
-- `exact` — Request exact symbolic construction rather than an approximate presentation.
+- `exact` — Request exact symbolic construction instead of an approximate presentation.
 
 **Result semantics.** The return contract is `SemialgebraicRegion`; see the family reference for structured-result details and certification status.
 
@@ -3850,7 +3850,7 @@ Canonicalize a symbolic semialgebraic region formula.
 simplify_region(expr, [x, y])
 ```
 
-This call is exercised by the regression contract “canonical simplification is shared and idempotent”, so the example corresponds to behavior checked by the test suite rather than illustrative pseudocode.
+This call is exercised by the regression contract “canonical simplification is shared and idempotent”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 
 ## `parametric_cad`
@@ -3873,3 +3873,256 @@ assert result.exceptional_cases
 `result.strata` preserves both full-dimensional generic and lower-dimensional exceptional parameter cells, including exceptional cells with empty fibers. `result.exceptional_analysis` records degree-drop, coefficient-sign, discriminant, and resultant polynomials discovered as provenance for possible stratum boundaries. The union of nonempty stratum conditions is the same parameter-feasibility question answered by `solvability_conditions`; the richer result additionally retains the decomposition, exceptional regimes, symbolic fibers, representative samples, and optional specialized cylindrical solutions.
 
 For `parametric_cad`, `formula` is the exact semialgebraic relation to decompose and `variables` are the fiber coordinates. `parameters` names the symbolic parameter coordinates. `output="result"` returns the complete structured result; the explicit `formula`, `cases`, `cells`, and `function` selectors project convenience views. `strategy` controls CAD planning, `domain` must currently be real, `assumptions` are conjoined before decomposition, `strict=True` turns an unsupported domain into an immediate error, and `specialize_fibers` controls whether representative cylindrical fiber solutions are extracted.
+
+# Focused root-API parameter contracts
+The sections below provide parameter-level contracts for public functions whose family pages describe shared mathematics but whose individual signatures need additional guidance. Exactness, algorithm selection, and complexity follow the page-level contracts above.
+## tangent_cone
+`tangent_cone(equations, point, variables=None) -> 'TangentConeResult'`
+Return the exact ideal-theoretic Zariski tangent cone at ``point``.
+**Parameter semantics.**
+- `equations` — Input controlling `equations`; its accepted representation and default are shown in the signature.
+- `point` — Exact point coordinates or symbol-to-value mapping.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## tangent_space
+`tangent_space(equations, point, variables=None) -> 'TangentSpaceResult'`
+Return the Zariski tangent space at a point as the Jacobian nullspace.
+**Parameter semantics.**
+- `equations` — Input controlling `equations`; its accepted representation and default are shown in the signature.
+- `point` — Exact point coordinates or symbol-to-value mapping.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## semialgebraic_function_graph
+`semialgebraic_function_graph(expression: 'sp.Expr', target: 'sp.Symbol') -> 'SemialgebraicFunctionGraph'`
+Construct an exact real semialgebraic graph for a supported expression.
+**Parameter semantics.**
+- `expression` — Real expression whose exact semialgebraic graph is requested.
+- `target` — Target symbol used for the graph output coordinate.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+
+**Representative call.**
+```python
+import sympy as sp
+from semialg import semialgebraic_function_graph
+
+x, y = sp.symbols("x y", real=True)
+semialgebraic_function_graph(sp.Abs(x), y)
+```
+## implies
+`implies(assumptions: 'FormulaLike | Iterable[FormulaLike]', conclusion: 'FormulaLike', variables: 'Sequence[sp.Symbol | str] | None' = None, *, domain: 'str' = 'reals', strategy: 'str | None' = None, return_result: 'bool' = False) -> 'bool | ImplicationResult'`
+Return whether ``assumptions`` imply ``conclusion`` over the reals.
+**Parameter semantics.**
+- `assumptions` — Additional exact assumptions used while deciding the symbolic statement.
+- `conclusion` — Conclusion whose implication from the assumptions is decided.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `domain` — Input controlling `domain`; its accepted representation and default are shown in the signature.
+- `strategy` — Exact backend/strategy selector; it changes the route, not the mathematical contract.
+- `return_result` — Return structured evidence/metadata in addition to the convenience mathematical value.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## parametric_cad
+`parametric_cad(formula: 'sp.Expr | Formula', variables: 'Sequence[sp.Symbol | str]', *, parameters: 'Sequence[sp.Symbol | str]' = (), output: 'ParametricCADOutput' = 'result', strategy: 'str' = 'auto', domain: 'str' = 'reals', assumptions: 'Iterable[sp.Expr] | sp.Expr | None' = None, strict: 'bool' = False, specialize_fibers: 'bool' = True)`
+Compute a parametric cylindrical decomposition over parameter space.
+**Parameter semantics.**
+- `formula` — Semialgebraic formula to analyze.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `parameters` — Symbols treated as parameters instead of eliminated problem variables.
+- `output` — Input controlling `output`; its accepted representation and default are shown in the signature.
+- `strategy` — Exact backend/strategy selector; it changes the route, not the mathematical contract.
+- `domain` — Input controlling `domain`; its accepted representation and default are shown in the signature.
+- `assumptions` — Additional exact assumptions used while deciding the symbolic statement.
+- `strict` — Input controlling `strict`; its accepted representation and default are shown in the signature.
+- `specialize_fibers` — Input controlling `specialize_fibers`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## argmin_set
+`argmin_set(expression, region=True, variables=None) -> 'sp.Expr'`
+Return the exact global minimizer set as a semialgebraic formula.
+**Parameter semantics.**
+- `expression` — Real expression whose exact semialgebraic graph is requested.
+- `region` — Semialgebraic formula or supported region object defining the set.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## connected_components
+`connected_components(region, variables=None) -> 'tuple[sp.Expr, ...]'`
+Return exact CAD-connected-component formulas.
+**Parameter semantics.**
+- `region` — Semialgebraic formula or supported region object defining the set.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## contains_point
+`contains_point(region, point, variables=None) -> 'bool'`
+Return whether an exact point belongs to the semialgebraic region.
+**Parameter semantics.**
+- `region` — Semialgebraic formula or supported region object defining the set.
+- `point` — Exact point coordinates or symbol-to-value mapping.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## semialgebraic_minimize
+`semialgebraic_minimize(objective: 'sp.Expr', constraints: 'FormulaLike | Iterable[FormulaLike] | None' = None, variables: 'Sequence[sp.Symbol | str] | None' = None, *, domain: 'str' = 'reals', return_result: 'bool' = False, certification: "Literal['auto', 'complete', 'candidate']" = 'auto', range_cost_limit: 'int' = 2500, recursion_limit: 'int' = 4, max_boolean_branches: 'int' = 32, parameters: 'Sequence[sp.Symbol | str] | None' = None, return_stratified: 'bool' = False, eliminate_quantifiers: 'bool' = False) -> 'list[object] | OptimizationResult | object'`
+Return ``[minimum_or_infimum, optimizer_points]`` by default.
+**Parameter semantics.**
+- `objective` — Exact objective expression optimized over the region.
+- `constraints` — Input controlling `constraints`; its accepted representation and default are shown in the signature.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `domain` — Input controlling `domain`; its accepted representation and default are shown in the signature.
+- `return_result` — Return structured evidence/metadata in addition to the convenience mathematical value.
+- `certification` — Input controlling `certification`; its accepted representation and default are shown in the signature.
+- `range_cost_limit` — Input controlling `range_cost_limit`; its accepted representation and default are shown in the signature.
+- `recursion_limit` — Input controlling `recursion_limit`; its accepted representation and default are shown in the signature.
+- `max_boolean_branches` — Input controlling `max_boolean_branches`; its accepted representation and default are shown in the signature.
+- `parameters` — Symbols treated as parameters instead of eliminated problem variables.
+- `return_stratified` — Input controlling `return_stratified`; its accepted representation and default are shown in the signature.
+- `eliminate_quantifiers` — Input controlling `eliminate_quantifiers`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## integrate_over_region
+`integrate_over_region(integrand: 'object', condition: 'object', variables: 'Sequence[sp.Symbol | str]', *, bounds: 'Sequence[tuple[sp.Symbol | str, object, object]] | Mapping[sp.Symbol | str, tuple[object, object]] | None' = None, method: 'str' = 'symbolic', precision: 'int' = 50, measure_dimension: 'object' = 'ambient', return_result: 'bool' = False, parameters: 'Sequence[sp.Symbol | str] | None' = None, return_stratified: 'bool' = False) -> 'sp.Expr | RegionIntegralResult | object'`
+Integrate ``integrand`` over a supported semialgebraic region.
+**Parameter semantics.**
+- `integrand` — Exact expression integrated over the region.
+- `condition` — Input controlling `condition`; its accepted representation and default are shown in the signature.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `bounds` — Optional exact variable bounds.
+- `method` — Algorithm selector for the documented operation.
+- `precision` — Input controlling `precision`; its accepted representation and default are shown in the signature.
+- `measure_dimension` — Input controlling `measure_dimension`; its accepted representation and default are shown in the signature.
+- `return_result` — Return structured evidence/metadata in addition to the convenience mathematical value.
+- `parameters` — Symbols treated as parameters instead of eliminated problem variables.
+- `return_stratified` — Input controlling `return_stratified`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## reduce_region_integral
+`reduce_region_integral(integrand: 'object', condition: 'object', variables: 'Sequence[sp.Symbol | str]', *, bounds: 'Sequence[tuple[sp.Symbol | str, object, object]] | Mapping[sp.Symbol | str, tuple[object, object]] | None' = None, return_integrals: 'bool' = False, parameters: 'Sequence[sp.Symbol | str] | None' = None) -> 'ReducedRegionIntegral | tuple[sp.Integral, ...]'`
+Reduce a supported region integral to explicit iterated integrals.
+**Parameter semantics.**
+- `integrand` — Exact expression integrated over the region.
+- `condition` — Input controlling `condition`; its accepted representation and default are shown in the signature.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `bounds` — Optional exact variable bounds.
+- `return_integrals` — Input controlling `return_integrals`; its accepted representation and default are shown in the signature.
+- `parameters` — Symbols treated as parameters instead of eliminated problem variables.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## region_closure
+`region_closure(region: 'FormulaLike | Iterable[FormulaLike]', variables: 'Sequence[sp.Symbol | str] | None' = None, *, strategy: 'str | None' = None) -> 'sp.Expr'`
+Return the Euclidean closure of a semialgebraic region.
+**Parameter semantics.**
+- `region` — Semialgebraic formula or supported region object defining the set.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `strategy` — Exact backend/strategy selector; it changes the route, not the mathematical contract.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## region_dimension
+`region_dimension(region: 'FormulaLike | Iterable[FormulaLike]', variables: 'Sequence[sp.Symbol | str] | None' = None) -> 'int'`
+Return the exact semialgebraic dimension from a complete adapted CAD.
+**Parameter semantics.**
+- `region` — Semialgebraic formula or supported region object defining the set.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## region_product
+`region_product(*regions, variables=None)`
+Return the Cartesian product of semialgebraic regions.
+**Parameter semantics.**
+- `regions` — Input regions combined by the operation.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## sign_vector
+`sign_vector(polys: 'Iterable[sp.Poly | sp.Expr]', point: 'Mapping[sp.Symbol, object] | Sequence[object] | RationalUnivariatePoint', *, variables: 'Sequence[sp.Symbol | str] | None' = None, exact: 'bool' = True, as_dict: 'bool' = False, numeric_precision: 'int' = 120) -> 'tuple[int, ...] | dict[sp.Expr, int]'`
+Return the signs of ``polys`` at ``point`` in input order.
+**Parameter semantics.**
+- `polys` — Input controlling `polys`; its accepted representation and default are shown in the signature.
+- `point` — Exact point coordinates or symbol-to-value mapping.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `exact` — Input controlling `exact`; its accepted representation and default are shown in the signature.
+- `as_dict` — Input controlling `as_dict`; its accepted representation and default are shown in the signature.
+- `numeric_precision` — Input controlling `numeric_precision`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+## discretize_region_geometry
+`discretize_region_geometry(region, *, variables=None, samples_per_curve: 'int' = 64) -> 'SolutionPlotData'`
+Return lightweight geometry for explicit standard-region objects.
+**Parameter semantics.**
+- `region` — Semialgebraic formula or supported region object defining the set.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `samples_per_curve` — Input controlling `samples_per_curve`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+
+**Representative call.**
+```python
+import sympy as sp
+from semialg import discretize_region_geometry
+
+x, y = sp.symbols("x y", real=True)
+discretize_region_geometry(sp.And(x >= 0, x <= 1), (x,))
+```
+## discretize_solution
+`discretize_solution(solution, *, bounds: 'Sequence[tuple[sp.Expr, sp.Expr]] | None' = None, samples_per_curve: 'int' = 33) -> 'SolutionPlotData'`
+Return a small plotting/discretization representation for a solution.
+**Parameter semantics.**
+- `solution` — Input controlling `solution`; its accepted representation and default are shown in the signature.
+- `bounds` — Optional exact variable bounds.
+- `samples_per_curve` — Input controlling `samples_per_curve`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+
+**Representative call.**
+```python
+import sympy as sp
+from semialg import discretize_solution
+
+x, y = sp.symbols("x y", real=True)
+discretize_solution(sp.And(x >= 0, x <= 1), (x,))
+```
+## plot_region_geometry
+`plot_region_geometry(region, *, variables=None, ax=None, show: 'bool' = False, samples_per_curve: 'int' = 64, **plot_kwargs)`
+Plot an explicit standard-region object using Matplotlib.
+**Parameter semantics.**
+- `region` — Semialgebraic formula or supported region object defining the set.
+- `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
+- `ax` — Input controlling `ax`; its accepted representation and default are shown in the signature.
+- `show` — Input controlling `show`; its accepted representation and default are shown in the signature.
+- `samples_per_curve` — Input controlling `samples_per_curve`; its accepted representation and default are shown in the signature.
+- `plot_kwargs` — Input controlling `plot_kwargs`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+
+**Representative call.**
+```python
+import sympy as sp
+from semialg import plot_region_geometry
+
+x, y = sp.symbols("x y", real=True)
+plot_region_geometry(sp.And(x >= 0, x <= 1), (x,))
+```
+## plot_solution
+`plot_solution(solution, *, bounds: 'Sequence[tuple[sp.Expr, sp.Expr]] | None' = None, samples_per_curve: 'int' = 33, raster_resolution: 'int' = 300, ax=None, show: 'bool' = False, **plot_kwargs)`
+Plot a 1D/2D solution using Matplotlib when available.
+**Parameter semantics.**
+- `solution` — Input controlling `solution`; its accepted representation and default are shown in the signature.
+- `bounds` — Optional exact variable bounds.
+- `samples_per_curve` — Input controlling `samples_per_curve`; its accepted representation and default are shown in the signature.
+- `raster_resolution` — Input controlling `raster_resolution`; its accepted representation and default are shown in the signature.
+- `ax` — Input controlling `ax`; its accepted representation and default are shown in the signature.
+- `show` — Input controlling `show`; its accepted representation and default are shown in the signature.
+- `plot_kwargs` — Input controlling `plot_kwargs`; its accepted representation and default are shown in the signature.
+
+**Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
+
+**Representative call.**
+```python
+import sympy as sp
+from semialg import plot_solution
+
+x, y = sp.symbols("x y", real=True)
+plot_solution(sp.And(x >= 0, x <= 1), (x,))
+```

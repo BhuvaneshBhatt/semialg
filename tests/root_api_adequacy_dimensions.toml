@@ -80,8 +80,8 @@ dimensions = ["nominal", "metamorphic"]
 evidence = ["tests/test_root_api_multidimensional_geometry.py::test_deduplicate_indexed_vertices_is_idempotent_and_reindexes_cells"]
 
 [apis."discretize_region_geometry"]
-owner = "solving"
-risk = "medium"
+owner = "geometry"
+risk = "high"
 dimensions = ["nominal", "independent-oracle", "round-trip-presentation"]
 evidence = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_discretize_region_geometry_preserves_exact_box_vertices_under_translation", "tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_region_geometry_does_not_change_discretized_semantics"]
 
@@ -308,14 +308,14 @@ dimensions = ["nominal", "boundary-degenerate"]
 evidence = ["tests/test_root_api_multidimensional_geometry.py::test_parameterization_critical_locus_and_values_for_parabola"]
 
 [apis."plot_region_geometry"]
-owner = "solving"
-risk = "medium"
+owner = "geometry"
+risk = "high"
 dimensions = ["nominal", "round-trip-presentation"]
 evidence = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_region_geometry_does_not_change_discretized_semantics"]
 
 [apis."plot_solution"]
-owner = "solving"
-risk = "medium"
+owner = "geometry"
+risk = "high"
 dimensions = ["nominal", "round-trip-presentation"]
 evidence = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_solution_is_presentation_only_and_returns_supplied_axes"]
 

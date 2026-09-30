@@ -1,6 +1,6 @@
 # Root-level public API adequacy audit
 
-This audit reviews every function exported from `semialg.__all__`. It is deliberately stricter than line or call coverage. A public function must have direct calls from at least two test files and at least three independently named behavioral contracts. The multidimensional registry additionally requires depth-tracked APIs to have a qualitatively different semantic test dimension, rather than merely another nominal example.
+This audit reviews every function exported from `semialg.__all__`. It is explicitly stricter than line or call coverage. A public function must have direct calls from at least two test files and at least three independently named behavioral contracts. The multidimensional registry additionally requires depth-tracked APIs to have a qualitatively different semantic test dimension, instead of merely another nominal example.
 
 The audit covers **217 root-level public functions**. **All 217 root functions have at least three independently named behavioral contracts.** The 79 APIs selected for multidimensional depth tracking additionally have an independent semantic dimension—metamorphic, boundary/degenerate, independent-oracle, independent-semantic, or presentation/round-trip—recorded in `tests/root_api_adequacy_dimensions.toml`.
 
@@ -225,11 +225,11 @@ A generated registry records semantic dimensions and exact test evidence for 79 
 | `topology_summary` | geometry | high | 2 | 4 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
 | `translate` | geometry | high | 6 | 7 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
 | `triangulate_polytope` | geometry | high | 2 | 6 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
-| `verify_nonnegative_combination_certificate` | geometry | high | 2 | 4 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
+| `verify_nonnegative_certificate` | geometry | high | 2 | 4 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
 | `width` | geometry | high | 2 | 3 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
 | `zariski_closure` | algebraic | high | 2 | 3 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
 | `zeng_negative_point` | optimization | high | 2 | 7 | strong | 3+ independently named semantic contracts; multidimensional registry applies to depth-tracked APIs |
 
 ## Interpretation
 
-This still does not make test count a proof of mathematical correctness: the multidimensional registry exists precisely to require qualitatively different failure detectors. Future additions should extend the relevant semantic dimension rather than adding redundant nominal examples.
+This still does not make test count a proof of mathematical correctness: the multidimensional registry exists precisely to require qualitatively different failure detectors. Future additions should extend the relevant semantic dimension instead of adding redundant nominal examples.

@@ -6,9 +6,9 @@ from semialg.algebraic.gtz import (
     certified_independent_localization,
     contract_localized_ideal,
     saturation_stabilization,
-    verify_independent_localization_certificate,
-    verify_localization_contraction_certificate,
-    verify_saturation_stabilization_certificate,
+    verify_contraction_certificate,
+    verify_localization_certificate,
+    verify_saturation_certificate,
 )
 from semialg.algebraic.modular import (
     modular_groebner_basis_qq,
@@ -59,25 +59,19 @@ def test_modular_subresultant_certificate_proof_fields_reject_mutation():
 def test_gtz_localization_certificate_proof_fields_reject_mutation():
     x, y = sp.symbols("x y")
     result = certified_independent_localization((x * y,), (x, y))
-    assert_certificate_fields_reject_mutation(
-        result.certificate, verify_independent_localization_certificate
-    )
+    assert_certificate_fields_reject_mutation(result.certificate, verify_localization_certificate)
 
 
 def test_gtz_contraction_certificate_proof_fields_reject_mutation():
     u, x = sp.symbols("u x")
     result = contract_localized_ideal((x + 1 / u,), (u,), (x,))
-    assert_certificate_fields_reject_mutation(
-        result.certificate, verify_localization_contraction_certificate
-    )
+    assert_certificate_fields_reject_mutation(result.certificate, verify_contraction_certificate)
 
 
 def test_gtz_saturation_certificate_proof_fields_reject_mutation():
     x, y = sp.symbols("x y")
     result = saturation_stabilization((x * y,), x, (x, y))
-    assert_certificate_fields_reject_mutation(
-        result.certificate, verify_saturation_stabilization_certificate
-    )
+    assert_certificate_fields_reject_mutation(result.certificate, verify_saturation_certificate)
 
 
 def test_sos_certificate_proof_fields_reject_mutation():
@@ -91,7 +85,7 @@ def test_sos_certificate_proof_fields_reject_mutation():
 def test_regular_chain_certificate_proof_fields_reject_mutation():
     from semialg.algebraic_decomposition import (
         recursive_regular_chain_decomposition,
-        verify_regular_chain_decomposition_certificate,
+        verify_regular_chain_certificate,
     )
 
     x, y = sp.symbols("x y")
@@ -99,7 +93,7 @@ def test_regular_chain_certificate_proof_fields_reject_mutation():
     assert result.certificate is not None
     assert_certificate_fields_reject_mutation(
         result.certificate,
-        verify_regular_chain_decomposition_certificate,
+        verify_regular_chain_certificate,
         ignored=frozenset(),
     )
 
@@ -115,12 +109,12 @@ def test_radical_certificate_proof_fields_reject_mutation():
 
 def test_minimal_prime_certificate_proof_fields_reject_mutation():
     from semialg.algebraic_decomposition import (
-        certified_radical_minimal_prime_decomposition,
+        certified_minimal_primes,
         verify_minimal_prime_decomposition_certificate,
     )
 
     x, y = sp.symbols("x y")
-    result = certified_radical_minimal_prime_decomposition((x * y,), (x, y))
+    result = certified_minimal_primes((x * y,), (x, y))
     assert result.certificate is not None
     assert_certificate_fields_reject_mutation(
         result.certificate,
@@ -147,7 +141,7 @@ def test_primary_certificate_proof_fields_reject_mutation():
 
 def test_zero_dimensional_primary_certificate_proof_fields_reject_mutation():
     from semialg.algebraic.gtz_zero_dim import (
-        verify_zero_dimensional_primary_certificate,
+        verify_zero_dim_primary_certificate,
         zero_dimensional_primary_decomposition,
     )
 
@@ -156,7 +150,7 @@ def test_zero_dimensional_primary_certificate_proof_fields_reject_mutation():
     assert result.certificate is not None
     assert_certificate_fields_reject_mutation(
         result.certificate,
-        verify_zero_dimensional_primary_certificate,
+        verify_zero_dim_primary_certificate,
         ignored=frozenset({"coefficient_field", "field_relations"}),
     )
 

@@ -46,4 +46,4 @@
 
 ## Return-value convention
 
-Functions with a single obvious mathematical answer return that answer by default. Rich diagnostics, witnesses, backend traces, or certificates are obtained with `return_result=True` where supported. Aggregate analyses remain structured when several mathematical outputs are inseparable. Tri-state predicates use `None` for an exact question that the selected certified method cannot decide; `None` is never silently converted to `False`.
+Functions with a single obvious mathematical answer return that answer by default. Rich diagnostics, witnesses, backend traces, or certificates are obtained with `return_result=True` where supported. Aggregate analyses remain structured when several mathematical outputs are inseparable. Tri-state predicates use `None` for an exact question that the selected certified method cannot decide; `None` is never without reporting converted to `False`.

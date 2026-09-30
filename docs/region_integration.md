@@ -50,7 +50,7 @@ integrate_over_region(1, x**2 + y**2 <= 1, [x, y], method="auto")
 ```
 
 `method="symbolic"` is the default. It requires exact symbolic evaluation and raises `NotImplementedError` if any reduced piece remains unevaluated.
- It also never substitutes numerical root finding for failed exact real-root isolation: if an exact boundary cannot be isolated, the exact reduction is declined rather than approximated.
+ It also never substitutes numerical root finding for failed exact real-root isolation: if an exact boundary cannot be isolated, the exact reduction is declined instead of approximated.
 
 ## Measure
 
@@ -144,7 +144,7 @@ The current exact layer supports many common cases, including:
 
 ## Symbol identity and string variable names
 
-Public region APIs accept either SymPy symbols or string variable names. A string such as `"x"` is resolved against the symbols already present in the integrand, region formula, and bounds before any new symbol is created. This matters because `Symbol("x")` and `Symbol("x", real=True)` are distinct SymPy objects even though they print the same way. If two incompatible same-name symbols are genuinely present, the API raises `ValueError` rather than guessing which one the string denotes.
+Public region APIs accept either SymPy symbols or string variable names. A string such as `"x"` is resolved against the symbols already present in the integrand, region formula, and bounds before any new symbol is created. This matters because `Symbol("x")` and `Symbol("x", real=True)` are distinct SymPy objects even though they print the same way. If two incompatible same-name symbols are genuinely present, the API raises `ValueError` instead of guessing which one the string denotes.
 
 ## Limitations
 
@@ -165,7 +165,7 @@ Lower-dimensional cells are handled by the separate
 
 ## Regular/singular intrinsic stratification
 
-`stratify_intrinsic_solution(...)` classifies cylindrical solution cells by certified regularity. `IntrinsicStratification.regular_strata` and `.singular_strata` keep the distinction explicit. Algebraic sections require a cell-wide `DelineabilityCertificate` with verified regularity; an algebraic root function without such a certificate is never silently treated as a regular manifold graph.
+`stratify_intrinsic_solution(...)` classifies cylindrical solution cells by certified regularity. `IntrinsicStratification.regular_strata` and `.singular_strata` keep the distinction explicit. Algebraic sections require a cell-wide `DelineabilityCertificate` with verified regularity; an algebraic root function without such a certificate is never without reporting treated as a regular manifold graph.
 
 For a regular graph cell with mapping Jacobian `J`, intrinsic integration uses
 

@@ -4,7 +4,7 @@ This audit checks documentation *quality dimensions* for every root-level functi
 
 The rubric deliberately distinguishes reference coverage from adequacy. Medium-risk functions require a clear purpose, inspectable signature, return semantics, and family-level exactness/limitations. High-risk functions additionally require parameter semantics and an executable-style documentation example. Critical functions additionally require algorithm/backend documentation.
 
-**Current result:** 218/218 functions satisfy their risk-adjusted adequacy requirements; 0 need documentation deepening.
+**Current result:** 226/238 functions satisfy their risk-adjusted adequacy requirements; 12 need documentation deepening.
 
 ## Gap summary
 
@@ -12,17 +12,31 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 |---|---:|
 | `purpose` | 0 |
 | `signature` | 0 |
-| `parameters` | 0 |
-| `return_semantics` | 0 |
+| `parameters` | 8 |
+| `return_semantics` | 1 |
 | `exactness` | 0 |
 | `algorithm` | 0 |
 | `limitations` | 0 |
-| `example` | 0 |
+| `example` | 11 |
 
 ## Function-by-function audit
 
 | Function | Owner | Risk | Status | Missing dimensions | Reference |
 |---|---|---|---|---|---|
+| `blowup_charts` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-maps-and-path-independence) |
+| `contact_order` | geometry | high | needs deepening | `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#curve-selection-and-relative-rates) |
+| `curve_selection` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#curve-selection-and-relative-rates) |
+| `local_bound` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-bounds) |
+| `local_components` | geometry | high | needs deepening | `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-germs-signs-and-components) |
+| `local_geometry` | geometry | high | needs deepening | `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-germs-signs-and-components) |
+| `local_germ` | geometry | high | adequate | — | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-germs-signs-and-components) |
+| `local_image` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-maps-and-path-independence) |
+| `local_preimage` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-maps-and-path-independence) |
+| `local_range` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-bounds) |
+| `local_sign_strata` | geometry | high | needs deepening | `parameters` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-germs-signs-and-components) |
+| `parameter_strata` | geometry | high | adequate | — | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#parameter-strata) |
+| `path_independent` | geometry | high | needs deepening | `return_semantics`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-maps-and-path-independence) |
+| `vanishing_order` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#curve-selection-and-relative-rates) |
 | `quantifier_eliminate` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#quantifier_eliminate) |
 | `project_region` | decision | high | adequate | — | [reference/decision_and_qe.md](../reference/decision_and_qe.md#project_regionregion-eliminate-variablesnone-strategyauto-return_resultfalse) |
 | `convert_region` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#convert_region) |
@@ -34,7 +48,7 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `canonicalize_polygon` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#canonicalize_polygon) |
 | `canonicalize_polyhedron` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#canonicalize_polyhedron) |
 | `canonicalize_region` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#canonicalize_region) |
-| `verify_nonnegative_combination_certificate` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#verify_nonnegative_combination_certificate) |
+| `verify_nonnegative_certificate` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#verify_nonnegative_certificate) |
 | `nonnegative_combination_certificate` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#nonnegative_combination_certificate) |
 | `implied_polynomial_inequality` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#implied_polynomial_inequality) |
 | `redundant_polynomial_inequalities` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#redundant_polynomial_inequalities) |
@@ -44,12 +58,16 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `relative_interior` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#relative_interior) |
 | `relative_boundary` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#relative_boundary) |
 | `semialgebraic_tangent_cone` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#semialgebraic_tangent_cone) |
+| `structured_proof_diagnostics` | geometry | high | adequate | — | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#structured_proof_diagnostics) |
+| `correlated_map_image` | geometry | high | adequate | — | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#correlated_map_image) |
+| `angular_map_image` | geometry | high | adequate | — | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#angular_map_image) |
 | `parameterization_geometry` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#parameterization_geometry) |
 | `parameterization_critical_locus` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#parameterization_critical_locus) |
 | `parameterization_critical_values` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#parameterization_critical_values) |
 | `implicitize_polynomial_map` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#implicitize_polynomial_map) |
 | `minimal_prime_intersections` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#minimal_prime_intersections) |
 | `local_dimension_strata` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#local_dimension_strata) |
+| `local_algebraic_strata` | geometry | high | adequate | — | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local_algebraic_strata) |
 | `local_branch_geometry` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#local_branch_geometry) |
 | `stratified_singular_geometry` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#stratified_singular_geometry) |
 | `certified_radicalization` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#certified_radicalization) |
@@ -59,34 +77,35 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `is_singular` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#is_singular) |
 | `is_smooth` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#is_smooth) |
 | `singular_locus` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#singular_locus) |
-| `tangent_cone` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `tangent_cone` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#tangent_cone) |
 | `tangent_dimension` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#tangent_dimension) |
-| `tangent_space` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `tangent_space` | algebraic | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#tangent_space) |
 | `as_cad_region` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#as_cad_region) |
-| `replay_certificate` | geometry | critical | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `replay_certificate` | algebraic | critical | adequate | — | [reference/algebraic.md](../reference/algebraic.md#associated-primes-and-primary-decomposition) |
 | `analyze_affine_map` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#analyze_affine_map) |
 | `convexity_certificate` | function-analysis | medium | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#convexity_certificate) |
-| `function_convexity` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-convexity) |
+| `function_convexity` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-monotonicity) |
 | `function_convex_partition` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-convex-partition) |
-| `function_monotonicity` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-monotonicity) |
+| `function_monotonicity` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-property-performance-and-cache-reuse) |
 | `function_monotonic_partition` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-monotonic-partition) |
 | `function_sign_partition` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-sign-partition) |
 | `function_smoothness` | function-analysis | medium | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#function_smoothness) |
 | `function_mapping_properties` | function-analysis | medium | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#function_mapping_properties) |
+| `semialgebraic_function_graph` | function-analysis | medium | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#semialgebraic_function_graph) |
 | `is_injective` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-mapping-properties) |
 | `is_surjective` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-mapping-properties) |
 | `is_bijective` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-mapping-properties) |
 | `is_function_continuous` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-smoothness) |
 | `is_function_smooth` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-smoothness) |
-| `matrix_definiteness` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
+| `matrix_definiteness` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-convexity) |
 | `matrix_pd_on` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
 | `matrix_psd_on` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
 | `matrix_rank_on` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
 | `matrix_rank_stratification` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
 | `is_convex` | function-analysis | medium | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#is_convex) |
 | `equivalent` | decision | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#equivalent) |
-| `implies` | decision | critical | adequate | — | [reference/decision_and_qe.md](../reference/decision_and_qe.md#primary-api-overview) |
-| `is_satisfiable` | decision | critical | adequate | — | [reference/decision_and_qe.md](../reference/decision_and_qe.md#primary-api-overview) |
+| `implies` | decision | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#implies) |
+| `is_satisfiable` | decision | critical | adequate | — | [reference/decision_and_qe.md](../reference/decision_and_qe.md#is_satisfiableformula-variablesnone-domainreals-strategynone-return_resultfalse) |
 | `real_algebraic_feasibility` | algebraic | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#real_algebraic_feasibility) |
 | `solve_real_algebraic_set` | algebraic | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#solve_real_algebraic_set) |
 | `find_negative_point` | geometry | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#find_negative_point) |
@@ -98,11 +117,12 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `cad` | geometry | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#cad) |
 | `parametric_cad` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#parametric_cad) |
 | `argmax_set` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#argmax_set) |
-| `argmin_set` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `argmin_set` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#argmin_set) |
 | `centroid` | integration | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#centroid) |
 | `closest_points` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#closest_points) |
-| `connected_components` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
-| `contains_point` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `connected_components` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#connected_components) |
+| `contains_point` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#contains_point) |
+| `point_in_closure` | geometry | high | adequate | — | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#point_in_closure) |
 | `coordinate_range` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#coordinate_range) |
 | `covariance_matrix` | integration | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#covariance_matrix) |
 | `diameter` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#diameter) |
@@ -135,14 +155,14 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `support_function` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#support_function) |
 | `translate` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#translate) |
 | `width` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#width) |
-| `function_domain` | decision | high | adequate | — | [reference/decision_and_qe.md](../reference/decision_and_qe.md#primary-api-overview) |
+| `function_domain` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-convexity) |
 | `is_real_valued` | solving | medium | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#is_real_valued) |
 | `bounding_box` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#bounding_box) |
 | `critical_values` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#critical_values) |
 | `critical_value_image` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#critical_value_image) |
 | `distance_between_regions` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#distance_between_regions) |
 | `distance_to_region` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#distance_to_region) |
-| `euler_characteristic` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `euler_characteristic` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#euler-characteristic) |
 | `fiber` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#fiber) |
 | `is_path_connected` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#is_path_connected) |
 | `path_between` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#path_between) |
@@ -166,7 +186,7 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `prove_positive` | decision | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#prove_positive) |
 | `prove_zero` | decision | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#prove_zero) |
 | `prove_nonzero` | decision | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#prove_nonzero) |
-| `function_sign` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
+| `function_sign` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#function-sign-partition) |
 | `simplify_system` | decision | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#simplify_system) |
 | `simplify_under_assumptions` | decision | high | adequate | — | [reference/decision_and_qe.md](../reference/decision_and_qe.md#primary-api-overview) |
 | `local_dimension` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#local_dimension) |
@@ -179,29 +199,29 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `integrate_over_region` | integration | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#integrate_over_region) |
 | `reduce_region_integral` | integration | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#reduce_region_integral) |
 | `region_boundary` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_boundary) |
-| `region_closure` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `region_closure` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_closure) |
 | `region_complement` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_complement) |
 | `region_difference` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_difference) |
-| `region_dimension` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `region_dimension` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_dimension) |
 | `region_interior` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_interior) |
-| `region_intersection` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
-| `region_product` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `region_intersection` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#formula-based-region-operations) |
+| `region_product` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_product) |
 | `region_symmetric_difference` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_symmetric_difference) |
-| `region_union` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#primary-api-overview) |
+| `region_union` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#formula-based-region-operations) |
 | `classify_real_roots` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#classify_real_roots) |
-| `sample_point` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `random_point` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `random_points` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
+| `sample_point` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#sample_point-and-sample_points) |
+| `random_point` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#canonical-region-random-sampling) |
+| `random_points` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#canonical-region-random-sampling) |
 | `affine_relative_interior_formula` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
 | `strict_feasible` | function-analysis | medium | adequate | — | [reference/convexity_backend.md](../reference/convexity_backend.md#family-contract) |
-| `sample_points` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
+| `sample_points` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#sample_point-and-sample_points) |
 | `sign_at` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `sign_vector` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `discretize_region_geometry` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `discretize_solution` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `plot_region_geometry` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `plot_solution` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
-| `find_instance` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
+| `sign_vector` | solving | medium | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#sign_vector) |
+| `discretize_region_geometry` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#discretize_region_geometry) |
+| `discretize_solution` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#discretize_solution) |
+| `plot_region_geometry` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#plot_region_geometry) |
+| `plot_solution` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#plot_solution) |
+| `find_instance` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#instance-helpers) |
 | `is_zero_dimensional` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#primary-api-overview) |
 | `reduce_formula` | solving | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#reduce_formula) |
 | `resolve_formula` | solving | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#resolve_formula) |

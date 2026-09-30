@@ -5,7 +5,7 @@ from __future__ import annotations
 import sympy as sp
 
 from semialg import is_tautology, polynomial_nonnegative
-from semialg.algebraic.rational_univariate import solve_zero_dimensional_system_with_rur
+from semialg.algebraic.rational_univariate import solve_with_rur
 from semialg.formula import parse_formula
 from semialg.preprocess import semialgebraicize
 from semialg.qe.complete import qe_by_complete_cad
@@ -44,7 +44,7 @@ def test_groebner_variety_qe_matches_forced_collins_qe_semantically():
 def test_rur_solution_set_matches_direct_exact_solution_set():
     x, y = sp.symbols("x y", real=True)
     equations = (x**2 - 2, y - x)
-    rur = solve_zero_dimensional_system_with_rur(equations, (x, y), real=True)
+    rur = solve_with_rur(equations, (x, y), real=True)
     direct = tuple((root, root) for root in sp.real_roots(x**2 - 2))
 
     assert_exact_point_sets_equal(rur, direct, (x, y))

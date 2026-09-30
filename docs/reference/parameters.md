@@ -5,13 +5,13 @@
 
 **Exactness and certification.** A representative sample from a parameter cell is not promoted to an unconditional symbolic answer. Guards, coverage, and disjointness are explicit parts of the result model.
 
-**Algorithm.** Parameter space may be decomposed by CAD/projection conditions; operation-specific code then attaches exact optimization, range, integration, root-count, or solvability results to those guards.
+**Algorithms.** Parameter space may be decomposed by CAD/projection conditions; operation-specific code then attaches exact optimization, range, integration, root-count, or solvability results to those guards.
 
 **Complexity and limitations.** Forcing a quantifier-free presentation may require an additional complete QE and can be substantially more expensive than retaining an exact quantified relation.
 
 ## Why stratified results exist
 
-A parameterized problem can have qualitatively different answers on different parameter regions. semialg represents this explicitly rather than evaluating one representative parameter point and pretending its answer is globally valid.
+A parametrized problem can have qualitatively different answers on different parameter regions. semialg represents this explicitly instead of evaluating one representative parameter point and pretending its answer is globally valid.
 
 ## `ParameterStratifiedResult`
 

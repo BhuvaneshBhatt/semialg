@@ -29,7 +29,7 @@ without a fresh full report would create false precision. The intended progressi
 | Current | 74.5% | existing behavioral/property/failure-path suite |
 | Decision/parameter/root expansion | 76% | critical decision branches, parameter strata, root degree drops and failures |
 | Topology/optimization/integration matrices | 78% | exact boundary/attainment/measure behavior and important unsupported paths |
-| Remaining thin API families | 80% | independent behavioral evidence rather than execution-only calls |
+| Remaining thin API families | 80% | independent behavioral evidence instead of execution-only calls |
 
 A target becomes an enforced floor only after the full non-slow report on the exact tree
 is above it with reasonable margin. Removing obsolete unreachable code is preferable to
@@ -39,7 +39,7 @@ writing tests solely to cover dead branches.
 
 `tests/coverage_policy.toml` partitions all package source files into thirteen reviewable
 subsystems. The checker rejects overlap and rejects an unassigned file, so a new nested
-subsystem cannot silently fall into a large catch-all group. Shared top-level plumbing is
+subsystem cannot without reporting fall into a large catch-all group. Shared top-level plumbing is
 the only deliberate fallback group.
 
 The initial enforced combined floors are **85%** for public decision/parameter/root

@@ -51,13 +51,13 @@ Polynomial Lyapunov conditions involve positivity over semialgebraic domains. Ty
 - for which parameters do these inequalities hold?;
 - what is the exact boundary of an admissible parameter set?
 
-Exact QE can answer low-dimensional instances and can certify symbolic parameter regimes. For large systems, sums-of-squares techniques may be preferable; these complement rather than replace exact semialgebraic decision methods.
+Exact QE can answer low-dimensional instances and can certify symbolic parameter regimes. For large systems, sums-of-squares techniques may be preferable; these complement instead of replace exact semialgebraic decision methods.
 
 ## Global optimization
 
 Polynomial optimization over polynomial constraints is a central semialgebraic problem. Applications occur in engineering design, geometric fitting, economics, statistics, and scientific modeling.
 
-`semialg` can exploit boxes, polytopes, separability, KKT equations, exact algebraic candidates, and CAD/function-range certification. It is particularly useful when the desired answer is symbolic or algebraic rather than a floating-point approximation.
+`semialg` can exploit boxes, polytopes, separability, KKT equations, exact algebraic candidates, and CAD/function-range certification. It is particularly useful when the desired answer is symbolic or algebraic instead of a floating-point approximation.
 
 ## Parameterized scientific models
 
@@ -109,7 +109,7 @@ Geometric tolerances, linkage constraints, polynomial constitutive approximation
 Generic CAD is usually not the best first choice for:
 
 - hundreds or thousands of variables;
-- problems whose essential structure is transcendental rather than algebraic;
+- problems whose essential structure is transcendental instead of algebraic;
 - large convex programs already handled efficiently by numerical convex solvers;
 - approximate problems where certified symbolic answers provide no benefit.
 

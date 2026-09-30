@@ -150,7 +150,7 @@ def reconstruct_vs_value(
     return None
 
 
-def try_quadratic_virtual_substitution_witness(
+def try_quadratic_vs_witness(
     vars_: Sequence[sp.Symbol],
     quantifiers: Sequence[tuple[str, sp.Symbol]],
     matrix: sp.Expr,

@@ -23,7 +23,7 @@ The current `equidimensional_decomposition` uses exact factor/ideal splitting pl
 
 ## Algebraic function fields and norm factorization
 
-- **[Trager1976]** B. M. Trager, *Algorithms for Manipulating Algebraic Functions*, Master's thesis, MIT (1976).  The monogenic function-field factorizer in `semialg.algebraic_function_fields` uses the norm/resultant descent associated with Trager: shift by a multiple of the extension generator, compute the norm to the lower field, factor there, and recover factors by exact gcd upstairs.  The implementation characterizes exceptional shifts exactly by vanishing of the norm polynomial's discriminant in the main variable; squarefreeness is tested equivalently by an exact polynomial gcd, so no finite shift budget enters correctness or completeness. Arbitrary input polynomials are first decomposed into squarefree parts with exact multiplicities over the tower using characteristic-zero gcd/Yun decomposition, so the squarefree condition is internal to the Trager core rather than a public restriction.
+- **[Trager1976]** B. M. Trager, *Algorithms for Manipulating Algebraic Functions*, Master's thesis, MIT (1976).  The monogenic function-field factorizer in `semialg.algebraic_function_fields` uses the norm/resultant descent associated with Trager: shift by a multiple of the extension generator, compute the norm to the lower field, factor there, and recover factors by exact gcd upstairs.  The implementation characterizes exceptional shifts exactly by vanishing of the norm polynomial's discriminant in the main variable; squarefreeness is tested equivalently by an exact polynomial gcd, so no finite shift budget enters correctness or completeness. Arbitrary input polynomials are first decomposed into squarefree parts with exact multiplicities over the tower using characteristic-zero gcd/Yun decomposition, so the squarefree condition is internal to the Trager core instead of a public restriction.
 
 `semialg` applies this construction recursively over towers whose base is a rational-function field.  If norm descent is inconclusive, triangular decomposition retains its quotient-ring/saturation refinement as a one-sided exact fallback: a discovered factor identity may split a branch, but failure to discover one is never interpreted as irreducibility.
 
@@ -54,7 +54,7 @@ The McCallum, Lazard, and TTICAD paths are **reduced, equational-constraint-shap
 The algebraic-function-field layer also supports exact primitive-element
 compression for finite characteristic-zero monogenic towers over
 `QQ(parameters)`.  Adjacent extensions are compressed by choosing
-`theta = alpha + c*beta`.  Rather than relying on a bounded or theorem-only
+`theta = alpha + c*beta`.  Instead of relying on a bounded or theorem-only
 parameter search, semialg constructs the exact power-basis determinant guard
 `B(c)`: its columns are the coordinates of `1, theta, ..., theta^(d-1)` in the
 old product basis.  The binomial theorem assembles this matrix without adjoining

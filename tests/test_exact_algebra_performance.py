@@ -4,7 +4,7 @@ import sympy as sp
 
 from semialg.algebraic import (
     modular_groebner_basis_fraction_field,
-    verify_modular_fraction_field_groebner_certificate,
+    verify_fraction_field_groebner_certificate,
 )
 from semialg.algebraic.groebner_utils import (
     _prefer_modular_fraction_field,
@@ -27,7 +27,7 @@ def test_modular_fraction_field_groebner_reconstructs_denominators():
     assert result is not None
     assert result.certified
     assert len(result.certificate.primes) >= 2
-    assert verify_modular_fraction_field_groebner_certificate(result.certificate)
+    assert verify_fraction_field_groebner_certificate(result.certificate)
 
     domain = sp.QQ.frac_field(u)
     direct = sp.groebner(generators, x, y, order="grevlex", domain=domain)
@@ -101,4 +101,4 @@ def test_fraction_field_modular_certificate_rejects_membership_tamper():
     first[0] = sp.cancel(first[0] + 1)
     representations[0] = tuple(first)
     tampered = replace(result.certificate, membership_representations=tuple(representations))
-    assert not verify_modular_fraction_field_groebner_certificate(tampered)
+    assert not verify_fraction_field_groebner_certificate(tampered)

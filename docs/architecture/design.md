@@ -27,7 +27,7 @@ numerical presentation cannot leak into certification.
 
 Before complete CAD/QE, `presolve.py` performs only equivalence-preserving structural reductions whose exceptional cases are explicit. It can substitute an innermost existential variable from an affine equality when the divisor is a nonzero symbol-free constant, eliminate constant-coefficient linear existential inequalities by Fourier-Motzkin, and report independent variable-incidence blocks. It never divides by a parameter-dependent expression.
 
-CAD ordering is also quantifier-aware: free variables and variables within one homogeneous quantifier block may be reordered, but an ordering heuristic never crosses an `exists`/`forall` boundary. Brown-style scoring is the automatic low-overhead choice; exhaustive projection-set scoring is an explicit diagnostic option for small systems.
+CAD ordering is also quantifier-aware: free variables and variables within one homogeneous quantifier block may be reordered, but an ordering heuristic never crosses an `exists`/`forall` boundary. Automatic ordering compares Brown and chordal candidates using graph fill and abstract multidegree growth; exhaustive projection-set scoring is an explicit diagnostic option for small systems.
 
 ## CAD backends
 
@@ -75,7 +75,7 @@ symbolic integration cannot close the final integral.
 
 ## Internal module organization
 
-Shared exact operations live in small, direct helper modules rather than being
+Shared exact operations live in small, direct helper modules instead of being
 reimplemented by each high-level subsystem:
 
 - `normalization.py` resolves formulas, symbols, parameters, and bounds while
@@ -124,7 +124,7 @@ so `__all__` and lazy imports share one source of truth.
 
 ## Structural facades
 
-The large public workflow modules are facades rather than monolithic implementation files. Function-property partition/property logic, optimization certification/specializations, decision predicates/solving, and region-integration geometry/CAD reduction live in focused private modules behind the documented public facade paths.
+The large public workflow modules are facades instead of monolithic implementation files. Function-property partition/property logic, optimization certification/specializations, decision predicates/solving, and region-integration geometry/CAD reduction live in focused private modules behind the documented public facade paths.
 
 ## Performance-sensitive organization
 

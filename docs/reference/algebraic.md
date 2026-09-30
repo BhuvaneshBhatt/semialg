@@ -1,27 +1,23 @@
 # Algebraic roots and exact finite solving reference
+
 ## Family contract
 
-**Mathematical return.** Algebraic APIs represent, isolate, compare, classify, and solve exact real algebraic roots and finite polynomial systems.
-
-**Exactness and certification.** Root identity/order and algebraic signs use exact arithmetic, isolating information, or number-field/RUR machinery rather than fixed-precision comparison.
-
-**Algorithm.** Facilities include root isolation/classification, rational univariate representation, subresultant and border-basis machinery, and cached exact algebraic comparisons.
-
-**Complexity and limitations.** Degree growth and coefficient growth can dominate. Positive-dimensional algebraic sets generally require region/CAD or algebraic-geometry APIs instead of finite RUR solving.
-
-
+- **Mathematical return.** Algebraic APIs represent, isolate, compare, classify, and solve exact real algebraic roots and finite polynomial systems.
+- **Exactness and certification.** Root identity/order and algebraic signs use exact arithmetic, isolating information, or number-field/RUR machinery instead of fixed-precision comparison.
+- **Algorithms.** include root isolation/classification, rational univariate representation (RUR), subresultant and border-basis machinery, and cached exact algebraic comparisons.
+- **Complexity and limitations.** Degree growth and coefficient growth can dominate. Positive-dimensional algebraic sets generally require region/CAD or algebraic-geometry APIs instead of finite RUR solving.
 
 
 ## Primary API overview
 
-This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|
 | `classify_real_roots` | function | Classify real roots of a univariate polynomial or polynomial family. |
 | `associated_primes` | function | Return certified associated primes from a primary decomposition. |
 | `certified_independent_localization` | function | Choose a maximal independent set and certify zero-dimensional localization over QQ(U). |
-| `certified_radical_minimal_prime_decomposition` | function | Compute a certified radical/minimal-prime decomposition when the exact engine completes. |
+| `certified_minimal_primes` | function | Compute a certified radical/minimal-prime decomposition when the exact engine completes. |
 | `compress_primitive_element` | function | Compress an algebraic function-field tower to one certified primitive extension. |
 | `contract_localized_ideal` | function | Contract an ideal from QQ(U)[X] by canonical denominator clearing and saturation. |
 | `maybe_compress_primitive_element` | function | Apply primitive-element compression only when the exact cost heuristic predicts a benefit. |
@@ -29,17 +25,17 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `radical_ideal` | function | Compute and certify generators of the radical ideal when decomposition completes. |
 | `recursive_regular_chain_decomposition` | function | Compute a proof-producing recursive squarefree regular-chain decomposition. |
 | `saturation_stabilization` | function | Compute the exact exponent where I:h^m stabilizes and verify the GTZ split identity. |
-| `verify_independent_localization_certificate` | function | Replay a maximal-independent-set localization certificate exactly. |
-| `verify_localization_contraction_certificate` | function | Replay localized ideal contraction and re-extension exactly. |
+| `verify_localization_certificate` | function | Replay a maximal-independent-set localization certificate exactly. |
+| `verify_contraction_certificate` | function | Replay localized ideal contraction and re-extension exactly. |
 | `verify_minimal_prime_decomposition_certificate` | function | Replay a radical/minimal-prime decomposition certificate. |
 | `verify_primary_decomposition_certificate` | function | Replay primaryness, reconstruction, and associated-prime claims exactly. |
 | `verify_primitive_element_compression` | function | Replay primitive-element guard and field-isomorphism data exactly. |
 | `verify_radical_ideal_certificate` | function | Replay radical reconstruction and containment claims exactly. |
-| `verify_regular_chain_decomposition_certificate` | function | Replay the recursive regular-chain branch proof without rerunning search. |
-| `verify_saturation_stabilization_certificate` | function | Replay the colon stabilization chain and GTZ reconstruction identity exactly. |
+| `verify_regular_chain_certificate` | function | Replay the recursive regular-chain branch proof without rerunning search. |
+| `verify_saturation_certificate` | function | Replay the colon stabilization chain and GTZ reconstruction identity exactly. |
 | `verify_triangular_primality_certificate` | function | Replay successive fraction-field irreducibility/primality stages exactly. |
 | `zero_dimensional_primary_decomposition` | function | Compute GTZ3 primary components over QQ or a certified finite algebraic extension. |
-| `verify_zero_dimensional_primary_certificate` | function | Replay coefficient-field validity, maximal-prime separation, saturation, and transport exactly. |
+| `verify_zero_dim_primary_certificate` | function | Replay coefficient-field validity, maximal-prime separation, saturation, and transport exactly. |
 | `ThomEncoding` | class | Exact derivative-sign certificate identifying one real root of a univariate polynomial. |
 | `thom_encoding` | function | Construct the Thom encoding of a specified exact real root. |
 | `thom_encodings` | function | Enumerate all distinct real roots by exact Thom encodings in increasing order. |
@@ -79,7 +75,7 @@ A `ThomEncoding` records the signs of the successive derivatives of a univariate
 ## Certified polynomial root intervals and separators
 
 `certify_polynomial_root_interval`,
-`verify_polynomial_root_interval_certificate`,
+`verify_root_interval_certificate`,
 `rational_between_algebraic_reals`, and
 `certified_sign_stable_root_neighborhood` provide the advanced exact root-interval
 contracts used by CAD lifting and direct algebraic callers. The interval verifier
@@ -94,7 +90,7 @@ separate transcendental solver boundary, see
 
 ## Exact comparisons
 
-Certified algebraic ordering uses isolating intervals, minimal/defining polynomials, exact sign determination, and appropriate algebraic representations. Fixed-precision sorting is not a proof mechanism.
+Certified algebraic ordering uses isolating intervals, minimal/defining polynomials, exact sign determination, and appropriate algebraic representations. Fixed-precision sorting is, of course, not a proof mechanism.
 
 ## Advanced algebraic APIs
 
@@ -110,7 +106,7 @@ field generated by several algebraic coefficients. For example,
 
 ```python
 x, y = sp.symbols("x y", real=True)
-solve_zero_dimensional_system_with_rur(
+solve_with_rur(
     [x + sp.sqrt(2) * y, y - sp.sqrt(2)],
     [x, y],
 )
@@ -151,7 +147,7 @@ structure exposed by the normalized ideal:
 - definite sums of even monomials and positive-semidefinite quadratic
   polynomials with exact minimum zero admit certified real-radical reductions.
 
-These reductions cooperate rather than define separate public modes. For
+These reductions cooperate instead of define separate public modes. For
 example, `(f*x, f*z)` is represented as `V(f) union V(x, z)`, while `(f**2,
 f*z)` reduces to `V(f)` after contained branches are removed. Over the reals,
 `x**2 + y**2 = 0` in three variables is represented by the line `V(x, y)`, and
@@ -162,7 +158,7 @@ pre-reduction branch so the distinction is explicit.
 
 The regular-chain layer also supplies certified recursive minimal-prime
 refinement.  Primality is tested in the successive quotient/fraction fields of
-the triangular prefix rather than by factoring each polynomial in the ambient
+the triangular prefix instead of by factoring each polynomial in the ambient
 ring.  Reducible leader polynomials produce exact child branches, which are
 re-normalized and recursively analyzed before the final radical-intersection
 reconstruction check.  The exact coefficient layer supports recursive monogenic extensions over
@@ -233,7 +229,7 @@ minimal primes there, isolates each local component by an exact separator and
 saturation, and transports the component back to the requested coefficient
 field.  Because a zero-dimensional quotient is Artinian, all of its prime ideals
 are maximal; the isolated local component is therefore primary.
-`verify_zero_dimensional_primary_certificate` independently rechecks the field
+`verify_zero_dim_primary_certificate` independently rechecks the field
 tower, minimal-prime certificate, separators, saturation certificates, exact
 intersection reconstruction, and lift/transport identities.
 
@@ -303,10 +299,10 @@ ideal_degree(equations, variables)
 ```
 
 These invariants are computed independently from a degree-compatible exact
-Groebner basis.  The leading monomial ideal has the same Hilbert function as
+Groebner basis. The leading monomial ideal has the same Hilbert function as
 the source ideal; its Hilbert-series numerator is obtained by exact
-inclusion--exclusion on minimal monomial generators.  Cancellation at `t=1`
-then gives Krull dimension and affine multiplicity/degree.  No regular-chain
+inclusion-exclusion on minimal monomial generators. Cancelation at `t=1`
+then gives Krull dimension and affine multiplicity/degree. No regular-chain
 assumption is used in this calculation.
 
 ## Certified modular Groebner acceleration

@@ -7,6 +7,9 @@ parallel algorithms.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from dataclasses import dataclass
+
 import sympy as sp
 
 from ._zero_testing import certified_zero
@@ -162,6 +165,56 @@ def is_dense_in(subset, ambient, variables=None, *, strategy: str | None = None)
     right = normalize_formula(ambient)
     vars_ = normalize_problem_variables(variables, sp.And(left, right))
     return region_subset(right, region_closure(left, vars_), vars_, strategy=strategy)
+
+
+@dataclass(frozen=True)
+class PointInClosureResult:
+    """Structured result for exact point membership in a region closure."""
+
+    in_closure: bool
+    region: sp.Expr
+    point: Mapping[sp.Symbol, sp.Expr]
+    variables: tuple[sp.Symbol, ...]
+    closure: sp.Expr
+    method: str = "cad-semantic-closure"
+
+    def __bool__(self) -> bool:
+        return self.in_closure
+
+
+def point_in_closure(
+    region,
+    point,
+    variables=None,
+    *,
+    strategy: str | None = None,
+    return_result: bool = False,
+) -> bool | PointInClosureResult:
+    """Return whether an exact point belongs to the closure of ``region``.
+
+    The default path uses :func:`region_closure`, and therefore the package's
+    CAD-semantic topology and cell-incidence machinery.  ``strategy`` is
+    forwarded unchanged to :func:`region_closure`; in particular,
+    ``strategy="syntactic"`` explicitly requests the atom-wise fallback.
+
+    This predicate is equivalent to asking whether ``region`` has points
+    arbitrarily near ``point``.
+    """
+    formula = normalize_formula(region)
+    vars_ = normalize_problem_variables(variables, formula)
+    point_map = normalize_point(point, vars_, context=(formula,))
+    closure = region_closure(formula, vars_, strategy=strategy)
+    value = contains_point(closure, point_map, vars_)
+    if not return_result:
+        return value
+    return PointInClosureResult(
+        value,
+        formula,
+        point_map,
+        tuple(vars_),
+        closure,
+        method="syntactic-closure" if strategy == "syntactic" else "cad-semantic-closure",
+    )
 
 
 def contains_point(region, point, variables=None) -> bool:

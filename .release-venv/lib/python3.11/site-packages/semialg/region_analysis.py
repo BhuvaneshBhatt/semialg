@@ -404,7 +404,7 @@ def _active_boundary_formulas(
     return {residual: normalize_formula(sp.Or(*formulas)) for residual, formulas in groups.items()}
 
 
-def _component_relative_boundary_singularity_result(
+def _relative_boundary_singularity(
     equalities: Sequence[sp.Expr],
     residual: sp.Expr,
     variables: Sequence[sp.Symbol],
@@ -488,7 +488,7 @@ def _region_singular_from_boundary_result(
             diagnostics.extend(base.diagnostics)
 
     for residual, active_formula in _active_boundary_formulas(boundary_data).items():
-        result = _component_relative_boundary_singularity_result(
+        result = _relative_boundary_singularity(
             equalities, residual, vars_, decomposition_provider=decomposition_provider
         )
         if result.known_singular_formula != sp.false:

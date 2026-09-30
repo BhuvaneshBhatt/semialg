@@ -1,6 +1,6 @@
 # An optimizer locus with positive dimension
 
-Return the entire minimizer set rather than a single witness.
+Return the entire minimizer set instead of a single witness.
 
 ## Problem and interpretation
 

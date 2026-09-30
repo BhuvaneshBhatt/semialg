@@ -36,7 +36,7 @@ They retain provenance back to exact CAD cells and algebraic root descriptors, b
 
 `SemialgebraicRegion.singular_locus()` computes an algebraic-boundary singularity notion based on defining boundary polynomials and gradient/Jacobian degeneracy.
 
-> A corner formed by two individually smooth boundary hypersurfaces is not automatically an algebraic singularity. Use local dimension and the CAD cell complex when the question is about stratified or manifold structure rather than algebraic hypersurface singularity.
+> A corner formed by two individually smooth boundary hypersurfaces is not automatically an algebraic singularity. Use local dimension and the CAD cell complex when the question is about stratified or manifold structure instead of algebraic hypersurface singularity.
 
 ## Symbolic points are not Boolean membership queries
 

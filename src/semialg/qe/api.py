@@ -177,6 +177,15 @@ def quantifier_eliminate(
     conservative complete-CAD fallback.
     """
     prefix, matrix = _normalize_prefix(formula, quantifiers)
+    # Certified QE is exact.  Decimal literals are input conveniences, not
+    # numerical proof objects, so exactify them before polynomial parsing/CAD.
+    # This mirrors semialg's general preprocessing boundary and prevents Float
+    # coefficients from leaking into exact root isolation and sign ordering.
+    float_replacements = {atom: sp.nsimplify(atom) for atom in matrix.atoms(sp.Float)}
+    if float_replacements:
+        matrix = matrix.xreplace(float_replacements)
+    active_symbols = matrix.free_symbols
+    prefix = tuple((kind, variable) for kind, variable in prefix if variable in active_symbols)
     parsed = _make_parsed(matrix, prefix, variables)
     quantified = tuple(v for _, v in prefix)
     qset = set(quantified)

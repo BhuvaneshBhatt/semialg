@@ -95,7 +95,7 @@ not maintain separate lists that can drift.
 Internal fallbacks catch explicit expected failure classes such as
 `EXACT_OPERATION_ERRORS`, narrower polynomial error tuples, or package-specific
 strategy failures. Production code does not catch `Exception` or
-`BaseException`: unexpected programming errors must surface rather than being
+`BaseException`: unexpected programming errors must surface instead of being
 converted into ordinary unsupported/unknown results. Optional dependencies catch
 their import errors specifically.
 
@@ -106,11 +106,11 @@ The source-quality verifier and Ruff enforce this rule across the full package.
 `python scripts/verify_source_quality.py` checks repository rules that are not
 covered by Ruff:
 
-- module/class bindings must not silently override earlier definitions or imports;
+- module/class bindings must not without reporting override earlier definitions or imports;
 - production code must not rewrite an object's `__module__` metadata;
 - tests must use observable state or explicit seams instead of runtime monkeypatching;
 - bound variable and parameter names are limited to 24 characters;
-- source identifiers and filenames describe mathematical purpose rather than development history;
+- source identifiers and filenames describe mathematical purpose instead of development history;
 - Python, Markdown, YAML, TOML, and documentation sources contain no trailing whitespace;
 - README Markdown links are absolute URLs when they point outside the README, so the PyPI rendering remains valid;
 - public material does not encode development chronology or package-version prose;

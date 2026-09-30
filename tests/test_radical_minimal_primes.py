@@ -1,11 +1,11 @@
 import sympy as sp
 
-from semialg.algebraic_decomposition import certified_radical_minimal_prime_decomposition
+from semialg.algebraic_decomposition import certified_minimal_primes
 
 
 def test_coordinate_minimal_primes_are_certified():
     x, y = sp.symbols("x y")
-    result = certified_radical_minimal_prime_decomposition((x * y,), (x, y))
+    result = certified_minimal_primes((x * y,), (x, y))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert len(result.components) == 2
@@ -14,7 +14,7 @@ def test_coordinate_minimal_primes_are_certified():
 
 def test_embedded_monomial_component_is_removed():
     x, y = sp.symbols("x y")
-    result = certified_radical_minimal_prime_decomposition((x**2, x * y), (x, y))
+    result = certified_minimal_primes((x**2, x * y), (x, y))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert len(result.components) == 1
@@ -23,7 +23,7 @@ def test_embedded_monomial_component_is_removed():
 
 def test_irreducible_hypersurface_prime():
     x, y = sp.symbols("x y")
-    result = certified_radical_minimal_prime_decomposition((x**2 + y**2 - 1,), (x, y))
+    result = certified_minimal_primes((x**2 + y**2 - 1,), (x, y))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert result.components[0].prime_method == "irreducible_hypersurface"
@@ -31,7 +31,7 @@ def test_irreducible_hypersurface_prime():
 
 def test_monomial_curve_triangular_graph_prime():
     x, y, z = sp.symbols("x y z")
-    result = certified_radical_minimal_prime_decomposition((x**2 - y, x * y - z), (x, y, z))
+    result = certified_minimal_primes((x**2 - y, x * y - z), (x, y, z))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert len(result.components) == 1
@@ -42,7 +42,7 @@ def test_radical_but_unproved_prime_is_not_promoted():
     x, y = sp.symbols("x y")
     # squarefree reducible hypersurface is split first, so choose a regular-chain
     # branch whose primality is intentionally outside the conservative prover.
-    result = certified_radical_minimal_prime_decomposition((y**2 - x**3 - x,), (x, y))
+    result = certified_minimal_primes((y**2 - x**3 - x,), (x, y))
     assert result.radical_complete
     # This curve may be recognized as irreducible; the invariant we care about
     # is that minimal-prime completeness never exceeds exact prime certification.
@@ -51,7 +51,7 @@ def test_radical_but_unproved_prime_is_not_promoted():
 
 def test_successive_fraction_field_splits_after_linear_quotient():
     x, y, z = sp.symbols("x y z")
-    result = certified_radical_minimal_prime_decomposition((y - x**2, z**2 - y), (x, y, z))
+    result = certified_minimal_primes((y - x**2, z**2 - y), (x, y, z))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert len(result.components) == 2
@@ -63,7 +63,7 @@ def test_successive_fraction_field_splits_after_linear_quotient():
 
 def test_successive_fraction_field_prime_with_nonunit_linear_initial():
     x, y, z = sp.symbols("x y z")
-    result = certified_radical_minimal_prime_decomposition((x * y - 1, z**2 - y), (x, y, z))
+    result = certified_minimal_primes((x * y - 1, z**2 - y), (x, y, z))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert len(result.components) == 1
@@ -73,7 +73,7 @@ def test_successive_fraction_field_prime_with_nonunit_linear_initial():
 def test_second_nonlinear_algebraic_extension_is_certified_by_tower():
     x, y, z = sp.symbols("x y z")
     # The second nonlinear stage is decided in QQ(x)(y), y**2=x.
-    result = certified_radical_minimal_prime_decomposition((y**2 - x, z**2 - y), (x, y, z))
+    result = certified_minimal_primes((y**2 - x, z**2 - y), (x, y, z))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert result.components[0].prime_method == "algebraic_function_field_tower_prime"
@@ -84,7 +84,7 @@ def test_second_nonlinear_algebraic_extension_is_certified_by_tower():
 
 def test_second_nonlinear_tower_detects_reducible_stage():
     x, y, z = sp.symbols("x y z")
-    result = certified_radical_minimal_prime_decomposition((y**2 - x, z**2 - x), (x, y, z))
+    result = certified_minimal_primes((y**2 - x, z**2 - x), (x, y, z))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert len(result.components) == 2

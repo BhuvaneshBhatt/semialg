@@ -37,7 +37,7 @@ need to distinguish a cheap structural proof from full quantified QE.
 quadratic intersections.  Equality constraints must be affine.  Quadratic
 sublevels require a positive-semidefinite Hessian and quadratic superlevels a
 negative-semidefinite Hessian.  If the representation is outside that class,
-the routine returns an inconclusive certificate rather than guessing.
+the routine returns an inconclusive certificate instead of guessing.
 
 `polynomial_convexity_certificate(expr, variables, domain=..., sense=...)`
 certifies the Hessian sign of a polynomial globally or on a semialgebraic
@@ -62,7 +62,7 @@ treating a failed Hessian sign as a set-convexity theorem.
 
 `function_convexity(expr, variables, domain=...)` classifies a supported real semialgebraic function as `affine`, `convex`, `concave`, `neither`, `nonconvex_domain`, or `unknown`. The natural real domain recognized by `function_domain` is intersected automatically with the explicit domain.
 
-The implementation consumes the reusable backend primitives rather than duplicating them. It certifies domain convexity, uses affine-relative strict feasibility and safe affine presolve for lower-dimensional domains, uses `function_sign` and `matrix_definiteness` for Hessian analysis, and falls back to exact epi/hypograph or quantified Jensen reasoning through the semialgebraic graph layer. Parameterized calls return `ParameterStratifiedResult` branches with the same canonical classifications.
+The implementation consumes the reusable backend primitives instead of duplicating them. It certifies domain convexity, uses affine-relative strict feasibility and safe affine presolve for lower-dimensional domains, uses `function_sign` and `matrix_definiteness` for Hessian analysis, and falls back to exact epi/hypograph or quantified Jensen reasoning through the semialgebraic graph layer. Parameterized calls return `ParameterStratifiedResult` branches with the same canonical classifications.
 
 For a polynomial on a full-dimensional convex domain, the Hessian test is necessary and sufficient, so both positive and negative matrix-definiteness results are decisive. On lower-dimensional domains, a positive Hessian certificate is still sufficient, but a failed ambient Hessian sign is not treated as a nonconvexity proof; exact function-definition reasoning is used instead.
 

@@ -151,6 +151,11 @@ Primary reference: [Regions and geometry](regions.md)
 | `connected_components` | `semialg.derived_geometry` | function | Return exact CAD-connected-component formulas. |
 | `convexity_certificate` | `semialg.convexity` | function | Decide convexity through the staged exact certificate hierarchy. |
 | `contains_point` | `semialg.derived_geometry` | function | Return whether an exact point belongs to the semialgebraic region. |
+| `PointInClosureResult` | `semialg.derived_geometry` | type | Structured exact point-in-closure decision result. |
+| `point_in_closure` | `semialg.derived_geometry` | function | Return whether an exact point belongs to the Euclidean closure of a semialgebraic region. |
+| `SemialgebraicFunctionGraph` | `semialg.function_graph` | type | Exact real semialgebraic graph representation of a supported expression. |
+| `UnsupportedFunctionGraph` | `semialg.function_graph` | exception | Raised when an exact real semialgebraic graph encoding is not implemented. |
+| `semialgebraic_function_graph` | `semialg.function_graph` | function | Construct an exact real semialgebraic graph for a supported expression. |
 | `RegionElement` | `semialg.symbolic_regions` | class | Symbolic assertion that a point belongs to a region. |
 | `RegionNotElement` | `semialg.symbolic_regions` | class | Symbolic assertion that a point does not belong to a region. |
 | `coordinate_range` | `semialg.derived_geometry` | function | Return the exact range of one coordinate over a region. |
@@ -399,7 +404,7 @@ Primary reference: [Semialgebraic topology and families](regions.md#semialgebrai
 | `implied_polynomial_inequality` | `semialg.constraint_certificates` | function | Certify a polynomial inequality by exact implication, nonnegative combination, or SOS certificate. |
 | `redundant_polynomial_inequalities` | `semialg.constraint_certificates` | function | Identify polynomial inequalities implied by the remaining constraints. |
 | `nonnegative_combination_certificate` | `semialg.constraint_certificates` | function | Construct an exact nonnegative-combination/SOS certificate. |
-| `verify_nonnegative_combination_certificate` | `semialg.constraint_certificates` | function | Replay an exact nonnegative-combination/SOS certificate. |
+| `verify_nonnegative_certificate` | `semialg.constraint_certificates` | function | Replay an exact nonnegative-combination/SOS certificate. |
 | `component_constraint_descriptions` | `semialg.constraint_certificates` | function | Restrict a real model to each certified irreducible algebraic component. |
 
 ### Algebraic and constraint result types
@@ -459,3 +464,37 @@ Primary reference: [Regions](regions.md#canonicalization-polygonal-paths-convers
 | `RegionConversion` | `semialg.region_conversion` | type | Exactness/certification metadata for a region conversion. |
 | `convert_region` | `semialg.region_conversion` | function | Convert among canonical, formula, CAD, parametric, simplicial, mesh, and boundary representations. |
 | `polygonal_region_from_paths` | `semialg.polygonal_paths` | function | Build exact polygonal regions from crossing/winding paths. |
+
+## Local and approach geometry
+
+| API | Kind | Role |
+|---|---|---|
+| `CorrelatedMapImageResult` | type | Structured exact joint-image result with proof trace and geometry diagnostics. |
+| `correlated_map_image` | function | Compute an exact joint polynomial/rational map image while preserving output correlations. |
+| `angular_map_image` | function | Compute an exact correlated directional image, optionally on the unit sphere. |
+| `LocalAlgebraicStrata` | type | Certified local branch geometry joined with incident singular and dimension strata. |
+| `local_algebraic_strata` | function | Compute exact local branches and all certified strata incident at a point. |
+| `ProofDiagnostics` | type | Stable normalized proof-route and metadata view. |
+| `structured_proof_diagnostics` | function | Normalize heterogeneous result metadata into a stable proof trace. |
+| `LocalGerm` | type | Normalized semialgebraic germ at a closure point. |
+| `LocalGeometry` | type | Local dimension and tangent-cone result. |
+| `LocalSignStratum` | type | Local region with a certified sign vector. |
+| `CurveSelectionWitness` | type | Explicit or theorem-backed curve-selection certificate. |
+| `LocalRangeResult` | type | Exact extrema on a specified local neighborhood. |
+| `LocalBoundCertificate` | type | Finite local bound with a certified positive radius. |
+| `ParameterStratum` | type | Parameter condition paired with an invariant value. |
+| `BlowupChart` | type | Weighted polynomial blow-up chart. |
+| `local_germ` | function | Normalize a semialgebraic germ at a closure point. |
+| `local_geometry` | function | Compute local dimension and tangent cone. |
+| `local_sign_strata` | function | Partition a germ by realizable exact sign vectors. |
+| `local_components` | function | Compute punctured branches incident at a point. |
+| `curve_selection` | function | Find an explicit approach curve or certify its semialgebraic existence. |
+| `local_range` | function | Compute exact extrema on a local ball. |
+| `local_bound` | function | Certify a finite local bound and optionally find its radius. |
+| `parameter_strata` | function | Partition parameter space by exact feasibility. |
+| `vanishing_order` | function | Compute rational pullback order along an explicit curve. |
+| `contact_order` | function | Compute contact order along an explicit curve. |
+| `blowup_charts` | function | Construct weighted polynomial blow-up charts. |
+| `local_image` | function | Compute an exact image germ. |
+| `local_preimage` | function | Compute a unique-point exact preimage germ. |
+| `path_independent` | function | Certify a value on a sufficiently small local germ. |

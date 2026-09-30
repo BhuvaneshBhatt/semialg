@@ -48,14 +48,14 @@ extract_symbolic_box_bounds(sp.And(x >= 0, x <= 1, y >= -2, y <= 3), [x, y])
 # bounds for x in [0, 1], y in [-2, 3]
 ```
 
-## `decompose_cylindrical_formula_to_vertical_bounds_2d`
+## `cylindrical_vertical_bounds_2d`
 
 This parses supported CAD-like cylindrical formulas and ordinary vertical-slice Boolean formulas into 2D vertical bounds.
 
 ```python
-from semialg.implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+from semialg.implicit_geometry import cylindrical_vertical_bounds_2d
 
-cells = decompose_cylindrical_formula_to_vertical_bounds_2d(
+cells = cylindrical_vertical_bounds_2d(
     sp.And(x >= 0, x <= 1, y >= x, y <= 1),
     [x, y],
 )

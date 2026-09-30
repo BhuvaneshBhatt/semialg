@@ -380,7 +380,7 @@ def _parameterized_derivative_partition(
     )
 
 
-def _function_sign_partition_without_parameters(
+def _sign_partition_without_parameters(
     expression: sp.Expr,
     variable: sp.Symbol,
     explicit_domain: sp.Expr,
@@ -505,7 +505,7 @@ def _function_sign_partition_without_parameters(
     )
 
 
-def _function_sign_partition_with_parameters(
+def _sign_partition_with_parameters(
     expression: sp.Expr,
     variable: sp.Symbol,
     parameters: tuple[sp.Symbol, ...],
@@ -623,10 +623,8 @@ def function_sign_partition(
     else:
         parameters = normalize_variables(parameters, combined, append_context_symbols=False)
     if parameters:
-        return _function_sign_partition_with_parameters(
-            expression, variable, tuple(parameters), domain
-        )
-    result = _function_sign_partition_without_parameters(expression, variable, domain)
+        return _sign_partition_with_parameters(expression, variable, tuple(parameters), domain)
+    result = _sign_partition_without_parameters(expression, variable, domain)
     return result if return_result else result.pieces
 
 

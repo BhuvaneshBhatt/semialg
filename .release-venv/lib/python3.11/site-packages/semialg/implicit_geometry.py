@@ -526,7 +526,7 @@ def _vertical_bound_from_atom(
     return None
 
 
-def decompose_cylindrical_formula_to_vertical_bounds_2d(
+def cylindrical_vertical_bounds_2d(
     condition: object,
     variables: Sequence[sp.Symbol | str],
 ) -> tuple[VerticalBoundCell2D, ...]:
@@ -626,5 +626,5 @@ __all__ = [
     "semialgebraic_level_function",
     "decompose_implicit_formula",
     "extract_symbolic_box_bounds",
-    "decompose_cylindrical_formula_to_vertical_bounds_2d",
+    "cylindrical_vertical_bounds_2d",
 ]

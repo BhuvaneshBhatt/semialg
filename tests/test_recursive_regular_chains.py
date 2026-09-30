@@ -1,7 +1,7 @@
 import sympy as sp
 
 from semialg.algebraic_decomposition import (
-    certified_radical_minimal_prime_decomposition,
+    certified_minimal_primes,
     recursive_regular_chain_decomposition,
 )
 
@@ -31,7 +31,7 @@ def test_recursive_regular_chain_handles_quotient_field_factor_split():
 
 def test_minimal_prime_result_carries_hilbert_degree_certificate():
     x, y = sp.symbols("x y")
-    result = certified_radical_minimal_prime_decomposition((x * y,), (x, y))
+    result = certified_minimal_primes((x * y,), (x, y))
     assert result.radical_complete
     assert result.minimal_primes_complete
     assert result.degree_complete

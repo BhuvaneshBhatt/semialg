@@ -1,6 +1,6 @@
 # High-level API default contract
 
-These defaults are part of semialg's user-facing behavior and are guarded by tests so documentation cannot silently drift from Python signatures.
+These defaults are part of semialg's user-facing behavior and are guarded by tests so documentation cannot without reporting drift from Python signatures.
 
 | API | Documented defaults |
 |---|---|

@@ -75,7 +75,7 @@ opt.certified
 # True for an exactly certified global result
 ```
 
-Open sets can have an exact infimum that is not attained. semialg records this separately rather than conflating “minimum” with “infimum”.
+Open sets can have an exact infimum that is not attained. semialg records this separately instead of conflating “minimum” with “infimum”.
 
 ## 5. Compute a function range
 
@@ -128,7 +128,7 @@ semialgebraic_measure(
 
 ## 8. Parameters and guarded answers
 
-Some answers change qualitatively with parameters. semialg can represent these as guarded branches rather than extrapolating from a representative sample.
+Some answers change qualitatively with parameters. semialg can represent these as guarded branches instead of extrapolating from a representative sample.
 
 ```python
 from semialg import classify_real_roots

@@ -1,6 +1,6 @@
 # How semialg decides a problem
 
-`semialg` is designed around exact mathematical conclusions rather than a single universal algorithm. A typical operation follows this progression:
+`semialg` is designed around exact mathematical conclusions instead of a single universal algorithm. A typical operation follows this progression:
 
 1. **Normalize the input.** Polynomial relations, variables, assumptions, and Boolean structure are put into stable internal forms without changing their meaning.
 2. **Recognize exact structure.** Cheap recognizers detect supported linear, low-degree, geometric, finite, or otherwise structured cases. Algebraically equivalent presentations are expected to select equivalent mathematical paths.

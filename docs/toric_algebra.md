@@ -18,10 +18,10 @@ toric_ideal(A, p)
 markov_basis(A)
 ```
 
-`integer_kernel(A)` uses a Smith-normal-form decomposition over `ZZ`, so the returned vectors form a saturated integer lattice basis rather than independently scaled rational nullspace vectors.
+`integer_kernel(A)` uses a Smith-normal-form decomposition over `ZZ`, so the returned vectors form a saturated integer lattice basis instead of independently scaled rational nullspace vectors.
 
 `toric_ideal(A)` eliminates a Laurent monomial parameterization. Inverse parameter variables are included explicitly, which makes the algorithm valid for negative as well as nonnegative integer exponents.
 
-`binomial_ideal(moves)` constructs the binomials associated with supplied lattice moves. `lattice_ideal(moves)` saturates those binomials by the product of the coordinate variables, so a lattice basis generates the full lattice ideal rather than only its unsaturated basis ideal.
+`binomial_ideal(moves)` constructs the binomials associated with supplied lattice moves. `lattice_ideal(moves)` saturates those binomials by the product of the coordinate variables, so a lattice basis generates the full lattice ideal instead of only its unsaturated basis ideal.
 
 `markov_basis(A)` extracts exponent-difference moves from a binomial Gröbner generating set of the toric ideal. Such a generating set connects every nonnegative integer fiber of `A`.

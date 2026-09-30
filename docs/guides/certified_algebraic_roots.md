@@ -8,7 +8,7 @@ This guide is about **univariate polynomial roots over `QQ`**. It does not repla
 
 `certify_polynomial_root_interval()` counts **distinct** real roots of the square-free part of an exact rational polynomial in a rational interval. Multiplicity belongs to root objects and multiplicity APIs; interval topology counts distinct locations.
 
-The fast exact path uses a Descartes variation count after the interval transformation. Variation 0 proves the interval is root-free and variation 1 proves a unique interior root. Larger variation counts are ambiguous, so semialg falls back to exact Sturm counting. This makes Sturm a certification fallback rather than the default cost on every interval.
+The fast exact path uses a Descartes variation count after the interval transformation. Variation 0 proves the interval is root-free and variation 1 proves a unique interior root. Larger variation counts are ambiguous, so semialg falls back to exact Sturm counting. This makes Sturm a certification fallback instead of the default cost on every interval.
 
 <!-- semialg-exec -->
 ```python
@@ -16,7 +16,7 @@ import sympy as sp
 
 from semialg.algebraic import (
     certify_polynomial_root_interval,
-    verify_polynomial_root_interval_certificate,
+    verify_root_interval_certificate,
 )
 
 x = sp.Symbol("x")
@@ -25,7 +25,7 @@ certificate = certify_polynomial_root_interval(polynomial, 0, 2, var=x)
 
 assert certificate.root_count == 1
 assert certificate.unique
-assert verify_polynomial_root_interval_certificate(
+assert verify_root_interval_certificate(
     certificate,
     polynomial=polynomial,
     var=x,

@@ -106,9 +106,9 @@ def fast_solution_formula(
             return reduced, "sympy_reduce_inequalities", not is_false_expr(reduced)
     if len(variables) == 2:
         try:
-            from ..implicit_geometry import decompose_cylindrical_formula_to_vertical_bounds_2d
+            from ..implicit_geometry import cylindrical_vertical_bounds_2d
 
-            cells = tuple(decompose_cylindrical_formula_to_vertical_bounds_2d(expr, variables))
+            cells = tuple(cylindrical_vertical_bounds_2d(expr, variables))
             if cells:
                 return expr, "vertical_bounds_2d", True
         except EXACT_OPERATION_ERRORS:

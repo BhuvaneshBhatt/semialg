@@ -1,0 +1,21 @@
+{
+  "corpus": "Wilson CAD bank, same 38 tractable 3-4 variable cases used by previous selector benchmark",
+  "cases": 38,
+  "divergent_brown_chordal_orders": 13,
+  "selected_full_score_equals_best_of_brown_and_chordal": 38,
+  "previous_selector_correct": 33,
+  "tie_breaker": "abstract multidegree projection growth; no resultant, discriminant, or projection polynomial construction",
+  "median_selector_ms_on_divergent_cases": 2.6199730000371346,
+  "previous_reported_examples_ms": [
+    3.57,
+    2.24,
+    3.22
+  ],
+  "previous_mispredictions": [
+    "solotareff_a",
+    "solotareff_b",
+    "simplified_edges_square_product",
+    "wilson_tticad_07",
+    "wilson_tticad_08"
+  ]
+}

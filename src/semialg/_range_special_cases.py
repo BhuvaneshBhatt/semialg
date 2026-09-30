@@ -33,12 +33,6 @@ def _is_supported_sqrt(expr: sp.Expr) -> bool:
     return isinstance(expr, sp.Pow) and expr.exp == sp.Rational(1, 2)
 
 
-def _is_semialgebraic_special(expr: sp.Expr) -> bool:
-    """Return whether shared graph conversion needs a non-rational rule."""
-
-    return has_semialgebraic_graph_special(expr)
-
-
 def _has_semialgebraic_special(expr: sp.Expr) -> bool:
     return has_semialgebraic_graph_special(expr)
 

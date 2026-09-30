@@ -55,7 +55,7 @@ def test_primary_reference_families_state_the_contract():
         "## Family contract",
         "**Mathematical return.**",
         "**Exactness and certification.**",
-        "**Algorithm",
+        "**Algorithms.**",
         "**Complexity and limitations.**",
     )
     for path in _PRIMARY_REFERENCE_FILES:

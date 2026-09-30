@@ -8,18 +8,15 @@ from ..cache import CACHE, expr_key
 from ._domains import require_exact_rur_domain
 from .quotient import (
     _as_exact_polynomial,
-    _coefficient_vector,
     _leading_exponent_grevlex,
-    _multiplication_matrix,
-    _multiplication_tensor,
-    _normal_form,
     _select_separating_linear_form,
     _standard_exponents,
+    _variable_multiplication_matrices,
 )
 from .representation import RationalUnivariateError, RationalUnivariateRepresentation
 
 
-def compute_rational_univariate_representation(
+def compute_rur(
     polynomials: Iterable[sp.Expr],
     variables: Sequence[sp.Symbol],
     parameter: sp.Symbol | None = None,
@@ -104,16 +101,15 @@ def compute_rational_univariate_representation(
 
     leading_exponents = [_leading_exponent_grevlex(poly) for poly in groebner_basis.polys]
     basis_exponents = _standard_exponents(leading_exponents, len(variable_tuple))
-    tensor = _multiplication_tensor(
+    variable_matrices = _variable_multiplication_matrices(
         groebner_basis, variable_tuple, basis_exponents, coefficient_domain
     )
     linear_form, defining_poly, denominator_poly, trace_vector, powers, geometric_count = (
         _select_separating_linear_form(
-            groebner_basis,
             variable_tuple,
             parameter,
             basis_exponents,
-            tensor,
+            variable_matrices,
             coefficient_domain,
             max_attempts=max_separating_attempts,
         )
@@ -131,11 +127,8 @@ def compute_rational_univariate_representation(
 
     coordinate_numerators: list[sp.Poly] = []
     for variable in variable_tuple:
-        remainder = _normal_form(groebner_basis, variable)
-        variable_vector = _coefficient_vector(
-            remainder, variable_tuple, basis_exponents, coefficient_domain
-        )
-        variable_mult = _multiplication_matrix(variable_vector, tensor)
+        variable_index = variable_tuple.index(variable)
+        variable_mult = variable_matrices[variable_index]
         trace_variable_products = variable_mult.T * trace_vector
         numerator = sp.Integer(0)
         for power_index, horner_vector in enumerate(horner_vectors):

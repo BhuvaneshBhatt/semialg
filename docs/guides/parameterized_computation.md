@@ -135,7 +135,7 @@ For the positive parameter cell, the integration bounds are algebraic root funct
 
 Sampling a single parameter value is not a proof that the same formula remains valid everywhere nearby. Changes occur at discriminants, root collisions, feasibility boundaries, and other projection conditions.
 
-A stratified result therefore records a collection of exact guards and branch values rather than extrapolating from representative fibers.
+A stratified result therefore records a collection of exact guards and branch values instead of extrapolating from representative fibers.
 
 ## 4. Quantified relation versus `Piecewise`
 

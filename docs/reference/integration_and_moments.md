@@ -3,18 +3,16 @@
 
 **Mathematical return.** Integration APIs return exact symbolic integrals over supported semialgebraic regions; measure and moment APIs are derived exact integrals with dimension-aware semantics.
 
-**Exactness and certification.** Bounds/cells used for exact integration are derived from certified semialgebraic decompositions. Numerical quadrature is not silently substituted for an unsupported exact integral.
+**Exactness and certification.** Bounds/cells used for exact integration are derived from certified semialgebraic decompositions. Numerical quadrature is not without reporting substituted for an unsupported exact integral.
 
-**Algorithm.** The implementation reduces regions to exact bounds/cells, supports Boolean decomposition and intrinsic regular strata, and can integrate univariate parameter fibers using CAD-controlled algebraic root-function endpoints.
+**Algorithms.** The implementation reduces regions to exact bounds/cells, supports Boolean decomposition and intrinsic regular strata, and can integrate univariate parameter fibers using CAD-controlled algebraic root-function endpoints.
 
 **Complexity and limitations.** Arbitrary singular mixed-dimensional stratification and fully general multidimensional parametric algebraic integration remain incomplete.
 
 
-
-
 ## Primary API overview
 
-This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|

@@ -153,7 +153,7 @@ def _replay_algebraic_decomposition(result: object) -> CertificateReplayResult:
         verify_minimal_prime_decomposition_certificate,
         verify_primary_decomposition_certificate,
         verify_radical_ideal_certificate,
-        verify_regular_chain_decomposition_certificate,
+        verify_regular_chain_certificate,
     )
 
     if isinstance(result, RegularChainDecomposition):
@@ -165,7 +165,7 @@ def _replay_algebraic_decomposition(result: object) -> CertificateReplayResult:
                 {"reason": "certificate unavailable"},
             )
         return CertificateReplayResult(
-            verify_regular_chain_decomposition_certificate(result.certificate),
+            verify_regular_chain_certificate(result.certificate),
             "regular_chain_decomposition",
             "recursive_regular_chain",
             {"components": len(result.components)},
@@ -235,9 +235,9 @@ def _replay_gtz(result: object) -> CertificateReplayResult:
         IndependentLocalizationResult,
         LocalizationContractionResult,
         SaturationStabilizationResult,
-        verify_independent_localization_certificate,
-        verify_localization_contraction_certificate,
-        verify_saturation_stabilization_certificate,
+        verify_contraction_certificate,
+        verify_localization_certificate,
+        verify_saturation_certificate,
     )
     from .algebraic.gtz_primary import (
         GTZPrimaryDecompositionResult,
@@ -245,12 +245,12 @@ def _replay_gtz(result: object) -> CertificateReplayResult:
     )
     from .algebraic.gtz_zero_dim import (
         ZeroDimensionalPrimaryResult,
-        verify_zero_dimensional_primary_certificate,
+        verify_zero_dim_primary_certificate,
     )
 
     if isinstance(result, IndependentLocalizationResult):
         return CertificateReplayResult(
-            verify_independent_localization_certificate(result.certificate),
+            verify_localization_certificate(result.certificate),
             "gtz_independent_localization",
             result.method,
             {
@@ -260,14 +260,14 @@ def _replay_gtz(result: object) -> CertificateReplayResult:
         )
     if isinstance(result, LocalizationContractionResult):
         return CertificateReplayResult(
-            verify_localization_contraction_certificate(result.certificate),
+            verify_contraction_certificate(result.certificate),
             "gtz_localization_contraction",
             result.method,
             {"denominator_product": result.denominator_product},
         )
     if isinstance(result, SaturationStabilizationResult):
         return CertificateReplayResult(
-            verify_saturation_stabilization_certificate(result.certificate),
+            verify_saturation_certificate(result.certificate),
             "gtz_saturation_stabilization",
             result.method,
             {"exponent": result.exponent},
@@ -281,7 +281,7 @@ def _replay_gtz(result: object) -> CertificateReplayResult:
                 {"reason": "certificate unavailable"},
             )
         return CertificateReplayResult(
-            verify_zero_dimensional_primary_certificate(result.certificate),
+            verify_zero_dim_primary_certificate(result.certificate),
             "gtz_zero_dimensional_primary",
             result.method,
             {"components": len(result.components)},

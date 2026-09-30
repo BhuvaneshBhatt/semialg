@@ -128,7 +128,7 @@ class BorderBasisResult:
         )
         return sp.expand(reconstructed)
 
-    def _coordinates_from_multiplication_matrices(self, expression: sp.Expr) -> sp.Matrix | None:
+    def _coordinates_from_matrices(self, expression: sp.Expr) -> sp.Matrix | None:
         if not self.order_ideal:
             return sp.zeros(0, 1)
         if not all(variable in self.multiplication_matrices for variable in self.variables):
@@ -155,7 +155,7 @@ class BorderBasisResult:
     def coordinates(self, expression: sp.Expr) -> sp.Matrix:
         """Return the coordinate column of ``expression`` in the order ideal."""
 
-        matrix_coords = self._coordinates_from_multiplication_matrices(sp.sympify(expression))
+        matrix_coords = self._coordinates_from_matrices(sp.sympify(expression))
         if matrix_coords is not None:
             return matrix_coords
 

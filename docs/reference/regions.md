@@ -38,24 +38,22 @@ be decided at construction time are retained as `construction_conditions`.
 
 Named shapes use direct geometric names such as `Ball`, `Sphere`, `Polygon`, `Box`, and `PolyhedralCone`. The `*Region` suffix is reserved for representation or composition types such as `SemialgebraicRegion`, `ParametricRegion`, and `BooleanRegion`.
 
-Representation and composition classes keep the `Region` suffix because they describe how a set is represented rather than naming a geometric shape.
+Representation and composition classes keep the `Region` suffix because they describe how a set is represented instead of naming a geometric shape.
 
 ## Family contract
 
 **Mathematical return.** Region APIs construct exact semialgebraic sets, decide exact set/geometric properties, or return exact images, projections, components, distances, transforms, and local algebraic-geometric objects.
 
-**Exactness and certification.** Boolean/set relations are semantic rather than syntactic. Geometry queries reuse exact QE, CAD, optimization, and algebraic-geometry machinery; unsupported exact cases do not silently become numerical approximations.
+**Exactness and certification.** Boolean/set relations are semantic instead of syntactic. Geometry queries reuse exact QE, CAD, optimization, and algebraic-geometry machinery; unsupported exact cases do not without reporting become numerical approximations.
 
-**Algorithm.** Cheap substitutions/derived identities are used where possible; general projections/images and global geometric predicates may reduce to QE/CAD or exact optimization.
+**Algorithms.** Cheap substitutions/derived identities are used where possible; general projections/images and global geometric predicates may reduce to QE/CAD or exact optimization.
 
 **Complexity and limitations.** Simple-looking geometric operations such as image, convexity, or connected components can be as hard as general QE. See [Limitations](../limitations.md).
 
 
-
-
 ## Primary API overview
 
-This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here rather than merely appearing in the generated public index.
+This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|
@@ -128,6 +126,8 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `hardt_trivialization` | function | Build Coste-style graph/band Hardt strata for one-dimensional coordinate fibers. |
 | `convexity_certificate` | function | Decide semialgebraic set convexity through an exact staged hierarchy. |
 | `contains_point` | function | Return whether an exact point belongs to the semialgebraic region. |
+| `point_in_closure` | function | Decide exact membership in the Euclidean closure using CAD-semantic topology by default. |
+| `PointInClosureResult` | type | Structured result returned by `point_in_closure(..., return_result=True)`. |
 | `RegionElement` | class | Build a symbolic membership predicate that can be lowered or evaluated. |
 | `RegionNotElement` | class | Build the symbolic complement of a membership predicate. |
 | `coordinate_range` | function | Return the exact range of one coordinate over a region. |
@@ -237,7 +237,7 @@ parallelepipeds, points, intervals, and bounded `ParametricRegion` objects use
 their structural parametrizations. Formula regions can be clipped by explicit
 finite bounds and represented by an exact identity chart without invoking CAD.
 
-`intrinsic_parametric_cover` extends the same chart contract to intrinsic geometry. Canonical balls, spheres, ellipsoids, ellipsoid boundaries, simplexes, polygons, boxes, and parallelepipeds use structural charts. Formula regions are converted from verified regular CAD strata. Every `ParametricChart` exposes its exact Jacobian, Gram matrix, intrinsic metric factor, pullback, and metric-weighted intrinsic integrand. Target-dimensional singular CAD strata are rejected rather than silently discarded.
+`intrinsic_parametric_cover` extends the same chart contract to intrinsic geometry. Canonical balls, spheres, ellipsoids, ellipsoid boundaries, simplexes, polygons, boxes, and parallelepipeds use structural charts. Formula regions are converted from verified regular CAD strata. Every `ParametricChart` exposes its exact Jacobian, Gram matrix, intrinsic metric factor, pullback, and metric-weighted intrinsic integrand. Target-dimensional singular CAD strata are rejected instead of without reporting discarded.
 
 
 A chart carries explicit parameter bounds, an additional parameter condition,
@@ -441,13 +441,13 @@ provable contradiction; an undecidable symbolic requirement remains in `conditio
 
 ## Semialgebraic topology and families
 
-`SimplicialComplex`, `SemialgebraicTriangulation`, and `triangulate_region` expose finite exact triangulations in the regimes where semialg can certify the realization rather than merely mesh it numerically. Canonical polyhedral regions use an exact pulling triangulation of the face lattice; compact subsets of the real line use exact CAD sections and sectors. General curved semialgebraic triangulation is not synthesized from straight chords because Coste's triangulation theorem requires a semialgebraic homeomorphism, not just a cell decomposition.
+`SimplicialComplex`, `SemialgebraicTriangulation`, and `triangulate_region` expose finite exact triangulations in the regimes where semialg can certify the realization instead of merely mesh it numerically. Canonical polyhedral regions use an exact pulling triangulation of the face lattice; compact subsets of the real line use exact CAD sections and sectors. General curved semialgebraic triangulation is not synthesized from straight chords because Coste's triangulation theorem requires a semialgebraic homeomorphism, not just a cell decomposition.
 
 `DimensionStratum`, `DimensionDecomposition`, and `dimension_strata` expose the CAD characterization of dimension: the dimension of the set is the largest Euclidean dimension of an adapted selected cell, while the returned strata retain the lower-dimensional pieces separately. `ConnectedComponentDecomposition` and `component_decomposition` package the exact CAD adjacency components together with their formulas, dimensions, and exact sample points.
 
 `HardtFiberPiece`, `HardtStratum`, `HardtTrivialization`, and `hardt_trivialization` implement the coordinate-projection construction that precedes Hardt's theorem for a family with one fiber variable. An adapted cylindrical decomposition partitions parameter space into base cells; over each base cell the selected stack is a fixed ordered family of delineable sections and bands. Each graph is a product with a point, and each band is normalized by an explicit semialgebraic coordinate to a fixed interval model. This is a certified Hardt trivialization for that projection class, not a claim to implement arbitrary semialgebraic maps.
 
-The current generality is narrower than the existence theorems. Higher-dimensional curved triangulation requires construction of a global semialgebraic homeomorphism, and arbitrary-map Hardt triviality requires graph construction plus a compatible decomposition of source and target. Those cases raise `NotImplementedError` rather than returning an uncertified approximation.
+The current generality is narrower than the existence theorems. Higher-dimensional curved triangulation requires construction of a global semialgebraic homeomorphism, and arbitrary-map Hardt triviality requires graph construction plus a compatible decomposition of source and target. Those cases raise `NotImplementedError` instead of returning an uncertified approximation.
 
 ### Critical-value images
 
@@ -489,7 +489,7 @@ Use `certified_radicalization` before ideal-sensitive geometric analysis when th
 
 `polynomial_constraints` exposes a quantifier-free polynomial region as a DNF-preserving structured constraint system. `active_constraints` identifies exactly active equality/inequality constraints at a feasible exact point.
 
-`relative_interior` and `relative_boundary` compute topology relative to a **certified affine hull**. They raise `NotImplementedError` when the current formula does not expose enough globally valid linear equalities to certify that hull, rather than silently substituting ambient or local-dimension topology.
+`relative_interior` and `relative_boundary` compute topology relative to a **certified affine hull**. They raise `NotImplementedError` when the current formula does not expose enough globally valid linear equalities to certify that hull, instead of without reporting substituting ambient or local-dimension topology.
 
 `semialgebraic_tangent_cone` computes the exact Bouligand/contingent cone as the closure of secant velocities, using quantifier elimination. `local_dimension` remains the exact CAD-derived local semialgebraic dimension.
 
@@ -515,7 +515,7 @@ Canonical region types include `FinitePointSet`, `Interval`, `Box`, `Parallelogr
 
 `convert_region` converts among `canonical`, `formula`/`implicit`, `semialgebraic`, `cad`, `parametric`, `simplicial`/`triangulation`, `mesh`, and `boundary` representations. `RegionConversion` records whether the result is exact, certified, and lossy. Numerical CAD meshing is explicitly marked lossy; exact conversions are not.
 
-`triangulate_polytope` and `decompose_polytope` provide deterministic exact pulling, placing, and barycentric decompositions. `PolytopeDecomposition` records introduced vertices and certification/conformity metadata. Shell-based `Polyhedron` formulas preserve nonconvexity and cavities rather than replacing them by convex hulls.
+`triangulate_polytope` and `decompose_polytope` provide deterministic exact pulling, placing, and barycentric decompositions. `PolytopeDecomposition` records introduced vertices and certification/conformity metadata. Shell-based `Polyhedron` formulas preserve nonconvexity and cavities instead of replacing them by convex hulls.
 
 `tetrahedralize_cell` and `tetrahedralize_cells` provide conforming tetrahedralization of tetrahedra, pyramids, triangular prisms, and hexahedra using global vertex ordering. Shared polygonal faces are replay-checked for identical induced triangulations. Results are represented by `MixedCellTetrahedralization` and `MixedMeshTetrahedralization`.
 
@@ -534,7 +534,7 @@ to an exact symbolic sphere.
 `polyhedral_intersection()` is the exact convex-polytope structural intersection
 backend. `polyhedral_boolean()` preserves structural polyhedral results when they can
 be certified without subdivision and otherwise returns the ordinary Boolean-region
-representation rather than convexifying a nonconvex result.
+representation instead of convexifying a nonconvex result.
 
 ## Semialgebraic statistical model geometry and constraint certificates
 
@@ -550,7 +550,7 @@ replacing a model by its Zariski closure.
 rank-drop and critical-value geometry for polynomial/rational parameterizations.
 
 `nonnegative_combination_certificate()` produces a replayable
-`NonnegativeCombinationCertificate`; `verify_nonnegative_combination_certificate()`
+`NonnegativeCombinationCertificate`; `verify_nonnegative_certificate()`
 checks it independently. `implied_polynomial_inequality()` returns an
 `ImpliedPolynomialInequality`, `redundant_polynomial_inequalities()` returns
 `RedundantPolynomialInequality` records, and `component_constraint_descriptions()`

@@ -13,7 +13,7 @@ The generated registry `tests/root_api_adequacy_dimensions.toml` records 79 dept
 | `independent-semantic` | Exercise a distinct semantic obligation | decomposition limits, topology, component structure |
 | `round-trip-presentation` | Ensure presentation helpers do not alter mathematical data | discretize/plot stability |
 
-The registry is an adequacy floor, not a claim of exhaustive correctness. A new regression should normally strengthen the dimension that exposed it, and a new algorithmic backend should preferentially gain differential or metamorphic evidence rather than another nominal example.
+The registry is an adequacy floor, not a claim of exhaustive correctness. A new regression should normally strengthen the dimension that exposed it, and a new algorithmic backend should preferentially gain differential or metamorphic evidence instead of another nominal example.
 
 ## Generated exact cases
 

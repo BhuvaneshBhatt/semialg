@@ -8,7 +8,7 @@ Consider
 f=(x-1)(x+1)(y-1).
 \]
 
-The complete Collins projection builder first forms an exact squarefree basis. Internally it may retain the factors `x - 1`, `x + 1`, and `y - 1` rather than the redundant product `f`.
+The complete Collins projection builder first forms an exact squarefree basis. Internally it may retain the factors `x - 1`, `x + 1`, and `y - 1` instead of the redundant product `f`.
 
 ```python
 import sympy as sp
@@ -40,7 +40,7 @@ This is a scalability optimization with asymmetric logic: early success is valid
 
 ## Reduced CAD and fallback
 
-Equational-constraint/reduced projection can remove additional projection work, but only when its well-orientedness and related side conditions are certified. If those checks fail, `semialg` falls back to a complete projection/lifting route rather than returning a result under unproved assumptions.
+Equational-constraint/reduced projection can remove additional projection work, but only when its well-orientedness and related side conditions are certified. If those checks fail, `semialg` falls back to a complete projection/lifting route instead of returning a result under unproved assumptions.
 
 The key distinction throughout is:
 

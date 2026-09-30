@@ -155,6 +155,89 @@ def _boundary(region):
     raise NotImplementedError(f"boundary conversion is not implemented for {type(region).__name__}")
 
 
+def _convert_canonical(region, **_options):
+    return canonicalize_region(region), True, True, False
+
+
+def _convert_formula(region, *, variables=None, **_options):
+    return _semialgebraic(region, variables).formula, True, True, False
+
+
+def _convert_semialgebraic(region, *, variables=None, **_options):
+    return _semialgebraic(region, variables), True, True, False
+
+
+def _convert_cad(region, *, variables=None, **_options):
+    from .cad_region import as_cad_region
+
+    return as_cad_region(_semialgebraic(region, variables)), True, True, False
+
+
+def _convert_parametric(
+    region, *, variables=None, bounds=None, dimension=None, require_verified=True, **_options
+):
+    if not isinstance(region, Geometry):
+        raise TypeError("parametric conversion requires explicit Geometry")
+    value = (
+        region.bounded_parametric_cover(variables, bounds)
+        if bounds is not None
+        else region.intrinsic_parametric_cover(
+            variables, dimension=dimension, require_verified=require_verified
+        )
+    )
+    return value, True, True, False
+
+
+def _convert_simplicial(region, *, variables=None, **_options):
+    from .topology.semialgebraic import triangulate_region
+
+    return triangulate_region(region, variables), True, True, False
+
+
+def _convert_mesh(
+    region,
+    *,
+    variables=None,
+    slices=4,
+    tolerance=1e-9,
+    precision=30,
+    require_conforming=True,
+    **_options,
+):
+    from .cad_algorithms.meshing import triangulate_cad_region
+
+    value = triangulate_cad_region(
+        _semialgebraic(region, variables),
+        slices=slices,
+        tolerance=tolerance,
+        precision=precision,
+        require_conforming=require_conforming,
+    )
+    return value, False, True, True
+
+
+def _convert_boundary(region, **_options):
+    return _boundary(region), True, True, False
+
+
+_REPRESENTATION_ALIASES = {
+    "implicit": "formula",
+    "triangulation": "simplicial",
+    "boundary_mesh": "boundary",
+}
+
+_REGION_CONVERTERS = {
+    "canonical": _convert_canonical,
+    "formula": _convert_formula,
+    "semialgebraic": _convert_semialgebraic,
+    "cad": _convert_cad,
+    "parametric": _convert_parametric,
+    "simplicial": _convert_simplicial,
+    "mesh": _convert_mesh,
+    "boundary": _convert_boundary,
+}
+
+
 def convert_region(
     region,
     representation="canonical",
@@ -170,59 +253,21 @@ def convert_region(
     require_conforming=True,
 ):
     """Convert a region to a certified exact or explicitly lossy representation."""
-    aliases = {"implicit": "formula", "triangulation": "simplicial", "boundary_mesh": "boundary"}
-    target = aliases.get(representation, representation)
-    if target == "canonical":
-        value = canonicalize_region(region)
-        exact = cert = True
-        lossy = False
-    elif target in {"formula", "semialgebraic"}:
-        reg = _semialgebraic(region, variables)
-        value = reg.formula if target == "formula" else reg
-        exact = cert = True
-        lossy = False
-    elif target == "cad":
-        from .cad_region import as_cad_region
-
-        value = as_cad_region(_semialgebraic(region, variables))
-        exact = cert = True
-        lossy = False
-    elif target == "parametric":
-        if not isinstance(region, Geometry):
-            raise TypeError("parametric conversion requires explicit Geometry")
-        value = (
-            region.bounded_parametric_cover(variables, bounds)
-            if bounds is not None
-            else region.intrinsic_parametric_cover(
-                variables, dimension=dimension, require_verified=require_verified
-            )
-        )
-        exact = cert = True
-        lossy = False
-    elif target == "simplicial":
-        from .topology.semialgebraic import triangulate_region
-
-        value = triangulate_region(region, variables)
-        exact = cert = True
-        lossy = False
-    elif target == "mesh":
-        from .cad_algorithms.meshing import triangulate_cad_region
-
-        value = triangulate_cad_region(
-            _semialgebraic(region, variables),
-            slices=slices,
-            tolerance=tolerance,
-            precision=precision,
-            require_conforming=require_conforming,
-        )
-        exact = False
-        cert = True
-        lossy = True
-    elif target == "boundary":
-        value = _boundary(region)
-        exact = cert = True
-        lossy = False
-    else:
-        raise ValueError("unknown representation")
+    target = _REPRESENTATION_ALIASES.get(representation, representation)
+    try:
+        converter = _REGION_CONVERTERS[target]
+    except KeyError:
+        raise ValueError("unknown representation") from None
+    value, exact, cert, lossy = converter(
+        region,
+        variables=variables,
+        bounds=bounds,
+        dimension=dimension,
+        require_verified=require_verified,
+        slices=slices,
+        tolerance=tolerance,
+        precision=precision,
+        require_conforming=require_conforming,
+    )
     result = RegionConversion(value, target, exact, cert, lossy, type(region).__name__)
     return result if return_result else value

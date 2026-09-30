@@ -33,7 +33,7 @@ are solved symbolically when possible; otherwise the operation is declined.
 
 Shared bound normalization rejects undeclared variables, duplicate entries, malformed
 bound tuples, and exactly reversed endpoints. Public measure/integration APIs therefore
-do not silently ignore misspelled bounds or turn a reversed interval into a negative
+do not without reporting ignore misspelled bounds or turn a reversed interval into a negative
 measure.
 
 One-dimensional component reconstruction compares algebraic endpoints exactly and
@@ -96,7 +96,7 @@ appropriate time budget.
 ## Region and API validation
 
 The standard-region layer enforces exact, local construction invariants so malformed
-regions cannot silently reach integration. The parametric-region layer preserves
+regions cannot without reporting reach integration. The parametric-region layer preserves
 ambient symbol identity and validates complete one-to-one parameter limits and
 positive multiplicity. Deterministic metamorphic tests verify interval measure
 identities for union, intersection, and difference.
@@ -169,7 +169,7 @@ subprocess-import defects.
 
 ## Differential semantic testing
 
-When two exact backends solve the same mathematical problem, regression tests compare the resulting sets, formulas, or exact point sets rather than requiring identical printed expressions. Shared test helpers normalize finite point sets and use semialgebraic equivalence for formulas. Current differential contracts cover Gröbner-variety QE versus forced Collins QE, RUR versus direct finite algebraic solving, specialized polynomial nonnegativity versus complete formula truth, and exact algebraization versus its explicit polynomial formulation.
+When two exact backends solve the same mathematical problem, regression tests compare the resulting sets, formulas, or exact point sets instead of requiring identical printed expressions. Shared test helpers normalize finite point sets and use semialgebraic equivalence for formulas. Current differential contracts cover Gröbner-variety QE versus forced Collins QE, RUR versus direct finite algebraic solving, specialized polynomial nonnegativity versus complete formula truth, and exact algebraization versus its explicit polynomial formulation.
 
 ## Assumption matrices
 
@@ -181,4 +181,4 @@ Generated small rational polynomials exercise interval endpoint conventions, rep
 
 ## Structural performance contracts
 
-Performance-sensitive fast paths are primarily guarded by deterministic structure rather than tight wall-clock thresholds. Tests assert facts such as Descartes-decisive intervals avoiding Sturm fallback, ambiguous intervals entering exact counting once, shared separator delegation, cache hits on the path that owns the cache, and specialized routes declining or bypassing generic fallbacks as designed. Wall-clock benchmarks remain opt-in evidence for end-to-end regressions.
+Performance-sensitive fast paths are primarily guarded by deterministic structure instead of tight wall-clock thresholds. Tests assert facts such as Descartes-decisive intervals avoiding Sturm fallback, ambiguous intervals entering exact counting once, shared separator delegation, cache hits on the path that owns the cache, and specialized routes declining or bypassing generic fallbacks as designed. Wall-clock benchmarks remain opt-in evidence for end-to-end regressions.

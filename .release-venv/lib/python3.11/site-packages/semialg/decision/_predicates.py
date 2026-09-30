@@ -25,6 +25,7 @@ from ._metadata import (
 )
 from ._rur import try_rur_formula as _try_rur_formula
 from ._witnesses import find_validated_witness as _find_validated_witness
+from .fast_paths import propositional_truth_value
 from .solution import (
     EquivalenceResult,
     ImplicationResult,
@@ -63,6 +64,9 @@ def is_satisfiable(
         witness = {var: sp.Integer(0) for var in vars_}
     elif is_false_expr(expr):
         sat = False
+    elif propositional_truth_value(expr) is False:
+        sat = False
+        method = "propositional"
     else:
         components = decompose_conjunctive_formula(expr, vars_)
         if components:
@@ -111,6 +115,20 @@ def is_satisfiable(
                                 linear_presolve.variables,
                                 strategy=strategy,
                             )
+                            if reduced_witness is None and len(linear_presolve.variables) == 1:
+                                reduced_var = linear_presolve.variables[0]
+                                reduced_formula = reduce_conjunctive_inequalities(
+                                    linear_presolve.formula, reduced_var
+                                )
+                                reduced_components = (
+                                    _one_dim_components(reduced_formula, reduced_var)
+                                    if reduced_formula is not None
+                                    else None
+                                )
+                                if reduced_components:
+                                    reduced_witness = {
+                                        reduced_var: reduced_components[0].sample_point()
+                                    }
                             if reduced_witness is not None:
                                 reconstructed = dict(reduced_witness)
                                 for variable, replacement in reversed(
