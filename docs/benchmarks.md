@@ -10,7 +10,7 @@ There is no single universal benchmark suite covering all of real algebraic geom
 | --- | --- | --- |
 | CAD | Wilson's *CAD Example Bank*; classical Collins/McCallum, Davenport--Heintz, Buchberger--Hong and later EC/TTICAD examples | cells, projection/lifting work where exposed, ordering, well-orientedness/certification, CPU and wall time |
 | Quantifier elimination | CAD/QEPCAD literature examples and textbook decision/QE problems | quantifier structure, selected backend, cells visited/constructed, output size, certificate/equivalence checks, time |
-| Roadmaps/topology | examples and constructions in Basu-Pollack-Roy and roadmap papers | component count, critical points, recursive subproblems, roadmap size, certificate checks, CAD work, time |
+| Roadmaps/topology | examples and constructions in Basu--Pollack--Roy and roadmap papers | component count, critical points, recursive subproblems, roadmap size, certificate checks, CAD work, time |
 | Component instances | no widely adopted independent benchmark bank; use topology literature plus explicit conformance families | exact sample per component, component count/dimension, mixed-dimensional and singular cases |
 | Gröbner bases | Cyclic, Katsura, ECO, Noon and related standard polynomial-system families | basis size/degrees, reductions/certificates where exposed, time |
 | Real roots / RUR / regular chains / decomposition | standard polynomial-system families and published algorithm examples; no one cross-system corpus dominates | root/component counts, degrees, isolating data/certificates, algebraic work counters, time |
@@ -40,9 +40,18 @@ The converted CAD examples cite D. Wilson, *Real Geometry and Connectedness via 
 
 ### Published CAD corpora
 
-`cad_cases()` contains all 68 entries of David Wilson's CAD Example Bank v4. Each record preserves the source procedure/index identifier and the variable order in the bank. The bank does not itself attach a canonical cell count to every entry, so a missing reference count is not represented as zero or infered from another implementation.
+`cad_cases()` contains all 68 entries of David Wilson's CAD Example Bank v4. Each
+record preserves the source procedure/index identifier and the variable order in
+the bank. The bank does not itself attach a canonical cell count to every entry,
+so a missing reference count is not represented as zero or inferred from another
+implementation.
 
-`tticad_cases()` contains all 29 examples from the published Section 8.2 TTICAD dataset (DOI 10.15125/BATH-00076). Formula grouping and equational constraints are retained in `expected["formulae"]`, in addition to the flattened polynomial list used by generic CAD runners. Reference cell counts belong to a particular algorithm/configuration and should be stored with that algorithm label rather than treated as an intrinsic property of the mathematical problem.
+`tticad_cases()` contains all 29 examples from the published Section 8.2 TTICAD
+dataset (DOI 10.15125/BATH-00076). Formula grouping and equational constraints
+are retained in `expected["formulae"]`, in addition to the flattened polynomial
+list used by generic CAD runners. Reference cell counts belong to a particular
+algorithm/configuration and should be stored with that algorithm label rather
+than treated as an intrinsic property of the mathematical problem.
 
 ## Running the benchmarks
 
@@ -66,4 +75,4 @@ python -m semialg.benchmarks tticad
 
 `run_tticad()` is separate. It preserves the published formula-family and equational-constraint structure and runs semialg's certified family-aware TTICAD path. Its metrics report the effective backend and whether certification required a Collins fallback. The `published_tticad` reference count is the TTICAD column of Table 2 in Bradford et al.; it is a published reference measurement, not an expected equality for semialg's independently implemented algorithm.
 
-The Gröbner runner accepts parametrized `cyclic`, `katsura`, `eco`, and `noon` families. For example, `groebner cyclic 7` constructs the size-7 family at runtime instead of requiring separate checked-in case for every size. Gröbner correctness is checked by reducing every input generator with the computed basis.
+The Gröbner runner accepts parameterized `cyclic`, `katsura`, `eco`, and `noon` families. For example, `groebner cyclic 7` constructs the size-7 family at run time instead of requiring a separate checked-in case for every size. Gröbner correctness is checked by reducing every input generator with the computed basis.

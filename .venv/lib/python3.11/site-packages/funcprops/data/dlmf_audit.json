@@ -1,0 +1,3382 @@
+{
+  "families": [
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "Abs",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 31,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "acos",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "acosh",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "acot",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "acoth",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "acsc",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "acsch",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "adjoint",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "airyai",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "airyaiprime",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "airybi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "airybiprime",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "andre",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "appellf1",
+      "formula_refs": [
+        "16.13.E1"
+      ],
+      "formula_verified_properties": "definition and convergence domain",
+      "property_count": 10,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "arg",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "asec",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "asech",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "asin",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "asinh",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "assoc_laguerre",
+      "formula_refs": [
+        "18.5.E12",
+        "18.16.E9"
+      ],
+      "formula_verified_properties": "explicit representation; n simple positive zeros for alpha>-1",
+      "property_count": 20,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "assoc_legendre",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "atan",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "atan2",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "atanh",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "bell",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 19,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "bernoulli",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "besseli",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "besselj",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "besselk",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "bessely",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "beta_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "beta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "beta_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "betainc",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "beta_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "betainc_regularized",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 10,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "binomial",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "carmichael",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "catalan",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 24,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "integers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "ceiling",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "chebyshevt",
+      "formula_refs": [
+        "18.5.E1",
+        "18.16.iii"
+      ],
+      "formula_verified_properties": "trigonometric representation and zeros in (-1,1)",
+      "property_count": 25,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "chebyshevt_root",
+      "formula_refs": [
+        "18.5.E1"
+      ],
+      "formula_verified_properties": "root formula derived from T_n(cos theta)=cos(n theta)",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "chebyshevu",
+      "formula_refs": [
+        "18.5.E2",
+        "18.16.iii"
+      ],
+      "formula_verified_properties": "trigonometric representation and zeros in (-1,1)",
+      "property_count": 25,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "chebyshevu_root",
+      "formula_refs": [
+        "18.5.E2"
+      ],
+      "formula_verified_properties": "root formula derived from U_n(cos theta)",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "Chi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "Ci",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "conjugate",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 26,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "cos",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 28,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "cosh",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "cot",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 26,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "coth",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "csc",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 26,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "csch",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "digamma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "delta_functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "DiracDelta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta_functions",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "dirichlet_eta",
+      "formula_refs": [
+        "25.2.E3"
+      ],
+      "formula_verified_properties": "alternating zeta representation / analytic continuation relation",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "divisor_sigma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "Ei",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic_integrals",
+      "dlmf_chapters": "19",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19"
+      ],
+      "family_id": "elliptic_e",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic_integrals",
+      "dlmf_chapters": "19",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19"
+      ],
+      "family_id": "elliptic_f",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic_integrals",
+      "dlmf_chapters": "19",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19"
+      ],
+      "family_id": "elliptic_k",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic_integrals",
+      "dlmf_chapters": "19",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19"
+      ],
+      "family_id": "elliptic_pi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "erf",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 31,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "erf2",
+      "formula_refs": [
+        "7.2.E1"
+      ],
+      "formula_verified_properties": "difference of entire erf values",
+      "property_count": 29,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "erf2inv",
+      "formula_refs": [
+        "7.17.E1"
+      ],
+      "formula_verified_properties": "inverse error-function branch/domain inherited from inverse erf",
+      "property_count": 29,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "erfc",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "erfcinv",
+      "formula_refs": [
+        "7.17.E1"
+      ],
+      "formula_verified_properties": "inverse complementary error function",
+      "property_count": 29,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "erfi",
+      "formula_refs": [
+        "7.2.E1"
+      ],
+      "formula_verified_properties": "erfi(z)=-i erf(i z), entire; real monotonicity derived",
+      "property_count": 31,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "erfinv",
+      "formula_refs": [
+        "7.17.E1"
+      ],
+      "formula_verified_properties": "inverse error function",
+      "property_count": 29,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "euler",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "exponential",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "exp",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 2,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "exponential",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "exp_polar",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "expint",
+      "formula_refs": [
+        "8.19.E1",
+        "8.19.E18"
+      ],
+      "formula_verified_properties": "generalized exponential integral and branch point at zero",
+      "property_count": 27,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "factorial",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 24,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "factorial2",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 24,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "FallingFactorial",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 23,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "ff",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "fibonacci",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "integers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "floor",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "integers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "frac",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "fresnelc",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "fresnels",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "gamma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 31,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "gegenbauer",
+      "formula_refs": [
+        "18.5.E9",
+        "18.16.iii"
+      ],
+      "formula_verified_properties": "ultraspherical polynomial representation and zeros",
+      "property_count": 11,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "genocchi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "hankel1",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 9,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "hankel2",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 9,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "harmonic",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 28,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "delta_functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "Heaviside",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "hermite",
+      "formula_refs": [
+        "18.5.E13",
+        "18.16.v"
+      ],
+      "formula_verified_properties": "Hermite polynomial representation and real simple zeros",
+      "property_count": 27,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "hermite_prob",
+      "formula_refs": [
+        "18.7.E11",
+        "18.16.v"
+      ],
+      "formula_verified_properties": "probabilists Hermite scaling from Hermite family; zero distribution inherited",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "hn1",
+      "formula_refs": [
+        "10.47.E5"
+      ],
+      "formula_verified_properties": "spherical Hankel h_n^(1) definition",
+      "property_count": 0,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "hn2",
+      "formula_refs": [
+        "10.47.E6"
+      ],
+      "formula_verified_properties": "spherical Hankel h_n^(2) definition",
+      "property_count": 0,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "hyper",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 13,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_asin1",
+      "formula_refs": [
+        "15.4.E4"
+      ],
+      "formula_verified_properties": "elementary inverse-sine hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_asin2",
+      "formula_refs": [
+        "15.4.E4",
+        "15.5.E1"
+      ],
+      "formula_verified_properties": "elementary inverse-sine hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_atanh",
+      "formula_refs": [
+        "15.4.E2"
+      ],
+      "formula_verified_properties": "atanh hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_cosasin",
+      "formula_refs": [
+        "15.4.E12"
+      ],
+      "formula_verified_properties": "trigonometric/hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_log1",
+      "formula_refs": [
+        "15.4.E1"
+      ],
+      "formula_verified_properties": "logarithmic hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_log2",
+      "formula_refs": [
+        "16.2.E1",
+        "15.4.E17"
+      ],
+      "formula_verified_properties": "logarithmic hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_power1",
+      "formula_refs": [
+        "16.2.E1"
+      ],
+      "formula_verified_properties": "binomial hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_power2",
+      "formula_refs": [
+        "15.4.E17"
+      ],
+      "formula_verified_properties": "binomial hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_sinasin",
+      "formula_refs": [
+        "15.4.E12",
+        "15.5.E1"
+      ],
+      "formula_verified_properties": "trigonometric/hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_sqrts1",
+      "formula_refs": [
+        "15.4.E7"
+      ],
+      "formula_verified_properties": "square-root hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "HyperRep_sqrts2",
+      "formula_refs": [
+        "15.4.E7",
+        "15.5.E1"
+      ],
+      "formula_verified_properties": "square-root hypergeometric special case",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "im",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "jacobi",
+      "formula_refs": [
+        "18.5.E7",
+        "18.16.E1"
+      ],
+      "formula_verified_properties": "Jacobi representation; n simple zeros in (-1,1) for alpha,beta>-1",
+      "property_count": 6,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "jacobi_symbol",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "jn",
+      "formula_refs": [
+        "10.47.E3",
+        "10.58"
+      ],
+      "formula_verified_properties": "spherical Bessel j_n and zero distribution",
+      "property_count": 21,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "kronecker_symbol",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "tensor_functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "KroneckerDelta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 28,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "laguerre",
+      "formula_refs": [
+        "18.5.E12",
+        "18.16.E9"
+      ],
+      "formula_verified_properties": "Laguerre representation; n simple positive zeros for alpha=0",
+      "property_count": 20,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "exponential",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "LambertW",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "polynomials",
+      "dlmf_chapters": "14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "legendre",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "legendre_symbol",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta_functions",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "lerchphi",
+      "formula_refs": [
+        "25.14.E1",
+        "25.14"
+      ],
+      "formula_verified_properties": "Lerch transcendent definition and continuation",
+      "property_count": 11,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "tensor_functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "LeviCivita",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "Li",
+      "formula_refs": [
+        "6.2.E8"
+      ],
+      "formula_verified_properties": "offset logarithmic integral relation",
+      "property_count": 0,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "li",
+      "formula_refs": [
+        "6.2.E8"
+      ],
+      "formula_verified_properties": "logarithmic integral principal value and branch structure",
+      "property_count": 29,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "exponential",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "log",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "loggamma",
+      "formula_refs": [
+        "5.2.E1",
+        "5.11.E1"
+      ],
+      "formula_verified_properties": "principal log-Gamma and asymptotic/branch conventions",
+      "property_count": 29,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "lowergamma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "lucas",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "marcumq",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 15,
+      "status": "dlmf-related-not-native",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "mathieu_functions",
+      "dlmf_chapters": "28",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/28"
+      ],
+      "family_id": "mathieuc",
+      "formula_refs": [
+        "28.2.E29",
+        "28.2.E38"
+      ],
+      "formula_verified_properties": "even Mathieu solution and characteristic values/periodicity",
+      "property_count": 4,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "mathieu_functions",
+      "dlmf_chapters": "28",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/28"
+      ],
+      "family_id": "mathieucprime",
+      "formula_refs": [
+        "28.2.E38"
+      ],
+      "formula_verified_properties": "derivative of even Mathieu solution",
+      "property_count": 4,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "mathieu_functions",
+      "dlmf_chapters": "28",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/28"
+      ],
+      "family_id": "mathieus",
+      "formula_refs": [
+        "28.2.E29",
+        "28.2.E39"
+      ],
+      "formula_verified_properties": "odd Mathieu solution and characteristic values/periodicity",
+      "property_count": 4,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "mathieu_functions",
+      "dlmf_chapters": "28",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/28"
+      ],
+      "family_id": "mathieusprime",
+      "formula_refs": [
+        "28.2.E39"
+      ],
+      "formula_verified_properties": "derivative of odd Mathieu solution",
+      "property_count": 4,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    },
+    {
+      "category": "miscellaneous",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "Max",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 34,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyper",
+      "dlmf_chapters": "15, 16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/15",
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "meijerg",
+      "formula_refs": [
+        "16.17.E1"
+      ],
+      "formula_verified_properties": "Mellin-Barnes definition and convergence sectors",
+      "property_count": 2,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "miscellaneous",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "Min",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 34,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mobius",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "motzkin",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:agm",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:airyaizero",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 7,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:airybizero",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 7,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:angerj",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 18,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hypergeometric",
+      "dlmf_chapters": "16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "mpmath:appellf2",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hypergeometric",
+      "dlmf_chapters": "16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "mpmath:appellf3",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hypergeometric",
+      "dlmf_chapters": "16",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/16"
+      ],
+      "family_id": "mpmath:appellf4",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:barnesg",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 23,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:bei",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:ber",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:besseljzero",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 7,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:besselyzero",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 7,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:clcos",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:clsin",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:coulombf",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 18,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:coulombg",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 18,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:cyclotomic",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:dirichlet",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 2,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:ellipfun",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:elliprc",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:elliprd",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:elliprf",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:elliprg",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:elliprj",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:eta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 9,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:hyperfac",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:hyperu",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 13,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "theta",
+      "dlmf_chapters": "20",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/20"
+      ],
+      "family_id": "mpmath:jtheta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 11,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:kei",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:ker",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "elliptic",
+      "dlmf_chapters": "19, 22, 23",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/19",
+        "https://dlmf.nist.gov/22",
+        "https://dlmf.nist.gov/23"
+      ],
+      "family_id": "mpmath:kleinj",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 9,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "orthogonal",
+      "dlmf_chapters": "12, 14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/12",
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "mpmath:legenq",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:lommels1",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:lommels2",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:mangoldt",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 6,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "orthogonal",
+      "dlmf_chapters": "12, 14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/12",
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "mpmath:pcfd",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "orthogonal",
+      "dlmf_chapters": "12, 14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/12",
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "mpmath:pcfu",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "orthogonal",
+      "dlmf_chapters": "12, 14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/12",
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "mpmath:pcfv",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "orthogonal",
+      "dlmf_chapters": "12, 14, 18",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/12",
+        "https://dlmf.nist.gov/14",
+        "https://dlmf.nist.gov/18"
+      ],
+      "family_id": "mpmath:pcfw",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:polyexp",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:primezeta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "qfunctions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:qfac",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "qfunctions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:qgamma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "qfunctions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:qhyper",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 8,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "qfunctions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:qp",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 22,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:riemannr",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:scorergi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 23,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:scorerhi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:secondzeta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:siegeltheta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:siegelz",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 18,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:sincpi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:stirling1",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 8,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:stirling2",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 8,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:struveh",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 13,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:struvel",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 13,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "mpmath:superfac",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:webere",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 18,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:whitm",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 13,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "mpmath:whitw",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 13,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zetazeros",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "mpmath:zetazero",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 3,
+      "status": "dlmf-mapped-mpmath-inventory",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "multigamma",
+      "formula_refs": [
+        "35.3.E1",
+        "35.3.E4"
+      ],
+      "formula_verified_properties": "multivariate gamma definition/domain",
+      "property_count": 0,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "partition",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "periodic_argument",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "piecewise",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "Piecewise",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "polar_lift",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "polygamma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta_functions",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "polylog",
+      "formula_refs": [
+        "25.12.E10",
+        "25.12"
+      ],
+      "formula_verified_properties": "polylogarithm definition/analytic continuation and principal branch",
+      "property_count": 29,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "power",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "Pow",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 31,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "primenu",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "primeomega",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "primepi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "principal_branch",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "re",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 26,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "reduced_totient",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "miscellaneous",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "Rem",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "rf",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta_functions",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "riemann_xi",
+      "formula_refs": [
+        "25.4.E4",
+        "25.4.E3"
+      ],
+      "formula_verified_properties": "xi definition and functional equation; entire by cancellation",
+      "property_count": 0,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "RisingFactorial",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 13,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "sec",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 26,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "sech",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 28,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "Shi",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "error_functions",
+      "dlmf_chapters": "6, 7",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/6",
+        "https://dlmf.nist.gov/7"
+      ],
+      "family_id": "Si",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 29,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "sign",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 33,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "sin",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 28,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "sinc",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 21,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "singularity_functions",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "SingularityFunction",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 31,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "sinh",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 27,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "miscellaneous",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "sqrt",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "zeta_functions",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "stieltjes",
+      "formula_refs": [
+        "25.2.E4",
+        "25.2.E5"
+      ],
+      "formula_verified_properties": "Stieltjes constants from Laurent expansion of zeta",
+      "property_count": 20,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "factorials",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "subfactorial",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 14,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "trigonometric",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "tan",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 26,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "hyperbolic",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "tanh",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "totient",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "complexes",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "transpose",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "tribonacci",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "trigamma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "numbers",
+      "dlmf_chapters": "",
+      "dlmf_urls": [],
+      "family_id": "udivisor_sigma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 0,
+      "status": "not-dlmf-scoped",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "gamma_functions",
+      "dlmf_chapters": "5, 8",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/5",
+        "https://dlmf.nist.gov/8"
+      ],
+      "family_id": "uppergamma",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 30,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "bessel",
+      "dlmf_chapters": "9, 10, 11, 13",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/9",
+        "https://dlmf.nist.gov/10",
+        "https://dlmf.nist.gov/11",
+        "https://dlmf.nist.gov/13"
+      ],
+      "family_id": "yn",
+      "formula_refs": [
+        "10.47.E4",
+        "10.58"
+      ],
+      "formula_verified_properties": "spherical Bessel y_n and zero distribution",
+      "property_count": 21,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "spherical_harmonics",
+      "dlmf_chapters": "14",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14"
+      ],
+      "family_id": "Ynm",
+      "formula_refs": [
+        "14.30.E1"
+      ],
+      "formula_verified_properties": "complex spherical harmonic definition and normalization",
+      "property_count": 6,
+      "status": "formula-verified-core",
+      "structural_issues": [],
+      "verification_kind": "direct"
+    },
+    {
+      "category": "zeta_functions",
+      "dlmf_chapters": "25",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/25"
+      ],
+      "family_id": "zeta",
+      "formula_refs": [],
+      "formula_verified_properties": "",
+      "property_count": 25,
+      "status": "hand-audited-core",
+      "structural_issues": [],
+      "verification_kind": ""
+    },
+    {
+      "category": "spherical_harmonics",
+      "dlmf_chapters": "14",
+      "dlmf_urls": [
+        "https://dlmf.nist.gov/14"
+      ],
+      "family_id": "Znm",
+      "formula_refs": [
+        "14.30.E1"
+      ],
+      "formula_verified_properties": "real spherical harmonic derived from complex spherical harmonics",
+      "property_count": 6,
+      "status": "formula-verified-derived",
+      "structural_issues": [],
+      "verification_kind": "derived"
+    }
+  ],
+  "schema_version": "1.0",
+  "summary": {
+    "catalogue_families": 233,
+    "dlmf_mapping_corrections": 1,
+    "dlmf_scoped": 132,
+    "formula_verified_core": 26,
+    "formula_verified_derived": 22,
+    "hand_audited": 36,
+    "needs_formula_review": 0,
+    "structural_issue_count": 0
+  }
+}

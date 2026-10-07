@@ -19,7 +19,7 @@ def main(argv: list[str] | None = None) -> int:
 
     wheel = args.wheel.resolve()
     source_root = args.source_root.resolve()
-    contract = source_root / "tests" / "release" / "test_installed_wheel_contract.py"
+    contract = source_root / "tests" / "installation" / "test_installed_wheel_contract.py"
     if not wheel.is_file():
         raise FileNotFoundError(wheel)
 

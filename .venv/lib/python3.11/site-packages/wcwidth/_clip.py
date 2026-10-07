@@ -364,7 +364,7 @@ def _clip_simple(
                         if propagate_sgr and captured_style is None:
                             captured_style = current_style
                     col += 1
-            else:
+            elif start <= col < end:
                 output.append('\t')
             idx += 1
             continue
@@ -716,7 +716,7 @@ def _clip_painter(
                 for fill_col in range(max(col, start), min(next_tab, end)):
                     _write_cells(' ', 1, fill_col)
                 col = next_tab
-            else:
+            elif start <= col < end:
                 sequences.append((col, seq_order, '\t'))
                 seq_order += 1
             idx += 1
@@ -838,6 +838,13 @@ def clip(
         '\x1b[1mold\x1b[m norm'
 
     Set ``propagate_sgr=False`` to disable this behavior.
+
+    .. note::
+
+       Segmentation follows UAX #29 grapheme clusters. Tamil, Kannada and Sinhala may be clipped
+       short of ``end`` and leave a bare virama at the boundary. Correct rendering of these
+       languages is not specified by unicode.org standards, and no terminal emulator or editor
+       handles them legibly, so this library function makes no attempt at accommodating them.
 
     .. versionadded:: 0.3.0
 

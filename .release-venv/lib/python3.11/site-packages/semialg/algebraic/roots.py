@@ -135,8 +135,12 @@ def _count_roots_in_interval(
 ) -> int:
     """Count roots exactly while optionally excluding root endpoints."""
 
+    if left == right:
+        return int(poly.eval(left) == 0 and not exclude_left and not exclude_right)
     if poly.domain in (sp.ZZ, sp.QQ):
-        count = _ordinary_root_count(poly, left, right)
+        # The cached Sturm tree uses (left, right], whereas this helper's
+        # contract starts with [left, right] before excluding either endpoint.
+        count = _ordinary_root_count(poly, left, right) + int(poly.eval(left) == 0)
     else:
         # Non-rational coefficient domains occur during initial algebraic-coefficient
         # isolation, not repeated refinement. Keep this boundary explicit.

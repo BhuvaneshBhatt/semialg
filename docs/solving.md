@@ -1,6 +1,8 @@
 # Solving and sampling semialgebraic systems
 
-`semialg` provides an exact solver for real systems of polynomial equations, inequalities, and Boolean combinations of them.  `solve_semialgebraic` is the main structured entry point.
+`semialg` provides an exact solver for real systems of polynomial equations,
+inequalities, and Boolean combinations of them.  `solve_semialgebraic` is the
+main structured entry point.
 
 ## `solve_semialgebraic`
 
@@ -34,14 +36,16 @@ A `SemialgebraicSolution` contains:
 
 ## Automatic exact method planner
 
-`method="auto"` uses a structural planner. The order is biased toward cheap exact transformations and treats general CAD/QE as the final fallback:
+`method="auto"` uses a structural planner.  The order is biased
+toward cheap exact transformations and treats general CAD/QE as the final
+fallback:
 
 1. normalize algebraic/domain-sensitive constraints;
 2. eliminate globally safe affine equalities and retain reconstruction rules;
 3. split small explicit Boolean disjunctions branch-by-branch;
 4. split conjunctive systems into independent variable-incidence blocks;
 5. use the exact univariate interval/root reducer;
-6. decide coupled affine systems by Fourier-Motzkin elimination;
+6. decide coupled affine systems by Fourier--Motzkin elimination;
 7. recognize already-triangular/cylindrical bound descriptions;
 8. compute exact equality-ideal dimension when a finite algebraic system is
    structurally possible; for zero-dimensional ideals, record the exact
@@ -53,7 +57,8 @@ A `SemialgebraicSolution` contains:
 11. use the complete CAD/QE stack when none of the structural methods settles
     the problem.
 
-The planner does not approximate and does not change the meaning of the solution set.  Affine elimination is reconstructed in the returned coordinates.
+The planner does not approximate and does not change the meaning of the
+solution set.  Affine elimination is reconstructed in the returned coordinates.
 For example:
 
 ```python
@@ -81,14 +86,14 @@ linear.method
 # 'linear_fourier_motzkin'
 ```
 
-Independent blocks are solved separately, thus a system such as
+Independent blocks are solved separately.  Thus a system such as
 `x**2 <= 1` together with `y**2 >= 4` is reduced by two one-dimensional
 solves instead of one two-dimensional CAD.
 
 ### Planner diagnostics
 
 `solution.diagnostics["planner_steps"]` records the methods considered by the
-automatic planner, whether each was accepted, and why. Nested
+automatic planner, whether each was accepted, and why.  Nested
 `child_plans`/`branch_plans` record incidence and Boolean decomposition.  The
 system profile also records polynomial degree, equality/inequality counts,
 linearity, candidate finite-dimensionality, variable blocks, and a suggested
@@ -99,7 +104,7 @@ performance-regression tests without depending on wall-clock thresholds.
 
 ### Equality-ideal analysis for finite systems
 
-The finite-system backend shares an exact equality-ideal context. A
+The finite-system backend shares an exact equality-ideal context.  A
 grevlex Groebner basis supplies the leading monomial ideal, from which semialg
 computes the exact Krull dimension.  For dimension zero, standard monomials
 give the exact dimension of the quotient algebra.  The same context can lazily
@@ -107,7 +112,7 @@ compute per-coordinate univariate eliminants by FGLM, certify global polynomial
 replacements of the form `x = p(other_variables)`, and test radical membership
 with the Rabinowitsch construction.
 
-These facts are used before real point filtering. For example, `x**2 == 0`
+These facts are used before real point filtering.  For example, `x**2 == 0`
 together with `x != 0` is rejected because `x` belongs to the radical of the
 equality ideal; no algebraic-root enumeration or CAD is required.  Remaining
 inequalities are still evaluated exactly at RUR points, so the optimization
@@ -148,7 +153,7 @@ sign_vector([x, x - 1], {x: sp.Rational(1, 2)})
 
 ## Current scope
 
-The solver emphasizes exact real-semailgebraic solution sets, feasibility,
+The solver emphasizes exact real-semialgebraic solution sets, feasibility,
 parameter conditions, structural decomposition, and representative samples.
 It does not promise a globally human-minimal formula.  Positive-dimensional
 systems can naturally remain as exact equations/inequalities or cylindrical
@@ -156,4 +161,4 @@ cells instead of being converted to point replacement rules.
 
 ### Sum-of-two-squares specialization
 
-The integer sum-of-two-squares fast path recognizes only equations exactly equivalent, in the two declared integer variables, to `x**2 + y**2 = n` with a concrete integer target `n`. Extra linear, mixed, higher-degree, non-polynomial, or symbolic-target terms are not routed through this specialization. The bounded enumeration uses exact integer square roots instead of symbolic square-root/floor evaluation.
+The integer sum-of-two-squares fast path recognizes only equations exactly equivalent, in the two declared integer variables, to `x**2 + y**2 = n` with a concrete integer target `n`. Extra linear, mixed, higher-degree, nonpolynomial, or symbolic-target terms are not routed through this specialization. The bounded enumeration uses exact integer square roots instead of symbolic square-root/floor evaluation.

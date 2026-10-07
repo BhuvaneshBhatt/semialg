@@ -1,11 +1,15 @@
 # Algebraic roots and exact finite solving reference
-
 ## Family contract
 
-- **Mathematical return.** Algebraic APIs represent, isolate, compare, classify, and solve exact real algebraic roots and finite polynomial systems.
-- **Exactness and certification.** Root identity/order and algebraic signs use exact arithmetic, isolating information, or number-field/RUR machinery instead of fixed-precision comparison.
-- **Algorithms.** include root isolation/classification, rational univariate representation (RUR), subresultant and border-basis machinery, and cached exact algebraic comparisons.
-- **Complexity and limitations.** Degree growth and coefficient growth can dominate. Positive-dimensional algebraic sets generally require region/CAD or algebraic-geometry APIs instead of finite RUR solving.
+**Mathematical return.** Algebraic APIs represent, isolate, compare, classify, and solve exact real algebraic roots and finite polynomial systems.
+
+**Exactness and certification.** Root identity/order and algebraic signs use exact arithmetic, isolating information, or number-field/RUR machinery instead of fixed-precision comparison.
+
+**Algorithm.** Facilities include root isolation/classification, rational univariate representation, subresultant and border-basis machinery, and cached exact algebraic comparisons. The equality-only finite quotient/RUR/border-basis kernel is supplied by `algroots>=0.8.0`; Semialg owns the semialgebraic filtering, sign, witness, and decision layers built on top of it.
+
+**Complexity and limitations.** Degree growth and coefficient growth can dominate. Positive-dimensional algebraic sets generally require region/CAD or algebraic-geometry APIs instead of finite RUR solving.
+
+
 
 
 ## Primary API overview
@@ -90,11 +94,11 @@ separate transcendental solver boundary, see
 
 ## Exact comparisons
 
-Certified algebraic ordering uses isolating intervals, minimal/defining polynomials, exact sign determination, and appropriate algebraic representations. Fixed-precision sorting is, of course, not a proof mechanism.
+Certified algebraic ordering uses isolating intervals, minimal/defining polynomials, exact sign determination, and appropriate algebraic representations. Fixed-precision sorting is not a proof mechanism.
 
 ## Advanced algebraic APIs
 
-The package also exposes RUR, border-basis, subresultant, and related algebraic utilities for advanced users. These are lower-level than the primary decision/solve interfaces and may require stronger preconditions.
+The package also exposes RUR, border-basis, subresultant, and related algebraic utilities for advanced users. RUR and border-basis objects/functions are delegated to the canonical algroots equality-only implementation, while Semialg enriches RUR points with Thom/sign operations and formula/inequality filtering. These APIs are lower-level than the primary decision/solve interfaces and may require stronger preconditions.
 
 See [Root classification](../root_classification.md) and [Exactness and certification](../concepts/exactness_and_certification.md).
 
@@ -299,10 +303,10 @@ ideal_degree(equations, variables)
 ```
 
 These invariants are computed independently from a degree-compatible exact
-Groebner basis. The leading monomial ideal has the same Hilbert function as
+Groebner basis.  The leading monomial ideal has the same Hilbert function as
 the source ideal; its Hilbert-series numerator is obtained by exact
-inclusion-exclusion on minimal monomial generators. Cancelation at `t=1`
-then gives Krull dimension and affine multiplicity/degree. No regular-chain
+inclusion--exclusion on minimal monomial generators.  Cancellation at `t=1`
+then gives Krull dimension and affine multiplicity/degree.  No regular-chain
 assumption is used in this calculation.
 
 ## Certified modular Groebner acceleration

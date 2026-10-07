@@ -1,14 +1,15 @@
 # Solving and sampling reference
-
 ## Family contract
 
 **Mathematical return.** Solving APIs return exact witnesses, finite algebraic solution representations, or samples from semialgebraic solution sets.
 
 **Exactness and certification.** Exact sampling/witness paths use algebraic values and certified sign checks. Explicit numerical sampling modes are inexact by design and are not proof substitutes.
 
-**Algorithms.** Depending on structure, solving may use virtual-substitution witnesses, RUR/zero-dimensional solving, or CAD-derived cells.
+**Algorithm.** Depending on structure, solving may use virtual-substitution witnesses, RUR/zero-dimensional solving, or CAD-derived cells.
 
 **Complexity and limitations.** A witness is evidence of satisfiability, not a complete description of a positive-dimensional solution set. Use region/CAD APIs when the full set matters.
+
+
 
 
 ## Primary API overview
@@ -90,7 +91,7 @@ returns a simplified exact formula when symbolic structure should be retained.
 
 `function_domain(expr, variables=None)` computes recognized exact real-domain
 conditions using the same semialgebraic function-graph machinery used by range
-analysis whenever that graph is available. The shared graph engine
+analysis whenever that graph is available.  The shared graph engine
 handles rational expressions, `Abs`, `sign`, `Min`, `Max`, finite `Piecewise`
 expressions, and rational powers.  Nested graph variables are projected away by
 QE when useful, so domain constraints can be simplified back to conditions on

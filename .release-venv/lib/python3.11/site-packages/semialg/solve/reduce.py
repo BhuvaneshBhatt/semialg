@@ -244,14 +244,15 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
             projection=base.projection,
             notes=(*base.notes, f"Explicit strategy requested: {strategy_name}."),
         )
+    # Planner heuristics may interleave free and bound variables. Normalize
+    # before lifting: QE propagates truth through the quantified suffix in
+    # prefix order, and an already constructed CAD cannot be reordered.
+    vars_, _, _, order_notes = norm_internal_order(vars_, parsed.quantifiers, parsed.matrix)
+    if selection is not None:
+        from dataclasses import replace
+
+        selection = replace(selection, variable_order=vars_, notes=(*selection.notes, *order_notes))
     if selection is not None and selection.backend != PROJECTION_COLLINS:
-        # QE truth propagation requires a CAD tower whose levels respect the
-        # quantifier prefix: free variables first, then quantified variables in
-        # prefix order.  The general CAD planner may choose a cheaper algebraic
-        # order, but that order is not semantically interchangeable for nested
-        # quantifiers.  Normalize the reduced-backend tower here, exactly as
-        # the complete-CAD QE driver does.
-        vars_, _, _, _ = norm_internal_order(vars_, parsed.quantifiers, parsed.matrix)
         if selection.backend == PROJECTION_TTICAD:
             safe = decompose_tticad_safe(parsed.matrix, vars_)
         else:

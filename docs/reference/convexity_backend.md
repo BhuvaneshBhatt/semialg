@@ -8,7 +8,7 @@ These APIs expose exact semialgebraic reasoning primitives intended for higher-l
 
 **Exactness and certification.** All decisions are exact. Failed nonparametric sign and matrix-definiteness claims retain exact counterexample points when the satisfiability backend produces one; matrix definiteness also attempts to recover an exact violating quadratic-form vector after specialization. Parameter-dependent queries return `ParameterStratifiedResult` objects with semialgebraic guards. No floating-point sign sampling is accepted as proof.
 
-**Algorithms.** Constant symmetric matrices use exact congruence/LDL inertia. Polynomial symmetric matrices use principal minors for semidefiniteness and Sylvester leading minors for definiteness, with exact semialgebraic feasibility/QE on violations. Rank uses determinantal minors. Relative strict feasibility preserves explicit affine equalities and inequalities that are identically tight on that affine hull. Parametric affine reduction produces separate zero/nonzero pivot branches.
+**Algorithm selection.** Constant symmetric matrices use exact congruence/LDL inertia. Polynomial symmetric matrices use principal minors for semidefiniteness and Sylvester leading minors for definiteness, with exact semialgebraic feasibility/QE on violations. Rank uses determinantal minors. Relative strict feasibility preserves explicit affine equalities and inequalities that are identically tight on that affine hull. Parametric affine reduction produces separate zero/nonzero pivot branches.
 
 **Complexity and limitations.** Matrix minor counts grow combinatorially with dimension, and parameterized conditions may invoke complete CAD. Relative-interior support is restricted to conjunctive affine polynomial systems; arbitrary nonlinear relative interiors remain a separate problem. Parametric affine reduction handles affine pivots whose coefficients depend only on declared parameters and leaves more complicated pivots unreduced.
 
@@ -34,7 +34,7 @@ assert matrix_psd_on([[x**2, 0], [0, 1]], [x])
 assert matrix_pd_on([[x**2 + 1, 0], [0, 1]], [x])
 ```
 
-`matrix_definiteness` acccepts `requested="positive_semidefinite"`, `"positive_definite"`, `"negative_semidefinite"`, or `"negative_definite"`. It is the reusable backend used by polynomial Hessian convexity certification.
+`matrix_definiteness` accepts `requested="positive_semidefinite"`, `"positive_definite"`, `"negative_semidefinite"`, or `"negative_definite"`. It is the reusable backend used by polynomial Hessian convexity certification.
 
 ### Rank and parameter strata
 

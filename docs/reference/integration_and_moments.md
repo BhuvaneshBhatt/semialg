@@ -5,9 +5,11 @@
 
 **Exactness and certification.** Bounds/cells used for exact integration are derived from certified semialgebraic decompositions. Numerical quadrature is not without reporting substituted for an unsupported exact integral.
 
-**Algorithms.** The implementation reduces regions to exact bounds/cells, supports Boolean decomposition and intrinsic regular strata, and can integrate univariate parameter fibers using CAD-controlled algebraic root-function endpoints.
+**Algorithm.** The implementation reduces regions to exact bounds/cells, supports Boolean decomposition and intrinsic regular strata, and can integrate univariate parameter fibers using CAD-controlled algebraic root-function endpoints.
 
 **Complexity and limitations.** Arbitrary singular mixed-dimensional stratification and fully general multidimensional parametric algebraic integration remain incomplete.
+
+
 
 
 ## Primary API overview

@@ -1,14 +1,15 @@
 # Optimization and range reference
-
 ## Family contract
 
 **Mathematical return.** Optimization returns exact infimum/supremum information, attainment and witnesses where available; range APIs characterize all attainable scalar values.
 
 **Exactness and certification.** Exact candidate generation is distinct from global certification. Structured results expose certification/attainment information where relevant.
 
-**Algorithms.** The implementation combines structural preprocessing, exact stationary/KKT and boundary candidates, algebraic solving, exact global comparison, and parameter stratification. Supported affine parametric relations may be reconstructed directly before generic QE.
+**Algorithm.** The implementation combines structural preprocessing, exact stationary/KKT and boundary candidates, algebraic solving, exact global comparison, and parameter stratification. Supported affine parametric relations may be reconstructed directly before generic QE.
 
 **Complexity and limitations.** Nonconvex and parameterized problems may require CAD/QE and can be expensive. Use `argmin_set`/`argmax_set` when the entire optimizer locus matters.
+
+
 
 
 ## Primary API overview
@@ -38,7 +39,7 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `semialg.parameters.root_count_conditions` | function | Return parameter conditions grouped by distinct real-root count. |
 | `semialgebraic_maximize` | function | Return an exact maximum/supremum for a polynomial semialgebraic problem. |
 | `semialgebraic_minimize` | function | Return an exact minimum/infimum for a polynomial semialgebraic problem. |
-| `solvability_conditions` | function | Return paarmeter conditions for real solvability of a constraint system. |
+| `solvability_conditions` | function | Return parameter conditions for real solvability of a constraint system. |
 
 
 ## `polynomial_nonnegative`

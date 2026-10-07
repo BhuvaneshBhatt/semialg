@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 import sympy as sp
+from algroots.rational_univariate import RationalUnivariatePoint as _AlgrootsRationalUnivariatePoint
+from algroots.rational_univariate import RationalUnivariateRepresentation
 
 from ...dimension_validation import assignments_from_points, zip_equal
 from ...exceptions import AlgebraicSolvingError
@@ -11,104 +13,12 @@ from ...status import SolverStatus
 
 
 class RationalUnivariateError(AlgebraicSolvingError):
-    """Raised when a rational univariate representation cannot be computed."""
+    """Semialg-facing error for rational-univariate backend failures."""
 
 
 @dataclass(frozen=True)
-class RationalUnivariateRepresentation:
-    """Rational univariate representation of a zero-dimensional system.
-
-    If ``parameter`` is named ``t``, each solution is represented by
-    ``defining_polynomial(t) == 0`` and
-    ``variable_i == coordinate_numerators[i](t) / coordinate_denominator(t)``.
-    The implementation supports rational and simple exact algebraic coefficient
-    fields for zero-dimensional polynomial systems and returns distinct algebraic
-    solution branches.
-    """
-
-    variables: tuple[sp.Symbol, ...]
-    parameter: sp.Symbol
-    defining_polynomial: sp.Poly
-    coordinate_denominator: sp.Poly
-    coordinate_numerators: tuple[sp.Poly, ...]
-    separating_linear_form: sp.Expr
-    standard_exponents: tuple[tuple[int, ...], ...]
-    quotient_dimension: int | None = None
-    geometric_solution_count: int | None = None
-
-    @property
-    def dimension(self) -> int:
-        return (
-            self.quotient_dimension
-            if self.quotient_dimension is not None
-            else len(self.standard_exponents)
-        )
-
-    @property
-    def solution_count(self) -> int:
-        return (
-            self.geometric_solution_count
-            if self.geometric_solution_count is not None
-            else self.defining_polynomial.degree()
-        )
-
-    @property
-    def is_empty(self) -> bool:
-        return self.defining_polynomial.degree() <= 0
-
-    def coordinate_expressions(self) -> tuple[sp.Expr, ...]:
-        denominator = self.coordinate_denominator.as_expr()
-        return tuple(
-            sp.cancel(numer.as_expr() / denominator) for numer in self.coordinate_numerators
-        )
-
-    def normalized_coordinate_polynomials(self) -> tuple[sp.Poly, ...]:
-        """Return denominator-free coordinate polynomials modulo the RUR polynomial."""
-
-        if self.is_empty:
-            domain = self.defining_polynomial.domain
-            return tuple(sp.Poly(0, self.parameter, domain=domain) for _ in self.variables)
-        try:
-            inverse_denominator = sp.invert(self.coordinate_denominator, self.defining_polynomial)
-        except (sp.polys.polyerrors.NotInvertible, sp.PolynomialError, ValueError) as exc:
-            raise RationalUnivariateError(
-                "coordinate denominator is not invertible modulo the RUR polynomial"
-            ) from exc
-        return tuple(
-            sp.Poly(
-                (inverse_denominator * numerator).rem(self.defining_polynomial).as_expr(),
-                self.parameter,
-                domain=self.defining_polynomial.domain,
-            )
-            for numerator in self.coordinate_numerators
-        )
-
-
-@dataclass(frozen=True)
-class RationalUnivariatePoint:
-    """A point represented by a RUR parameter root.
-
-    ``root`` is an exact real root of ``representation.defining_polynomial``.
-    Coordinates are obtained by evaluating the denominator-free coordinate
-    polynomials modulo the RUR defining polynomial. This representation lets
-    sign queries reduce multivariate expressions to a single exact algebraic
-    sign computation in the RUR parameter.
-    """
-
-    representation: RationalUnivariateRepresentation
-    root: sp.Expr
-
-    @property
-    def variables(self) -> tuple[sp.Symbol, ...]:
-        return self.representation.variables
-
-    @property
-    def coordinates(self) -> tuple[sp.Expr, ...]:
-        t = self.representation.parameter
-        return tuple(
-            sp.cancel(poly.as_expr().subs(t, self.root))
-            for poly in self.representation.normalized_coordinate_polynomials()
-        )
+class RationalUnivariatePoint(_AlgrootsRationalUnivariatePoint):
+    """An algroots RUR point enriched with Semialg sign/Thom operations."""
 
     @property
     def assignment(self) -> Mapping[sp.Symbol, sp.Expr]:
@@ -163,12 +73,7 @@ class RationalUnivariateFormulaResult:
 
 @dataclass(frozen=True)
 class FilteredRationalUnivariateSolutions:
-    """Solutions of a zero-dimensional equality system filtered by constraints.
-
-    ``points`` stores tuples in the same order as ``variables``. ``assignments``
-    stores the same solutions as symbol-to-expression dictionaries, which is
-    convenient for witness-generation callers.
-    """
+    """Solutions of a zero-dimensional equality system filtered by constraints."""
 
     variables: tuple[sp.Symbol, ...]
     representation: RationalUnivariateRepresentation
@@ -181,3 +86,12 @@ class FilteredRationalUnivariateSolutions:
     @property
     def satisfiable(self) -> bool:
         return bool(self.points)
+
+
+__all__ = [
+    "RationalUnivariateError",
+    "RationalUnivariateRepresentation",
+    "RationalUnivariatePoint",
+    "RationalUnivariateFormulaResult",
+    "FilteredRationalUnivariateSolutions",
+]

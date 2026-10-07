@@ -46,9 +46,11 @@ Representation and composition classes keep the `Region` suffix because they des
 
 **Exactness and certification.** Boolean/set relations are semantic instead of syntactic. Geometry queries reuse exact QE, CAD, optimization, and algebraic-geometry machinery; unsupported exact cases do not without reporting become numerical approximations.
 
-**Algorithms.** Cheap substitutions/derived identities are used where possible; general projections/images and global geometric predicates may reduce to QE/CAD or exact optimization.
+**Algorithm.** Cheap substitutions/derived identities are used where possible; general projections/images and global geometric predicates may reduce to QE/CAD or exact optimization.
 
 **Complexity and limitations.** Simple-looking geometric operations such as image, convexity, or connected components can be as hard as general QE. See [Limitations](../limitations.md).
+
+
 
 
 ## Primary API overview

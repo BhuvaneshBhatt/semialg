@@ -5,9 +5,11 @@
 
 **Exactness and certification.** Successful certified paths do not use fixed-precision numerical sign guesses. Specialized methods may decline and allow another exact backend to run.
 
-**Algorithms.** The planner may use normalization/presolve, quadratic virtual substitution for supported low-degree fragments, zero-dimensional algebraic solving where applicable, and complete or reduced CAD/QE.
+**Algorithm selection.** The planner may use normalization/presolve, quadratic virtual substitution for supported low-degree fragments, zero-dimensional algebraic solving where applicable, and complete or reduced CAD/QE.
 
 **Complexity and limitations.** Complete real QE has severe worst-case complexity. A specialized backend accepting a formula is a performance choice, not a weaker semantics. See [How semialg chooses an algorithm](../concepts/algorithm_selection.md).
+
+
 
 
 ## Primary API overview
@@ -52,7 +54,7 @@ Decides whether a formula holds for all assignments of the declared variables.
 
 ## `implies(assumptions, conclusion, variables=None, *, ..., return_result=False)`
 
-Checks whether assumptions imply the conclusion. A structured `ImplicationResult` can contain a validated counterexample when implication fails.
+Checks whether the assumptions imply the conclusion. A structured `ImplicationResult` can contain a validated counterexample when implication fails.
 
 ## `equivalent(lhs, rhs, variables=None, *, ..., return_result=False)`
 

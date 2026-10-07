@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gc
 import resource
+import sys
 from time import perf_counter
 
 import pytest
@@ -21,8 +22,9 @@ from semialg.cache_control import clear_caches
 
 
 def _rss_mb() -> float:
-    # Linux reports KiB; macOS reports bytes. The CI/performance environment is Linux.
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
+    # Linux reports KiB; macOS reports bytes.
+    divisor = 1024.0**2 if sys.platform == "darwin" else 1024.0
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / divisor
 
 
 def _primitive_workload():

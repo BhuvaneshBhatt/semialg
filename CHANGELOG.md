@@ -1,4 +1,7 @@
+## Version 1.3.1
 
+- Fix affine chart detection under equivalent linear constraint bases.
+- Fix closed-interval wrapper around half-open Sturm counts, including left-root and zero-width endpoint cases.
 
 ## Version 1.3.0
 

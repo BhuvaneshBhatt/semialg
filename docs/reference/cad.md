@@ -5,7 +5,7 @@
 
 **Exactness and certification.** Root order, sign/truth invariance, and cell reconstruction are exact on certified paths. Reduced projection is used only when its side conditions are established; otherwise the implementation falls back conservatively.
 
-**Algorithms.** Projection constructs lower-dimensional control polynomials; lifting decomposes fibers into sections and sectors. Variable ordering can materially change cost.
+**Algorithm.** Projection constructs lower-dimensional control polynomials; lifting decomposes fibers into sections and sectors. Variable ordering can materially change cost.
 
 **Complexity and limitations.** CAD is a general but potentially expensive backend. Prefer task-specific APIs unless the decomposition itself is needed. See [CAD concepts](../concepts/cad.md).
 

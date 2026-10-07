@@ -1,19 +1,19 @@
-from __future__ import annotations
+"""Compatibility wrapper for exact quotient coefficient-domain validation.
 
-import sympy as sp
+The equality-only domain policy is owned by :mod:`algroots.quotient`.
+"""
+
+from algroots.errors import QuotientAlgebraError
+from algroots.quotient import _require_exact_domain
 
 from .representation import RationalUnivariateError
 
 
 def require_exact_rur_domain(domain):
-    """Return an exact field accepted by the RUR backend or raise."""
-
-    if domain not in (sp.ZZ, sp.QQ) and not getattr(domain, "is_AlgebraicField", False):
-        raise RationalUnivariateError(
-            "RUR supports rational or exact algebraic-number coefficients, "
-            f"not coefficient domain {domain}"
-        )
-    return domain if domain.is_Field else domain.get_field()
+    try:
+        return _require_exact_domain(domain)
+    except QuotientAlgebraError as exc:
+        raise RationalUnivariateError(str(exc)) from exc
 
 
 __all__ = ["require_exact_rur_domain"]

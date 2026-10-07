@@ -353,6 +353,8 @@ class SequenceTextWrapper(textwrap.TextWrapper):
                     # (matches CPython #140627 fix behavior)
                     if self.drop_whitespace:
                         line_content = line_content.rstrip()
+                        if not line_content:
+                            continue
                     lines.append(indent + line_content)
                     is_first_line = False
                 else:
@@ -610,6 +612,13 @@ def wrap(text: str, width: int = 70, *,
         >>> [line for para in text.split('\n')
         ...  for line in (wrap(para, 40) if para else [''])]
         ['First line.', 'Second line.']
+
+    .. note::
+
+       Segmentation follows UAX #29 grapheme clusters. Tamil, Kannada and Sinhala may break in the
+       middle of a conjunct and fall short of ``width``. Correct rendering of these languages is
+       not specified by unicode.org standards, and no terminal emulator or editor handles them
+       legibly, so this library function makes no attempt at accommodating them.
 
     .. seealso::
 

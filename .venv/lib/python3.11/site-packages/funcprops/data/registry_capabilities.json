@@ -1,0 +1,77 @@
+{
+  "certificates": [
+    "analysis_subject",
+    "chain_rule",
+    "gradient",
+    "hessian",
+    "identity_instantiation",
+    "jacobian",
+    "multivariate_chain_rule",
+    "property_instantiation",
+    "subject_map"
+  ],
+  "native_rule_types": [
+    "property",
+    "identity",
+    "derivative"
+  ],
+  "piecewise": {
+    "boundary_certification": [
+      "continuity",
+      "finite_derivative_matching",
+      "monotonicity_ordering",
+      "convexity_slope_ordering"
+    ],
+    "merging": [
+      "sign",
+      "boundedness",
+      "zeros",
+      "range",
+      "continuity",
+      "differentiability",
+      "smoothness",
+      "monotonicity",
+      "convexity",
+      "discontinuities"
+    ],
+    "normalization": [
+      "ordered_effective_conditions",
+      "connected_real_cells",
+      "endpoint_ownership"
+    ],
+    "representation": [
+      "branch",
+      "boundary",
+      "decomposition",
+      "boundary_certificate"
+    ]
+  },
+  "transport": {
+    "multivariate": [
+      "analyticity",
+      "continuity",
+      "convexity_constant_composite_hessian",
+      "differentiability",
+      "sign",
+      "smoothness"
+    ],
+    "scalar_path_multi_subject": [
+      "analyticity",
+      "continuity",
+      "differentiability",
+      "monotonicity_via_gradient",
+      "sign",
+      "smoothness",
+      "zeros_finite_joint_set"
+    ],
+    "unary": [
+      "analyticity",
+      "continuity",
+      "differentiability",
+      "monotonicity",
+      "sign",
+      "smoothness",
+      "zeros"
+    ]
+  }
+}

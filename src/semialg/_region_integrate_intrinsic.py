@@ -308,14 +308,30 @@ def _integrate_affine_intrinsic_chart(
         if not rows:
             return None
         branch_rows.append(sp.Matrix(rows))
-    common = []
-    first = branch_rows[0]
-    for row in first.tolist():
-        candidate = sp.Matrix([row])
-        if all(M.rank() == M.col_join(candidate).rank() for M in branch_rows[1:]):
-            common.append(sp.Add(*(row[i] * variables[i] for i in range(len(variables))), row[-1]))
-    if not common:
+    # Shared constraints can be linear combinations of every branch's rows.
+    # Intersect complete augmented row spaces; testing individual rows of an
+    # arbitrary first branch misses constraints under equation recombination.
+    initial_basis = branch_rows[0].rowspace()
+    if not initial_basis:
         return None
+    shared = sp.Matrix.vstack(*initial_basis)
+    for matrix in branch_rows[1:]:
+        other_basis = matrix.rowspace()
+        if not other_basis:
+            return None
+        other = sp.Matrix.vstack(*other_basis)
+        combinations = shared.T.row_join(-other.T).nullspace()
+        vectors = [(shared.T * vector[: shared.rows, :]).T for vector in combinations]
+        if not vectors:
+            return None
+        basis = sp.Matrix.vstack(*vectors).rowspace()
+        if not basis:
+            return None
+        shared = sp.Matrix.vstack(*basis)
+    common = [
+        sp.Add(*(row[i] * variables[i] for i in range(len(variables))), row[-1])
+        for row in shared.tolist()
+    ]
     try:
         A, b = sp.linear_eq_to_matrix(tuple(common), variables)
         solution = sp.linsolve((A, b), tuple(variables))

@@ -127,3 +127,29 @@ def test_embedded_simplex_intrinsic_measure_precedes_ambient_cad():
     result = integrate_over_region(1, formula, (x, y, z), measure_dimension=2, return_result=True)
     assert result.method == "affine_intrinsic_parametric_measure"
     assert sp.simplify(result.value - sp.Rational(1, 2)) == 0
+
+
+@pytest.mark.parametrize("scale", [1, -3])
+def test_affine_intrinsic_constraints_survive_equation_recombination(scale):
+    from semialg._region_integrate_intrinsic import _integrate_affine_intrinsic_chart
+
+    x, y, z = sp.symbols("x y z", real=True)
+    # The line shares the plane only through the sum of its two equations.
+    line = sp.And(sp.Eq(scale * (x + y), 0), sp.Eq(y + z, 0))
+    triangle = sp.And(sp.Eq(x + 2 * y + z, 0), x >= 0, y >= 0, x + y <= 1)
+    value = _integrate_affine_intrinsic_chart(sp.Integer(1), sp.Or(line, triangle), (x, y, z), 2)
+    assert sp.simplify(value - sp.sqrt(6) / 2) == 0
+    result = integrate_over_region(
+        1, sp.Or(line, triangle), (x, y, z), measure_dimension=2, return_result=True
+    )
+    assert result.method == "affine_intrinsic_parametric_measure"
+    assert sp.simplify(result.value - sp.sqrt(6) / 2) == 0
+
+
+def test_affine_intrinsic_chart_does_not_merge_distinct_parallel_planes():
+    from semialg._region_integrate_intrinsic import _integrate_affine_intrinsic_chart
+
+    x, y, z = sp.symbols("x y z", real=True)
+    bounds = sp.And(x >= 0, y >= 0, x + y <= 1)
+    formula = sp.Or(sp.And(sp.Eq(z, 0), bounds), sp.And(sp.Eq(z, 1), bounds))
+    assert _integrate_affine_intrinsic_chart(sp.Integer(1), formula, (x, y, z), 2) is None

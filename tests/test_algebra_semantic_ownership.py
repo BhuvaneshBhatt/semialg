@@ -18,7 +18,7 @@ def test_hot_algorithm_entry_points_remain_directly_owned():
     assert modular.modular_groebner_basis_qq.__module__ == "semialg.algebraic.modular"
     assert gtz_primary.gtz_primary_decomposition.__module__ == "semialg.algebraic.gtz_primary"
     assert roots.isolate_real_roots.__module__ == "semialg.algebraic.roots"
-    assert border_basis.compute_border_basis.__module__ == "semialg.algebraic.border_basis"
+    assert border_basis.compute_border_basis.__module__ == "algroots.border_basis"
 
 
 def test_certificate_replay_and_backends_have_distinct_semantic_owners():

@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 MARKDOWN = [ROOT / "README.md", *DOCS.rglob("*.md")]
 
+
 def test_relative_markdown_links_resolve():
     link_pattern = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
     missing = []
