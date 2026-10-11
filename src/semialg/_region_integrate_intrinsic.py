@@ -369,7 +369,13 @@ def _integrate_affine_intrinsic_chart(
     pulled_condition = sp.Or(*pulled_branches)
     pulled_integrand = sp.simplify(integrand.xreplace(mapping))
     jacobian = sp.Matrix(mapping_values).jacobian(free)
-    metric = sp.sqrt(sp.simplify((jacobian.T * jacobian).det()))
+    from .chart_certificates import GeometryProofError, certify_linear_metric
+
+    try:
+        certificate = certify_linear_metric(jacobian)
+    except GeometryProofError:
+        return None
+    metric = sp.sqrt(certificate.gram_determinant)
     from .region_integrate import integrate_over_region
 
     return sp.simplify(

@@ -1,14 +1,19 @@
+## Version 1.3.2
+
+- Extended coarea support with vector-map Gram certification, parameter-event candidates and exceptional-fiber handling, added budget/dispatch regressions and measured certificate reuse.
+- Added cached chart, cover, null-set and linear metric certificates, including some positive algebraic and canonical polar charts.
+
 ## Version 1.3.1
 
-- Fix affine chart detection under equivalent linear constraint bases.
-- Fix closed-interval wrapper around half-open Sturm counts, including left-root and zero-width endpoint cases.
+- Fixed affine chart detection under equivalent linear constraint bases.
+- Fixed closed-interval wrapper around half-open Sturm counts, including left-root and zero-width endpoint cases.
 
 ## Version 1.3.0
 
 - Added certified local + approach geometry. Analyze whether semialgebraic sets approach a point or boundary, construct local germs and branches, study local sign behavior, and obtain proof oriented diagnostics.
 - Added local geometry for asymptotic analysis. Supportfor certified approach regions, local bounds, weighted/directional charts, and related geometry needed for multivariate asymptotic analysis.
 - Expanded parametrized semialgebraic analysis. Improved parameter conditions and stratification make it possible to partition parameter space into regions with stable geometric or logical behavior and identify exceptional/transition loci.
-- Expanded CAD and TTICAD capabilities. Improve equational-constraint handling, projection and lifting, nullification handling, and truth-table-invariant CAD support broaden the class of formulas that can be handled effectively.
+- Expanded CAD and TTICAD capabilities. Improved equational-constraint handling, projection and lifting, nullification handling, and truth-table-invariant CAD support broaden the class of formulas that can be handled effectively.
 - Improved exact real-algebraic solving. Root isolation, sign determination, rational univariate representation (RUR), algebraic-number ordering, and exact solution reconstruction are more capable and robust, particularly for larger and more difficult systems.
 - Added cheap exact Boolean-structure certificates and vacuous-quantifier pruning before algebraic decision procedures.
 - Added local topology tools: local connected components, branches, approachability, germs, sign strata, etc

@@ -21,7 +21,7 @@ from ..formula import ParsedPrenexFormula, parse_formula, parse_quant_form_text,
 from ..inequality_reduction import reduce_conjunctive_inequalities
 from ..model import ProjectionConfig
 from ..planner.select import select_strat_for_form
-from ..qe.complete import norm_internal_order, qe_by_complete_cad, qe_from_cad
+from ..qe.complete import qe_by_complete_cad, qe_from_cad
 from ..qe.virtual_substitution import try_quadratic_vs_qe
 from ..simplify.boolean import simplify_boolean
 from ..status import SolverStatus
@@ -244,14 +244,6 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
             projection=base.projection,
             notes=(*base.notes, f"Explicit strategy requested: {strategy_name}."),
         )
-    # Planner heuristics may interleave free and bound variables. Normalize
-    # before lifting: QE propagates truth through the quantified suffix in
-    # prefix order, and an already constructed CAD cannot be reordered.
-    vars_, _, _, order_notes = norm_internal_order(vars_, parsed.quantifiers, parsed.matrix)
-    if selection is not None:
-        from dataclasses import replace
-
-        selection = replace(selection, variable_order=vars_, notes=(*selection.notes, *order_notes))
     if selection is not None and selection.backend != PROJECTION_COLLINS:
         if selection.backend == PROJECTION_TTICAD:
             safe = decompose_tticad_safe(parsed.matrix, vars_)

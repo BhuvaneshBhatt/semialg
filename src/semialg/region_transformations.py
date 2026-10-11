@@ -68,7 +68,13 @@ def _is_zero_vector(vector) -> bool:
 def _is_invertible_square(A: sp.MatrixBase) -> bool:
     if A.rows != A.cols:
         return False
-    return certified_nonzero(A.det())
+    from .chart_certificates import GeometryProofError, certify_linear_metric
+
+    try:
+        certify_linear_metric(A)
+        return True
+    except GeometryProofError:
+        return False
 
 
 def _similarity_scale_squared(A: sp.MatrixBase):

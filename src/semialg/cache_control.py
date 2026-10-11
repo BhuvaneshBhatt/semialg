@@ -75,6 +75,10 @@ class FunctoolsCacheSpec:
 
 
 FUNCTOOLS_CACHE_REGISTRY = (
+    FunctoolsCacheSpec("geometry.null_sets", "chart_certificates", "_null_cached"),
+    FunctoolsCacheSpec("geometry.charts", "chart_certificates", "_chart_cached"),
+    FunctoolsCacheSpec("geometry.covers", "chart_certificates", "_cover_cached"),
+    FunctoolsCacheSpec("geometry.linear_metrics", "chart_certificates", "_linear_cached"),
     FunctoolsCacheSpec(
         "optimization.range", "_optimization_certification", "_cached_complete_range_certification"
     ),

@@ -15,10 +15,11 @@
 import enum
 import math
 import re
+import unicodedata
 from typing import (
+    IO,
     Any,
     Callable,
-    IO,
     Iterable,
     Mapping,
     Optional,
@@ -27,10 +28,8 @@ from typing import (
     Type,
     Union,
 )
-import unicodedata
 
 from json5.parser import Parser
-
 
 # Used when encoding keys, below.
 _reserved_word_re: Optional[re.Pattern] = None
@@ -71,7 +70,7 @@ class QuoteStyle(enum.Enum):
 
 
 def load(
-    fp: IO,
+    fp: Union[IO[str], IO[bytes]],
     *,
     encoding: Optional[str] = None,
     cls: Any = None,
@@ -124,6 +123,8 @@ def load(
           `encoding`). This matches the `json` module.
     """
 
+    if start is not None:
+        fp.seek(0)
     s = fp.read()
     val, err, _ = parse(
         s,
@@ -145,7 +146,7 @@ def load(
 
 
 def loads(
-    s: str,
+    s: Union[str, bytes],
     *,
     encoding: Optional[str] = None,
     cls: Any = None,
@@ -207,7 +208,7 @@ def loads(
 
 
 def parse(
-    s: str,
+    s: Union[str, bytes],
     *,
     encoding: Optional[str] = None,
     cls: Any = None,
@@ -361,7 +362,7 @@ def _walk_ast(
     ty, v = el
     if ty == 'number':
         unsigned = v[1:] if v.startswith('-') else v
-        if unsigned.startswith('0x') or unsigned.startswith('0X'):
+        if unsigned.startswith(('0x', '0X')):
             return parse_int(v, base=16)
         if '.' in v or 'e' in v or 'E' in v:
             return parse_float(v)
@@ -388,7 +389,7 @@ def _walk_ast(
 
 def dump(
     obj: Any,
-    fp: IO,
+    fp: IO[str],
     *,
     skipkeys: bool = False,
     ensure_ascii: bool = True,
@@ -681,7 +682,7 @@ class JSON5Encoder:
             s = float.__repr__(obj)
 
         if not allowed:
-            raise ValueError('Illegal JSON5 value: f{obj}')
+            raise ValueError(f'Illegal JSON5 value: {obj}')
         return f'"{s}"' if as_key else s
 
     def _encode_str(self, obj: str, *, as_key: bool) -> str:
@@ -729,9 +730,9 @@ class JSON5Encoder:
                 o = ord(ch)
                 if o < 32:
                     encoded_ch = self._escape_ch(ch)
-                elif o < 128:
-                    encoded_ch = ch
-                elif not self.ensure_ascii and ch not in ('\u2028', '\u2029'):
+                elif o < 128 or (
+                    not self.ensure_ascii and ch not in ('\u2028', '\u2029')
+                ):
                     encoded_ch = ch
                 else:
                     encoded_ch = self._escape_ch(ch)
@@ -838,7 +839,7 @@ class JSON5Encoder:
 
             if not self.allow_duplicate_keys:
                 if key_str in new_keys:
-                    raise ValueError(f'duplicate key {repr(key)}')
+                    raise ValueError(f'duplicate key {key!r}')
                 new_keys.add(key_str)
 
             if first_key:
@@ -948,7 +949,7 @@ class JSON5Encoder:
             # for future use (both as of 5.1), null, true, and false.
             _reserved_word_re = re.compile(
                 '('
-                + '|'.join(
+                + '|'.join(  # noqa: FLY002 don't want an f-string here.
                     [
                         'break',
                         'case',
@@ -1003,4 +1004,4 @@ class JSON5Encoder:
 
 
 def _raise_type_error(obj) -> Any:
-    raise TypeError(f'{repr(obj)} is not JSON5 serializable')
+    raise TypeError(f'{obj!r} is not JSON5 serializable')
