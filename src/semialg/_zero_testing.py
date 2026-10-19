@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import sympy as sp
-from exprtest import zerotest
+from exprtools import zerotest
 
 
 def certified_zero(expr: object, *, assumptions: object = True) -> bool | None:
     """Return whether ``expr`` is identically zero, or ``None`` if undecidable.
 
-    Both Boolean outcomes come from ``exprtest`` certified mode; callers must
+    Both Boolean outcomes come from ``exprtools`` certified mode; callers must
     preserve ``None`` whenever a mathematical decision cannot be certified.
     """
 
