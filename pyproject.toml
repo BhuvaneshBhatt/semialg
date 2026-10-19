@@ -8,7 +8,7 @@ version = "1.3.2"
 description = "Exact real algebraic and semialgebraic geometry in Python: CAD, quantifier elimination, semialgebraic solving, decomposition, integration, and measure."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["sympy>=1.12", "python-flint>=0.9.0", "exprtest>=0.1.0", "algroots>=0.2.0"]
+dependencies = ["sympy>=1.12", "python-flint>=0.9.0", "exprtools>=0.1.0", "algroots>=0.2.0"]
 authors = [{name = "Bhuvanesh Bhatt", email = "bhuvaneshbhatt@gmail.com"}]
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]

@@ -2,7 +2,7 @@
 
 semialg distinguishes identity questions from pointwise parameter questions.
 
-- **Identity zero** asks whether an expression is identically zero. `certified_zero` uses the package-wide `exprtest.zerotest` certification boundary.
+- **Identity zero** asks whether an expression is identically zero. `certified_zero` uses the package-wide `exprtools.zerotest` certification boundary.
 - **Pointwise zero** asks whether an expression is zero for the admissible parameter values relevant to a decision. `certified_pointwise_zero` preserves `None` when a nonzero symbolic expression can still vanish on a parameter stratum.
 - **Sign** uses `certified_sign`; parameter-dependent expressions remain unresolved unless assumptions establish a pointwise sign.
 

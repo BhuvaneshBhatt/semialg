@@ -1,0 +1,14 @@
+name: Exprtools integration
+on: [push, pull_request]
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install exprtools pending first release
+        run: python -m pip install "exprtools @ git+https://github.com/BhuvaneshBhatt/exprtest.git@b6c38bd2b5fc27d8f88e30026d52868050308e18#subdirectory=exprtools"
+      - run: python -m pip install -e '.[test]'
+      - run: python -m pytest tests/test_exprtools_integration.py tests/test_certified_zero_boundaries.py tests/test_certified_decision_portfolio.py tests/test_symbolic_assumption_simplification.py tests/test_exact_arithmetic_and_symbol_resolution.py
