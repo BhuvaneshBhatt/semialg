@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 import sympy as sp
+from sympy.core.relational import Relational
 from sympy.core.sympify import SympifyError
 from sympy.polys.polyerrors import GeneratorsNeeded, PolynomialError
 
@@ -124,6 +125,54 @@ def optimization_range_cache_info():
     return _cached_complete_range_certification.cache_info()
 
 
+def _centered_range_problem(objective, condition, variables):
+    """Canonicalize exact diagonal-quadratic translations before image caching.
+
+    Translation is a bijection of real coordinate space. The objective and
+    every domain constraint are transformed together, so the exact image and
+    attainment are preserved. Symbols with additional domain assumptions are
+    left alone because the range driver lowers those assumptions separately.
+    """
+    if not variables:
+        return objective, condition
+    if any(
+        variable.is_integer is True
+        or variable.is_nonnegative is True
+        or variable.is_nonpositive is True
+        or variable.is_nonzero is True
+        for variable in variables
+    ):
+        return objective, condition
+    try:
+        poly = sp.Poly(objective, *variables)
+    except sp.PolynomialError:
+        return objective, condition
+    if poly.total_degree() != 2:
+        return objective, condition
+    shifts = {}
+    for variable in variables:
+        linear = poly.coeff_monomial(variable)
+        if not linear:
+            continue
+        quadratic = poly.coeff_monomial(variable**2)
+        if not quadratic:
+            return objective, condition
+        shift = -linear / (2 * quadratic)
+        if shift.free_symbols or shift.is_real is not True:
+            return objective, condition
+        if any(poly.coeff_monomial(variable * other) for other in variables if other != variable):
+            return objective, condition
+        shifts[variable] = variable + shift
+    translated = condition.xreplace(shifts)
+    translated = translated.xreplace(
+        {
+            atom: atom.func(sp.expand(atom.lhs - atom.rhs), sp.S.Zero)
+            for atom in translated.atoms(Relational)
+        }
+    )
+    return sp.expand(objective.xreplace(shifts)), translated
+
+
 def _certify_optimum_by_range(
     objective: sp.Expr,
     condition: sp.Expr,
@@ -139,7 +188,10 @@ def _certify_optimum_by_range(
         return None
     if policy.mode == "auto" and cost > policy.range_cost_limit:
         return None
-    result = _cached_complete_range_certification(objective, condition, variables)
+    centered_objective, centered_condition = _centered_range_problem(
+        objective, condition, variables
+    )
+    result = _cached_complete_range_certification(centered_objective, centered_condition, variables)
     if result is None:
         return None
     if kind == "min" and result.infimum is not None:

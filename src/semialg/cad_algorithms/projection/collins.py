@@ -6,10 +6,11 @@ from itertools import combinations
 
 import sympy as sp
 
-from ..._immutable import freeze_mapping
+from ..._immutable import FrozenMappingPickle, freeze_mapping
 from ..performance_cache import PROJECTION_STEPS, PROJECTION_TOWERS, SQUAREFREE_BASES, STATS
 from ..polynomial_utils import (
     PolynomialKey,
+    _cad_input_polynomials,
     discriminant_expression,
     lower_polynomial,
     normalize_poly,
@@ -61,12 +62,12 @@ class ProjectionLevel:
 
 
 @dataclass(frozen=True)
-class ProjectionTower:
-    """Complete Collins projection tower."""
+class ProjectionTower(FrozenMappingPickle):
+    """Ordered polynomial levels and projection provenance for CAD lifting."""
 
     variables: tuple[sp.Symbol, ...]
     levels: tuple[ProjectionLevel, ...]
-    original_polynomials: tuple[sp.Poly, ...]
+    original_polynomials: tuple[sp.Poly | sp.Expr, ...]
     metadata: Mapping[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -296,21 +297,18 @@ def _input_entries(polys: Sequence[sp.Poly], level: int) -> tuple[ProjectionPoly
 def build_collins_proj_set(
     polys: Sequence[sp.Expr | sp.Poly], variables: Sequence[sp.Symbol]
 ) -> ProjectionTower:
-    """Build and cache the complete Collins projection tower for a polynomial set.
+    """Build and cache an all-coefficient projection tower for a polynomial set.
 
     Projection proceeds from the highest variable to the lowest. Each level
     retains provenance entries as well as normalized polynomials so lifting and
     certificate diagnostics can refer to the originating projection operation.
+    Delineation and nullification conditions are checked during lifting; this
+    operator omits the reducta/subresultants of general Collins projection.
     """
     vars_tuple = tuple(variables)
     if not vars_tuple:
         raise ValueError("at least one variable is required")
-    input_polys = tuple(
-        poly
-        if isinstance(poly, sp.Poly) and tuple(poly.gens) == vars_tuple
-        else sp.Poly(poly.as_expr() if isinstance(poly, sp.Poly) else poly, *vars_tuple)
-        for poly in polys
-    )
+    input_polys = _cad_input_polynomials(polys, vars_tuple)
     tower_key = (polynomial_family_key(input_polys), vars_tuple)
     cached = PROJECTION_TOWERS.get(tower_key)
     if cached is not None:

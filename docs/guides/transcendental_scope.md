@@ -16,7 +16,7 @@ An algebraized problem is subsequently solved by semialgebraic machinery. The al
 
 `semialg.solve.transcendental` is a separate, existing solver subsystem for its explicitly supported transcendental fragment. It may use structure such as periodicity, monotonic pieces, or certified interval reasoning according to the contracts documented in [Transcendental methods](../transcendental_methods.md).
 
-The package does not treat every expression containing `sin`, `cos`, `exp`, or `log` as automatically solvable. Unsupported forms should be declined instead of without reporting converted into an uncertified numerical answer.
+The package does not treat every expression containing `sin`, `cos`, `exp`, or `log` as automatically solvable. Unsupported forms should be declined instead of being converted into an uncertified numerical answer.
 
 <!-- semialg-exec -->
 ```python

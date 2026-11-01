@@ -1,10 +1,4 @@
-"""Certified public real quantifier-elimination dispatch.
-
-This module is intentionally an orchestration layer.  It reuses semialg's
-independently certified specialist engines (affine presolve, Fourier--Motzkin,
-RUR, quadratic virtual substitution, reduced CAD and complete Collins CAD)
-rather than duplicating their mathematics.
-"""
+"""Exact real QE dispatch using specialist solvers and quantifier-guided CAD."""
 
 from __future__ import annotations
 
@@ -159,6 +153,55 @@ def _augment_with_groebner_equalities(
 
 
 def quantifier_eliminate(
+    formula,
+    quantifiers=None,
+    *,
+    variables=None,
+    strategy="auto",
+    return_result=False,
+    max_cells=None,
+    timeout=None,
+):
+    """Eliminate real quantifiers using exact specialists and partial CAD.
+
+    ``formula`` is a Boolean matrix with explicit ``quantifiers``, or contains
+    ``Exists``/``ForAll`` nodes. ``variables`` supplies the coordinate order;
+    free coordinates precede the quantified prefix internally. ``strategy``
+    selects automatic specialist dispatch, explicit partial lifting, or a
+    specific backend; ``"collins"`` requests full CAD.
+
+    Return the quantifier-free SymPy formula. ``return_result=True`` retains a
+    ``QuantifierEliminationResult`` with backend metadata. Free-parameter CAD
+    retains truth on every free cell while lifting quantified stacks as needed.
+
+    ``max_cells`` counts cells across attempts and cache returns. ``timeout``
+    sets a cooperative deadline shared through preprocessing and CAD work.
+    Exhaustion raises ``ResourceLimitError`` without an incomplete formula;
+    one symbolic operation can overrun the deadline.
+    """
+    from ..cad_algorithms.resource_limits import CADBudget, budget_scope, current_budget
+
+    budget = (
+        CADBudget(max_cells, timeout)
+        if max_cells is not None or timeout is not None
+        else current_budget()
+    )
+    with budget_scope(budget):
+        if budget is not None:
+            budget.check()
+        result = _quantifier_eliminate(
+            formula,
+            quantifiers,
+            variables=variables,
+            strategy=strategy,
+            return_result=return_result,
+        )
+        if budget is not None:
+            budget.check()
+        return result
+
+
+def _quantifier_eliminate(
     formula: object,
     quantifiers: Sequence[tuple[str, sp.Symbol | str]] | None = None,
     *,
@@ -166,16 +209,7 @@ def quantifier_eliminate(
     strategy: str = "auto",
     return_result: bool = False,
 ) -> sp.Expr | QuantifierEliminationResult:
-    """Eliminate real quantifiers with a certified specialist-first dispatcher.
-
-    ``formula`` may contain semialg :class:`Exists`/:class:`ForAll` nodes or a
-    quantifier-free matrix accompanied by an explicit prenex ``quantifiers``
-    sequence.  The dispatcher first performs exact affine presolve and then
-    uses Fourier--Motzkin for purely linear existential conjunctions.  All
-    remaining cases are delegated to semialg's exact real solver portfolio,
-    which contains RUR, quadratic virtual substitution, reduced CAD and a
-    conservative complete-CAD fallback.
-    """
+    """Dispatch a normalized prefix within the caller's resource scope."""
     prefix, matrix = _normalize_prefix(formula, quantifiers)
     active_symbols = matrix.free_symbols
     prefix = tuple((kind, variable) for kind, variable in prefix if variable in active_symbols)
@@ -202,6 +236,8 @@ def quantifier_eliminate(
         detect_zero_dimensional=True,
     )
     working_matrix = presolved.formula
+    working_variables = presolved.variables
+    substitutions = presolved.substitutions
     working_prefix = prefix
 
     # Exploit the incidence decomposition discovered by presolve instead of
@@ -229,7 +265,7 @@ def quantifier_eliminate(
             quantified_variables=quantified,
             quantifiers=prefix,
             method="independent-blocks",
-            presolve_substitutions=presolved.substitutions,
+            presolve_substitutions=substitutions,
             variable_blocks=presolved.variable_blocks,
             notes=("eliminated independent incidence blocks separately",),
             metadata={"block_methods": tuple(block_methods)},
@@ -247,7 +283,7 @@ def quantifier_eliminate(
             quantified_variables=quantified,
             quantifiers=prefix,
             method="affine-presolve",
-            presolve_substitutions=presolved.substitutions,
+            presolve_substitutions=substitutions,
             variable_blocks=presolved.variable_blocks,
             notes=tuple(notes),
         )
@@ -264,23 +300,27 @@ def quantifier_eliminate(
                 quantified_variables=quantified,
                 quantifiers=prefix,
                 method="fourier-motzkin",
-                presolve_substitutions=presolved.substitutions,
+                presolve_substitutions=substitutions,
                 variable_blocks=presolved.variable_blocks,
-                notes=(*notes, "used exact Fourier--Motzkin elimination"),
+                notes=(*notes, "used exact Fourier–Motzkin elimination"),
             )
             return result if return_result else out
 
     groebner_added: tuple[sp.Expr, ...] = ()
     if _all_existential(working_prefix):
-        augmented, groebner_added = _augment_with_groebner_equalities(working_matrix, parsed.vars)
+        augmented, groebner_added = _augment_with_groebner_equalities(
+            working_matrix, working_variables
+        )
         if groebner_added:
             second = presolve_semialgebraic(
                 augmented,
-                parsed.vars,
+                working_variables,
                 eliminate=tuple(v for _, v in working_prefix),
                 detect_zero_dimensional=True,
             )
             working_matrix = second.formula
+            working_variables = second.variables
+            substitutions += second.substitutions
             if second.substitutions:
                 removed = {v for v, _ in second.substitutions}
                 working_prefix = tuple(item for item in working_prefix if item[1] not in removed)
@@ -293,14 +333,14 @@ def quantifier_eliminate(
                     quantified_variables=quantified,
                     quantifiers=prefix,
                     method="groebner-affine-presolve",
-                    presolve_substitutions=presolved.substitutions + second.substitutions,
+                    presolve_substitutions=substitutions,
                     variable_blocks=presolved.variable_blocks,
                     notes=tuple(notes),
                     metadata={"groebner_equalities_added": groebner_added},
                 )
                 return result if return_result else out
 
-    working = _make_parsed(working_matrix, working_prefix, parsed.vars)
+    working = _make_parsed(working_matrix, working_prefix, working_variables)
     # Imported lazily so low-level CAD/decomposition modules can import
     # ``semialg.qe.complete`` without creating a package-initialization cycle.
     from ..solve.reduce import reduce_formula
@@ -314,7 +354,7 @@ def quantifier_eliminate(
         quantified_variables=quantified,
         quantifiers=prefix,
         method=solved.method,
-        presolve_substitutions=presolved.substitutions,
+        presolve_substitutions=substitutions,
         variable_blocks=presolved.variable_blocks,
         backend_result=backend,
         notes=tuple(notes),

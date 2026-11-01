@@ -1,7 +1,7 @@
 # Optimization and range reference
 ## Family contract
 
-**Mathematical return.** Optimization returns exact infimum/supremum information, attainment and witnesses where available; range APIs characterize all attainable scalar values.
+**Mathematical return.** Optimization returns exact infimum/supremum information, attainment and witnesses where available; exact range modes characterize all attainable scalar values; explicit bounds modes return extremal interval enclosures.
 
 **Exactness and certification.** Exact candidate generation is distinct from global certification. Structured results expose certification/attainment information where relevant.
 
@@ -9,17 +9,14 @@
 
 **Complexity and limitations.** Nonconvex and parameterized problems may require CAD/QE and can be expensive. Use `argmin_set`/`argmax_set` when the entire optimizer locus matters.
 
-
-
-
 ## Primary API overview
 
 This table is the substantive coverage target for the primary APIs assigned to this reference page. Each entry states the API's primary role; the family contract and detailed sections below explain shared algorithms, exactness guarantees, and limitations. It is maintained together with `docs/reference/primary_api_manifest.toml`, and documentation tests require every root-level primary API to map here instead of merely appearing in the generated public index.
 
 | API | Kind | Role / return |
 |---|---|---|
-| `function_range` | function | Return a quantifier-free formula describing a real function range. |
-| `FunctionRangeResult` | class | Exact range summary for a supported semialgebraic image problem. |
+| `function_range` | function | Exact image condition by default; explicit bounds mode returns an interval enclosure, while stratified parameter mode can retain quantified relations. |
+| `FunctionRangeResult` | class | Image or explicit interval-enclosure formula with method-dependent metadata. |
 | `OptimizationResult` | class | Exact optimum summary for supported semialgebraic problems. |
 | `CertifiedDecisionAttempt` | class | One backend attempt in a certified polynomial-decision portfolio trace. |
 | `CertifiedDecisionResult` | class | Final certified decision plus ordered backend attempts, witness, and certificate. |
@@ -41,7 +38,6 @@ This table is the substantive coverage target for the primary APIs assigned to t
 | `semialgebraic_minimize` | function | Return an exact minimum/infimum for a polynomial semialgebraic problem. |
 | `solvability_conditions` | function | Return parameter conditions for real solvability of a constraint system. |
 
-
 ## `polynomial_nonnegative`
 
 ```text
@@ -51,14 +47,7 @@ polynomial_nonnegative(
 )
 ```
 
-This is the single public entry point for certified global polynomial
-nonnegativity. By default it returns the mathematical Boolean. Set
-`return_result=True` to receive `CertifiedDecisionResult`, which records the
-selected backend, ordered attempts, witness, and certificate. `strategy` may be
-`"auto"`, `"sos"`, `"zeng"`, `"ars"`, or `"cad"`. Automatic mode tries an
-exactly verified SOS certificate, then the Zeng/ARS specialized route, then
-complete CAD. `random_lines` and `seed` tune the Zeng witness-search stage,
-including when that stage is reached through `strategy="auto"`.
+This is the single public entry point for certified global polynomial nonnegativity. By default it returns the mathematical Boolean. Set `return_result=True` to receive `CertifiedDecisionResult`, which records the selected backend, ordered attempts, witness, and certificate. `strategy` may be `"auto"`, `"sos"`, `"zeng"`, `"ars"`, or `"cad"`. Automatic mode tries an exactly verified SOS certificate, then the Zeng/ARS specialized route, then complete CAD. `random_lines` and `seed` tune the Zeng witness-search stage, including when that stage is reached through `strategy="auto"`.
 
 ## `semialgebraic_minimize`
 
@@ -104,7 +93,9 @@ function_range(
 )
 ```
 
-Computes an exact real image/range condition by introducing a graph relation and eliminating source variables.  Polynomial and rational expressions use direct graph equations; `Abs`, `sign`, rational powers, `Min`, `Max`, and finite `Piecewise` expressions use the shared semialgebraic function-graph engine.
+The exact modes `qe` (default), `cad` and `auto` compute a real image/range condition by introducing a graph relation and eliminating source variables.  Polynomial and rational expressions use direct graph equations; `Abs`, `sign`, rational powers, `Min`, `Max`, and finite `Piecewise` expressions use the shared semialgebraic function-graph engine.
+
+The exact modes raise `NotImplementedError` when the required exact projection is unsupported. `method="bounds"` and its alias `"optimization"` explicitly request the extremal interval enclosure, which can contain missing interior values. With `return_result=True`, `diagnostics["range_kind"]` identifies `"exact_image"` or `"interval_enclosure"`; interval metadata describe the returned formula. See [exact images and bounds](../range-images.md).
 
 Before range projection, uniquely solved algebraic equalities may be back-substituted to reduce dependent variables.  The range engine also recognizes two exact finite algebraizations of transcendental-looking expressions:
 
@@ -121,7 +112,6 @@ With `parameters=[...]` and `return_stratified=True`, optimization/range APIs ca
 
 See [Optimization](../optimization.md), [Function range](../function_range.md), and [Performance](../guides/performance.md).
 
-
 When `return_stratified=True`, `eliminate_quantifiers=True` requests a second complete-CAD QE pass on each exact parametric optimum/range relation. The default is `False` to preserve the cheaper exact first-order relation.
 
 ## Critical values and metric optimization
@@ -129,3 +119,7 @@ When `return_stratified=True`, `eliminate_quantifiers=True` requests a second co
 `critical_values(expression, region, variables)` exposes exact values at isolated KKT/singular candidates, certifies constant objective values on positive-dimensional connected KKT components when possible, and includes attained global extrema. For metric geometry, `distance_to_region` and `distance_between_regions` minimize squared Euclidean distance through the same exact semialgebraic optimization pipeline; use `return_result=True` to retain closest-point assignments and the underlying `OptimizationResult`.
 
 `bounding_box(region, variables)` is coordinate-wise exact optimization and returns `{variable: (infimum, supremum)}`; `return_result=True` additionally records endpoint attainment.
+
+## Consumer boundary
+
+[funcprops](https://github.com/BhuvaneshBhatt/funcprops/blob/main/docs/range-analysis.md) supplies source-domain, root-coverage and image analysis for its supported transcendental cases. [symbopt](https://github.com/BhuvaneshBhatt/symbopt/blob/main/docs/guide/ranges-and-extrema.md) supplies optimizer strategies and optimization certificate assembly. semialg provides exact supported algebraic graph projection and real side conditions. These result contracts are not interchangeable.

@@ -2,7 +2,7 @@
 
 This page deepens the per-function reference for public APIs whose signatures carry non-obvious mathematical or algorithmic choices. It complements the family reference pages instead of replacing their derivations and background. Examples below are explicitly small and are drawn from calls exercised by the regression suite; they are intended to expose semantics, not to benchmark performance.
 
-**Exactness and certification.** Unless an API explicitly documents approximate presentation or randomized candidate search, mathematical decisions are exact. Candidate witnesses/certificates are checked before they are allowed to establish a result; resource exhaustion or an unsupported path is not without reporting converted to `False`.
+**Exactness and certification.** Unless an API explicitly documents approximate presentation or randomized candidate search, mathematical decisions are exact. Candidate witnesses/certificates are checked before they are allowed to establish a result; resource exhaustion or an unsupported path is not converted to `False`.
 
 **Algorithm/backend.** `strategy`, `method`, ordering, and resource-control parameters select *how* semialg attempts a computation. They must not change the mathematical meaning of a completed certified result. Structured-result modes expose backend/status information when it matters.
 
@@ -445,7 +445,7 @@ Compute a cylindrical algebraic decomposition for a real formula.
 - `domain` — Mathematical domain selector; semialg public decision procedures are principally exact over the reals.
 - `assumptions` — Additional real-domain conditions under which the requested statement or computation is interpreted.
 - `max_cells` — Resource guard on CAD cell construction; hitting it must not be interpreted as a mathematical false result.
-- `timeout` — Optional resource time limit; exhaustion is reported as incomplete instead of without reporting certified.
+- `timeout` — Optional resource time limit; exhaustion is reported as incomplete instead of being certified.
 - `diagnostics` — Whether to retain diagnostic information in structured results.
 - `strict` — Select strict failure behavior for incomplete/unsupported computation where the API provides it.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
@@ -461,7 +461,7 @@ Compute a cylindrical algebraic decomposition for a real formula.
 cad(formula, (X,))
 ```
 
-This call is exercised by the regression contract “unimplemented cad budgets are never without reporting ignored”, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
+This call is exercised by the resource-budget regression contract, so the example corresponds to behavior checked by the test suite instead of illustrative pseudocode.
 
 ## implicitize_polynomial_map
 
@@ -3325,7 +3325,7 @@ Return face indices grouped by boundary shell.
 
 - `region` — Semialgebraic or standard region on which the operation is performed.
 
-**Result semantics.** Each shell keeps its own local vertex indexing.  This avoids without reporting changing topology merely to manufacture one global coordinate array.
+**Result semantics.** Each shell keeps its own local vertex indexing.  This avoids changing topology merely to manufacture one global coordinate array.
 
 **Representative regression-backed call.**
 
@@ -3877,27 +3877,21 @@ For `parametric_cad`, `formula` is the exact semialgebraic relation to decompose
 # Focused root-API parameter contracts
 The sections below provide parameter-level contracts for public functions whose family pages describe shared mathematics but whose individual signatures need additional guidance. Exactness, algorithm selection, and complexity follow the page-level contracts above.
 ## tangent_cone
-`tangent_cone(equations, point, variables=None) -> 'TangentConeResult'`
-Return the exact ideal-theoretic Zariski tangent cone at ``point``.
-**Parameter semantics.**
+`tangent_cone(equations, point, variables=None) -> 'TangentConeResult'` Return the exact ideal-theoretic Zariski tangent cone at ``point``. **Parameter semantics.**
 - `equations` — Input controlling `equations`; its accepted representation and default are shown in the signature.
 - `point` — Exact point coordinates or symbol-to-value mapping.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## tangent_space
-`tangent_space(equations, point, variables=None) -> 'TangentSpaceResult'`
-Return the Zariski tangent space at a point as the Jacobian nullspace.
-**Parameter semantics.**
+`tangent_space(equations, point, variables=None) -> 'TangentSpaceResult'` Return the Zariski tangent space at a point as the Jacobian nullspace. **Parameter semantics.**
 - `equations` — Input controlling `equations`; its accepted representation and default are shown in the signature.
 - `point` — Exact point coordinates or symbol-to-value mapping.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## semialgebraic_function_graph
-`semialgebraic_function_graph(expression: 'sp.Expr', target: 'sp.Symbol') -> 'SemialgebraicFunctionGraph'`
-Construct an exact real semialgebraic graph for a supported expression.
-**Parameter semantics.**
+`semialgebraic_function_graph(expression: 'sp.Expr', target: 'sp.Symbol') -> 'SemialgebraicFunctionGraph'` Construct an exact real semialgebraic graph for a supported expression. **Parameter semantics.**
 - `expression` — Real expression whose exact semialgebraic graph is requested.
 - `target` — Target symbol used for the graph output coordinate.
 
@@ -3912,9 +3906,7 @@ x, y = sp.symbols("x y", real=True)
 semialgebraic_function_graph(sp.Abs(x), y)
 ```
 ## implies
-`implies(assumptions: 'FormulaLike | Iterable[FormulaLike]', conclusion: 'FormulaLike', variables: 'Sequence[sp.Symbol | str] | None' = None, *, domain: 'str' = 'reals', strategy: 'str | None' = None, return_result: 'bool' = False) -> 'bool | ImplicationResult'`
-Return whether ``assumptions`` imply ``conclusion`` over the reals.
-**Parameter semantics.**
+`implies(assumptions: 'FormulaLike | Iterable[FormulaLike]', conclusion: 'FormulaLike', variables: 'Sequence[sp.Symbol | str] | None' = None, *, domain: 'str' = 'reals', strategy: 'str | None' = None, return_result: 'bool' = False) -> 'bool | ImplicationResult'` Return whether ``assumptions`` imply ``conclusion`` over the reals. **Parameter semantics.**
 - `assumptions` — Additional exact assumptions used while deciding the symbolic statement.
 - `conclusion` — Conclusion whose implication from the assumptions is decided.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
@@ -3924,9 +3916,7 @@ Return whether ``assumptions`` imply ``conclusion`` over the reals.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## parametric_cad
-`parametric_cad(formula: 'sp.Expr | Formula', variables: 'Sequence[sp.Symbol | str]', *, parameters: 'Sequence[sp.Symbol | str]' = (), output: 'ParametricCADOutput' = 'result', strategy: 'str' = 'auto', domain: 'str' = 'reals', assumptions: 'Iterable[sp.Expr] | sp.Expr | None' = None, strict: 'bool' = False, specialize_fibers: 'bool' = True)`
-Compute a parametric cylindrical decomposition over parameter space.
-**Parameter semantics.**
+`parametric_cad(formula: 'sp.Expr | Formula', variables: 'Sequence[sp.Symbol | str]', *, parameters: 'Sequence[sp.Symbol | str]' = (), output: 'ParametricCADOutput' = 'result', strategy: 'str' = 'auto', domain: 'str' = 'reals', assumptions: 'Iterable[sp.Expr] | sp.Expr | None' = None, strict: 'bool' = False, specialize_fibers: 'bool' = True)` Compute a parametric cylindrical decomposition over parameter space. **Parameter semantics.**
 - `formula` — Semialgebraic formula to analyze.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 - `parameters` — Symbols treated as parameters instead of eliminated problem variables.
@@ -3939,35 +3929,27 @@ Compute a parametric cylindrical decomposition over parameter space.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## argmin_set
-`argmin_set(expression, region=True, variables=None) -> 'sp.Expr'`
-Return the exact global minimizer set as a semialgebraic formula.
-**Parameter semantics.**
+`argmin_set(expression, region=True, variables=None) -> 'sp.Expr'` Return the exact global minimizer set as a semialgebraic formula. **Parameter semantics.**
 - `expression` — Real expression whose exact semialgebraic graph is requested.
 - `region` — Semialgebraic formula or supported region object defining the set.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## connected_components
-`connected_components(region, variables=None) -> 'tuple[sp.Expr, ...]'`
-Return exact CAD-connected-component formulas.
-**Parameter semantics.**
+`connected_components(region, variables=None) -> 'tuple[sp.Expr, ...]'` Return exact CAD-connected-component formulas. **Parameter semantics.**
 - `region` — Semialgebraic formula or supported region object defining the set.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## contains_point
-`contains_point(region, point, variables=None) -> 'bool'`
-Return whether an exact point belongs to the semialgebraic region.
-**Parameter semantics.**
+`contains_point(region, point, variables=None) -> 'bool'` Return whether an exact point belongs to the semialgebraic region. **Parameter semantics.**
 - `region` — Semialgebraic formula or supported region object defining the set.
 - `point` — Exact point coordinates or symbol-to-value mapping.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## semialgebraic_minimize
-`semialgebraic_minimize(objective: 'sp.Expr', constraints: 'FormulaLike | Iterable[FormulaLike] | None' = None, variables: 'Sequence[sp.Symbol | str] | None' = None, *, domain: 'str' = 'reals', return_result: 'bool' = False, certification: "Literal['auto', 'complete', 'candidate']" = 'auto', range_cost_limit: 'int' = 2500, recursion_limit: 'int' = 4, max_boolean_branches: 'int' = 32, parameters: 'Sequence[sp.Symbol | str] | None' = None, return_stratified: 'bool' = False, eliminate_quantifiers: 'bool' = False) -> 'list[object] | OptimizationResult | object'`
-Return ``[minimum_or_infimum, optimizer_points]`` by default.
-**Parameter semantics.**
+`semialgebraic_minimize(objective: 'sp.Expr', constraints: 'FormulaLike | Iterable[FormulaLike] | None' = None, variables: 'Sequence[sp.Symbol | str] | None' = None, *, domain: 'str' = 'reals', return_result: 'bool' = False, certification: "Literal['auto', 'complete', 'candidate']" = 'auto', range_cost_limit: 'int' = 2500, recursion_limit: 'int' = 4, max_boolean_branches: 'int' = 32, parameters: 'Sequence[sp.Symbol | str] | None' = None, return_stratified: 'bool' = False, eliminate_quantifiers: 'bool' = False) -> 'list[object] | OptimizationResult | object'` Return ``[minimum_or_infimum, optimizer_points]`` by default. **Parameter semantics.**
 - `objective` — Exact objective expression optimized over the region.
 - `constraints` — Input controlling `constraints`; its accepted representation and default are shown in the signature.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
@@ -3983,9 +3965,7 @@ Return ``[minimum_or_infimum, optimizer_points]`` by default.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## integrate_over_region
-`integrate_over_region(integrand: 'object', condition: 'object', variables: 'Sequence[sp.Symbol | str]', *, bounds: 'Sequence[tuple[sp.Symbol | str, object, object]] | Mapping[sp.Symbol | str, tuple[object, object]] | None' = None, method: 'str' = 'symbolic', precision: 'int' = 50, measure_dimension: 'object' = 'ambient', return_result: 'bool' = False, parameters: 'Sequence[sp.Symbol | str] | None' = None, return_stratified: 'bool' = False) -> 'sp.Expr | RegionIntegralResult | object'`
-Integrate ``integrand`` over a supported semialgebraic region.
-**Parameter semantics.**
+`integrate_over_region(integrand: 'object', condition: 'object', variables: 'Sequence[sp.Symbol | str]', *, bounds: 'Sequence[tuple[sp.Symbol | str, object, object]] | Mapping[sp.Symbol | str, tuple[object, object]] | None' = None, method: 'str' = 'symbolic', precision: 'int' = 50, measure_dimension: 'object' = 'ambient', return_result: 'bool' = False, parameters: 'Sequence[sp.Symbol | str] | None' = None, return_stratified: 'bool' = False) -> 'sp.Expr | RegionIntegralResult | object'` Integrate ``integrand`` over a supported semialgebraic region. **Parameter semantics.**
 - `integrand` — Exact expression integrated over the region.
 - `condition` — Input controlling `condition`; its accepted representation and default are shown in the signature.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
@@ -3999,9 +3979,7 @@ Integrate ``integrand`` over a supported semialgebraic region.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## reduce_region_integral
-`reduce_region_integral(integrand: 'object', condition: 'object', variables: 'Sequence[sp.Symbol | str]', *, bounds: 'Sequence[tuple[sp.Symbol | str, object, object]] | Mapping[sp.Symbol | str, tuple[object, object]] | None' = None, return_integrals: 'bool' = False, parameters: 'Sequence[sp.Symbol | str] | None' = None) -> 'ReducedRegionIntegral | tuple[sp.Integral, ...]'`
-Reduce a supported region integral to explicit iterated integrals.
-**Parameter semantics.**
+`reduce_region_integral(integrand: 'object', condition: 'object', variables: 'Sequence[sp.Symbol | str]', *, bounds: 'Sequence[tuple[sp.Symbol | str, object, object]] | Mapping[sp.Symbol | str, tuple[object, object]] | None' = None, return_integrals: 'bool' = False, parameters: 'Sequence[sp.Symbol | str] | None' = None) -> 'ReducedRegionIntegral | tuple[sp.Integral, ...]'` Reduce a supported region integral to explicit iterated integrals. **Parameter semantics.**
 - `integrand` — Exact expression integrated over the region.
 - `condition` — Input controlling `condition`; its accepted representation and default are shown in the signature.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
@@ -4011,34 +3989,26 @@ Reduce a supported region integral to explicit iterated integrals.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## region_closure
-`region_closure(region: 'FormulaLike | Iterable[FormulaLike]', variables: 'Sequence[sp.Symbol | str] | None' = None, *, strategy: 'str | None' = None) -> 'sp.Expr'`
-Return the Euclidean closure of a semialgebraic region.
-**Parameter semantics.**
+`region_closure(region: 'FormulaLike | Iterable[FormulaLike]', variables: 'Sequence[sp.Symbol | str] | None' = None, *, strategy: 'str | None' = None) -> 'sp.Expr'` Return the Euclidean closure of a semialgebraic region. **Parameter semantics.**
 - `region` — Semialgebraic formula or supported region object defining the set.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 - `strategy` — Exact backend/strategy selector; it changes the route, not the mathematical contract.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## region_dimension
-`region_dimension(region: 'FormulaLike | Iterable[FormulaLike]', variables: 'Sequence[sp.Symbol | str] | None' = None) -> 'int'`
-Return the exact semialgebraic dimension from a complete adapted CAD.
-**Parameter semantics.**
+`region_dimension(region: 'FormulaLike | Iterable[FormulaLike]', variables: 'Sequence[sp.Symbol | str] | None' = None) -> 'int'` Return the exact semialgebraic dimension from a complete adapted CAD. **Parameter semantics.**
 - `region` — Semialgebraic formula or supported region object defining the set.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## region_product
-`region_product(*regions, variables=None)`
-Return the Cartesian product of semialgebraic regions.
-**Parameter semantics.**
+`region_product(*regions, variables=None)` Return the Cartesian product of semialgebraic regions. **Parameter semantics.**
 - `regions` — Input regions combined by the operation.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## sign_vector
-`sign_vector(polys: 'Iterable[sp.Poly | sp.Expr]', point: 'Mapping[sp.Symbol, object] | Sequence[object] | RationalUnivariatePoint', *, variables: 'Sequence[sp.Symbol | str] | None' = None, exact: 'bool' = True, as_dict: 'bool' = False, numeric_precision: 'int' = 120) -> 'tuple[int, ...] | dict[sp.Expr, int]'`
-Return the signs of ``polys`` at ``point`` in input order.
-**Parameter semantics.**
+`sign_vector(polys: 'Iterable[sp.Poly | sp.Expr]', point: 'Mapping[sp.Symbol, object] | Sequence[object] | RationalUnivariatePoint', *, variables: 'Sequence[sp.Symbol | str] | None' = None, exact: 'bool' = True, as_dict: 'bool' = False, numeric_precision: 'int' = 120) -> 'tuple[int, ...] | dict[sp.Expr, int]'` Return the signs of ``polys`` at ``point`` in input order. **Parameter semantics.**
 - `polys` — Input controlling `polys`; its accepted representation and default are shown in the signature.
 - `point` — Exact point coordinates or symbol-to-value mapping.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
@@ -4048,9 +4018,7 @@ Return the signs of ``polys`` at ``point`` in input order.
 
 **Result semantics.** Return the exact mathematical object/value described by this API; structured or presentation-oriented modes preserve the same underlying semantics.
 ## discretize_region_geometry
-`discretize_region_geometry(region, *, variables=None, samples_per_curve: 'int' = 64) -> 'SolutionPlotData'`
-Return lightweight geometry for explicit standard-region objects.
-**Parameter semantics.**
+`discretize_region_geometry(region, *, variables=None, samples_per_curve: 'int' = 64) -> 'SolutionPlotData'` Return lightweight geometry for explicit standard-region objects. **Parameter semantics.**
 - `region` — Semialgebraic formula or supported region object defining the set.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 - `samples_per_curve` — Input controlling `samples_per_curve`; its accepted representation and default are shown in the signature.
@@ -4066,9 +4034,7 @@ x, y = sp.symbols("x y", real=True)
 discretize_region_geometry(sp.And(x >= 0, x <= 1), (x,))
 ```
 ## discretize_solution
-`discretize_solution(solution, *, bounds: 'Sequence[tuple[sp.Expr, sp.Expr]] | None' = None, samples_per_curve: 'int' = 33) -> 'SolutionPlotData'`
-Return a small plotting/discretization representation for a solution.
-**Parameter semantics.**
+`discretize_solution(solution, *, bounds: 'Sequence[tuple[sp.Expr, sp.Expr]] | None' = None, samples_per_curve: 'int' = 33) -> 'SolutionPlotData'` Return a small plotting/discretization representation for a solution. **Parameter semantics.**
 - `solution` — Input controlling `solution`; its accepted representation and default are shown in the signature.
 - `bounds` — Optional exact variable bounds.
 - `samples_per_curve` — Input controlling `samples_per_curve`; its accepted representation and default are shown in the signature.
@@ -4084,9 +4050,7 @@ x, y = sp.symbols("x y", real=True)
 discretize_solution(sp.And(x >= 0, x <= 1), (x,))
 ```
 ## plot_region_geometry
-`plot_region_geometry(region, *, variables=None, ax=None, show: 'bool' = False, samples_per_curve: 'int' = 64, **plot_kwargs)`
-Plot an explicit standard-region object using Matplotlib.
-**Parameter semantics.**
+`plot_region_geometry(region, *, variables=None, ax=None, show: 'bool' = False, samples_per_curve: 'int' = 64, **plot_kwargs)` Plot an explicit standard-region object using Matplotlib. **Parameter semantics.**
 - `region` — Semialgebraic formula or supported region object defining the set.
 - `variables` — Ordered real variables defining the ambient problem and returned coordinate order.
 - `ax` — Input controlling `ax`; its accepted representation and default are shown in the signature.
@@ -4105,9 +4069,7 @@ x, y = sp.symbols("x y", real=True)
 plot_region_geometry(sp.And(x >= 0, x <= 1), (x,))
 ```
 ## plot_solution
-`plot_solution(solution, *, bounds: 'Sequence[tuple[sp.Expr, sp.Expr]] | None' = None, samples_per_curve: 'int' = 33, raster_resolution: 'int' = 300, ax=None, show: 'bool' = False, **plot_kwargs)`
-Plot a 1D/2D solution using Matplotlib when available.
-**Parameter semantics.**
+`plot_solution(solution, *, bounds: 'Sequence[tuple[sp.Expr, sp.Expr]] | None' = None, samples_per_curve: 'int' = 33, raster_resolution: 'int' = 300, ax=None, show: 'bool' = False, **plot_kwargs)` Plot a 1D/2D solution using Matplotlib when available. **Parameter semantics.**
 - `solution` — Input controlling `solution`; its accepted representation and default are shown in the signature.
 - `bounds` — Optional exact variable bounds.
 - `samples_per_curve` — Input controlling `samples_per_curve`; its accepted representation and default are shown in the signature.

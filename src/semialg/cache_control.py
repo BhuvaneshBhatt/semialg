@@ -29,6 +29,7 @@ BOUNDED_CACHE_REGISTRY = frozenset(
         "algebraic.fiber-zero-certificates",
         "algebraic.interval-poly-terms",
         "algebraic.parent-signs",
+        "algebraic.primary-decompositions",
         "algebraic.root-index-intervals",
         "algebraic.root-interval-splits",
         "algebraic.root-refinement-nodes",
@@ -56,6 +57,7 @@ BOUNDED_CACHE_REGISTRY = frozenset(
         "cad.projection_towers",
         "cad.squarefree_bases",
         "decision.metadata",
+        "simplify.truth-contexts",
     }
 )
 
@@ -75,6 +77,9 @@ class FunctoolsCacheSpec:
 
 
 FUNCTOOLS_CACHE_REGISTRY = (
+    FunctoolsCacheSpec(
+        "algebraic.equality_bases", "algebraic.equality_ideal", "_equality_groebner_basis"
+    ),
     FunctoolsCacheSpec("geometry.null_sets", "chart_certificates", "_null_cached"),
     FunctoolsCacheSpec("geometry.charts", "chart_certificates", "_chart_cached"),
     FunctoolsCacheSpec("geometry.covers", "chart_certificates", "_cover_cached"),
@@ -120,6 +125,9 @@ FUNCTOOLS_CACHE_REGISTRY = (
     FunctoolsCacheSpec(
         "topology.fully_closed_assignments", "topology.incidence", "_fully_closed_assignment_items"
     ),
+    FunctoolsCacheSpec(
+        "topology.boundary_denominators", "topology.incidence", "_boundary_denominators"
+    ),
 )
 
 REGISTERED_LRU_CACHES = frozenset(spec.source for spec in FUNCTOOLS_CACHE_REGISTRY)
@@ -163,10 +171,12 @@ def clear_caches(*, include_sympy: bool = False, collect: bool = True) -> None:
 
     from .algebraic.cache import clear_algebraic_caches
     from .algebraic.gtz_primary import clear_gtz_caches
+    from .algebraic_decomposition import _PRIMARY_DECOMPOSITIONS
     from .cad_algorithms.performance_cache import clear_cad_caches
     from .decision._metadata import clear_solution_metadata_cache
     from .simplify.implication import clear_implication_minimization_stats
 
+    _PRIMARY_DECOMPOSITIONS.clear()
     clear_algebraic_caches()
     clear_cad_caches()
     clear_gtz_caches()

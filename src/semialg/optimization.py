@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 import sympy as sp
@@ -78,6 +78,12 @@ class _Candidate:
 
 
 def _is_feasible(condition: sp.Expr, point: Mapping[sp.Symbol, sp.Expr]) -> bool:
+    """Check the original constraints and public sign assumptions at a point."""
+    from .solve.find_instance import _lower_real_symbol_assumptions
+
+    condition, _variables, replacements = _lower_real_symbol_assumptions(condition, tuple(point))
+    if replacements:
+        point = {replacements.get(variable, variable): value for variable, value in point.items()}
     try:
         return bool(satisfies_formula(condition, point, strict=False))
     except _EXPECTED_ERRORS:
@@ -284,14 +290,17 @@ def _polynomial_problem(
     if not variables:
         return not (sp.sympify(objective).free_symbols or sp.sympify(condition).free_symbols)
     try:
-        sp.Poly(sp.expand(objective), *variables, domain=sp.QQ)
+        from .algebraic.groebner_utils import algebraic_coefficient_field
+
+        expressions = [sp.expand(objective)]
         for atom in require_conjunction(
             condition, message="optimization candidate enumeration supports conjunctions"
         ):
             if atom is sp.false:
                 continue
             residual, _ = _relation_parts(atom)
-            sp.Poly(residual, *variables, domain=sp.QQ)
+            expressions.append(residual)
+        algebraic_coefficient_field(expressions, variables)
     except (PolynomialError, ValueError, TypeError):
         return False
     return True
@@ -718,6 +727,12 @@ def _optimize_conjunction(
 
     if is_false_expr(condition):
         raise ValueError("optimization domain is empty")
+    if len(variables) == 1:
+        from ._optimization_univariate import univariate_polynomial_optimum
+
+        calculus = univariate_polynomial_optimum(objective, condition, variables[0], kind=kind)
+        if calculus is not None:
+            return calculus
     if allow_specializations:
         specialized = _try_optimization_specializations(
             objective,
@@ -855,6 +870,38 @@ def _optimize(
     obj = sp.sympify(objective)
     condition = normalize_constraints(constraints)
     vars_ = normalize_problem_variables(variables, sp.Tuple(condition, obj))
+    from .solve.find_instance import _lower_real_symbol_assumptions
+
+    lowered, internal_variables, replacements = _lower_real_symbol_assumptions(condition, vars_)
+    if replacements:
+        # Neutral coordinates prevent SymPy from simplifying a sign constraint
+        # to True before it has been included in the optimization domain.
+        internal = _optimize(
+            obj.xreplace(replacements),
+            lowered,
+            internal_variables,
+            kind=kind,
+            domain=domain,
+            return_result=True,
+            certification=certification,
+            range_cost_limit=range_cost_limit,
+            recursion_limit=recursion_limit,
+            max_boolean_branches=max_boolean_branches,
+            branch_solver=branch_solver,
+        )
+        reverse = {value: key for key, value in replacements.items()}
+        result = replace(
+            internal,
+            objective=obj,
+            variables=vars_,
+            value=internal.value.xreplace(reverse),
+            points=tuple(
+                {reverse.get(key, key): value.xreplace(reverse) for key, value in point.items()}
+                for point in internal.points
+            ),
+            diagnostics={**internal.diagnostics, "constraint_formula": condition},
+        )
+        return result if return_result else result.value
     if not vars_:
         value = sp.simplify(obj)
         result = OptimizationResult(obj, vars_, value, (), True, kind, "constant", {}, True)

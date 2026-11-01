@@ -249,6 +249,14 @@ def _orientation(a: _PointData, b: _PointData, c: _PointData) -> int:
         raise ValueError("polygon orientation could not be certified exactly") from exc
 
 
+def _is_convex_polygon(vertices):
+    turns = {
+        _orientation(vertices[i - 1], point, vertices[(i + 1) % len(vertices)])
+        for i, point in enumerate(vertices)
+    } - {0}
+    return len(turns) == 1
+
+
 def _on_segment(a: _PointData, b: _PointData, p: _PointData) -> bool:
     if _orientation(a, b, p) != 0:
         return False

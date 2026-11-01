@@ -51,7 +51,9 @@ def test_distribution_metadata_and_public_surface_are_present():
 def test_release_does_not_ship_repository_test_or_development_packages():
     package_root = Path(semialg.__file__).resolve().parent
     assert not (package_root / "tests").exists()
-    assert importlib.util.find_spec("tests") is None
+    files = metadata.distribution("semialg").files
+    assert files
+    assert not {"tests", "scripts", "tools"} & {str(path).split("/")[0] for path in files}
 
 
 def test_optional_transcendental_subpackage_is_shipped():
@@ -86,7 +88,6 @@ def test_pruned_expert_api_is_not_reexported_from_installed_package_root():
 
     from semialg._api_policy import EXPERT_EXPORTS, PRUNED_ROOT_EXPERTS
 
-    assert len(PRUNED_ROOT_EXPERTS) == 88
     for name in PRUNED_ROOT_EXPERTS:
         assert name not in semialg.__all__
         assert not hasattr(semialg, name)

@@ -2,15 +2,11 @@
 
 Semialgebraic geometry studies subsets of real Euclidean space that can be described by **finite Boolean combinations of polynomial equalities and inequalities**. A typical semialgebraic set is
 
-\[
-S=\{(x,y)\in\mathbb R^2: x^2+y^2\le 1,\; y\ge x\},
-\]
+\[ S=\{(x,y)\in\mathbb R^2: x^2+y^2\le 1,\; y\ge x\}, \]
 
 but unions, complements, strict inequalities, disequalities, and quantified descriptions are allowed as well. For example,
 
-\[
-\{x\in\mathbb R:\exists y\;(y^2=x\land y\ge0)\}
-\]
+\[ \{x\in\mathbb R:\exists y\;(y^2=x\land y\ge0)\} \]
 
 is semialgebraic. The fact that eliminating the quantified variable still gives a semialgebraic set is one of the central structural results of the subject.
 
@@ -46,21 +42,15 @@ This combination of expressive power and tameness is what makes exact quantifier
 
 An **algebraic set** is cut out only by polynomial equations,
 
-\[
-V(f_1,\ldots,f_m)=\{x:f_1(x)=\cdots=f_m(x)=0\}.
-\]
+\[ V(f_1,\ldots,f_m)=\{x:f_1(x)=\cdots=f_m(x)=0\}. \]
 
 A semialgebraic set also permits inequalities and Boolean structure. Thus the unit circle
 
-\[
-x^2+y^2=1
-\]
+\[ x^2+y^2=1 \]
 
 is algebraic, while the closed disk
 
-\[
-x^2+y^2\le1
-\]
+\[ x^2+y^2\le1 \]
 
 is semialgebraic but not algebraic.
 
@@ -81,9 +71,7 @@ See [Region representations](../guides/region_representations.md) for the comput
 
 Consider the annulus
 
-\[
-1\le x^2+y^2\le4.
-\]
+\[ 1\le x^2+y^2\le4. \]
 
 From this one description we can ask logically or geometrically different questions:
 
@@ -109,3 +97,8 @@ Projection, connected components, optimization, integration, and meshing are all
 - [Algorithms and techniques](algorithms.md) explains CAD, projection/lifting, virtual substitution, algebraic solving, topology, optimization, and integration.
 - [Applications](applications.md) surveys geometry, robotics, verification, control, optimization, scientific modeling, and theorem-assisted computation.
 - [Exactness and certification](../concepts/exactness_and_certification.md) explains what the package certifies and where numerical layers enter.
+
+
+## Deeper mathematical guide
+
+For a fuller introduction that connects this overview to algebraic varieties, proof-oriented CAD, topology, and optimization, follow the [mathematical learning path](index.md). The first additional chapter, [Algebraic foundations](foundations.md), explains ideals, varieties, radicals, and Gröbner bases before returning to the [real closed field setting](real_geometry.md).

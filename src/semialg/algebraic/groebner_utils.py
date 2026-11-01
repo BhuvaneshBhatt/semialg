@@ -8,6 +8,41 @@ from typing import Any
 import sympy as sp
 
 
+def polynomial_coordinates(generators, variables):
+    """Shield bound root-polynomial symbols from coordinate-ring generators.
+
+    SymPy's polynomial parser inspects ``has(x)``, including the bound x in
+    CRootOf. Renaming only free coordinates avoids mistaking that bound symbol
+    for a coordinate dependence, while retaining the selected embedding.
+    """
+    expressions, variables = tuple(map(sp.sympify, generators)), tuple(variables)
+    roots = set().union(
+        *(sp.sympify(expr).atoms(sp.CRootOf, sp.AlgebraicNumber) for expr in expressions)
+    )
+    if any(root.has(*variables) for root in roots):
+        coordinates = tuple(sp.Dummy(variable.name) for variable in variables)
+        replacements = dict(zip(variables, coordinates, strict=True))
+        return tuple(
+            expr.subs(replacements, simultaneous=True) for expr in expressions
+        ), coordinates
+    return expressions, variables
+
+
+def algebraic_coefficient_field(generators, variables):
+    """Infer one exact number field, preserving coefficient embeddings.
+
+    Unlisted symbols are parameters, not algebraic constants. Rejecting them
+    avoids treating a special parameter stratum as a generic function field.
+    Rational input retains the fast QQ arithmetic path.
+    """
+    expressions, coordinates = polynomial_coordinates(generators, variables)
+    _polynomials, options = sp.parallel_poly_from_expr(expressions, *coordinates, extension=True)
+    domain = options.domain
+    if not (domain.is_ZZ or domain.is_QQ or domain.is_AlgebraicField):
+        raise sp.PolynomialError("coefficients must be exact algebraic numbers")
+    return domain.get_field()
+
+
 def _prefer_modular_fraction_field(
     generators: Sequence[sp.Expr], variables: Sequence[sp.Symbol], domain: Any
 ) -> bool:

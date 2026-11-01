@@ -97,6 +97,28 @@ def saturate_ideal_qq(
     return canonical_qq_basis_uncached(saturated, vars_)
 
 
+def principal_ideal_intersection(left, right, variables, *, domain=None):
+    """Return a principal intersection by the UFD lcm identity, or None to decline.
+
+    The ambient coefficient ring must be a rational or algebraic field. Extra
+    symbolic coefficients are not inverted: they require the general ideal
+    operation with its declared coefficient domain.
+    """
+    if len(left) > 1 or len(right) > 1:
+        return None
+    if not left or not right:
+        return ()
+    options = {"domain": domain} if domain is not None else {"extension": True}
+    first = sp.Poly(left[0], *variables, **options)
+    second = sp.Poly(right[0], *variables, **options)
+    ground = first.domain.unify(second.domain)
+    if not (ground.is_ZZ or ground.is_QQ or ground.is_AlgebraicField):
+        return None
+    first, second = first.set_domain(ground.get_field()), second.set_domain(ground.get_field())
+    common = first.lcm(second)
+    return () if common.is_zero else (sp.expand(common.monic().as_expr()),)
+
+
 def ideal_intersection_qq(
     left: Sequence[sp.Expr],
     right: Sequence[sp.Expr],
@@ -105,6 +127,9 @@ def ideal_intersection_qq(
     canonicalizer=canonical_qq_basis_uncached,
 ) -> tuple[sp.Expr, ...]:
     vars_ = tuple(variables)
+    principal = principal_ideal_intersection(left, right, vars_, domain=sp.QQ)
+    if principal is not None:
+        return canonicalizer(principal, vars_)
     t = sp.Dummy("ideal_intersection")
     generators = tuple(t * sp.expand(g) for g in left) + tuple(
         (1 - t) * sp.expand(g) for g in right

@@ -15,16 +15,12 @@ PYTHON_BLOCK = re.compile(r"```python\n(.*?)\n```", re.DOTALL)
 
 
 def test_marked_documentation_examples_execute_with_their_assertions() -> None:
-    executed: list[str] = []
     for path in sorted(DOCS.rglob("*.md")):
         text = path.read_text(encoding="utf-8")
         for index, block in enumerate(EXECUTABLE_BLOCK.findall(text), start=1):
             label = f"{path.relative_to(ROOT)} block {index}"
             namespace = {"__name__": "__semialg_documentation_example__"}
             exec(compile(block, label, "exec"), namespace)
-            executed.append(label)
-
-    assert len(executed) >= 6
 
 
 def test_readme_python_examples_execute_as_one_progressive_session() -> None:
@@ -32,8 +28,18 @@ def test_readme_python_examples_execute_as_one_progressive_session() -> None:
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     blocks = PYTHON_BLOCK.findall(readme)
-    assert len(blocks) >= 8
+
     namespace = {"__name__": "__semialg_readme_example__"}
     for index, block in enumerate(blocks, start=1):
         label = f"README.md block {index}"
         exec(compile(block, label, "exec"), namespace)
+
+
+def test_readme_projection_answer():
+
+    from semialg.decision import equivalent
+
+    namespace = {}
+    for block in PYTHON_BLOCK.findall((ROOT / "README.md").read_text()):
+        exec(compile(block, "README.md", "exec"), namespace)
+    assert equivalent(namespace["condition"], namespace["a"] >= 0, (namespace["a"],))

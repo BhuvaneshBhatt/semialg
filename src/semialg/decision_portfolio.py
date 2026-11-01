@@ -13,6 +13,13 @@ from .sos_certificates import search_sos_certificate
 
 @dataclass(frozen=True)
 class CertifiedDecisionAttempt:
+    """Outcome from one polynomial-decision backend.
+
+    A backend can be inapplicable or inconclusive. In that case ``decision``
+    remains ``None``; a witness or certificate is evidence only for the
+    corresponding completed decision.
+    """
+
     backend: str
     applicable: bool
     complete: bool
@@ -24,6 +31,12 @@ class CertifiedDecisionAttempt:
 
 @dataclass(frozen=True)
 class CertifiedDecisionResult:
+    """Completed Boolean decision with backend provenance and proof data.
+
+    ``attempts`` records the candidate algorithms considered, including
+    unsuccessful candidates that did not establish a mathematical answer.
+    """
+
     decision: bool
     backend: str
     attempts: tuple[CertifiedDecisionAttempt, ...]
@@ -50,8 +63,8 @@ def _polynomial_nonnegative_portfolio(
     positive-dimensional critical-locus path), then complete semialgebraic CAD.
     ``random_lines`` and ``seed`` tune only the Zeng witness-search stage.
 
-    This is the internal dispatcher behind :func:`polynomial_nonnegative`; it is
-    intentionally not a second public spelling of the same mathematical query.
+    This dispatcher implements :func:`polynomial_nonnegative`; callers use the
+    public function for both direct decisions and structured results.
     """
 
     from .polynomial_positivity import zeng_negative_point

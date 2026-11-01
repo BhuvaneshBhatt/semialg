@@ -85,7 +85,7 @@ def test_is_zero_dimensional_is_translation_and_scale_invariant(a, scale):
     assert is_zero_dimensional((scale * (x - a),), (x, y)) is False
 
 
-def test_discretize_region_geometry_preserves_exact_box_vertices_under_translation():
+def test_discretize_box_translation():
     x, y = sp.symbols("x y", real=True)
     data = discretize_region_geometry(Box(((2, 5), (-3, 1))), variables=(x, y))
     assert set(data.polygons[0]) == {(2, -3), (5, -3), (5, 1), (2, 1)}

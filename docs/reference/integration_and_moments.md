@@ -3,7 +3,7 @@
 
 **Mathematical return.** Integration APIs return exact symbolic integrals over supported semialgebraic regions; measure and moment APIs are derived exact integrals with dimension-aware semantics.
 
-**Exactness and certification.** Bounds/cells used for exact integration are derived from certified semialgebraic decompositions. Numerical quadrature is not without reporting substituted for an unsupported exact integral.
+**Exactness and certification.** Bounds/cells used for exact integration are derived from certified semialgebraic decompositions. Numerical quadrature is not substituted for an unsupported exact integral.
 
 **Algorithm.** The implementation reduces regions to exact bounds/cells, supports Boolean decomposition and intrinsic regular strata, and can integrate univariate parameter fibers using CAD-controlled algebraic root-function endpoints.
 

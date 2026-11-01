@@ -70,22 +70,18 @@ def test_degree_five_parameter_family_is_exactly_sturm_stratified():
     assert set(conditions) == {sp.Integer(1), sp.Integer(2), sp.Integer(3)}
 
 
-def test_mccallum_nullification_falls_back_but_lazard_remains_certified():
+def test_product_ec_formula_certification():
+    from semialg.qe.complete import qe_from_cad
+
     x, y = sp.symbols("x y", real=True)
     formula = parse_formula(sp.And(sp.Eq(x * y, 0), y > 0))
-
-    mccallum = decomp_form_reduced_safe(formula, (x, y), backend="mccallum")
-    lazard = decomp_form_reduced_safe(formula, (x, y), backend="lazard")
-
-    assert mccallum.complete
-    assert mccallum.used_fallback
-    assert mccallum.side_conditions is not None
-    assert mccallum.side_conditions.nullification_events
-
-    assert lazard.complete
-    assert not lazard.used_fallback
-    assert lazard.certificate is not None and lazard.certificate.valid
-    assert lazard.side_conditions is not None and lazard.side_conditions.valid
+    for backend in ("mccallum", "lazard"):
+        result = decomp_form_reduced_safe(formula, (x, y), backend=backend)
+        assert result.complete
+        assert result.certificate.valid
+        projected = qe_from_cad(result.cad, (x, y), (("exists", y),), formula)
+        for value in (-1, 0, 1):
+            assert bool(projected.subs(x, value)) is (value == 0)
 
 
 def test_tticad_uses_family_aware_safe_driver():

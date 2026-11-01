@@ -53,7 +53,7 @@ def test_documented_code_matches_executable_companion():
 
         executable = script.read_text(encoding="utf-8")
         executable = executable.split("\n\n", 1)[1].strip()
-        assert match.group(1).strip() == executable
+        assert ast.dump(ast.parse(match.group(1))) == ast.dump(ast.parse(executable))
 
 
 def test_gallery_core_code_paths_smoke():

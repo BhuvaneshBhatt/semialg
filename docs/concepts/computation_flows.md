@@ -10,9 +10,7 @@ A query such as `is_satisfiable`, `implies`, or `equivalent` is normalized first
 
 For implication, semialg reduces the question mathematically to satisfiability of a counterexample set:
 
-\[
-A \Rightarrow B \quad\Longleftrightarrow\quad A \land \neg B\text{ is unsatisfiable}.
-\]
+\[ A \Rightarrow B \quad\Longleftrightarrow\quad A \land \neg B\text{ is unsatisfiable}. \]
 
 Equivalence similarly checks the symmetric difference of the two sets.
 

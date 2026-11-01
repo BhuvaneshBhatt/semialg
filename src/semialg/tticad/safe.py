@@ -10,6 +10,7 @@ from ..cad_algorithms.decomposition import (
     decomp_collins_complete,
     decomp_from_proj_tower,
 )
+from ..cad_algorithms.invariant_scope import _with_invariant
 from ..cad_algorithms.projection.reduced import (
     ProjectionValidity,
     ReducedProjectionTower,
@@ -20,11 +21,12 @@ from ..cad_algorithms.reduced import (
     ReducedSideReport,
     _augment_tower_repairs,
     _locate_reduced_cell,
+    _refinement_failures,
     _scan_reduced_conditions,
     _validity_with_condition,
     proj_validity_from_cert,
 )
-from ..formula import Formula, formula_polynomials
+from ..formula import Formula, formula_polynomials, to_sympy
 from ..qe.complete import evaluate_formula_on_cell
 from ..tti import FormulaFamily, extract_formula_families
 
@@ -82,6 +84,16 @@ def certify_truth_table_inv(
     families: Sequence[FormulaFamily],
     variables: Sequence[sp.Symbol],
 ) -> ReducedCertificate:
+    """Check family truth vectors using a complete sign-invariant reference CAD."""
+
+    reference_failures = _refinement_failures(
+        reduced,
+        refiner,
+        variables,
+        tuple(poly for family in families for poly in formula_polynomials(family.formula)),
+    )
+    if reference_failures:
+        return ReducedCertificate(False, "truth", 0, 0, reference_failures)
     grouped: dict[tuple[int, ...], set[tuple[bool, ...]]] = {}
     failures: list[str] = []
     for full_cell in refiner.cells:
@@ -172,7 +184,11 @@ def decompose_tticad_safe(
             reduced_projection=reduced,
             validity=validity,
             projection_validity=projection_validity,
-            cad=reduced_cad,
+            cad=_with_invariant(
+                reduced_cad,
+                "truth",
+                formulas=(to_sympy(formula), *(to_sympy(family.formula) for family in families)),
+            ),
             effective_backend="tticad-reduced-certified",
             used_fallback=False,
             certificate=certificate,
@@ -219,7 +235,14 @@ def decompose_tticad_safe(
                 reduced_projection=repaired,
                 validity=validity,
                 projection_validity=repaired_validity,
-                cad=repaired_cad,
+                cad=_with_invariant(
+                    repaired_cad,
+                    "truth",
+                    formulas=(
+                        to_sympy(formula),
+                        *(to_sympy(family.formula) for family in families),
+                    ),
+                ),
                 effective_backend="tticad-repaired-certified",
                 used_fallback=False,
                 certificate=repaired_cert,
@@ -250,7 +273,7 @@ def decompose_tticad_safe(
         validity=validity,
         projection_validity=projection_validity,
         cad=collins_cad,
-        effective_backend="collins-complete",
+        effective_backend=collins_cad.backend,
         used_fallback=True,
         certificate=certificate,
         side_conditions=side_conditions,

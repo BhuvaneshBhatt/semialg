@@ -1,21 +1,12 @@
 # API surface policy
 
-`semialg` exposes a curated root namespace for common and advanced mathematical operations.
-Low-level certificates, planners, diagnostics, result records, cache controls, and algorithm-specific
-machinery live in expert submodules instead of the package root. Internal names remain
-implementation details and are not supported as public API.
+`semialg` exposes a curated root namespace for common and advanced mathematical operations. Low-level certificates, planners, diagnostics, result records, cache controls, and algorithm-specific machinery live in expert submodules instead of the package root. Internal names remain implementation details and are not supported as public API.
 
-The classification is enforced by `src/semialg/_api_policy.py`; the top-level lazy export
-registry is derived only from the primary group. `EVERYDAY_EXPORTS` identifies the smaller
-recommended discovery surface within that root API.
+The classification is enforced by `src/semialg/_api_policy.py`; the top-level lazy export registry is derived only from the primary group. `EVERYDAY_EXPORTS` identifies the smaller recommended discovery surface within that root API.
 
 ## Namespace behavior
 
-`dir(semialg)` lists only the primary API and standard module metadata. Expert functionality
-remains public from its defining namespace, but expert imports do not add those functions or
-types to `semialg.__all__`. The primary `semialg.cad` name is always the decomposition function.
-CAD implementation modules live under `semialg.cad_algorithms`, so importing expert CAD
-internals cannot replace the root function.
+`dir(semialg)` lists only the primary API and standard module metadata. Expert functionality remains public from its defining namespace, but expert imports do not add those functions or types to `semialg.__all__`. The primary `semialg.cad` name is always the decomposition function. CAD implementation modules live under `semialg.cad_algorithms`, so importing expert CAD internals cannot replace the root function.
 
 | Tier | Name | Defining module | Supported access |
 |---|---|---|---|

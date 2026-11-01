@@ -32,7 +32,7 @@ over binary floating-point literals when exact semantics are intended:
 0.333333333333
 ```
 
-A float is already an inexact input. `semialg` does not without reporting recover the exact rational number the user may have intended.
+A float is already an inexact input. `semialg` does not recover the exact rational number the user may have intended.
 
 ## Variables and parameters
 
@@ -40,9 +40,7 @@ Variables are the coordinates being solved, projected, optimized, or integrated 
 
 For example, in
 
-\[
-x^2\le a,
-\]
+\[ x^2\le a, \]
 
 `x` may be an integration variable while `a` is a parameter.
 

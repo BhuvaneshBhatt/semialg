@@ -23,10 +23,14 @@ def finite_real_roots(poly_expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr,
     """Return distinct exact real roots of a univariate polynomial."""
 
     poly = sp.Poly(poly_expr, variable)
-    if poly.is_zero:
+    if poly.is_zero or poly.degree() == 0:
         return ()
     try:
-        roots = sp.real_roots(poly.as_expr())
+        try:
+            roots = sp.real_roots(poly, extension=True)
+        except TypeError:
+            # SymPy before algebraic-extension root isolation supports QQ here.
+            roots = sp.real_roots(poly)
     except (TypeError, ValueError, NotImplementedError, sp.PolynomialError) as exc:
         raise NotImplementedError("exact real-root isolation failed") from exc
     result: list[sp.Expr] = []

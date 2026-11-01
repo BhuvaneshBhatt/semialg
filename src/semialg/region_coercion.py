@@ -83,6 +83,11 @@ def _swept_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Expr |
 
 
 def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Expr:
+    """Retain construction conditions when lowering a geometric family."""
+    return sp.And(*region.conditions, _standard_region_membership(region, variables))
+
+
+def _standard_region_membership(region, variables: tuple[sp.Symbol, ...]) -> sp.Expr:
     """Lower a ``StandardRegion`` to a symbolic semialgebraic membership formula."""
 
     from .standard_regions import (
@@ -216,8 +221,15 @@ def _standard_region_formula(region, variables: tuple[sp.Symbol, ...]) -> sp.Exp
         return radial <= region.radius**2
     if isinstance(region, (Ellipsoid, EllipsoidBoundary)):
         delta = sp.Matrix(variables) - sp.Matrix(region.center)
-        quadratic = sp.expand((delta.T * region.shape_matrix.inv() * delta)[0])
-        return sp.Eq(quadratic, 1) if isinstance(region, EllipsoidBoundary) else quadratic <= 1
+        # On the retained positive-definite domain the determinant is positive.
+        # Adjugates avoid introducing poles at excluded singular parameter fibers.
+        numerator = sp.expand((delta.T * region.shape_matrix.adjugate() * delta)[0])
+        determinant = region.shape_matrix.det()
+        return (
+            sp.Eq(numerator, determinant)
+            if isinstance(region, EllipsoidBoundary)
+            else numerator <= determinant
+        )
     if isinstance(region, SphericalShell):
         radial = sum((v - c) ** 2 for v, c in zip(variables, region.center, strict=True))
         return sp.And(radial >= region.inner_radius**2, radial <= region.outer_radius**2)

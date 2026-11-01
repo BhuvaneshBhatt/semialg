@@ -45,3 +45,8 @@ outer_shell = PolyhedralShell(cube_vertices, cube_faces)
 polyhedron = Polyhedron((PolyhedralComponent(outer_shell),))
 print("outer polyhedral shells:", outer_polyhedra(polyhedron))
 print("cavity shells:", inner_polyhedra(polyhedron))
+
+assert len(outer_polygons(polygonal_set)) == 1
+assert len(inner_polygons(polygonal_set)) == 1
+assert len(outer_polyhedra(polyhedron)) == 1
+assert inner_polyhedra(polyhedron) == ()

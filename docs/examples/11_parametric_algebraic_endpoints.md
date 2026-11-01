@@ -6,17 +6,11 @@ Integrate over x²≤a while CAD controls the parameter-dependent root branches.
 
 The fiber
 
-\[
-\{x:x^2\le a\}
-\]
+\[ \{x:x^2\le a\} \]
 
-is empty for \(a<0\), collapses to a point at \(a=0\), and has algebraic
-endpoints \(\pm\sqrt a\) for \(a>0\).
+is empty for \(a<0\), collapses to a point at \(a=0\), and has algebraic endpoints \(\pm\sqrt a\) for \(a>0\).
 
-The implementation constructs a CAD in parameter-plus-fiber space so root
-number and ordering are stable on each parameter cell. It then integrates
-between exact root-function endpoints. The coalescence point \(a=0\) is part
-of the exact stratification instead of a numerically special-cased value.
+The implementation constructs a CAD in parameter-plus-fiber space so root number and ordering are stable on each parameter cell. It then integrates between exact root-function endpoints. The coalescence point \(a=0\) is part of the exact stratification instead of a numerically special-cased value.
 
 ## Executable example
 
@@ -44,5 +38,4 @@ assert result.select({a: 4}) == 4
 assert result.select({a: 9}) == 6
 ```
 
-The matching executable file is `examples/gallery/11_parametric_algebraic_endpoints.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/11_parametric_algebraic_endpoints.py`; the documentation test suite runs every gallery script.

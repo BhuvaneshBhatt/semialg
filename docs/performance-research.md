@@ -45,27 +45,10 @@ Local-projection CAD and cylindrical algebraic coverings are not part of this wo
 
 ## Large-domain packed RUR benchmark
 
-The packed Krylov experiment now has a coefficient-domain kernel and a permanent
-large-dimension runner (`scripts/benchmark_rur_large.py`).  The benchmark compares
-the same cyclic matrix family over `QQ` and `GF(65521)` at dimensions 16 through
-128 and records time, Python allocation peak, and process RSS.
+The packed Krylov experiment now has a coefficient-domain kernel and a permanent large-dimension runner (`scripts/benchmark_rur_large.py`).  The benchmark compares the same cyclic matrix family over `QQ` and `GF(65521)` at dimensions 16 through 128 and records time, Python allocation peak, and process RSS.
 
-No sustained runtime crossover was found.  Over `QQ`, domain `charpoly` is already
-faster beyond the smallest case and its advantage grows with dimension.  Over
-`GF(65521)`, packed elimination wins at dimensions 16 and 24, but `charpoly`
-becomes faster at dimension 32 and remains faster through 128.  Packed elimination
-does retain a memory advantage: at dimensions 32, 64, and 128 its measured Python
-allocation peak is lower in both domains.  Production RUR therefore continues to
-use `charpoly`; the packed kernel remains useful as a low-memory research kernel.
-Raw measurements are in `benchmark-results/packed-rur-large-domain.json`.
+No sustained runtime crossover was found.  Over `QQ`, domain `charpoly` is already faster beyond the smallest case and its advantage grows with dimension.  Over `GF(65521)`, packed elimination wins at dimensions 16 and 24, but `charpoly` becomes faster at dimension 32 and remains faster through 128.  Packed elimination does retain a memory advantage: at dimensions 32, 64, and 128 its measured Python allocation peak is lower in both domains.  Production RUR therefore continues to use `charpoly`; the packed kernel remains useful as a low-memory research kernel. Raw measurements are in `benchmark-results/packed-rur-large-domain.json`.
 
 ## Structural Brown/chordal selector
 
-The automatic Brown/chordal selector no longer performs a trial projection level
-when graph fill ties.  It propagates only multidegree vectors using standard
-degree bounds for resultants and discriminants.  This estimates downstream degree
-growth without constructing projection polynomials.  On the frozen 38-case
-Wilson subset, the structural selector chooses the better complete Brown/chordal
-projection score in all 38 cases; Brown and chordal differ on 13 of those cases.
-The earlier selector selected the better candidate in 33 of 38.  The benchmark is
-recorded in `benchmark-results/ordering-selector-degree-growth.json`.
+The automatic Brown/chordal selector no longer performs a trial projection level when graph fill ties.  It propagates only multidegree vectors using standard degree bounds for resultants and discriminants.  This estimates downstream degree growth without constructing projection polynomials.  On the frozen 38-case Wilson subset, the structural selector chooses the better complete Brown/chordal projection score in all 38 cases; Brown and chordal differ on 13 of those cases. The earlier selector selected the better candidate in 33 of 38.  The benchmark is recorded in `benchmark-results/ordering-selector-degree-growth.json`.

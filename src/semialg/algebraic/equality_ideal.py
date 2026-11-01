@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 
 import sympy as sp
 
@@ -186,6 +187,12 @@ def _truth_when_zero(atom: sp.Expr) -> bool:
     raise RationalUnivariateError(f"unsupported relational atom: {atom!s}")
 
 
+# Sharing immutable bases leaves each context's mutable reduction caches local.
+@lru_cache(maxsize=256)
+def _equality_groebner_basis(generators, variables, domain):
+    return compute_groebner_basis(generators, variables, order="grevlex", domain=domain)
+
+
 class EqualityIdealContext:
     """Reusable exact Groebner context for an equality subsystem.
 
@@ -237,9 +244,7 @@ class EqualityIdealContext:
             self.quotient_dimension = None
             self._standard_cache = tuple()
             return
-        self.groebner_basis = compute_groebner_basis(
-            self.generators, self.variables, order="grevlex", domain=self.domain
-        )
+        self.groebner_basis = _equality_groebner_basis(self.generators, self.variables, self.domain)
         self._stats["groebner_basis_count"] += 1
         unit = len(self.groebner_basis.polys) == 1 and self.groebner_basis.polys[0].is_one
         self.inconsistent = bool(unit)
@@ -341,8 +346,13 @@ class EqualityIdealContext:
         cached = self._fglm_by_order.get(order)
         if cached is not None:
             return cached
-        source = compute_groebner_basis(self.generators, order, order="grevlex", domain=self.domain)
-        self._stats["groebner_basis_count"] += 1
+        if order == self.variables:
+            source = self.groebner_basis
+        else:
+            source = compute_groebner_basis(
+                self.generators, order, order="grevlex", domain=self.domain
+            )
+            self._stats["groebner_basis_count"] += 1
         try:
             basis = source.fglm(order="lex") if len(order) > 1 else source
         except (NotImplementedError, ValueError, TypeError, sp.PolynomialError) as exc:

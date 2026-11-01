@@ -15,7 +15,7 @@ from .symbolic_regions import SemialgebraicRegion, as_semialgebraic_region
 
 @dataclass(frozen=True)
 class CADSignature:
-    """Stable structural summary of a CAD-defined region."""
+    """Structural summary of a CAD-defined region."""
 
     ambient_dimension: int
     region_dimension: int
@@ -149,14 +149,15 @@ def cad_signature(
 
 def _op_expr(op: str | Callable[..., object], formulas: Sequence[sp.Expr]) -> sp.Expr:
     if callable(op):
-        return normalize_formula(op(*formulas))
+        formula = normalize_formula(op(*formulas))
+        return sp.to_nnf(formula, simplify=False) if formula.has(sp.Xor) else formula
     key = op.lower().replace("_", "-")
     if key in {"and", "intersection"}:
         return sp.And(*formulas)
     if key in {"or", "union"}:
         return sp.Or(*formulas)
     if key in {"xor", "symmetric-difference"}:
-        return sp.Xor(*formulas)
+        return sp.to_nnf(sp.Xor(*formulas), simplify=False)
     if key in {"difference", "minus"}:
         if len(formulas) != 2:
             raise ValueError("difference requires exactly two regions")
@@ -177,8 +178,15 @@ def _shared_cad_combine(
     """
     base = regions[0].result
     if any(
-        r.variables != regions[0].variables or r.result.cad is not base.cad for r in regions[1:]
+        r.result.status != "complete"
+        or r.variables != regions[0].variables
+        or r.result.cad is not base.cad
+        for r in regions
     ):
+        return None
+    if not base.cad.complete and _op_expr(op, (sp.false,) * len(regions)) is not sp.false:
+        # A variety-only CAD has no cells outside its equality variety. Reuse
+        # is sound only when the combination is false on that entire exterior.
         return None
     selected_sets = [set(r.result.cell_set.indices) for r in regions]
     all_leaves = tuple(base.cad.cells_by_level.get(len(base.variables), ()))
@@ -187,6 +195,8 @@ def _shared_cad_combine(
         vals = [leaf.index in selected_set for selected_set in selected_sets]
         if callable(op):
             truth_expr = normalize_formula(op(*(sp.true if value else sp.false for value in vals)))
+            if truth_expr not in (sp.true, sp.false):
+                return None
             truth = truth_expr == sp.true
         else:
             key = op.lower().replace("_", "-")
@@ -251,23 +261,13 @@ def cad_combine(
 
 def _condition_supported_by_cad(condition: sp.Expr, reg: CADRegion) -> bool:
     """Whether every relational boundary is already sign-invariant in the CAD."""
-    from .cad_algorithms.polynomial_utils import polynomial_key
+    from .cad_algorithms.invariant_scope import _supports_formula
 
-    keys = {polynomial_key(poly) for polys in reg.cad.tower.by_level.values() for poly in polys}
-    atoms = condition.atoms(sp.Relational) if hasattr(sp, "Relational") else set()
-    if not atoms:
-        from sympy.core.relational import Relational
-
-        atoms = condition.atoms(Relational)
-    for atom in atoms:
-        residual = sp.expand(atom.lhs - atom.rhs)
-        try:
-            poly = sp.Poly(residual, *reg.variables)
-        except (sp.PolynomialError, TypeError, ValueError):
-            return False
-        if poly.total_degree() > 0 and polynomial_key(poly) not in keys:
-            return False
-    return True
+    if reg.cad.tower.metadata.get("variety_only", False):
+        # Intersecting a finite region cannot add points outside its variety.
+        # The caller checks the condition exactly at every retained point.
+        return not condition.free_symbols - set(reg.variables)
+    return _supports_formula(reg.cad, condition)
 
 
 def _truth_on_leaf(condition: sp.Expr, leaf, variables: Sequence[sp.Symbol]) -> bool | None:
@@ -289,7 +289,7 @@ def cad_extend(region: object, condition: object, *, strategy: str = "auto") -> 
     """Refine a CAD region by an additional condition.
 
     If the condition is already truth-invariant on all existing full-dimensional
-    leaves, the existing CAD is reused. Otherwise one common refinement is built.
+    leafs, the existing CAD is reused. Otherwise one common refinement is built.
     """
     reg = as_cad_region(region, strategy=strategy)
     cond = normalize_formula(condition)

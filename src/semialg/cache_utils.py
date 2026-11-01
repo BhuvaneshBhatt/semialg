@@ -35,6 +35,8 @@ class CachePolicy(Enum):
 
 @dataclass(frozen=True)
 class CacheInfo:
+    """Snapshot of the capacity, lifetime policy, and generation of a cache."""
+
     namespace: str
     maxsize: int
     process_entries: int

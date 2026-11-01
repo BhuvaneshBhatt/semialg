@@ -34,9 +34,7 @@ Useful operations include:
 
 Safety properties can often be expressed as universally quantified polynomial implications. For example,
 
-\[
-\forall x\;(I(x)\Rightarrow p(x)\ge0)
-\]
+\[ \forall x\;(I(x)\Rightarrow p(x)\ge0) \]
 
 asks whether an invariant region lies inside a safe set. Quantifier elimination can also eliminate hidden states or parameters.
 
@@ -63,11 +61,7 @@ Polynomial optimization over polynomial constraints is a central semialgebraic p
 
 Suppose a model contains parameters \(a,b\) and state variables \(x\). Questions such as
 
-\[
-\exists x\;F(x,a,b)=0,
-\qquad
-\forall x\in S(a,b)\;g(x,a,b)\ge0
-\]
+\[ \exists x\;F(x,a,b)=0, \qquad \forall x\in S(a,b)\;g(x,a,b)\ge0 \]
 
 define semialgebraic subsets of parameter space. Projection and exceptional-parameter stratification can reveal where:
 
@@ -116,3 +110,8 @@ Generic CAD is usually not the best first choice for:
 Semialgebraic computation is strongest when dimensions are moderate, exact boundaries matter, parameters are symbolic, or a proof-quality yes/no/geometric answer is required.
 
 For package-level examples, continue with the [worked example gallery](../examples/index.md) and the [region tutorials](../tutorials/annulus.md).
+
+
+## Mathematical background for these applications
+
+The [semialgebraic geometry learning path](index.md) explains why projection and logical quantification work, and how root isolation, CAD, exact topology and polynomial optimization arise in applications. See [real closed fields and quantified projection](real_geometry.md), [topology and roadmaps](topology.md), and [optimization and positivity](optimization_positivity.md). The distinction between mathematical existence theorems and actual implemented `semialg` capabilities is spelled out in [complexity and practical scope](complexity.md).

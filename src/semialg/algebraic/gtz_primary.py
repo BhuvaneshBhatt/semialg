@@ -1,7 +1,7 @@
 """Full certified GTZ primary decomposition over ``QQ``.
 
 This module implements the recursive positive-dimensional stages of the
-Gianni--Trager--Zacharias strategy.  A maximal independent set ``U`` reduces
+Gianni–Trager–Zacharias strategy.  A maximal independent set ``U`` reduces
 the current ideal to a zero-dimensional algebra over ``QQ(U)``.  That finite
 algebra is decomposed exactly from its multiplication matrices and trace
 form.  The localized primary factors are contracted to ``QQ[U,X]`` and the
@@ -17,9 +17,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from functools import lru_cache
-from itertools import product
 
 import sympy as sp
+from algroots.finite_decomposition import nilradical_basis
+from algroots.quotient import QuotientAlgebra
 
 from ._gtz_primary_types import (  # noqa: E402, F401
     FractionFieldZeroDimensionalCertificate,
@@ -165,96 +166,6 @@ def _ff_saturate(
     return _canonical_ff_basis(eliminated, vars_, parameters)
 
 
-def _standard_monomials(
-    basis: sp.polys.polytools.GroebnerBasis, variables: Sequence[sp.Symbol]
-) -> tuple[tuple[int, ...], ...] | None:
-    vars_ = tuple(variables)
-    if not vars_:
-        return (tuple(),)
-    leading = [tuple(int(e) for e in p.LM(order=basis.order).exponents) for p in basis.polys]
-    bounds: list[int] = []
-    for i in range(len(vars_)):
-        pure = [exp[i] for exp in leading if exp[i] and sum(exp) == exp[i]]
-        if not pure:
-            return None
-        bounds.append(min(pure))
-    out = []
-    for exponent in product(*(range(bound) for bound in bounds)):
-        if not any(all(e >= g for e, g in zip(exponent, lm, strict=True)) for lm in leading):
-            out.append(tuple(exponent))
-    return tuple(out)
-
-
-def _monomial_expr(exponent: Sequence[int], variables: Sequence[sp.Symbol]) -> sp.Expr:
-    out = sp.Integer(1)
-    for variable, power in zip(variables, exponent, strict=True):
-        out *= variable ** int(power)
-    return out
-
-
-def _remainder_vector(
-    expression: sp.Expr,
-    basis: sp.polys.polytools.GroebnerBasis,
-    standard: Sequence[tuple[int, ...]],
-    variables: Sequence[sp.Symbol],
-    domain,
-) -> tuple[sp.Expr, ...]:
-    _quotients, remainder = basis.reduce(sp.cancel(expression))
-    poly = sp.Poly(sp.cancel(remainder), *variables, domain=domain)
-    coeffs = {tuple(int(e) for e in mon): domain.to_sympy(coeff) for mon, coeff in poly.terms()}
-    return tuple(sp.cancel(coeffs.get(tuple(mon), 0)) for mon in standard)
-
-
-def _multiplication_matrix(
-    expression: sp.Expr,
-    basis: sp.polys.polytools.GroebnerBasis,
-    standard: Sequence[tuple[int, ...]],
-    variables: Sequence[sp.Symbol],
-    domain,
-) -> sp.Matrix:
-    columns = []
-    for monomial in standard:
-        columns.append(
-            _remainder_vector(
-                expression * _monomial_expr(monomial, variables),
-                basis,
-                standard,
-                variables,
-                domain,
-            )
-        )
-    return sp.Matrix.hstack(*(sp.Matrix(column) for column in columns))
-
-
-def _trace_data(
-    basis: sp.polys.polytools.GroebnerBasis,
-    standard: Sequence[tuple[int, ...]],
-    variables: Sequence[sp.Symbol],
-    domain,
-) -> tuple[sp.Matrix, tuple[sp.Expr, ...], tuple[sp.Matrix, ...]]:
-    basis_exprs = tuple(_monomial_expr(mon, variables) for mon in standard)
-    multiplication = tuple(
-        _multiplication_matrix(expr, basis, standard, variables, domain) for expr in basis_exprs
-    )
-    size = len(standard)
-    trace = sp.zeros(size)
-    for i in range(size):
-        for j in range(i, size):
-            value = sp.cancel(sp.trace(multiplication[i] * multiplication[j]))
-            trace[i, j] = value
-            trace[j, i] = value
-    return trace, basis_exprs, multiplication
-
-
-def _kernel_generators(trace: sp.Matrix, basis_exprs: Sequence[sp.Expr]) -> tuple[sp.Expr, ...]:
-    out = []
-    for vector in trace.nullspace():
-        expr = sp.cancel(sum(vector[i] * basis_exprs[i] for i in range(len(basis_exprs))))
-        if expr != 0:
-            out.append(expr)
-    return tuple(out)
-
-
 def _primitive_coefficients(count: int):
     if count == 0:
         yield tuple()
@@ -294,22 +205,19 @@ def _compute_fraction_field_zero_dimensional(
             tuple(),
         )
         return FractionFieldZeroDimensionalResult(params, vars_, tuple(), True, certificate)
-    standard = _standard_monomials(gb, vars_)
-    if standard is None:
-        raise ValueError("localized ideal is not zero-dimensional")
-    trace, basis_exprs, _basis_multiplication = _trace_data(gb, standard, vars_, domain)
-    trace_rank = int(trace.rank())
-    nilradical = _kernel_generators(trace, basis_exprs)
+    algebra = QuotientAlgebra.from_groebner_basis(gb, vars_)
+    standard = algebra.standard_exponents
+    trace_rank = algebra.geometric_solution_count
+    nilradical = nilradical_basis(algebra)
 
-    z = sp.Symbol("_gtz45_primitive")
+    z = sp.Dummy("primary_separator")
     primitive_coeffs = None
     primitive = None
     charpoly_expr = None
     factored: tuple[tuple[sp.Expr, int], ...] | None = None
     for coeffs in _primitive_coefficients(len(vars_)):
         candidate = sp.expand(sum(c * v for c, v in zip(coeffs, vars_, strict=True)))
-        matrix = _multiplication_matrix(candidate, gb, standard, vars_, domain)
-        charpoly = sp.Poly(matrix.charpoly(z).as_expr(), z, domain=domain)
+        charpoly = algebra.characteristic_polynomial(candidate, z)
         _unit, factors = charpoly.factor_list()
         normalized_factors = tuple(
             (sp.cancel(f.monic().as_expr()), int(multiplicity)) for f, multiplicity in factors
@@ -364,13 +272,22 @@ def verify_fraction_field_zero_dim_certificate(
         if source != tuple(certificate.source_generators):
             return False
         gb = compute_groebner_basis(source, vars_, order="grevlex", domain=domain, modular=None)
-        standard = _standard_monomials(gb, vars_)
-        if standard is None or tuple(standard) != tuple(certificate.standard_monomials):
+        algebra = QuotientAlgebra.from_groebner_basis(gb, vars_)
+        if algebra.standard_exponents != tuple(certificate.standard_monomials):
             return False
-        trace, basis_exprs, _multiplication = _trace_data(gb, standard, vars_, domain)
-        if int(trace.rank()) != certificate.trace_rank:
+        if not algebra.dimension:
+            return (
+                certificate.trace_rank == 0
+                and certificate.nilradical_generators == ()
+                and certificate.primitive_coefficients == ()
+                and certificate.primitive_element == 0
+                and certificate.characteristic_polynomial == 1
+                and certificate.factors == ()
+                and certificate.components == ()
+            )
+        if algebra.geometric_solution_count != certificate.trace_rank:
             return False
-        nilradical = _kernel_generators(trace, basis_exprs)
+        nilradical = nilradical_basis(algebra)
         if _canonical_ff_basis(nilradical, vars_, params) != _canonical_ff_basis(
             certificate.nilradical_generators, vars_, params
         ):
@@ -392,9 +309,8 @@ def verify_fraction_field_zero_dim_certificate(
         if z is None and certificate.factors:
             z = next(iter(sp.sympify(certificate.factors[0][0]).free_symbols - set(params)), None)
         if z is None:
-            z = sp.Dummy("gtz45_replay")
-        matrix = _multiplication_matrix(primitive, gb, standard, vars_, domain)
-        charpoly = sp.Poly(matrix.charpoly(z).as_expr(), z, domain=domain).monic()
+            z = sp.Dummy("primary_separator")
+        charpoly = algebra.characteristic_polynomial(primitive, z).monic()
         stored_charpoly = sp.Poly(certificate.characteristic_polynomial, z, domain=domain).monic()
         # Dummy identity can differ after serialization/replacement; compare coefficients.
         if tuple(charpoly.all_coeffs()) != tuple(stored_charpoly.all_coeffs()):
@@ -440,10 +356,8 @@ def verify_fraction_field_zero_dim_certificate(
                 return False
             # The reduced local quotient must be exactly the irreducible field factor.
             rgb = sp.groebner(expected_radical, *vars_, order="grevlex", domain=domain)
-            rstandard = _standard_monomials(rgb, vars_)
-            if rstandard is None:
-                return False
-            if len(rstandard) != sp.Poly(factor, z, domain=domain).degree():
+            residue = QuotientAlgebra.from_groebner_basis(rgb, vars_)
+            if residue.dimension != sp.Poly(factor, z, domain=domain).degree():
                 return False
         return True
     except (

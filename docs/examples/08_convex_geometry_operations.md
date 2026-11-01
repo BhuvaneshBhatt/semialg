@@ -4,13 +4,9 @@ Combine exact set operations with convex-geometric queries.
 
 ## Problem and interpretation
 
-The Minkowski sum of \([0,1]\) and \([0,2]\) is \([0,3]\). For the unit disk,
-the support function in direction \((3,4)\) is the Euclidean norm of the
-direction, namely \(5\).
+The Minkowski sum of \([0,1]\) and \([0,2]\) is \([0,3]\). For the unit disk, the support function in direction \((3,4)\) is the Euclidean norm of the direction, namely \(5\).
 
-The two operations illustrate different implementation routes: Minkowski sum
-is fundamentally an image/projection problem, while a support function is a
-global optimization problem.
+The two operations illustrate different implementation routes: Minkowski sum is fundamentally an image/projection problem, while a support function is a global optimization problem.
 
 ## Executable example
 
@@ -34,5 +30,4 @@ print(h)
 assert h == 5
 ```
 
-The matching executable file is `examples/gallery/08_convex_geometry_operations.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/08_convex_geometry_operations.py`; the documentation test suite runs every gallery script.

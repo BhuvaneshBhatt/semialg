@@ -16,7 +16,6 @@ from sympy.logic.boolalg import Not as SymNot
 from sympy.logic.boolalg import Or as SymOr
 from sympy.polys.polyerrors import CoercionFailed
 
-from .._linear_relations import safe_linear_solution
 from ..structural_keys import symbol_identity_key
 
 _RELATION_MAP = {
@@ -124,9 +123,9 @@ def canonicalize_relation(rel: Relational) -> sp.Expr:
                 if coeff.is_negative is True:
                     op = _reverse_op(op)
                 if coeff.is_positive is True or coeff.is_negative is True:
-                    bound = safe_linear_solution(expr, symbol)
-                    if bound is None:
-                        return _relation_from_normal(expr, op)
+                    # The parsed polynomial is affine and its numeric pivot has
+                    # a known sign, so no second recognition or zero test is needed.
+                    bound = sp.cancel(-poly.nth(0) / coeff)
                     if op == "=":
                         return sp.Eq(symbol, bound)
                     if op == "!=":

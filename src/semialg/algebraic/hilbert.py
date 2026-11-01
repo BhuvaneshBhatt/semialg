@@ -2,7 +2,7 @@
 
 The implementation works from the leading monomial ideal of an exact,
 degree-compatible Groebner basis.  Hilbert series are computed by the Taylor
-(inclusion--exclusion) resolution of a monomial ideal, so the resulting
+(inclusion–exclusion) resolution of a monomial ideal, so the resulting
 invariants are independent of any triangular decomposition search.
 """
 

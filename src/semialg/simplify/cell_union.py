@@ -73,6 +73,8 @@ def compress_sel_idxs(
 
 def _multivariate_cell_form(cell_union: CellUnion) -> sp.Expr:
     cells_by_level = getattr(cell_union, "cells_by_level", None) or {}
+    if cell_union.finite_variety:
+        return None
     free_level = len(cell_union.variables)
     if not cells_by_level or free_level <= 1:
         return cell_union.formula
@@ -178,6 +180,12 @@ def polynomial_relation_from_cell_union(cell_union: CellUnion) -> sp.Expr | None
 
 
 def cell_union_to_formula(cell_union: CellUnion) -> sp.Expr:
+    """Reconstruct the exact union, preserving finite-variety point relations."""
+
+    if cell_union.finite_variety:
+        from ..qe.cell_reconstruction import finite_variety_formula
+
+        return finite_variety_formula(cell_union.cells, cell_union.variables)
     polynomial = polynomial_relation_from_cell_union(cell_union)
     if polynomial is not None:
         return polynomial

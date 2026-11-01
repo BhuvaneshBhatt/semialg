@@ -1,4 +1,4 @@
-"""Compatibility exports for exact RUR linear-algebra kernels owned by algroots."""
+"""Exact linear-algebra kernels used by rational univariate representations."""
 
 from algroots.rational_univariate.linear_algebra import (
     krylov_minimal_polynomial,

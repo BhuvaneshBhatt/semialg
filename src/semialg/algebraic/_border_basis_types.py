@@ -1,4 +1,4 @@
-"""Compatibility aliases for border-basis result types owned by algroots."""
+"""Border-basis result types from the shared exact algebra backend."""
 
 from algroots.border_basis import BorderBasisDiagnostics, BorderBasisError
 

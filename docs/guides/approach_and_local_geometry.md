@@ -104,71 +104,33 @@ These APIs are designed around semantic invariants instead of expression shape. 
 
 ## Local asymptotic geometry API
 
-The local-asymptotic geometry family keeps exact approach-set reasoning in
-Semialg while leaving expansions to downstream packages. `LocalGerm` and
-`local_germ` normalize a set at a closure point; `LocalGeometry` and
-`local_geometry` combine local dimension with the Bouligand tangent cone.
-`LocalSignStratum` and `local_sign_strata` enumerate locally realizable sign
-vectors, while `local_components` separates punctured branches.
+The local-asymptotic geometry family keeps exact approach-set reasoning in Semialg while leaving expansions to downstream packages. `LocalGerm` and `local_germ` normalize a set at a closure point; `LocalGeometry` and `local_geometry` combine local dimension with the Bouligand tangent cone. `LocalSignStratum` and `local_sign_strata` enumerate locally realizable sign vectors, while `local_components` separates punctured branches.
 
-`CurveSelectionWitness` and `curve_selection` first seek an explicit certified
-polynomial approach curve and otherwise return a theorem-backed existence
-certificate without pretending that an explicit parametrization was found.
-`LocalRangeResult`, `LocalBoundCertificate`, `local_range`, and `local_bound`
-provide exact fixed-ball ranges and can find a positive radius for a requested
-or automatically chosen finite local bound; the concrete bound is independently
-checked before certification. `ParameterStratum` and `parameter_strata` expose
-exact parameter feasibility regions.
+`CurveSelectionWitness` and `curve_selection` first seek an explicit certified polynomial approach curve and otherwise return a theorem-backed existence certificate without pretending that an explicit parametrization was found. `LocalRangeResult`, `LocalBoundCertificate`, `local_range`, and `local_bound` provide exact fixed-ball ranges and can find a positive radius for a requested or automatically chosen finite local bound; the concrete bound is independently checked before certification. `ParameterStratum` and `parameter_strata` expose exact parameter feasibility regions.
 
-For relative rates, `vanishing_order` and `contact_order` operate on explicit
-curve witnesses. `BlowupChart` and `blowup_charts` construct ordinary or
-weighted polynomial blow-up charts. `local_image` and `local_preimage` transport
-germs through exact semialgebraic maps, and `path_independent` certifies that a
-value holds on some sufficiently small punctured neighborhood of the germ.
+For relative rates, `vanishing_order` and `contact_order` operate on explicit curve witnesses. `BlowupChart` and `blowup_charts` construct ordinary or weighted polynomial blow-up charts. `local_image` and `local_preimage` transport germs through exact semialgebraic maps, and `path_independent` certifies that a value holds on some sufficiently small punctured neighborhood of the germ.
 
 
 ## Local germs, signs, and components
 
-`local_germ(region, point, variables=None)` normalizes a semialgebraic set at a
-closure point. `local_geometry` adds the exact local dimension and Bouligand
-tangent cone. `local_sign_strata` incrementally enumerates sign vectors whose
-strata remain incident at the point.
+`local_germ(region, point, variables=None)` normalizes a semialgebraic set at a closure point. `local_geometry` adds the exact local dimension and Bouligand tangent cone. `local_sign_strata` incrementally enumerates sign vectors whose strata remain incident at the point.
 
-`local_components` computes connected components after restricting the
-punctured set to a sufficiently small neighborhood chosen from exact
-critical-distance information. This prevents branches from being merged only
-because they reconnect farther from the base point. Singular multivariate
-connectivity can still require expensive CAD and is covered by slow regression
-tests.
+`local_components` computes connected components after restricting the punctured set to a sufficiently small neighborhood chosen from exact critical-distance information. This prevents branches from being merged only because they reconnect farther from the base point. Singular multivariate connectivity can still require expensive CAD and is covered by slow regression tests.
 
 ## Curve selection and relative rates
 
-`curve_selection` first searches for a simple explicit polynomial approach
-curve. If that search does not construct one, it can return a theorem-backed
-existence certificate marked as non-explicit. Operations that need an actual
-pullback, including `vanishing_order` and `contact_order`, require an explicit
-witness.
+`curve_selection` first searches for a simple explicit polynomial approach curve. If that search does not construct one, it can return a theorem-backed existence certificate marked as non-explicit. Operations that need an actual pullback, including `vanishing_order` and `contact_order`, require an explicit witness.
 
 ## Local bounds
 
-`local_range` certifies extrema on an explicit local ball. `local_bound` can
-also search for a positive neighborhood radius and returns a certificate whose
-concrete radius/bound pair is checked for a violating point before it is
-reported as certified.
+`local_range` certifies extrema on an explicit local ball. `local_bound` can also search for a positive neighborhood radius and returns a certificate whose concrete radius/bound pair is checked for a violating point before it is reported as certified.
 
 ## Parameter strata
 
-`parameter_strata(formula, variables, parameters)` returns the exact feasible
-and infeasible parameter regions. Passing `conditions_by_value` instead
-classifies caller-defined semialgebraic invariants. Cases are made disjoint in
-insertion order.
+`parameter_strata(formula, variables, parameters)` returns the exact feasible and infeasible parameter regions. Passing `conditions_by_value` instead classifies caller-defined semialgebraic invariants. Cases are made disjoint in insertion order.
 
 ## Local maps and path independence
 
-`local_image` transports a germ through an exact semialgebraic image.
-`local_preimage` returns a single source germ only after exact existence and
-uniqueness checks on the fiber. `path_independent` certifies equality throughout
-some sufficiently small punctured neighborhood.
+`local_image` transports a germ through an exact semialgebraic image. `local_preimage` returns a single source germ only after exact existence and uniqueness checks on the fiber. `path_independent` certifies equality throughout some sufficiently small punctured neighborhood.
 
-`blowup_charts` supplies ordinary and weighted polynomial charts for downstream
-algorithms that need to expose relative approach scales.
+`blowup_charts` supplies ordinary and weighted polynomial charts for downstream algorithms that need to expose relative approach scales.

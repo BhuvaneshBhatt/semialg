@@ -366,7 +366,7 @@ def _isolate_factor_interval(
 
 
 def _isolate_rational_coeff_roots(poly: sp.Poly) -> list[tuple[RationalInterval, int]]:
-    """Cluster-aware Newton--Descartes initial isolation over ZZ/QQ.
+    """Cluster-aware Newton–Descartes initial isolation over ZZ/QQ.
 
     Descartes variations are the common cheap certificate.  Sturm counting is
     used only when a node remains ambiguous after subdivision and to verify each
@@ -536,7 +536,13 @@ def _isolate_algebraic_coeff_roots(poly: sp.Poly) -> list[tuple[RationalInterval
                     exclude_left=exclude_left,
                     exclude_right=exclude_right,
                 )
-                isolated.append((RationalInterval(left, right), int(_multiplicity)))
+                # Squarefree factors with different multiplicities are isolated
+                # separately. Bind each interval to the full polynomial before
+                # assigning a global root rank or testing signs at that root.
+                interval = RationalInterval(left, right)
+                if len(factors) > 1:
+                    interval = _isolate_factor_interval(_factor, exact_poly, interval)
+                isolated.append((interval, int(_multiplicity)))
                 return
             mid = sp.Rational(left + right, 2)
             mid_is_root = _factor.eval(mid) == 0
@@ -813,7 +819,7 @@ def isolate_real_roots(
                 polynomial=univar,
                 interval=interval,
                 root_index=index,
-                multiplicity=multiplicity,
+                multiplicity_hint=multiplicity,
                 root_expr=None,
             )
             for index, (interval, multiplicity) in enumerate(exact_intervals)
@@ -842,7 +848,7 @@ def isolate_real_roots(
                 polynomial=univar,
                 interval=interval,
                 root_index=index,
-                multiplicity=multiplicity,
+                multiplicity_hint=multiplicity,
                 root_expr=None,
             )
             for index, (interval, multiplicity) in enumerate(exact_intervals)
@@ -898,7 +904,7 @@ def isolate_real_roots(
                         polynomial=univar,
                         interval=interval,
                         root_index=index,
-                        multiplicity=multiplicity,
+                        multiplicity_hint=multiplicity,
                         root_expr=None,
                     )
                     for index, (interval, multiplicity) in enumerate(exact_intervals)
@@ -966,7 +972,7 @@ def isolate_real_roots(
                 polynomial=univar,
                 interval=interval,
                 root_index=index,
-                multiplicity=mult,
+                multiplicity_hint=mult,
                 root_expr=root,
             )
         )
@@ -1213,7 +1219,7 @@ def refine_isol_intvl(root: AlgebraicRoot, *, steps: int | None = 4) -> Algebrai
                 root.polynomial,
                 interval,
                 root.root_index,
-                root.multiplicity,
+                root.multiplicity_hint,
                 root.root_expr,
                 context,
             )
@@ -1248,7 +1254,7 @@ def refine_isol_intvl(root: AlgebraicRoot, *, steps: int | None = 4) -> Algebrai
             root.polynomial,
             RationalInterval(left, right),
             root.root_index,
-            root.multiplicity,
+            root.multiplicity_hint,
             root.root_expr,
             root.fiber_context,
         )
@@ -1265,7 +1271,7 @@ def refine_isol_intvl(root: AlgebraicRoot, *, steps: int | None = 4) -> Algebrai
                 root.polynomial,
                 RationalInterval(left, right),
                 root.root_index,
-                root.multiplicity,
+                root.multiplicity_hint,
                 root.root_expr,
                 root.fiber_context,
             )
@@ -1307,12 +1313,13 @@ def refine_isol_intvl(root: AlgebraicRoot, *, steps: int | None = 4) -> Algebrai
         root.polynomial,
         RationalInterval(left, right),
         root.root_index,
-        root.multiplicity,
+        root.multiplicity_hint,
         root.root_expr,
     )
 
 
 def root_multiplicity(root: AlgebraicRoot) -> int:
+    """Return exact multiplicity in the selected ordinary or native parent fiber."""
     return root.multiplicity
 
 

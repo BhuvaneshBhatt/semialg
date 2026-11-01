@@ -4,16 +4,11 @@ Follow the family 0≤x≤a through range, optimization, measure, and integratio
 
 ## Problem and interpretation
 
-The same parameter controls feasibility, range, extrema, measure, and integral.
-For \(a<0\), the interval is empty. For \(a\ge0\),
+The same parameter controls feasibility, range, extrema, measure, and integral. For \(a<0\), the interval is empty. For \(a\ge0\),
 
-\[
-\mu([0,a])=a,\qquad
-\int_0^a x^2\,dx=\frac{a^3}{3}.
-\]
+\[ \mu([0,a])=a,\qquad \int_0^a x^2\,dx=\frac{a^3}{3}. \]
 
-The range and minimum examples also exercise the specialized direct
-one-variable affine reconstruction path before generic subsequent QE.
+The range and minimum examples also exercise the specialized direct one-variable affine reconstruction path before generic subsequent QE.
 
 ## Executable example
 
@@ -59,5 +54,4 @@ assert r3.quantifier_free and r3.certified
 assert m3.quantifier_free and m3.certified
 ```
 
-The matching executable file is `examples/gallery/10_parametric_interval_workflow.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/10_parametric_interval_workflow.py`; the documentation test suite runs every gallery script.

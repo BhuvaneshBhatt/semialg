@@ -6,7 +6,7 @@ from typing import Literal
 
 import sympy as sp
 
-from ..._immutable import freeze_mapping
+from ..._immutable import FrozenMappingPickle, freeze_mapping
 from ...algebraic.cache import CACHE, poly_key, sample_identity_key
 from ...algebraic.samples import Sample, sample_to_expr
 from ...algebraic.signs import signs_at_sample
@@ -16,7 +16,7 @@ CellKind = Literal["sector", "section"]
 
 
 @dataclass(frozen=True)
-class CADCell:
+class CADCell(FrozenMappingPickle):
     level: int
     index: tuple[int, ...]
     sample: tuple[Sample, ...]
@@ -60,6 +60,11 @@ class CADCell:
 def sign_table(polys: Sequence[sp.Poly], sample: Sequence[Sample]) -> dict[str, int]:
     """Return a CAD sign table, shared by stable polynomial/sample identities."""
     poly_keys = tuple(poly_key(poly) for poly in polys)
+    sample_key = tuple(sample_identity_key(value) for value in sample)
+    cache_key = ("cad-sign-table", poly_keys, sample_key)
+    cached = CACHE.sign_tables.get(cache_key)
+    if cached is not None:
+        return dict(cached)
     compiled = []
     for key, poly in zip(poly_keys, polys, strict=True):
         compiled_key = ("cad-lifting-poly", key)
@@ -68,11 +73,6 @@ def sign_table(polys: Sequence[sp.Poly], sample: Sequence[Sample]) -> dict[str, 
             canonical = poly
             CACHE.compiled_polys.put(compiled_key, canonical)
         compiled.append(canonical)
-    sample_key = tuple(sample_identity_key(value) for value in sample)
-    cache_key = ("cad-sign-table", poly_keys, sample_key)
-    cached = CACHE.sign_tables.get(cache_key)
-    if cached is not None:
-        return dict(cached)
     signs = signs_at_sample(tuple(compiled), sample)
     table = {_poly_key(poly): sign for poly, sign in zip(polys, signs, strict=True)}
     CACHE.sign_tables.put(cache_key, tuple(table.items()))

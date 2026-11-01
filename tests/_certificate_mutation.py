@@ -1,112 +1,221 @@
-"""Table-driven mutation checks for replayable exact certificates.
+"""Explicit certificate-field policies and observable mutation coverage.
 
-Every populated dataclass field reached from a registered certificate is
-mutated independently unless it is explicitly classified as search/provenance
-metadata. Adding a field to a nested proof object therefore expands the test
-surface automatically.
+No field is skipped by its name. New dataclass fields require a policy entry.
+Inactive optional branches and non-proof metadata appear in the audit report.
+Unexpected verifier exceptions fail the test instead of counting as rejection.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+import json
+import os
+import re
 from dataclasses import fields, is_dataclass, replace
-from typing import Any
+from pathlib import Path
 
 import sympy as sp
 
-PROVENANCE_FIELDS = frozenset({"method", "primes", "modulus", "source", "notes"})
+POLICIES = json.loads((Path(__file__).with_name("certificate_fields.json")).read_text())
+AUDIT = []
 
 
-def _mutate_atom(value: Any) -> Any:
+def _policy(value):
+    cls = type(value)
+    name = cls.__module__ + "." + cls.__qualname__
+    assert name in POLICIES, f"unclassified certificate dataclass: {name}"
+    policy = POLICIES[name]
+    actual = {field.name for field in fields(value)}
+    assert set(policy) == actual, (
+        f"certificate policy mismatch for {name}: missing={actual - set(policy)}, stale={set(policy) - actual}"
+    )
+    for field, entry in policy.items():
+        assert entry["role"] in {
+            "proof",
+            "conditional",
+            "provenance",
+            "derived",
+            "diagnostic",
+            "context",
+        }, (name, field)
+        if entry["role"] != "proof":
+            assert entry.get("reason"), (name, field)
+    return policy
+
+
+def _atom(value):
     if isinstance(value, bool):
-        return not value
-    if isinstance(value, int):
-        return value + 1
+        return not value, False
+    if isinstance(value, (int, sp.Integer)):
+        return value + 1, False
     if isinstance(value, sp.Symbol):
-        return sp.Dummy(f"tampered_{value}")
+        return sp.Dummy("altered_" + value.name), True
     if isinstance(value, sp.Poly):
-        return sp.Poly(value.as_expr() + 1, *value.gens, domain=value.domain)
-    if isinstance(value, sp.ImmutableMatrix):
+        return sp.Poly(value.as_expr() + 1, *value.gens, domain=value.domain), False
+    if isinstance(value, sp.MatrixBase):
         matrix = sp.MutableDenseMatrix(value)
         if matrix.rows and matrix.cols:
-            matrix[0, 0] = sp.expand(matrix[0, 0] + 1)
+            matrix[0, 0] += 1
         else:
-            return sp.ImmutableMatrix([[1]])
-        return sp.ImmutableMatrix(matrix)
+            matrix = sp.Matrix([[1]])
+        return sp.ImmutableMatrix(matrix), False
     if isinstance(value, sp.Basic):
-        return sp.expand(value + 1)
+        return sp.expand(value + 1), False
     if isinstance(value, str):
-        if value == "lex":
-            return "grevlex"
-        if value == "grevlex":
-            return "lex"
-        return f"{value}_tampered"
-    raise TypeError(f"no conservative certificate mutator for {type(value)!r}")
+        return value + "_altered", False
+    if value is None:
+        return sp.S.One, True
+    raise TypeError(f"no registered mutator for {type(value).__name__}")
 
 
-def _nested_mutations(value: Any, path: str) -> Iterator[tuple[str, Any]]:
+def _mutations(value, path, report, root_name):
+    """Traverse proof fields while preserving enclosing dataclass and container shapes."""
     if is_dataclass(value) and not isinstance(value, type):
-        for field in fields(value):
-            if field.name in PROVENANCE_FIELDS:
+        for field, declared in _policy(value).items():
+            entry = declared
+            field_path = path + "." + field if path else field
+            normalized = re.sub(r"\[\d+\]", "[]", field_path)
+            entry = POLICIES.get("$overrides", {}).get(root_name, {}).get(normalized, entry)
+            current = getattr(value, field)
+            definition = type(value).__module__ + "." + type(value).__qualname__ + "." + field
+            child = path + "." + field if path else field
+            if entry["role"] not in {"proof", "conditional"}:
+                report.append({"path": child, "status": entry["role"], "reason": entry["reason"]})
                 continue
-            current = getattr(value, field.name)
-            for child_path, changed in _nested_mutations(current, f"{path}.{field.name}"):
-                yield child_path, replace(value, **{field.name: changed})
+            if entry["role"] == "conditional" and current is None:
+                report.append(
+                    {
+                        "path": child,
+                        "definition": definition,
+                        "status": "inactive",
+                        "role": entry["role"],
+                        "reason": entry["reason"],
+                    }
+                )
+                continue
+            report.append(
+                {
+                    "path": child,
+                    "definition": definition,
+                    "status": "active",
+                    "role": entry["role"],
+                    "nonempty": current is not None and current != () and current != frozenset(),
+                }
+            )
+            for subpath, changed, malformed in _mutations(current, child, report, root_name):
+                try:
+                    mutant = replace(value, **{field: changed})
+                except (TypeError, ValueError) as exc:
+                    report.append(
+                        {
+                            "path": subpath,
+                            "status": "constructor-rejected",
+                            "exception": type(exc).__name__,
+                        }
+                    )
+                    continue
+                yield subpath, mutant, malformed
         return
-    if isinstance(value, tuple):
-        for index, item in enumerate(value):
-            for child_path, changed in _nested_mutations(item, f"{path}[{index}]"):
-                yield child_path, (*value[:index], changed, *value[index + 1 :])
-        return
-    if isinstance(value, frozenset):
-        for item in value:
-            for child_path, changed in _nested_mutations(item, f"{path}{{item}}"):
-                yield child_path, frozenset((value - {item}) | {changed})
+    if isinstance(value, (tuple, frozenset)):
+        sequence = tuple(value)
+        if not sequence:
+            yield (
+                path + "[empty]",
+                (sp.S.One,) if isinstance(value, tuple) else frozenset({sp.S.One}),
+                True,
+            )
+        for i, item in enumerate(sequence):
+            for child, changed, malformed in _mutations(item, f"{path}[{i}]", report, root_name):
+                sequence_changed = (*sequence[:i], changed, *sequence[i + 1 :])
+                yield (
+                    child,
+                    sequence_changed if isinstance(value, tuple) else frozenset(sequence_changed),
+                    malformed,
+                )
         return
     try:
-        changed = _mutate_atom(value)
-    except TypeError:
-        return
-    yield path, changed
+        changed, malformed = _atom(value)
+    except TypeError as exc:
+        raise AssertionError(f"uncovered proof field {path}: {exc}") from exc
+    yield path, changed, malformed
 
 
-def field_mutations(certificate: Any, *, ignored: frozenset[str] = frozenset()):
-    """Yield one conservative mutation for every populated proof-field path."""
-    if not is_dataclass(certificate):
-        raise TypeError("certificate must be a dataclass instance")
-    classified = ignored | PROVENANCE_FIELDS
-    for field in fields(certificate):
-        if field.name in classified:
-            continue
-        current = getattr(certificate, field.name)
-        for path, changed in _nested_mutations(current, field.name):
-            yield path, replace(certificate, **{field.name: changed})
+def field_mutations(certificate, *, ignored=frozenset()):
+    """Yield field mutations; exclusions must already be explicit in the class policy."""
+    assert is_dataclass(certificate)
+    policy = _policy(certificate)
+    assert all(policy[name]["role"] not in {"proof", "conditional"} for name in ignored), ignored
+    report = []
+    yield from _mutations(
+        certificate, "", report, type(certificate).__module__ + "." + type(certificate).__qualname__
+    )
 
 
-def assert_certificate_fields_reject_mutation(
-    certificate: Any,
-    verifier: Callable[[Any], bool],
-    *,
-    ignored: frozenset[str] = frozenset(),
-) -> None:
-    """Require all generated proof mutations to be rejected by exact replay."""
+def assert_certificate_fields_reject_mutation(certificate, verifier, *, ignored=frozenset()):
+    """Check registered proof mutations and record every classified or inactive field."""
     assert verifier(certificate), f"baseline {type(certificate).__name__} does not verify"
-    tested = []
-    for path, mutated in field_mutations(certificate, ignored=ignored):
-        tested.append(path)
+    policy = _policy(certificate)
+    assert all(policy[name]["role"] not in {"proof", "conditional"} for name in ignored), ignored
+    report = []
+    for path, mutant, malformed in _mutations(
+        certificate, "", report, type(certificate).__module__ + "." + type(certificate).__qualname__
+    ):
         try:
-            accepted = bool(verifier(mutated))
-        except (
-            ArithmeticError,
-            AttributeError,
-            IndexError,
-            TypeError,
-            ValueError,
-            sp.PolynomialError,
-            sp.polys.polyerrors.CoercionFailed,
-        ):
-            accepted = False
-        assert not accepted, (
-            f"tampered proof field was accepted: {type(certificate).__name__}.{path}"
+            accepted = bool(verifier(mutant))
+        except (TypeError, ValueError, sp.polys.polyerrors.BasePolynomialError) as exc:
+            if not malformed:
+                raise
+            report.append(
+                {"path": path, "status": "schema-rejected", "exception": type(exc).__name__}
+            )
+            continue
+        assert not accepted, f"altered proof accepted: {type(certificate).__name__}.{path}"
+        report.append({"path": path, "status": "replay-rejected", "well_formed": not malformed})
+    assert any(row["status"].endswith("rejected") for row in report)
+    record = {
+        "certificate": type(certificate).__module__ + "." + type(certificate).__qualname__,
+        "fields": report,
+    }
+    AUDIT.append(record)
+    destination = os.environ.get("CERTIFICATE_AUDIT_REPORT")
+    if destination:
+        with Path(destination).open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record) + "\n")
+    return record
+
+
+def assert_field_replacements(certificate, verifier, replacements):
+    """Audit explicit whole-field mathematical mutations of structured payloads.
+
+    Native CAD payloads contain graphs and read-only mappings. Their specialized
+    geometric replay tests audit internals; this helper binds every enclosing
+    statement field without reducing graphs to invalid scalar placeholders.
+    """
+    policy = _policy(certificate)
+    required = {name for name, entry in policy.items() if entry["role"] in {"proof", "conditional"}}
+    assert set(replacements) == required
+    assert verifier(certificate)
+    family = type(certificate).__module__ + "." + type(certificate).__qualname__
+    report = []
+    for name, entry in policy.items():
+        if name not in replacements:
+            report.append({"path": name, "status": entry["role"], "reason": entry["reason"]})
+            continue
+        report.append(
+            {
+                "path": name,
+                "definition": family + "." + name,
+                "status": "active",
+                "role": entry["role"],
+                "nonempty": True,
+            }
         )
-    assert tested, f"no populated proof fields tested for {type(certificate).__name__}"
+        mutant = replace(certificate, **{name: replacements[name]})
+        assert not verifier(mutant), f"altered statement accepted: {family}.{name}"
+        report.append({"path": name, "status": "replay-rejected", "well_formed": True})
+    record = {"certificate": family, "fields": report}
+    AUDIT.append(record)
+    destination = os.environ.get("CERTIFICATE_AUDIT_REPORT")
+    if destination:
+        with Path(destination).open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record) + "\n")
+    return record

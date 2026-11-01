@@ -13,12 +13,22 @@ from semialg.cad_algorithms.cells import (
 _DEFAULT_BASE_SYMBOL = sp.Symbol("x", real=True)
 
 
-def _cert(poly, fiber, root_index, *, sample_value, regular=True, base=(_DEFAULT_BASE_SYMBOL,)):
+def _cert(
+    poly,
+    fiber,
+    root_index,
+    *,
+    sample_value,
+    regular=True,
+    base=(_DEFAULT_BASE_SYMBOL,),
+    base_index=None,
+):
     return DelineabilityCertificate(
         polynomial=poly,
         fiber_variable=fiber,
         root_index=root_index,
         base_variables=tuple(base),
+        base_index=base_index,
         sign_invariant=True,
         stack_order_verified=True,
         sample_root_verified=True,
@@ -44,10 +54,10 @@ def test_root_function_certified_comparison_on_same_stack():
     x, y = sp.symbols("x y", real=True)
     poly = y**2 - x
     lower = AlgebraicRootFunction(
-        poly, y, 0, (x,), (1,), _cert(poly, y, 0, sample_value=-1, base=(x,))
+        poly, y, 0, (x,), (1,), _cert(poly, y, 0, sample_value=-1, base=(x,), base_index=(1,))
     )
     upper = AlgebraicRootFunction(
-        poly, y, 1, (x,), (1,), _cert(poly, y, 1, sample_value=1, base=(x,))
+        poly, y, 1, (x,), (1,), _cert(poly, y, 1, sample_value=1, base=(x,), base_index=(1,))
     )
     result = lower.compare_certified(upper)
     assert result.verify()

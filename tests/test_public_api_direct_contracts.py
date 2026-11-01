@@ -353,6 +353,11 @@ PRIMARY_CONTRACT_NAMES = (
     "path_independent",
     "structured_proof_diagnostics",
     "vanishing_order",
+    "bounding_cover",
+    "optimization_cover",
+    "RegionFamily",
+    "RegionFamilyStratum",
+    "region_family",
 )
 
 

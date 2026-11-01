@@ -9,9 +9,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _modules_after(code: str) -> set[str]:
     env = dict(os.environ)
-    env["PYTHONPATH"] = str(ROOT / "src")
+    env["PYTHONPATH"] = os.pathsep.join(str(Path(p).resolve()) for p in sys.path if p)
     completed = subprocess.run(
-        [sys.executable, "-c", code],
+        [sys.executable, "-S", "-c", code],
         cwd=ROOT,
         env=env,
         check=True,

@@ -1,10 +1,12 @@
 include README.md CHANGELOG.md LICENSE pyproject.toml mkdocs.yml
-recursive-include docs *.md *.toml *.svg
-recursive-include examples *.py *.md
+recursive-include docs *.md *.toml *.svg *.json
+recursive-include examples *.py *.md *.json
 recursive-include notebooks *.ipynb *.md
 recursive-include scripts *.py *.sh
 recursive-include tests *.py *.toml *.json *.md
 recursive-include .github *.yml *.yaml
+recursive-include tools *.py *.md
+recursive-include ci *.toml *.txt *.tar.gz *.patch
 prune build
 prune dist
 global-exclude __pycache__ *.py[cod] .DS_Store

@@ -151,7 +151,7 @@ def test_zero_dimensional_primary_certificate_proof_fields_reject_mutation():
     assert_certificate_fields_reject_mutation(
         result.certificate,
         verify_zero_dim_primary_certificate,
-        ignored=frozenset({"coefficient_field", "field_relations"}),
+        ignored=frozenset(),
     )
 
 
@@ -168,4 +168,18 @@ def test_recursive_gtz_certificate_proof_fields_reject_mutation():
         result.certificate,
         verify_gtz_primary_decomposition_certificate,
         ignored=frozenset(),
+    )
+
+
+def test_gtz_finite_branch_mutations():
+    from semialg.algebraic.gtz_primary import (
+        gtz_primary_decomposition,
+        verify_gtz_primary_decomposition_certificate,
+    )
+
+    x, y = sp.symbols("x y")
+    result = gtz_primary_decomposition((x * x - 1, y - x), (x, y))
+    assert result.certificate.root.zero_dimensional_certificate is not None
+    assert_certificate_fields_reject_mutation(
+        result.certificate, verify_gtz_primary_decomposition_certificate
     )

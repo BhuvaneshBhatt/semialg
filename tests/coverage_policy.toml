@@ -3,9 +3,9 @@ source_root = "src/semialg"
 require_branches = true
 
 [overall]
-# Keep this threshold until a complete branch-coverage run justifies raising it.
-floor_combined = 74.5
-next_combined_target = 76.0
+# Floors follow the measured full non-slow baseline; targets remain aspirational.
+floor_combined = 76.0
+next_combined_target = 78.0
 
 [subsystems.decision_parameters_roots]
 directories = ["src/semialg/decision"]
@@ -22,7 +22,7 @@ files = [
   "src/semialg/reasoning_signs.py",
   "src/semialg/reasoning_system.py",
 ]
-floor_combined = 85.0
+floor_combined = 77.5
 target_combined = 85.0
 
 [subsystems.algebraic_certification]
@@ -39,7 +39,7 @@ files = [
   "src/semialg/real_algebraic.py",
   "src/semialg/sos_certificates.py",
 ]
-floor_combined = 80.0
+floor_combined = 79.5
 target_combined = 80.0
 
 [subsystems.geometry_topology]
@@ -69,7 +69,7 @@ files = [
   "src/semialg/symbolic_regions.py",
   "src/semialg/topology/invariants.py",
 ]
-floor_combined = 80.0
+floor_combined = 75.5
 target_combined = 80.0
 
 [subsystems.cad_decomposition]

@@ -21,7 +21,7 @@ from .convexity import (
     _is_convex_polynomial_intersection,  # noqa: F401 - shared implementation used by focused tests
     is_convex,
 )
-from .errors import ResourceLimitError
+from .errors import ExactComputationUnavailable, ResourceLimitError
 from .formula import parse_formula
 from .formulas.boolean import is_true_expr
 from .internal_symbols import collision_free_real_symbols, fresh_real_dummy
@@ -46,6 +46,10 @@ from .symbol_resolution import resolve_symbol
 
 
 def _mapping_tuple(mapping) -> tuple[sp.Expr, ...]:
+    if isinstance(mapping, sp.MatrixBase):
+        if mapping.cols != 1:
+            raise ValueError("a matrix map must be a column of coordinates")
+        return tuple(map(sp.sympify, mapping))
     if (
         isinstance(mapping, sp.Basic)
         or not isinstance(mapping, Sequence)
@@ -151,6 +155,29 @@ def semialgebraic_image(
     return formula
 
 
+def _rational_mapping_domain(mapping):
+    """Return the defined real locus of a rational map with real coefficients.
+
+    Non-rational expressions use graph projection so Piecewise branch domains
+    and principal-root restrictions are kept local to their active branches.
+    """
+    guards = []
+    for expression in mapping:
+        if not expression.is_rational_function():
+            return None
+        numerator, denominator = sp.fraction(sp.together(expression))
+        symbols = tuple(sorted(expression.free_symbols, key=symbol_identity_key))
+        coefficients = (
+            (numerator, denominator)
+            if not symbols
+            else (*sp.Poly(numerator, *symbols).coeffs(), *sp.Poly(denominator, *symbols).coeffs())
+        )
+        if any(coefficient.is_real is not True for coefficient in coefficients):
+            return None
+        guards.append(sp.Ne(denominator, 0))
+    return sp.And(*guards)
+
+
 def semialgebraic_preimage(
     mapping: Sequence[sp.Expr] | sp.Expr,
     target,
@@ -158,7 +185,7 @@ def semialgebraic_preimage(
     *,
     target_variables: Sequence[sp.Symbol | str] | None = None,
 ) -> sp.Expr:
-    """Return the preimage of a semialgebraic target under a symbolic map."""
+    """Return the preimage on the defined real locus of a supported symbolic map."""
 
     maps = _mapping_tuple(mapping)
     target_formula = normalize_formula(target)
@@ -179,7 +206,46 @@ def semialgebraic_preimage(
         raise ValueError(
             "target formula contains ambiguous source symbols; pass target_variables explicitly"
         )
-    return sp.simplify(target_formula.xreplace(dict(zip(target_vars, maps, strict=True))))
+    if target_formula is sp.false:
+        return sp.false
+    rational_domain = _rational_mapping_domain(maps)
+    if rational_domain is not None:
+        substituted = target_formula.xreplace(dict(zip(target_vars, maps, strict=True)))
+        return sp.simplify(sp.And(rational_domain, substituted))
+
+    from .function_graph import semialgebraic_formula_graph, semialgebraic_function_graph
+
+    # Existential output coordinates retain every map component's definedness,
+    # even when the target predicate is true or ignores that coordinate.
+    values = tuple(fresh_real_dummy("preimage_value") for _ in maps)
+    graphs = tuple(
+        semialgebraic_function_graph(expr, value) for expr, value in zip(maps, values, strict=True)
+    )
+    target_graph = semialgebraic_formula_graph(
+        target_formula.xreplace(dict(zip(target_vars, values, strict=True)))
+    )
+    matrix = sp.And(target_graph.formula, *(graph.formula for graph in graphs))
+    bound = tuple(
+        dict.fromkeys(
+            (
+                *values,
+                *target_graph.auxiliary_variables,
+                *(aux for graph in graphs for aux in graph.auxiliary_variables),
+            )
+        )
+    )
+    free = (
+        *source,
+        *sorted(matrix.free_symbols - set(bound) - set(source), key=symbol_identity_key),
+    )
+    return sp.simplify(
+        qe_by_complete_cad(
+            (*free, *bound),
+            tuple(("exists", var) for var in bound),
+            parse_formula(matrix),
+            free_variables=free,
+        )
+    )
 
 
 def fiber(region, substitutions: Mapping[sp.Symbol | str, sp.Expr]) -> sp.Expr:
@@ -202,6 +268,12 @@ def fiber(region, substitutions: Mapping[sp.Symbol | str, sp.Expr]) -> sp.Expr:
 
 @dataclass(frozen=True)
 class BoundingBoxResult:
+    """Certified coordinate extrema with per-endpoint attainment flags.
+
+    ``bounds`` contains exact infima and suprema; ``attained`` distinguishes
+    actual boundary points from limits of an open region.
+    """
+
     variables: tuple[sp.Symbol, ...]
     bounds: Mapping[sp.Symbol, tuple[sp.Expr, sp.Expr]]
     attained: Mapping[sp.Symbol, tuple[bool, bool]]
@@ -228,6 +300,12 @@ def bounding_box(region, variables=None, *, return_result: bool = False):
 
 @dataclass(frozen=True)
 class DistanceToRegionResult:
+    """Exact point-to-region distance and nearest-point information.
+
+    A finite distance need not be attained on a nonclosed region; the
+    ``attained`` flag distinguishes this from a genuine closest point.
+    """
+
     distance: sp.Expr
     squared_distance: sp.Expr
     point: Mapping[sp.Symbol, sp.Expr] | None
@@ -652,18 +730,26 @@ def critical_value_image(
     component merely because the objective varies on it.  Each supported KKT or
     singular component is sent through the ordinary exact ``function_range``
     machinery and the resulting value sets are unioned with isolated values.
+    Unavailable locus or image computations raise instead of omitting a component.
     """
     from .optimization import function_range
 
     expr = sp.sympify(expression)
     condition = normalize_formula(region)
     vars_ = normalize_problem_variables(variables, sp.Tuple(expr, condition))
-    value = resolve_symbol(value_symbol or "t")
+    if value_symbol is None:
+        value = resolve_symbol("t")
+        if value in vars_ or value.name in {var.name for var in vars_}:
+            value = collision_free_real_symbols("critical_value", 1, expr, condition, vars_)[0]
+    else:
+        value = resolve_symbol(value_symbol)
+        if value in vars_:
+            raise ValueError("critical value symbol must be distinct from source variables")
     isolated = critical_values(expr, condition, vars_)
     equalities, inequalities, _ = _constraint_data(condition, vars_)
     images: list[sp.Expr] = []
     for locus in iter_positive_dimensional_critical_loci(
-        expr, condition, vars_, equalities, inequalities
+        expr, condition, vars_, equalities, inequalities, require_complete=True
     ):
         locus_formula = sp.And(
             condition, *(sp.Eq(equation, 0) for equation in locus.equations), evaluate=False
@@ -672,8 +758,8 @@ def critical_value_image(
             image = sp.sympify(
                 function_range(expr, locus_formula, vars_, value_symbol=value, method="qe")
             )
-        except (ArithmeticError, TypeError, ValueError, NotImplementedError, sp.PolynomialError):
-            continue
+        except NotImplementedError as exc:
+            raise ExactComputationUnavailable("critical component image is unavailable") from exc
         if image is not sp.false and image != sp.false and image not in images:
             images.append(image)
     pieces = [*(sp.Eq(value, item) for item in isolated), *images]

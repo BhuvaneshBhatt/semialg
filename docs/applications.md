@@ -133,21 +133,15 @@ The current scope is **strict Hurwitz stability** for real polynomial characteri
 
 `verify_polynomial_invariant()` checks an inductive invariant for a discrete polynomial transition system. The core consecution obligation is
 
-\[
-D(x) \land I(x) \Longrightarrow I(F(x)).
-\]
+\[ D(x) \land I(x) \Longrightarrow I(F(x)). \]
 
 Optional initial and unsafe conditions add the obligations
 
-\[
-D(x) \land I_0(x) \Longrightarrow I(x)
-\]
+\[ D(x) \land I_0(x) \Longrightarrow I(x) \]
 
 and
 
-\[
-D(x) \land I(x) \Longrightarrow \neg U(x).
-\]
+\[ D(x) \land I(x) \Longrightarrow \neg U(x). \]
 
 ```python
 from semialg.applications import verify_polynomial_invariant
@@ -163,7 +157,7 @@ check = verify_polynomial_invariant(
 assert check.valid
 ```
 
-When an implication fails, the result retains an exact counterexample whenever the decision layer can construct one. This API verifies a **supplied** invariant; discovering invariants or barrier certificates is a different and substantially harder synthesis problem. The current workflow is state-only and rejects undeclared symbolic parameters instead of without reporting quantifying them.
+When an implication fails, the result retains an exact counterexample whenever the decision layer can construct one. This API verifies a **supplied** invariant; discovering invariants or barrier certificates is a different and substantially harder synthesis problem. The current workflow is state-only and rejects undeclared symbolic parameters instead of quantifying them.
 
 ## Polynomial response-surface analysis
 
@@ -204,25 +198,19 @@ result.lie_derivative
 # -2*x**2
 ```
 
-By default the derivative condition is strict away from the equilibrium. Set `derivative_strict=False` to verify the weaker nonpositive derivative condition. The application verifies a supplied candidate; it does not synthesize Lyapunov functions. Undeclared symbolic parameters are rejected instead of without reporting quantified.
+By default the derivative condition is strict away from the equilibrium. Set `derivative_strict=False` to verify the weaker nonpositive derivative condition. The application verifies a supplied candidate; it does not synthesize Lyapunov functions. Undeclared symbolic parameters are rejected instead of being quantified.
 
 ## Barrier-certificate verification
 
 `verify_barrier_certificate()` verifies a polynomial barrier for a continuous-time polynomial vector field using the convention that `B <= 0` is the certified safe side. It proves three exact obligations:
 
-\[
-I(x) \Rightarrow B(x)\le 0,
-\]
+\[ I(x) \Rightarrow B(x)\le 0, \]
 
-\[
-U(x) \Rightarrow B(x)>0,
-\]
+\[ U(x) \Rightarrow B(x)>0, \]
 
 and, on the barrier boundary,
 
-\[
-B(x)=0 \Rightarrow \dot B(x)\le0.
-\]
+\[ B(x)=0 \Rightarrow \dot B(x)\le0. \]
 
 ```python
 from semialg.applications import verify_barrier_certificate
@@ -312,15 +300,13 @@ result.maximum_absolute_error  # 1/4
 
 The maximum absolute error is obtained by maximizing the polynomial square
 
-\[
-(f-g)^2
-\]
+\[ (f-g)^2 \]
 
 and then taking its exact nonnegative square root. This keeps the optimization problem polynomial instead of introducing `Abs` into the optimizer. The current application expects exact polynomial coefficients and rejects undeclared symbolic parameters.
 
 ## Parameter regime analysis
 
-Parameter-regime analysis exposes exact qualitative changes as certified semialgebraic strata instead of sampled parameter values.
+Parameter-regime analysis exposes exact qualitative changes as certified semialgebraic strata instead of being sampled parameter values.
 
 `analyze_parameter_regimes()` partitions parameter space by real solvability of a semialgebraic system:
 
@@ -380,4 +366,4 @@ uniform = geometric_probability(
 uniform.probability  # 1/2
 ```
 
-The probability application inherits the exact integration engine's scope. A polynomial density can still lead to a transcendental exact value such as `pi`; exact does not mean algebraic. Unsupported integrals are declined according to the core integration contract instead of without reporting sampled numerically.
+The probability application inherits the exact integration engine's scope. A polynomial density can still lead to a transcendental exact value such as `pi`; exact does not mean algebraic. Unsupported integrals are declined according to the core integration contract instead of being sampled numerically.

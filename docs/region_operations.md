@@ -122,3 +122,7 @@ conv(V) + conv(W) = conv({v + w : v in V, w in W})
 ```
 
 and therefore construct the exact sum from pairwise vertex sums without invoking CAD.
+
+## Exact topology rules
+
+Default closure, interior and boundary computation recognizes polynomial zero sets, quadratic sign geometry and Cartesian products before closure-incidence CAD. The rules retain holes, strict endpoints and thin factors, and distinguish a globally nonnegative polynomial's full weak superlevel from its zero set. Use `strategy="cad"` for the general semantic path. The [structural rule guide](structural_rules.md) states the supported coefficients and degrees.

@@ -5,9 +5,6 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
-from ..errors import InternalInvariantError
-from .symmetric_difference import find_grid_witness
-
 
 @dataclass(frozen=True)
 class EquivCounterex:
@@ -21,25 +18,39 @@ class EquivalenceReport:
     equivalent: bool
     checked_points: int
     mismatches: tuple[EquivCounterex, ...] = field(default_factory=tuple)
-    method: str = "grid"
+    method: str = "symmetric_difference"
     proof_attempted: bool = False
 
 
 def sym_diff_empty(
     left: sp.Expr, right: sp.Expr, variables: Sequence[sp.Symbol]
 ) -> EquivalenceReport:
-    check = find_grid_witness(left, right, variables)
-    if check.equivalent_on_grid:
-        return EquivalenceReport(equivalent=True, checked_points=check.checked_points)
-    if check.witness is None:
-        raise InternalInvariantError("failed equivalence check did not provide a witness")
-    mismatch = EquivCounterex(
-        point=dict(check.witness.assignment),
-        left=check.witness.left_value,
-        right=check.witness.right_value,
+    """Decide exact real set equivalence, retaining the historical report type.
+
+    Finite sampling is available separately as ``find_grid_witness``; absence
+    of a grid witness is never evidence of exact equivalence here.
+    """
+    from ..decision import equivalent, is_satisfiable
+    from ..simplify.atoms import normalize_atoms
+
+    result = equivalent(
+        normalize_atoms(sp.sympify(left)),
+        normalize_atoms(sp.sympify(right)),
+        variables,
+        return_result=True,
     )
+    mismatches = ()
+    if result.counterexample is not None:
+        point = dict(result.counterexample)
+        left_value = is_satisfiable(sp.sympify(left).subs(point), ())
+        right_value = is_satisfiable(sp.sympify(right).subs(point), ())
+        mismatches = (EquivCounterex(point, bool(left_value), bool(right_value)),)
     return EquivalenceReport(
-        equivalent=False, checked_points=check.checked_points, mismatches=(mismatch,)
+        equivalent=result.equivalent,
+        checked_points=len(mismatches),
+        mismatches=mismatches,
+        method=result.method,
+        proof_attempted=True,
     )
 
 

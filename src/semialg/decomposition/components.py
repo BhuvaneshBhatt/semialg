@@ -9,6 +9,7 @@ from ..algebraic.samples import Sample, sample_to_expr
 from ..cad_algorithms.lifting.stack import CADCell
 from ..context import with_computation_context
 from ..domains import normalize_assumptions
+from ..errors import ExactComputationUnavailable
 from ..qe.complete import cells_to_formula
 from ..simplify.formula import simplify_qe_formula
 from ..structural_keys import symbol_identity_key
@@ -102,16 +103,23 @@ def component_instances(
         strict=strict,
         return_result=True,
     )
-    comp_result = components_from_cell_set(
-        result.as_cell_set(),
-        max_components=max_components,
-        diagnostics={
-            "cad_status": result.status,
-            "strategy": strategy,
-            "domain": domain,
-            "assumptions": tuple(map(sp.sstr, normalize_assumptions(assumptions))),
-        },
-    )
+    diagnostics = {
+        "cad_status": result.status,
+        "cad_diagnostics": result.diagnostics,
+        "strategy": strategy,
+        "domain": domain,
+        "assumptions": tuple(map(sp.sstr, normalize_assumptions(assumptions))),
+    }
+    if result.status == "complete":
+        comp_result = components_from_cell_set(
+            result.as_cell_set(), max_components=max_components, diagnostics=diagnostics
+        )
+    else:
+        if not return_result:
+            raise ExactComputationUnavailable(
+                str(result.diagnostics.get("reason", "CAD construction is incomplete"))
+            )
+        comp_result = ComponentResult(tuple(result.variables), (), result.status, diagnostics)
     if return_result:
         return comp_result
     return comp_result.instances

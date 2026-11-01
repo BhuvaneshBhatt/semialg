@@ -75,10 +75,10 @@ def is_zero_dimensional(
     equations: Iterable[sp.Expr | bool],
     variables: Sequence[sp.Symbol],
 ) -> bool:
-    """Return whether rational polynomial equations define a finite complex set.
+    """Return whether a rational polynomial ideal has Krull dimension zero.
 
-    This function is conservative: non-polynomial inputs and
-    non-rational coefficients return ``False`` rather than raising. Internally
+    The empty locus has dimension -1 and returns ``False``. Unsupported
+    inputs also return ``False``. Internally
     it uses SymPy's Groebner-basis zero-dimensionality test, which checks for a
     pure-power leading monomial in every variable direction.
     """

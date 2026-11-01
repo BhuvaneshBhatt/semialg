@@ -1,8 +1,6 @@
 # Convexity
 
-`semialg.is_convex(region, variables)` decides convexity of real semialgebraic
-sets exactly.  The implementation uses progressively more general certified
-methods and keeps the quantified segment definition as the complete fallback.
+`semialg.is_convex(region, variables)` decides convexity of real semialgebraic sets exactly.  The implementation uses progressively more general certified methods and keeps the quantified segment definition as the complete fallback.
 
 ## Decision hierarchy
 
@@ -22,40 +20,17 @@ The current hierarchy is:
 10. decide the remaining cases by complete quantifier elimination of the
     segment definition.
 
-The final fallback checks whether there exist `x`, `y` in the set and
-`0 <= t <= 1` for which `t*x + (1-t)*y` leaves the set.  A negative answer to
-that existential query is an exact convexity proof.
+The final fallback checks whether there exist `x`, `y` in the set and `0 <= t <= 1` for which `t*x + (1-t)*y` leaves the set.  A negative answer to that existential query is an exact convexity proof.
 
 ## Structured certificates
 
-`convexity_certificate(region, variables)` returns a `ConvexityCertificate`
-with the exact Boolean outcome, the method that decided it, optional witness
-data, and method-specific details.  This is useful when downstream packages
-need to distinguish a cheap structural proof from full quantified QE.
+`convexity_certificate(region, variables)` returns a `ConvexityCertificate` with the exact Boolean outcome, the method that decided it, optional witness data, and method-specific details.  This is useful when downstream packages need to distinguish a cheap structural proof from full quantified QE.
 
-`quadratic_convexity_certificate(region, variables)` recognizes basic
-quadratic intersections.  Equality constraints must be affine.  Quadratic
-sublevels require a positive-semidefinite Hessian and quadratic superlevels a
-negative-semidefinite Hessian.  If the representation is outside that class,
-the routine returns an inconclusive certificate instead of guessing.
+`quadratic_convexity_certificate(region, variables)` recognizes basic quadratic intersections.  Equality constraints must be affine.  Quadratic sublevels require a positive-semidefinite Hessian and quadratic superlevels a negative-semidefinite Hessian.  If the representation is outside that class, the routine returns an inconclusive certificate instead of guessing.
 
-`polynomial_convexity_certificate(expr, variables, domain=..., sense=...)`
-certifies the Hessian sign of a polynomial globally or on a semialgebraic
-domain. Constant symmetric Hessians (in particular, quadratic polynomials) are
-decided by exact congruence/LDL-style inertia computation, avoiding exponential
-principal-minor enumeration. Nonconstant polynomial Hessians use the exact
-principal-minor characterization; symbolically unresolved signs are sent to
-complete CAD under the requested domain.
+`polynomial_convexity_certificate(expr, variables, domain=..., sense=...)` certifies the Hessian sign of a polynomial globally or on a semialgebraic domain. Constant symmetric Hessians (in particular, quadratic polynomials) are decided by exact congruence/LDL-style inertia computation, avoiding exponential principal-minor enumeration. Nonconstant polynomial Hessians use the exact principal-minor characterization; symbolically unresolved signs are sent to complete CAD under the requested domain.
 
-A `False` result from `polynomial_convexity_certificate` means that the
-requested Hessian sign fails somewhere on the supplied domain.  It is a
-statement about that Hessian certificate, not by itself a representation-
-independent proof that every possible sublevel representation is nonconvex.
-The Hessian condition is interpreted relative to the supplied domain, so it
-holds vacuously on an empty domain.  On lower-dimensional domains a failed
-ambient Hessian test can still be inconclusive about convexity of the restricted
-function; callers should use `True` certificates as sufficient proofs and avoid
-treating a failed Hessian sign as a set-convexity theorem.
+A `False` result from `polynomial_convexity_certificate` means that the requested Hessian sign fails somewhere on the supplied domain.  It is a statement about that Hessian certificate, not by itself a representation- independent proof that every possible sublevel representation is nonconvex. The Hessian condition is interpreted relative to the supplied domain, so it holds vacuously on an empty domain.  On lower-dimensional domains a failed ambient Hessian test can still be inconclusive about convexity of the restricted function; callers should use `True` certificates as sufficient proofs and avoid treating a failed Hessian sign as a set-convexity theorem.
 
 
 ## Function convexity
@@ -92,35 +67,22 @@ With `return_result=True`, nonparametric calls return `FunctionConvexityResult`,
 
 ## Domain-relative Hessian certificates
 
-Global convexity of a defining polynomial is stronger than necessary in many
-intersections.  The staged domain-relative path begins with affine constraints,
-which define a convex domain, and adds a nonlinear constraint only after its
-Hessian sign has been proved throughout the domain already certified convex.
-For example, the polynomial
+Global convexity of a defining polynomial is stronger than necessary in many intersections.  The staged domain-relative path begins with affine constraints, which define a convex domain, and adds a nonlinear constraint only after its Hessian sign has been proved throughout the domain already certified convex. For example, the polynomial
 
 ```python
 f = x**4 - x**2 + y**2
 ```
 
-is not globally convex, but its Hessian is positive semidefinite on `x >= 1`.
-Consequently an intersection such as
+is not globally convex, but its Hessian is positive semidefinite on `x >= 1`. Consequently an intersection such as
 
 ```python
 And(x >= 1, f <= 10)
 ```
 
-can be certified convex without constructing the full two-point segment query.
-The order is proof-sensitive: a later constraint is never used to justify the
-convexity of an earlier domain.
+can be certified convex without constructing the full two-point segment query. The order is proof-sensitive: a later constraint is never used to justify the convexity of an earlier domain.
 
 ## Negative certificates
 
-Convex nonempty sets are connected, so a certified disconnected topology is an
-exact nonconvexity certificate.  The hierarchy uses cheap topology checks where
-they are advantageous, especially factorized algebraic varieties.
+Convex nonempty sets are connected, so a certified disconnected topology is an exact nonconvexity certificate.  The hierarchy uses cheap topology checks where they are advantageous, especially factorized algebraic varieties.
 
-For other cases, the segment search uses exact CAD cell sample points.  If two
-verified feasible points have a verified infeasible midpoint, the returned
-certificate records the endpoints, midpoint, and `t = 1/2`.  Failure to find
-such a witness is never interpreted as convexity; the complete quantified
-fallback remains authoritative.
+For other cases, the segment search uses exact CAD cell sample points.  If two verified feasible points have a verified infeasible midpoint, the returned certificate records the endpoints, midpoint, and `t = 1/2`.  Failure to find such a witness is never interpreted as convexity; the complete quantified fallback remains authoritative.

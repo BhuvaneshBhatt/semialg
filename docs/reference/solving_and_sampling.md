@@ -82,28 +82,13 @@ See [Solving](../solving.md) for deeper examples.
 
 ## Solver configuration, domains, and resolution
 
-`SemialgOptions` stores high-level solver controls and `SolveDomain` names the
-supported solving domains. `resolve_formula` evaluates a structured formula to a
-Boolean result when its truth can be decided exactly; `reduce_formula` instead
-returns a simplified exact formula when symbolic structure should be retained.
+`SemialgOptions` stores high-level solver controls and `SolveDomain` names the supported solving domains. `resolve_formula` evaluates a structured formula to a Boolean result when its truth can be decided exactly; `reduce_formula` instead returns a simplified exact formula when symbolic structure should be retained.
 
 ### `function_domain(...)`
 
-`function_domain(expr, variables=None)` computes recognized exact real-domain
-conditions using the same semialgebraic function-graph machinery used by range
-analysis whenever that graph is available.  The shared graph engine
-handles rational expressions, `Abs`, `sign`, `Min`, `Max`, finite `Piecewise`
-expressions, and rational powers.  Nested graph variables are projected away by
-QE when useful, so domain constraints can be simplified back to conditions on
-the requested input variables.
+`function_domain(expr, variables=None)` computes recognized exact real-domain conditions using the same semialgebraic function-graph machinery used by range analysis whenever that graph is available.  The shared graph engine handles rational expressions, `Abs`, `sign`, `Min`, `Max`, finite `Piecewise` expressions, and rational powers.  Nested graph variables are projected away by QE when useful, so domain constraints can be simplified back to conditions on the requested input variables.
 
-Rational powers follow SymPy's own semantics.  Ordinary
-`x**Rational(p, q)` is a principal-branch `Pow`; for a noninteger rational
-exponent its real-valued locus on a real base is therefore nonnegative (strictly
-positive for negative exponents).  Explicit real roots should be written with
-`sympy.real_root`.  SymPy canonicalizes an odd real root to a combination such
-as `sign(x)*Abs(x)**(1/3)`, and semialg recognizes that representation as a real
-root instead of reinterpreting ordinary `Pow`.
+Rational powers follow SymPy's own semantics.  Ordinary `x**Rational(p, q)` is a principal-branch `Pow`; for a noninteger rational exponent its real-valued locus on a real base is therefore nonnegative (strictly positive for negative exponents).  Explicit real roots should be written with `sympy.real_root`.  SymPy canonicalizes an odd real root to a combination such as `sign(x)*Abs(x)**(1/3)`, and semialg recognizes that representation as a real root instead of reinterpreting ordinary `Pow`.
 
 ```python
 import sympy as sp
@@ -124,21 +109,10 @@ function_domain(sp.sqrt(x - 1) / (x - 2), [x])
 # (x >= 1) & Ne(x, 2), modulo exact simplification
 ```
 
-The structural domain layer also recognizes denominator nonvanishing and
-`log(arg) > 0`.  This is useful even though the graph of `log` itself is not
-semialgebraic.  Thus the function's scope is: exact semialgebraic graph/domain
-reasoning where available, plus selected nonalgebraic heads whose **real-domain
-predicate** is semialgebraic.
+The structural domain layer also recognizes denominator nonvanishing and `log(arg) > 0`.  This is useful even though the graph of `log` itself is not semialgebraic.  Thus the function's scope is: exact semialgebraic graph/domain reasoning where available, plus selected nonalgebraic heads whose **real-domain predicate** is semialgebraic.
 
-This is still not a complete real-domain analyzer for arbitrary SymPy functions.
-Unsupported domain-sensitive heads may require conditions that are not inferred.
-A returned `True` therefore means either that the supported exact graph projects
-to all requested real inputs, or that the structural fallback found no additional
-restriction; it is not a blanket claim that every possible function head has
-been analyzed.
+This is still not a complete real-domain analyzer for arbitrary SymPy functions. Unsupported domain-sensitive heads may require conditions that are not inferred. A returned `True` therefore means either that the supported exact graph projects to all requested real inputs, or that the structural fallback found no additional restriction; it is not a blanket claim that every possible function head has been analyzed.
 
-`is_real_valued` combines these recognized domain conditions with assumptions
-and exact semialgebraic implication checks where possible.
+`is_real_valued` combines these recognized domain conditions with assumptions and exact semialgebraic implication checks where possible.
 
-`is_zero_dimensional` detects finite polynomial solution sets before
-`solve_zero_dimensional_system` performs exact solving and returns the tuple of exact solution-coordinate tuples by default. Set ``return_result=True`` to obtain `ZeroDimensionalSolveResult`, including the backend, RUR representation, status, and notes.
+`is_zero_dimensional` detects finite polynomial solution sets before `solve_zero_dimensional_system` performs exact solving and returns the tuple of exact solution-coordinate tuples by default. Set ``return_result=True`` to obtain `ZeroDimensionalSolveResult`, including the backend, RUR representation, status, and notes.

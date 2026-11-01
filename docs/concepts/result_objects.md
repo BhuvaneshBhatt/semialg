@@ -6,9 +6,7 @@ Many `semialg` functions return more than a bare SymPy expression because exact 
 
 Consider
 
-\[
-\inf_{-1<x<1}x=-1.
-\]
+\[ \inf_{-1<x<1}x=-1. \]
 
 The exact value is `-1`, but no feasible point attains it. A useful optimization result must therefore distinguish:
 
@@ -45,10 +43,7 @@ Some exact parametric answers are naturally first-order relations. A result can 
 
 A parameter-stratified result represents
 
-\[
-C_1(p)\Rightarrow v_1(p),\quad
-C_2(p)\Rightarrow v_2(p),\ldots
-\]
+\[ C_1(p)\Rightarrow v_1(p),\quad C_2(p)\Rightarrow v_2(p),\ldots \]
 
 where each \(C_i\) is an exact semialgebraic guard.
 
@@ -77,17 +72,9 @@ Use `.as_piecewise()` only when the result type supports it and a plain symbolic
 
 ## Metadata is certified when present
 
-Cheap metadata fields are conservative. In particular, a numeric
-`dimension` value means that the dimension has been established exactly by the
-metadata path (for example by affine rank or a certified cylindrical
-decomposition). `dimension=None` means that this inexpensive layer did not
-certify a single global dimension; it does **not** mean that the set lacks a
-dimension.
+Cheap metadata fields are conservative. In particular, a numeric `dimension` value means that the dimension has been established exactly by the metadata path (for example by affine rank or a certified cylindrical decomposition). `dimension=None` means that this inexpensive layer did not certify a single global dimension; it does **not** mean that the set lacks a dimension.
 
-Parameter-dependent affine systems illustrate why this matters. For `a*x = 0`
-the fiber in `x` has dimension 0 when `a != 0` and dimension 1 when `a = 0`.
-Without first stratifying parameter space, reporting either integer globally
-would be wrong, so cheap metadata correctly leaves the field unknown.
+Parameter-dependent affine systems illustrate why this matters. For `a*x = 0` the fiber in `x` has dimension 0 when `a != 0` and dimension 1 when `a = 0`. Without first stratifying parameter space, reporting either integer globally would be wrong, so cheap metadata correctly leaves the field unknown.
 
 ## CAD and algebraic result objects
 

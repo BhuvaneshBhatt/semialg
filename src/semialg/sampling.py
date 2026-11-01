@@ -259,27 +259,17 @@ def _random_points(
         yield point
 
 
-def _dedupe_points(
-    points: Iterable[Mapping[sp.Symbol, sp.Expr]],
-) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
-    out: list[dict[sp.Symbol, sp.Expr]] = []
-    seen: set[tuple[tuple[sp.Symbol, sp.Expr], ...]] = set()
+def _validated(points: Iterable[Mapping[sp.Symbol, sp.Expr]], formula: sp.Expr, *, strict: bool):
+    """Validate each distinct candidate once, preserving order and lazy sampling."""
+    seen = set()
     for point in points:
         key = point_key(point)
-        if key not in seen:
-            out.append({var: sp.sympify(value) for var, value in point.items()})
-            seen.add(key)
-    return tuple(out)
-
-
-def _validated(
-    points: Iterable[Mapping[sp.Symbol, sp.Expr]], formula: sp.Expr, *, strict: bool
-) -> tuple[dict[sp.Symbol, sp.Expr], ...]:
-    return tuple(
-        dict(point)
-        for point in _dedupe_points(points)
-        if satisfies_formula(formula, point, strict=strict)
-    )
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized = {var: sp.sympify(value) for var, value in point.items()}
+        if satisfies_formula(formula, normalized, strict=strict):
+            yield normalized
 
 
 def _rur_points(
@@ -379,63 +369,47 @@ def sample_points(
     if key not in {"representative", "rational", "grid", "random", "cad_cells", "complete"}:
         raise ValueError(f"unsupported sample strategy: {strategy!r}")
 
-    candidate_points: list[dict[sp.Symbol, sp.Expr]] = []
+    def candidates():
+        if key in {"representative", "complete"}:
+            yield from _rur_points(expr, vars_, count=count)
+        if key in {"representative", "rational", "complete"}:
+            yield from _small_rational_grid(vars_, radius=default_sampling_radius)
+        if key == "grid":
+            yield from _bounded_rational_grid(
+                vars_,
+                bounds,
+                resolution=grid_resolution,
+                exact=exact,
+                default_radius=default_sampling_radius,
+                numeric_precision=numeric_precision,
+            )
+        if key == "random":
+            attempts = (
+                random_attempts
+                if random_attempts is not None
+                else max(random_attempts_min, random_attempts_each * count)
+            )
+            yield from _random_points(
+                vars_,
+                bounds,
+                attempts=attempts,
+                seed=seed,
+                exact=exact,
+                default_radius=default_sampling_radius,
+                max_denominator=max_random_denominator,
+                numeric_precision=numeric_precision,
+            )
+        if key in {"cad_cells", "complete"} or per_component:
+            yield from _cad_points(
+                expr, vars_, count=count, strict=strict, per_component=per_component
+            )
 
-    if key in {"representative", "complete"}:
-        candidate_points.extend(_rur_points(expr, vars_, count=count))
-        valid = _validated(candidate_points, expr, strict=strict)
-        if len(valid) >= count:
-            return valid[:count]
-
-    if key in {"representative", "rational", "complete"}:
-        for point in _small_rational_grid(vars_, radius=default_sampling_radius):
-            candidate_points.append(point)
-            valid = _validated(candidate_points, expr, strict=strict)
-            if len(valid) >= count:
-                return valid[:count]
-
-    if key == "grid":
-        for point in _bounded_rational_grid(
-            vars_,
-            bounds,
-            resolution=grid_resolution,
-            exact=exact,
-            default_radius=default_sampling_radius,
-            numeric_precision=numeric_precision,
-        ):
-            candidate_points.append(point)
-            valid = _validated(candidate_points, expr, strict=strict)
-            if len(valid) >= count:
-                return valid[:count]
-
-    if key == "random":
-        attempts = (
-            random_attempts
-            if random_attempts is not None
-            else max(random_attempts_min, random_attempts_each * count)
-        )
-        for point in _random_points(
-            vars_,
-            bounds,
-            attempts=attempts,
-            seed=seed,
-            exact=exact,
-            default_radius=default_sampling_radius,
-            max_denominator=max_random_denominator,
-            numeric_precision=numeric_precision,
-        ):
-            candidate_points.append(point)
-            valid = _validated(candidate_points, expr, strict=strict)
-            if len(valid) >= count:
-                return valid[:count]
-
-    if key in {"cad_cells", "complete"} or per_component:
-        candidate_points.extend(
-            _cad_points(expr, vars_, count=count, strict=strict, per_component=per_component)
-        )
-
-    valid = _validated(candidate_points, expr, strict=strict)
-    return valid[:count]
+    valid = []
+    for point in _validated(candidates(), expr, strict=strict):
+        valid.append(point)
+        if len(valid) == count:
+            break
+    return tuple(valid)
 
 
 def sample_point(

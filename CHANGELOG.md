@@ -1,3 +1,37 @@
+## Version 1.4
+
+### CAD, quantifier elimination, and certification
+
+- Add full Lazard projection and native valuation-aware lifting for multivariate polynomials with rational or exact real-algebraic coefficients. The implementation handles degree drops and positive-dimensional nullification, and complete Collins can restart with Lazard when ordinary lifting cannot be certified.
+- Strengthen reduced CAD with recursively justified equational constraint (EC) implications and degree/order hypotheses. When these conditions cannot be certified, the solver falls back to an ambient decomposition.
+- Improve quantifier elimination with bounded exact elimination of linear Boolean formulas, quantifier-guided partial/lazy lifting and reconstruction of simpler formulas from certified CAD sign data when possible.
+
+### Regions, parameter families, and topology
+
+- Add `bounding_cover` for inexpensive outer coordinate bounds and `optimization_cover` for structural parametrizations that retain boundaries, singular points and lower-dimensional pieces.
+- Add `region_family` to partition parameter space by fiber behavior, including empty and dimension-changing fibers. Scalar fibers expose component counts and graph/band structure, supported ball and sphere families also have structural component and Betti-number data. General higher-dimensional fibers expose CAD cells and dimensions, not complete topological invariants.
+- Add shortcuts for closure, interior and boundary of supported quadratic and Cartesian-product semialgebraic sets, avoiding CAD incidence computations when exact formulas suffice.
+
+### Exact optimization
+
+- Add certified extrema for univariate polynomial objectives on semialgebraic domains using complete real-root isolation, stationary points, and endpoint or infinite limits.
+- Add support-function optimization of affine objectives over supported positive-definite ellipsoids, distinguishing attained optima from unattained bounds on open domains and bypass general CAD when their hypotheses apply.
+
+### Algebra, performance and robustness
+
+- Reuse prepared polynomial data, existing Gröbner bases and complete sign-table cache entries. Also reduce expression round trips in FLINT conversions and resultant computations.
+- Improve function-field computations with fraction-free norm elimination, and strengthen exact algebraic-zero validation for rational univariate representation (RUR) points.
+
+### Function graphs
+
+- Add `verify_real_function`, `compare_real_graphs`, and `verify_real_composition` for checks of graph totality, single-valuedness, equivalence and composition on declared real domains. These use decision and quantifier-elimination paths, not numerical sampling.
+- Correct Boolean graph negation and inactive `Heaviside` branch domains. Improve real coverage of backend curve parametrizations, retaining isolated real points and necessary domain restrictions. The new `alggeom` package handles algebraic decomposition search and reconstruction.
+
+### Misc
+
+- Update dependencies to `sympy>=1.14,<2`, `python-flint>=0.9,<1`, and `algroots>=0.3.0` (with `exprtest>=0.1.0` unchanged).
+- Expand documentation for native CAD proofs, optimization geometry, parameter families, and mathematical limitations.
+
 ## Version 1.3.2
 
 - Extended coarea support with vector-map Gram certification, parameter-event candidates and exceptional-fiber handling, added budget/dispatch regressions and measured certificate reuse.

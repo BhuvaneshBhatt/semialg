@@ -12,6 +12,10 @@ Decision and QE entry points avoid CAD when a cheaper exact certificate applies.
 
 The cheap stages have bounded structural checks or reuse computations required by later stages. A specialist may decline an input without changing its mathematical meaning; declining sends the same normalized problem to the next exact method.
 
+## Structural geometry and optimization
+
+[Exact structural rules](../structural_rules.md) handle affine objectives over ellipsoids, complete univariate polynomial calculus, Cartesian topology, quadratic sign geometry and coercive boundedness before general fallbacks. QE presentation also reuses the ambient CAD's projection signs when they determine projected truth, avoiding a new CAD for each implication between displayed root formulas. These are exact certificates under checked hypotheses; parameters and unsupported geometry keep the general path.
+
 ## Reduce the problem before CAD
 
 Cheap symbolic simplification can have a large effect:
@@ -36,23 +40,19 @@ If you supply an order manually, benchmark it on the actual problem family inste
 
 A formula containing an equation such as `f == 0` can often be decomposed more cheaply than a fully sign-invariant CAD for every polynomial. semialg propagates equational constraints across levels and can avoid lifting cells that cannot affect the formula's truth.
 
-Existential satisfiability uses exhaustive lazy CAD before materializing a full
-cell decomposition. It stops immediately on a certified true branch, while UNSAT is
-returned only after all relevant branches have been exhausted. Inside a single
-quantifier block the lazy driver may reorder variables with the measured CAD order
-planner because such reordering preserves semantics.
+Existential satisfiability uses exhaustive lazy CAD before materializing a full cell decomposition. It stops immediately on a certified true branch, while UNSAT is returned only after all relevant branches have been exhausted. Inside a single quantifier block the lazy driver may reorder variables with the measured CAD order planner because such reordering preserves semantics.
 
-Collins projection also works with exact squarefree factors instead of projecting a
-reducible product and all of its factors simultaneously. Factor signs plus pairwise
-resultants retain the required sign/root events and reduce redundant coefficients and
-discriminants. Reduced McCallum/Lazard paths retain their conservative certification
-and Collins fallback contract.
+Collins projection also works with exact squarefree factors instead of projecting a reducible product and all of its factors simultaneously. Factor signs plus pairwise resultants retain the required sign/root events and reduce redundant coefficients and discriminants. Reduced McCallum/Lazard paths retain their conservative certification and Collins fallback contract.
 
 Write logical structure explicitly instead of hiding useful equalities inside opaque transformations.
 
 ## Reuse within a solve
 
 A top-level exact operation creates a computation context that reuses projection data, sign determinations, root comparisons, specializations, and RUR computations across nested work. Keep logically related work inside the high-level operation instead of manually recreating equivalent low-level calls when possible.
+
+Independent equality-ideal contexts also share bounded immutable Gröbner bases, keyed by generators, variable identities and coefficient domain. Formula evaluation uses the same polynomial sign keys as lifting. During refinement, point location retains only its previous cylindrical path and reuses coordinates shared by consecutive queries. These optimizations reuse exact results; they do not weaken projection or certificate checks.
+
+Witness sampling consumes candidate streams lazily. Each distinct candidate is validated once, and sampling stops when the requested count is reached. This avoids repeatedly validating all earlier candidates after each grid point while preserving candidate order, seeded randomness and exact validation.
 
 ## Optimization certification policies
 
@@ -92,9 +92,7 @@ Collins and reduced CAD projection also share the same low-level polynomial norm
 
 ## Tunable resource and heuristic limits
 
-Several resource limits are explicit
-options so applications can trade runtime and memory for aggressiveness without
-patching semialg internals:
+Several resource limits are explicit options so applications can trade runtime and memory for aggressiveness without patching semialg internals:
 
 - `cad(..., max_preprocess_aux_vars=3)` bounds existential auxiliaries introduced
   by semialgebraic preprocessing; `None` disables this guard.
@@ -115,34 +113,24 @@ patching semialg internals:
 - `sign_at` and `sign_vector` expose `numeric_precision` for their explicitly
   inexact (`exact=False`) fallback.
 
-Process-local performance-cache capacities are expert controls instead of root
-APIs. Use `semialg.algebraic.configure_algebraic_cache_limits(...)` for root,
-sign, comparison, specialization, and RUR caches, and
-`semialg.cad_algorithms.configure_cad_cache_limits(...)` for projection-tower,
-squarefree-base, projection-step, and complete-CAD caches. Resizing a cache keeps
-its newest entries up to the new capacity and does not change mathematical
-semantics.
+Process-local performance-cache capacities are expert controls instead of root APIs. Use `semialg.algebraic.configure_algebraic_cache_limits(...)` for root, sign, comparison, specialization, and RUR caches, and `semialg.cad_algorithms.configure_cad_cache_limits(...)` for projection-tower, squarefree-base, projection-step, and complete-CAD caches. Resizing a cache keeps its newest entries up to the new capacity and does not change mathematical semantics.
 
 ## Cache lifecycle and teardown
 
-Long-running workers and large test processes can release every process-local
-`semialg` performance cache through `clear_caches()`. The call clears the
-algebraic root/sign/RUR caches, CAD projection caches, GTZ canonical-basis
-caches, optimization/planner/convexity/integration LRUs, integer Groebner
-recursion cache, simplification implication cache, and solution-metadata cache.
-It runs Python garbage collection by default. Set `include_sympy=True` only at
-an explicit process lifecycle boundary when it is also appropriate to clear
-SymPy's global expression cache.
+Long-running workers and large test processes can release every process-local `semialg` performance cache through `clear_caches()`. The call clears the algebraic root/sign/RUR caches, CAD projection caches, GTZ canonical-basis caches, optimization/planner/convexity/integration LRUs, integer Groebner recursion cache, simplification implication cache, and solution-metadata cache. It runs Python garbage collection by default. Set `include_sympy=True` only at an explicit process lifecycle boundary when it is also appropriate to clear SymPy's global expression cache.
 
-`cache_report()` returns cache sizes, configured bounds, and available hit/miss
-statistics without exposing cached mathematical objects. Cache state is a
-performance detail only: clearing it must not change exact results or
-certificate validity. The cache lifecycle tests exercise repeated workloads,
-checks every bounded cache stays within its declared capacity, clears all
-caches through the unified hook, and then replays the same certificates.
+`cache_report()` returns cache sizes, configured bounds, and available hit/miss statistics without exposing cached mathematical objects. Cache state is a performance detail only: clearing it must not change exact results or certificate validity. The cache lifecycle tests exercise repeated workloads, checks every bounded cache stays within its declared capacity, clears all caches through the unified hook, and then replays the same certificates.
 
 ## Performance regression testing
 
 Prefer structural assertions for routine regression tests. A test that proves a Sturm fallback was not entered, that a projection cache gained a hit, or that a specialized backend avoided generic QE is more portable than a narrow elapsed-time bound. Use wall-clock tests only for coarse end-to-end regressions and keep them in the opt-in performance suite.
 
 If an accelerated backend bypasses a fallback cache, test the accelerated backend and the fallback cache as separate contracts. Do not require cache counters to move on a path that no longer uses that cache.
+
+## Profiling the slow suite
+
+Run `python -m pytest -o addopts= -m slow --durations=30` to include the slow marker even when the project defaults exclude it. Use a fixed `--hypothesis-seed` for before/after comparisons and retain the same generated-example counts, dependency set and runtime budgets. Record failures separately; a test that stops early with an error is not a speedup.
+
+For a focused call profile, run `python -m cProfile -o case.prof -m pytest -q -o addopts= path/to/test.py::test_name` and inspect it with `python -m pstats case.prof`. This command includes collection and startup in the profile. A pytest call-phase profiling hook can isolate the mathematical test body when that distinction matters. Compare unprofiled timings: deterministic profiling adds substantial overhead and can trip runtime guards.
+
+Fresh subprocesses give independent cold-process measurements, including startup; running the whole suite in one process measures a different workload with shared caches. Report pytest call duration separately from subprocess elapsed time. Interpreter, plugin and test-collection startup can dominate small tests, so use focused call profiles to choose algorithmic changes and grouped suite runs to assess CI cost. A single timing comparison is diagnostic evidence; use repeated runs before treating small differences as regressions.

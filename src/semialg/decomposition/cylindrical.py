@@ -7,23 +7,24 @@ from typing import Literal
 
 import sympy as sp
 
-from .._zero_testing import certified_equal
-from ..algebraic.comparison import compare_samples
+from .._immutable import FrozenMappingPickle
 from ..algebraic.samples import sample_to_expr
 from ..cad_algorithms.decomposition import (
     CompleteCAD,
     decomp_collins_complete,
+    decomp_lazard_complete,
     try_decomp_groebner_variety,
 )
 from ..cad_algorithms.lifting.stack import CADCell
 from ..cad_algorithms.projection.groebner import build_groebner_variety_projection
+from ..cad_algorithms.resource_limits import CADBudget, budget_scope, current_budget
 from ..context import with_computation_context
 from ..domains import apply_assumptions, normalize_assumptions, normalize_domain
 from ..errors import ResourceLimitError
-from ..exact_arithmetic import compare_exact_reals
 from ..formula import Formula, formula_polynomials, parse_formula, parse_formula_text, to_sympy
 from ..normalization import normalize_symbol_sequence
 from ..preprocess.semialgebraicize import semialgebraicize
+from ..qe.cell_reconstruction import finite_variety_formula
 from ..qe.complete import CellUnion, cells_to_formula, evaluate_formula_on_cell, qe_by_complete_cad
 from ..reconstruct.cylindrical import path_condition
 from ..simplify.boolean import simplify_boolean
@@ -56,7 +57,7 @@ class CADOptions:
 
 
 @dataclass(frozen=True)
-class CellSet:
+class CellSet(FrozenMappingPickle):
     """A finite set of CAD cells selected by a semialgebraic condition."""
 
     variables: tuple[sp.Symbol, ...]
@@ -109,7 +110,7 @@ class CADTreeNode:
 
 
 @dataclass(frozen=True)
-class CADFunction:
+class CADFunction(FrozenMappingPickle):
     """Compact evaluable representation of a cylindrical decomposition.
 
     The object stores the CAD tree and selected full-dimensional cells. Point
@@ -162,21 +163,10 @@ class CADFunction:
         self,
         point: Sequence[sp.Expr | int | float] | Mapping[sp.Symbol, sp.Expr | int | float],
     ) -> CADCell | None:
+        """Locate a point using section boundaries in its own coordinate fibers."""
+
         subs = self._point_subs(point)
-        parent_index: tuple[int, ...] | None = None
-        found: CADCell | None = None
-        for level, var in enumerate(self.variables, start=1):
-            value = sp.sympify(subs[var])
-            candidates = [
-                cell
-                for cell in self.cad.cells_by_level.get(level, ())
-                if cell.parent_index == parent_index
-            ]
-            found = _cell_containing_value(candidates, value)
-            if found is None:
-                return None
-            parent_index = found.index
-        return found
+        return self.cad._point_locator.locate(tuple(subs[var] for var in self.variables))
 
     def sample_points(self) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
         return self.cell_set.sample_points()
@@ -187,13 +177,14 @@ class CADFunction:
     def restrict(self, assignments: Mapping[sp.Symbol, sp.Expr | int | float]) -> CADFunction:
         remaining = tuple(var for var in self.variables if var not in assignments)
         restricted = sp.simplify(self.formula.subs(assignments))
-        if not remaining:
-            restricted_cell_set = CellSet((), tuple(), {}, restricted)
-            return CADFunction((), restricted, self.cad, restricted_cell_set, self.operation)
         return cad(restricted, remaining, output="function")
 
     def project_cell_set(self, variables: Sequence[sp.Symbol]) -> CellSet:
         level = len(tuple(variables))
+        if level == 0:
+            raise NotImplementedError(
+                "zero-coordinate CAD projection is unsupported; use existential quantifier elimination"
+            )
         if tuple(variables) != self.variables[:level]:
             raise NotImplementedError("projection requires a prefix of the decomposition variables")
         projected: dict[tuple[int, ...], CADCell] = {}
@@ -203,11 +194,10 @@ class CADFunction:
                 match = next(c for c in self.cad.cells_by_level[level] if c.index == key)
                 projected[key] = match
         cells = tuple(projected[key] for key in sorted(projected))
-        formula = (
-            cells_to_formula(cells, tuple(variables), self.cad.cells_by_level)
-            if cells
-            else sp.false
-        )
+        if self.cad.tower.metadata.get("variety_only", False):
+            formula = finite_variety_formula(cells, tuple(variables))
+        else:
+            formula = cells_to_formula(cells, tuple(variables), self.cad.cells_by_level)
         return CellSet(
             tuple(variables), cells, self.cad.cells_by_level, simplify_qe_formula(formula)
         )
@@ -245,7 +235,7 @@ class CADFunction:
 
 
 @dataclass(frozen=True)
-class CADResult:
+class CADResult(FrozenMappingPickle):
     """Public result for CAD requests."""
 
     formula: sp.Expr
@@ -336,28 +326,6 @@ def _open_cell_condition(
     return path_condition(cell, variables, cells_by_level, closed=False)
 
 
-def _variety_cells_formula(cells: Sequence[CADCell], variables: Sequence[sp.Symbol]) -> sp.Expr:
-    """Reconstruct a finite variety sub-CAD without assuming sector coverage."""
-
-    if not cells:
-        return sp.false
-    points = []
-    for cell in cells:
-        if len(cell.sample) != len(variables):
-            continue
-        points.append(
-            sp.And(
-                *(
-                    sp.Eq(variable, sample_to_expr(sample))
-                    for variable, sample in zip(variables, cell.sample, strict=True)
-                )
-            )
-        )
-    if not points:
-        return sp.false
-    return sp.Or(*points)
-
-
 def _formula_from_conditions(conditions: Iterable[sp.Expr]) -> sp.Expr:
     kept = [cond for cond in conditions if cond is not sp.false and cond != sp.false]
     if not kept:
@@ -411,7 +379,17 @@ def _build_cad_for_formula(
     """Build a formula CAD, using finite Groebner variety lifting when sound."""
 
     normalized_strategy = str(strategy).lower().replace("_", "-")
-    if allow_variety_cad and normalized_strategy not in {"collins", "collins-complete", "full"}:
+    if (
+        allow_variety_cad
+        and current_budget() is None
+        and normalized_strategy
+        not in {
+            "collins",
+            "collins-complete",
+            "full",
+            "lazard-complete",
+        }
+    ):
         projection = build_groebner_variety_projection(formula, variables)
         if projection is not None:
             variety_cad = try_decomp_groebner_variety(projection)
@@ -420,42 +398,9 @@ def _build_cad_for_formula(
     polys = formula_polynomials(formula)
     if not polys:
         polys = [sp.Integer(1)]
+    if normalized_strategy == "lazard-complete":
+        return decomp_lazard_complete(polys, variables)
     return decomp_collins_complete(polys, variables)
-
-
-def _cell_containing_value(cells: Sequence[CADCell], value: sp.Expr) -> CADCell | None:
-    for cell in cells:
-        left, right = cell.interval or (None, None)
-        if cell.kind == "section":
-            if left is not None and certified_equal(value, sample_to_expr(left)) is True:
-                return cell
-            continue
-        lower_ok = True if left is None else _value_gt_sample(value, left)
-        upper_ok = True if right is None else _value_lt_sample(value, right)
-        if lower_ok and upper_ok:
-            return cell
-    return None
-
-
-def _value_gt_sample(value: sp.Expr, sample) -> bool:
-    if value.is_Rational or value.is_Integer:
-        return compare_samples(_expr_sample(value), sample) > 0
-    return compare_exact_reals(value, sample_to_expr(sample)) > 0
-
-
-def _value_lt_sample(value: sp.Expr, sample) -> bool:
-    if value.is_Rational or value.is_Integer:
-        return compare_samples(_expr_sample(value), sample) < 0
-    return compare_exact_reals(value, sample_to_expr(sample)) < 0
-
-
-def _expr_sample(value: sp.Expr):
-    from ..algebraic.samples import RationalSample
-
-    rational = sp.Rational(value) if value.is_Rational or value.is_Integer else None
-    if rational is None:
-        raise TypeError("only rational point-location values use exact sample comparison")
-    return RationalSample(rational)
 
 
 def build_cad_tree(cad_obj: CompleteCAD, cell_set: CellSet) -> tuple[CADTreeNode, ...]:
@@ -494,7 +439,7 @@ def _make_result(
     if options.operation == "components" or options.operation is None:
         topo_cells = tuple(sorted(base_cells, key=lambda cell: cell.index))
         if cad_obj.tower.metadata.get("variety_only", False):
-            raw_formula = _variety_cells_formula(topo_cells, variables)
+            raw_formula = finite_variety_formula(topo_cells, variables)
         else:
             raw_formula = cells_to_formula(
                 topo_cells,
@@ -543,7 +488,7 @@ def _make_result(
         "resource_limits": {
             "max_cells": options.max_cells,
             "timeout": options.timeout,
-            "backend_enforced": False,
+            "backend_enforced": True,
         },
         "planner": {"requested_strategy": options.strategy, "effective_backend": cad_obj.backend},
     }
@@ -638,10 +583,11 @@ def cad(
         raise ValueError(f"unsupported CAD formula_form: {formula_form!r}")
     if max_formula_terms < 1:
         raise ValueError("max_formula_terms must be positive")
-    if max_cells is not None and max_cells < 1:
-        raise ValueError("max_cells must be positive or None")
-    if timeout is not None and timeout <= 0:
-        raise ValueError("timeout must be positive or None")
+    budget = (
+        CADBudget(max_cells, timeout)
+        if max_cells is not None or timeout is not None
+        else current_budget()
+    )
     dom = normalize_domain(domain)
     variables = _normalize_variables(variables)
     if max_preprocess_aux_vars is not None and max_preprocess_aux_vars < 0:
@@ -655,8 +601,6 @@ def cad(
     unsupported = None
     if dom.value != "reals":
         unsupported = f"CAD supports only the real domain, not {dom.value!r}"
-    elif max_cells is not None or timeout is not None:
-        unsupported = "CAD max_cells and timeout limits are not implemented by the backend"
     if unsupported is not None:
         if strict or not return_result:
             raise NotImplementedError(unsupported)
@@ -686,6 +630,53 @@ def cad(
         max_formula_terms=max_formula_terms,
         max_preprocess_aux_vars=max_preprocess_aux_vars,
     )
+    try:
+        with budget_scope(budget):
+            if budget is not None:
+                budget.check()
+            result = _compute_cad(expr, normalized, variables, options, structured=return_result)
+            if budget is not None:
+                budget.check()
+    except ResourceLimitError as error:
+        if strict or not return_result:
+            raise
+        # This placeholder has no selected cells or callable semantics. Build
+        # it outside the exhausted scope and keep the original statement.
+        trivial = decomp_collins_complete([sp.Integer(1)], variables)
+        result = CADResult(
+            expr,
+            variables,
+            trivial,
+            CellSet(variables, (), trivial.cells_by_level, expr),
+            output,
+            operation,
+            "unknown",
+            {
+                "input_formula": expr,
+                "reason": str(error),
+                "resource_limits": {
+                    "max_cells": max_cells,
+                    "timeout": timeout,
+                    "backend_enforced": True,
+                },
+            },
+        )
+    if return_result:
+        return result
+    if output == "formula":
+        return result.formula
+    if output == "cells":
+        return result.cell_set
+    if output == "function":
+        return result.as_function()
+    if output == "tree":
+        return result.tree
+    raise ValueError(f"unsupported CAD output: {output!r}")
+
+
+def _compute_cad(expr, normalized, variables, options, *, structured):
+    """Construct every preprocessing/output decomposition within one budget."""
+    strict = options.strict
     prep = semialgebraicize(expr, variables=variables)
     if prep.changed and prep.aux_vars:
         over_aux_limit = (
@@ -697,7 +688,7 @@ def cad(
                 f"semialgebraic preprocessing introduced {len(prep.aux_vars)} auxiliary "
                 f"variables, exceeding max_preprocess_aux_vars={options.max_preprocess_aux_vars}"
             )
-            if strict or not return_result:
+            if strict or not structured:
                 raise ResourceLimitError(message)
             result = _unknown_preprocess_limit_result(expr, variables, options, prep=prep)
         else:
@@ -715,6 +706,7 @@ def cad(
             diag.update(
                 {
                     "preprocessed": True,
+                    "input_formula": expr,
                     "preprocess_aux_vars": tuple(map(sp.sstr, prep.aux_vars)),
                     "preprocess_notes": prep.notes,
                     "preprocessed_formula": prep.sympy_expr,
@@ -724,7 +716,7 @@ def cad(
                     "resource_limits": {
                         "max_cells": options.max_cells,
                         "timeout": options.timeout,
-                        "backend_enforced": False,
+                        "backend_enforced": True,
                     },
                     "planner": {
                         "requested_strategy": options.strategy,
@@ -747,17 +739,7 @@ def cad(
         result = _make_result(prep.sympy_expr, prep.formula, variables, options)
     else:
         result = _make_result(expr, normalized, variables, options)
-    if return_result:
-        return result
-    if output == "formula":
-        return result.formula
-    if output == "cells":
-        return result.cell_set
-    if output == "function":
-        return result.as_function()
-    if output == "tree":
-        return result.tree
-    raise ValueError(f"unsupported CAD output: {output!r}")
+    return result
 
 
 @with_computation_context

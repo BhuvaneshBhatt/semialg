@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 import sympy as sp
 
+from ..algebraic.cache import CACHE
 from ..algebraic.samples import sample_to_expr
 from ..algebraic.signs import sign_at_sample
 from ..cad_algorithms.decomposition import (
@@ -12,9 +13,12 @@ from ..cad_algorithms.decomposition import (
     decomp_collins_complete,
     try_decomp_groebner_variety,
 )
+from ..cad_algorithms.invariant_scope import _supports_formula
 from ..cad_algorithms.lifting.stack import CADCell
+from ..cad_algorithms.polynomial_utils import polynomial_key
 from ..cad_algorithms.projection.groebner import build_groebner_variety_projection
 from ..context import with_computation_context
+from ..errors import ExactComputationUnavailable
 from ..exact_arithmetic import exact_truth
 from ..formula import (
     And,
@@ -41,7 +45,9 @@ class CellUnion:
 
     The formula field is an exact reconstruction of the same union. The cell
     list remains the semantic object; callers can simplify or pretty-print the
-    formula later without losing the CAD derivation.
+    formula later without losing the CAD derivation. With ``finite_variety=True``,
+    the cells are points of a zero-dimensional variety, not an ambient CAD:
+    selecting every listed point need not select the whole projection space.
     """
 
     variables: tuple[sp.Symbol, ...]
@@ -49,6 +55,7 @@ class CellUnion:
     formula: sp.Expr
     cells_by_level: Mapping[int, tuple[CADCell, ...]] = field(default_factory=dict)
     projection_polynomials: Mapping[int, tuple[sp.Expr, ...]] = field(default_factory=dict)
+    finite_variety: bool = False
 
     @property
     def is_empty(self) -> bool:
@@ -101,10 +108,6 @@ class CompleteQEResult:
     cell_truth: Mapping[tuple[int, ...], bool] = field(default_factory=dict)
     witness_samples: tuple[Mapping[sp.Symbol, sp.Expr], ...] = ()
     diagnostics: QEDiagnostics | None = None
-
-
-def _sign_key(expr: sp.Expr) -> str:
-    return sp.srepr(sp.expand(expr))
 
 
 def norm_quant_map(quantifiers: Sequence[tuple[str, sp.Symbol]]) -> dict[sp.Symbol, str]:
@@ -176,6 +179,7 @@ def norm_internal_order(
     independently of the internal projection order.
     """
 
+    quantifiers = tuple(quantifiers)
     qmap = norm_quant_map(quantifiers)
     quantified = tuple(sym for _, sym in quantifiers)
     matrix_syms = _matrix_symbols(matrix)
@@ -211,27 +215,33 @@ def norm_internal_order(
 def _atom_truth(
     atom: Atom, signs: Mapping[str, int], sample: Sequence[object], variables: Sequence[sp.Symbol]
 ) -> bool:
-    key = _sign_key(atom.expr)
-    sign = signs.get(key)
-    if sign is None:
-        try:
+    """Use recorded exact signs or evaluate the full atom, including scalar and powers."""
+    try:
+        cache_key = ("qe-atom", atom.expr, tuple(variables))
+        compiled = CACHE.compiled_polys.get(cache_key)
+        if compiled is None:
             poly = (
                 sp.Poly(sp.expand(atom.expr), *variables, domain="EX")
                 if variables
                 else sp.Poly(sp.expand(atom.expr))
             )
+            compiled = (poly, polynomial_key(poly))
+            CACHE.compiled_polys.put(cache_key, compiled)
+        poly, key = compiled
+        sign = signs.get(key)
+        if sign is None:
             sign = sign_at_sample(poly, sample)
-        except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
-            substitutions = {
-                sym: sample_to_expr(val) for sym, val in zip(variables, sample, strict=True)
-            }
-            value = sp.expand(atom.expr).subs(substitutions)
-            exact = sp.sign(value)
-            if exact not in (-1, 0, 1):
-                raise ValueError(
-                    f"could not determine exact atom sign for {sp.sstr(atom.expr)}"
-                ) from None
-            sign = int(exact)
+    except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
+        substitutions = {
+            sym: sample_to_expr(val) for sym, val in zip(variables, sample, strict=True)
+        }
+        value = sp.expand(atom.expr).subs(substitutions)
+        exact = sp.sign(value)
+        if exact not in (-1, 0, 1):
+            raise ValueError(
+                f"could not determine exact atom sign for {sp.sstr(atom.expr)}"
+            ) from None
+        sign = int(exact)
     if atom.op == "=":
         return sign == 0
     if atom.op == "!=":
@@ -275,10 +285,6 @@ def _combine(values: Sequence[bool], quantifier: str) -> bool:
     raise ValueError(f"unsupported quantifier: {quantifier!r}")
 
 
-def _dummy_cad() -> CompleteCAD:
-    return decomp_collins_complete([sp.Integer(1)], [sp.Symbol("_dummy", real=True)])
-
-
 def _leaf_witnesses(
     cad: CompleteCAD,
     variables: Sequence[sp.Symbol],
@@ -288,8 +294,6 @@ def _leaf_witnesses(
 ) -> tuple[Mapping[sp.Symbol, sp.Expr], ...]:
     witnesses: list[Mapping[sp.Symbol, sp.Expr]] = []
     full_level = len(variables)
-    if full_level == 0:
-        return tuple()
     for cell in cad.cells_by_level.get(full_level, tuple()):
         if evaluate_formula_on_cell(matrix, cell, variables):
             witnesses.append(
@@ -365,7 +369,13 @@ def _build_complete_qe_cad(
     notes: list[str] = []
     polys = formula_polynomials(matrix)
     groebner_projection = None
-    if allow_variety_cad and all(qname == "exists" for qname, _ in quantifiers):
+    from ..cad_algorithms.resource_limits import current_budget
+
+    if (
+        allow_variety_cad
+        and current_budget() is None
+        and all(qname == "exists" for qname, _ in quantifiers)
+    ):
         groebner_projection = build_groebner_variety_projection(matrix, variables)
     if groebner_projection is None:
         return decomp_collins_complete(polys, variables), ()
@@ -518,6 +528,7 @@ def _qe_by_complete_cad_result(
 
     if not variables:
         truth = exact_truth(to_sympy(matrix))
+        cad = decomp_collins_complete((sp.Integer(1),), ())
         diag = QEDiagnostics(
             requested_variables=requested_variables,
             internal_variables=variables,
@@ -526,8 +537,8 @@ def _qe_by_complete_cad_result(
             quantifier_blocks=blocks,
             variable_reordered=tuple(requested_variables) != variables,
             projection_level=0,
-            full_cell_count=0,
-            projected_cell_count=0,
+            full_cell_count=1,
+            projected_cell_count=int(truth),
             notes=notes,
         )
         return CompleteQEResult(
@@ -537,16 +548,19 @@ def _qe_by_complete_cad_result(
             quantified_variables=quantified,
             quantifiers=quantifiers,
             quantifier_blocks=blocks,
-            cad=_dummy_cad(),
+            cad=cad,
             is_sentence=True,
             truth_value=truth,
+            satisfying_cell_indices=((),) if truth else (),
+            cell_truth={(): truth},
+            witness_samples=({},) if truth else (),
             diagnostics=diag,
         )
 
     polys = formula_polynomials(matrix)
     if not polys:
         formula = to_sympy(matrix)
-        truth = bool(formula) if quantified or not free else None
+        truth = bool(formula) if not free else None
         cad = decomp_collins_complete([sp.Integer(1)], variables)
         cell_union = None
         if free:
@@ -578,7 +592,9 @@ def _qe_by_complete_cad_result(
             variable_reordered=tuple(requested_variables) != variables,
             projection_level=len(free),
             full_cell_count=len(cad.cells),
-            projected_cell_count=0 if cell_union is None else len(cell_union.cells),
+            projected_cell_count=int(bool(formula))
+            if cell_union is None
+            else len(cell_union.cells),
             notes=notes,
         )
         return CompleteQEResult(
@@ -592,6 +608,11 @@ def _qe_by_complete_cad_result(
             cell_union=cell_union,
             is_sentence=not free,
             truth_value=truth,
+            satisfying_cell_indices=(
+                cell_union.cell_indices if cell_union is not None else (((),) if truth else ())
+            ),
+            cell_truth=_propagate_quantified_cell_truth(cad, matrix, variables, len(free), qmap),
+            witness_samples=_leaf_witnesses(cad, variables, matrix),
             diagnostics=diag,
         )
 
@@ -643,10 +664,17 @@ def _qe_by_complete_cad_result(
     free_cells = tuple(
         cell for cell in cad.cells_by_level[free_level] if current.get(cell.index, False)
     )
+    from ..simplify.cell_signs import formula_from_cad_signs
+
+    sign_formula = formula_from_cad_signs(cad, free, current)
     if cad.tower.metadata.get("variety_only", False):
         raw_formula = finite_variety_formula(free_cells, free)
     else:
-        raw_formula = cells_to_formula(free_cells, free, cad.cells_by_level)
+        raw_formula = (
+            sign_formula
+            if sign_formula is not None
+            else cells_to_formula(free_cells, free, cad.cells_by_level)
+        )
     cell_union = CellUnion(
         variables=free,
         cells=free_cells,
@@ -657,8 +685,11 @@ def _qe_by_complete_cad_result(
             if level <= free_level
         },
         projection_polynomials=_projection_polynomials_for_free_levels(cad, free_level),
+        finite_variety=bool(cad.tower.metadata.get("variety_only", False)),
     )
-    if cad.tower.metadata.get("variety_only", False):
+    if sign_formula is not None:
+        formula = sign_formula
+    elif cad.tower.metadata.get("variety_only", False):
         formula = simplify_qe_formula(raw_formula, preferred_atoms=preferred_atoms)
     else:
         formula = simplify_qe_formula(
@@ -670,6 +701,7 @@ def _qe_by_complete_cad_result(
         formula=formula,
         cells_by_level=cell_union.cells_by_level,
         projection_polynomials=cell_union.projection_polynomials,
+        finite_variety=cell_union.finite_variety,
     )
     diag = QEDiagnostics(
         requested_variables=requested_variables,
@@ -756,10 +788,9 @@ def _qe_from_cad_result(
 ) -> CompleteQEResult:
     """Run the QE truth-propagation layer over an already lifted CAD.
 
-    This is used by the strategy planner when it selects an active reduced CAD
-    backend. The caller is responsible for ensuring that ``cad`` is complete
-    for the requested invariant; safe reduced backends do so by certification
-    and fallback.
+    This is used by the strategy planner for certified reduced CADs. Reuse
+    requires the matrix to lie within the source's recorded invariant scope;
+    a query requiring another formula or polynomial boundary is rebuilt.
     """
 
     requested_variables = tuple(vars_)
@@ -770,24 +801,33 @@ def _qe_from_cad_result(
     )
     if tuple(cad.tower.variables) != tuple(variables):
         raise ValueError("CAD variable order does not match normalized QE order")
+    if cad.tower.metadata.get("variety_only", False):
+        # Finite lifting can omit residual-filtered points and the ambient
+        # complement. Rebuild from the current matrix, which may be weaker than
+        # the formula used to construct the supplied variety.
+        return _qe_by_complete_cad_result(
+            variables,
+            quantifiers,
+            matrix,
+            free_variables=free,
+            variable_order_strategy="preserve",
+            use_presolve=False,
+        )
+    if not cad.complete:
+        raise ExactComputationUnavailable("QE requires a complete ambient CAD")
+    if not _supports_formula(cad, to_sympy(matrix)):
+        return _qe_by_complete_cad_result(
+            variables,
+            quantifiers,
+            matrix,
+            free_variables=free,
+            variable_order_strategy="preserve",
+            use_presolve=False,
+        )
     blocks = quantifiers_to_blocks(quantifiers)
     preferred_atoms = _preferred_free_atoms(matrix, free)
     n = len(variables)
     free_level = len(free)
-    if n == 0:
-        truth = exact_truth(to_sympy(matrix))
-        return CompleteQEResult(
-            formula=sp.true if truth else sp.false,
-            variables=variables,
-            free_variables=free,
-            quantified_variables=quantified,
-            quantifiers=quantifiers,
-            quantifier_blocks=blocks,
-            cad=cad,
-            backend=backend or cad.backend,
-            is_sentence=True,
-            truth_value=truth,
-        )
     current: dict[tuple[int, ...], bool] = {
         cell.index: evaluate_formula_on_cell(matrix, cell, variables)
         for cell in cad.cells_by_level[n]
@@ -833,7 +873,14 @@ def _qe_from_cad_result(
     free_cells = tuple(
         cell for cell in cad.cells_by_level[free_level] if current.get(cell.index, False)
     )
-    raw_formula = cells_to_formula(free_cells, free, cad.cells_by_level)
+    from ..simplify.cell_signs import formula_from_cad_signs
+
+    sign_formula = formula_from_cad_signs(cad, free, current)
+    raw_formula = (
+        sign_formula
+        if sign_formula is not None
+        else cells_to_formula(free_cells, free, cad.cells_by_level)
+    )
     cell_union = CellUnion(
         variables=free,
         cells=free_cells,
@@ -845,8 +892,12 @@ def _qe_from_cad_result(
         },
         projection_polynomials=_projection_polynomials_for_free_levels(cad, free_level),
     )
-    formula = simplify_qe_formula(
-        raw_formula, cell_union=cell_union, preferred_atoms=preferred_atoms
+    formula = (
+        sign_formula
+        if sign_formula is not None
+        else simplify_qe_formula(
+            raw_formula, cell_union=cell_union, preferred_atoms=preferred_atoms
+        )
     )
     cell_union = CellUnion(
         variables=free,
@@ -899,7 +950,12 @@ def qe_from_cad(
     """Run QE truth propagation over an existing CAD and return the formula.
 
     Set ``return_result=True`` for CAD cells, witnesses, truth metadata, and
-    diagnostics in a :class:`CompleteQEResult`.
+    diagnostics in a :class:`CompleteQEResult`. A finite-variety source is rebuilt
+    from the supplied matrix so that quantifiers range over the ambient real
+    space and previously filtered points can be recovered. Other incomplete
+    sources raise :class:`ExactComputationUnavailable`. A complete source is
+    reused only for its certified formulas or polynomial sign family. Queries
+    outside that scope build a decomposition for the new matrix.
     """
 
     result = _qe_from_cad_result(

@@ -4,10 +4,7 @@ Derive metric and coordinate bounds from semialgebraic sets.
 
 ## Problem and interpretation
 
-Distance queries reduce to exact optimization of squared Euclidean distance.
-Bounding boxes are coordinate-wise range problems. Keeping these operations as
-first-class APIs avoids requiring users to formulate the corresponding
-optimization problems by hand.
+Distance queries reduce to exact optimization of squared Euclidean distance. Bounding boxes are coordinate-wise range problems. Keeping these operations as first-class APIs avoids requiring users to formulate the corresponding optimization problems by hand.
 
 ## Executable example
 
@@ -32,5 +29,4 @@ print(box)
 assert box == {x: (-2, 2), y: (-3, 3)}
 ```
 
-The matching executable file is `examples/gallery/09_distance_and_bounding_geometry.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/09_distance_and_bounding_geometry.py`; the documentation test suite runs every gallery script.

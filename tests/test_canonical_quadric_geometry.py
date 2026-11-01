@@ -45,7 +45,8 @@ def test_ellipsoid_matrix_formula_and_affine_hull():
     assert not ellipsoid.contains((4, 2))
     formula = ellipsoid.as_formula((x, y))
     expected = (x - 1) ** 2 / 4 + (y - 2) ** 2 / 9 <= 1
-    assert sp.simplify(formula.lhs - expected.lhs) == 0
+    scale = sp.cancel((formula.lhs - formula.rhs) / (expected.lhs - expected.rhs))
+    assert not scale.free_symbols and scale.is_positive is True
 
 
 def test_ellipsoid_from_radii_is_canonical_matrix_form():

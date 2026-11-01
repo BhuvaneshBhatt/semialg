@@ -6,6 +6,7 @@ import sympy as sp
 
 from ..cad_algorithms.decomposition import CompleteCAD
 from ..cad_algorithms.lifting.stack import CADCell
+from ..errors import ExactComputationUnavailable
 from ..reconstruct.cylindrical import path_condition
 from .incidence import _truth_condition_at_assignments, cell_dimension, cell_sample_subs
 
@@ -44,10 +45,15 @@ def component_cell_graph(
                 continue
             try:
                 incident = _truth_condition_at_assignments(
-                    condition, sample_assignments[target.index]
+                    condition,
+                    sample_assignments[target.index],
+                    source_cell=source,
+                    variables=variables,
                 )
-            except (NotImplementedError, ValueError, sp.PolynomialError):
-                incident = False
+            except (NotImplementedError, ValueError, sp.PolynomialError) as exc:
+                raise ExactComputationUnavailable(
+                    "could not certify a component closure incidence"
+                ) from exc
             if incident:
                 members.add(target.index)
         closure_members[source.index] = frozenset(members)

@@ -40,6 +40,12 @@ class GeometryProofError(NotImplementedError):
 
 @dataclass(frozen=True)
 class GeometryBudget:
+    """Maximum symbolic work for geometry and chart certification.
+
+    Each bound limits a structural measure of a proof attempt. Exceeding a
+    bound prevents certification; it does not establish a negative result.
+    """
+
     max_variables: int = 4
     max_degree: int = 8
     max_atoms: int = 24
@@ -57,6 +63,12 @@ _REAL_COORDINATE_FACTS = sp.Symbol("geometry_coordinate", real=True).assumptions
 
 @dataclass(frozen=True)
 class NullSetCertificate:
+    """Proof that a region lies in specified polynomial zero sets.
+
+    ``zero_polynomials`` supplies algebraic witnesses of measure-zero
+    containment under the recorded coordinate and parameter assumptions.
+    """
+
     region: sp.Expr
     variables: tuple
     assumptions: tuple
@@ -66,6 +78,12 @@ class NullSetCertificate:
 
 @dataclass(frozen=True)
 class Chart:
+    """Symbolic coordinate chart with inverse, domain, and excluded loci.
+
+    The forward and inverse expressions are verified by ``certify_chart``;
+    constructing this record alone does not certify their identities.
+    """
+
     coordinates: tuple
     forward: tuple
     inverse: tuple
@@ -85,6 +103,12 @@ class Chart:
 
 @dataclass(frozen=True)
 class ChartCertificate:
+    """Verified chart identities and metric data for measure computations.
+
+    The certificate records the regular image, Jacobian data, and exceptional
+    sets needed by the intrinsic-measure and coarea machinery.
+    """
+
     chart: Chart
     variables: tuple
     level_map: sp.Expr
@@ -102,6 +126,8 @@ class ChartCertificate:
 
 @dataclass(frozen=True)
 class CoverCertificate:
+    """Proof of chart coverage with tracked exceptional and overlap sets."""
+
     region: sp.Expr
     variables: tuple
     assumptions: tuple

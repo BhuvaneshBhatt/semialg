@@ -49,8 +49,11 @@ def test_exact_gram_recovery_projects_numeric_hint_to_affine_identity():
     assert verify_sos_certificate(polynomial, cert, (x, y))
 
 
-def test_external_sdp_backend_declines_cleanly_without_cvxpy():
+def test_missing_optimizer(monkeypatch):
     x, y = sp.symbols("x y")
+    import sys
+
+    monkeypatch.setitem(sys.modules, "cvxpy", None)
     result = external_sdp_search(x**4 + y**4, (x, y), backend="clarabel")
     assert not result.success
     assert result.status in {"cvxpy_unavailable", "solver_unavailable_or_failed"}

@@ -33,7 +33,12 @@ def test_anisotropic_sphere_image_is_ellipsoid_boundary():
     image = affine_image(Sphere((0, 0), 1), ((2, 0), (0, 3)))
     assert isinstance(image, EllipsoidBoundary)
     x, y = sp.symbols("x y", real=True)
-    assert sp.simplify(image.as_formula((x, y))) == sp.Eq(x**2 / 4 + y**2 / 9, 1)
+    actual = image.as_formula((x, y))
+    expected = sp.Eq(x**2 / 4 + y**2 / 9, 1)
+    assert (
+        sp.Poly(actual.lhs - actual.rhs, x, y).monic()
+        == sp.Poly(expected.lhs - expected.rhs, x, y).monic()
+    )
 
 
 def test_rank_changing_ball_image_remains_exact_transformed_region():

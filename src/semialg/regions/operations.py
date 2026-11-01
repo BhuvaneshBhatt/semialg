@@ -300,10 +300,9 @@ def region_closure(
 ) -> sp.Expr:
     """Return the Euclidean closure of a semialgebraic region.
 
-    The default path is CAD-semantic: the input formula is evaluated on an
-    adapted complete CAD and closure is computed from cell incidence.  The
-    atom-wise inequality relaxation remains available explicitly with
-    ``strategy="syntactic"``.
+    Exact polynomial and Cartesian identities are tried first. Otherwise an
+    adapted complete CAD computes closure from cell incidence. Atom-wise
+    inequality relaxation is available with ``strategy="syntactic"``.
     """
     region_object = _as_region_object(region, variables)
     if region_object is not None:
@@ -319,6 +318,12 @@ def region_closure(
     vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return sp.false
+    if strategy not in {"cad", "qe", "syntactic"}:
+        from .structural_topology import structural_topology
+
+        structural = structural_topology(expr, vars_, "closure")
+        if structural is not None:
+            return _simplify_region(structural)
     if _use_syntactic_topology(strategy):
         return _simplify_region(_map_boolean(expr, _closure_atom))
     try:
@@ -340,9 +345,9 @@ def region_interior(
 ) -> sp.Expr:
     """Return the Euclidean interior of a semialgebraic region.
 
-    By default this is computed as the CAD-semantic complement of the closure
-    of the complement, so internal CAD sections are retained when their entire
-    neighborhood belongs to the region.
+    Exact polynomial and Cartesian identities are tried before semantic CAD.
+    The fallback retains internal sections when their entire neighborhood
+    belongs to the region.
     """
     region_object = _as_region_object(region, variables)
     if region_object is not None:
@@ -358,6 +363,12 @@ def region_interior(
     vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return sp.false
+    if strategy not in {"cad", "qe", "syntactic"}:
+        from .structural_topology import structural_topology
+
+        structural = structural_topology(expr, vars_, "interior")
+        if structural is not None:
+            return _simplify_region(structural)
     if _use_syntactic_topology(strategy):
         return _simplify_region(_map_boolean(expr, lambda atom: _interior_atom(atom, vars_)))
     try:
@@ -547,9 +558,9 @@ def region_boundary(
 ) -> sp.Expr:
     """Return the Euclidean boundary of a semialgebraic region.
 
-    The default implementation is the CAD-semantic intersection
-    ``closure(S) ∩ closure(complement(S))``.  This removes false boundaries at
-    Boolean seams such as the shared endpoint in ``[0, 1] ∪ [1, 2]``.
+    Exact polynomial and Cartesian identities are tried before semantic CAD.
+    The fallback computes ``closure(S) ∩ closure(complement(S))``, removing
+    false boundaries at seams such as the shared endpoint of adjacent intervals.
     """
     region_object = _as_region_object(region, variables)
     if region_object is not None:
@@ -565,7 +576,13 @@ def region_boundary(
     vars_ = normalize_variables(variables, expr)
     if _syntactically_empty(expr):
         return sp.false
-    if _is_relational(expr):
+    if strategy not in {"cad", "qe", "syntactic"}:
+        from .structural_topology import structural_topology
+
+        structural = structural_topology(expr, vars_, "boundary")
+        if structural is not None:
+            return _simplify_region(structural)
+    if _use_syntactic_topology(strategy) and _is_relational(expr):
         explicit = _boundary_from_conjunction(expr, vars_)
         if explicit is not None:
             return explicit

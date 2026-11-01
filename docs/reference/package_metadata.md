@@ -1,11 +1,8 @@
 # Package metadata
 
-`semialg.__version__` exposes the installed package version. The authoritative
-source-package value is the `project.version` field in `pyproject.toml`; package
-builds and installed metadata should agree with that value.
+`semialg.__version__` exposes the installed package version. The authoritative source-package value is the `project.version` field in `pyproject.toml`; package builds and installed metadata should agree with that value.
 
-Repository URLs, supported Python versions, dependencies, optional dependency
-groups, and package classifiers are also defined in `pyproject.toml`.
+Repository URLs, supported Python versions, dependencies, optional dependency groups, and package classifiers are also defined in `pyproject.toml`.
 
 
 

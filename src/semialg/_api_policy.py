@@ -8,6 +8,11 @@ details and are not supported as public API.
 from __future__ import annotations
 
 PRIMARY_EXPORTS: dict[str, str] = {
+    "bounding_cover": ".region_covers",
+    "optimization_cover": ".region_covers",
+    "RegionFamily": ".region_families",
+    "RegionFamilyStratum": ".region_families",
+    "region_family": ".region_families",
     "BlowupChart": ".local_asymptotic_geometry",
     "CurveSelectionWitness": ".local_asymptotic_geometry",
     "LocalGeometry": ".local_asymptotic_geometry",
@@ -344,6 +349,23 @@ PRIMARY_EXPORTS: dict[str, str] = {
 }
 
 EXPERT_EXPORTS: dict[str, str] = {
+    "LazyQEResult": ".partial",
+    "lazy_quantifier_eliminate": ".partial",
+    "CADVerification": ".cad_algorithms.certification",
+    "verify_cad": ".cad_algorithms.certification",
+    "decomp_lazard_complete": ".cad_algorithms.decomposition",
+    "NativeLazardEvaluation": ".cad_algorithms.lifting.lazard",
+    "native_lazard_evaluate": ".cad_algorithms.lifting.lazard",
+    "BranchCorrespondenceCertificate": ".topology.branch_correspondence",
+    "certify_branch_correspondence": ".topology.branch_correspondence",
+    "replay_branch_correspondence": ".topology.branch_correspondence",
+    "RealCurveParametrizationVerification": ".curve_parametrization",
+    "verify_real_curve_parametrization": ".curve_parametrization",
+    "RealFunctionVerification": ".function_verification",
+    "verify_real_function": ".function_verification",
+    "RealCompositionVerification": ".function_verification",
+    "compare_real_graphs": ".function_verification",
+    "verify_real_composition": ".function_verification",
     "explicit_region_components": ".regions.operations",
     "semialgebraic_image": ".geometry_queries",
     "semialgebraic_preimage": ".geometry_queries",

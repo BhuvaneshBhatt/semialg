@@ -4,7 +4,7 @@ semialg follows an **exact-first** policy. This does not mean every symbolic-loo
 
 ## Public exactness contract
 
-For exact/certified APIs, `semialg` does **not** without reporting replace an unsupported exact computation with a fixed-precision numerical approximation. A specialized exact backend may decline; the planner may then try another exact backend or a complete CAD path. If the requested exact operation is unsupported or cannot be certified by the implemented method, the operation should fail explicitly or return a result whose incomplete/candidate status is explicit in that API's contract.
+For exact/certified APIs, `semialg` does **not** replace an unsupported exact computation with a fixed-precision numerical approximation. A specialized exact backend may decline; the planner may then try another exact backend or a complete CAD path. If the requested exact operation is unsupported or cannot be certified by the implemented method, the operation should fail explicitly or return a result whose incomplete/candidate status is explicit in that API's contract.
 
 **Exact does not mean inexpensive.** Complete real quantifier elimination can be extremely costly even when the final answer is simple.
 
@@ -26,7 +26,7 @@ Numerical computation is permitted in different roles depending on the API. The 
 | Plotting / discretization | Yes | No; these are presentation APIs |
 | `exact=False` sampling/integration modes | Yes | No; inexactness is explicit |
 
-A useful implementation principle follows: **numerics may suggest; they may not without reporting certify an exact API.**
+A useful implementation principle follows: **numerics may suggest; they may not certify an exact API.**
 
 ## Exact representation
 
@@ -50,7 +50,7 @@ Structured result objects expose certification information where the distinction
 
 Some algorithms first generate candidates using KKT systems, active sets, structural heuristics, variable-order estimates, or pilot lifting. A candidate may be exact as a point while the statement “this is the global optimum” is not yet certified.
 
-semialg should not without reporting upgrade candidate generation into a proof. Certification is a separate operation.
+semialg should not upgrade candidate generation into a proof. Certification is a separate operation.
 
 ## Numerical approximation
 
@@ -68,9 +68,7 @@ This matters for very close algebraic values. A comparison based on 50 or 100 de
 
 Consider
 
-$$
-\inf_{-1 < x < 1} x = -1.
-$$
+$$ \inf_{-1 < x < 1} x = -1. $$
 
 The value $-1$ is exact, but it is not attained. `OptimizationResult` keeps these facts separate through its `value` and `attained` fields.
 
@@ -92,9 +90,5 @@ When consuming a structured result, treat these questions independently:
 For what happens when one of these stages cannot be completed, see [Errors and failure modes](../guides/errors_and_failure_modes.md).
 ## Solver scope and exact transformations
 
-Exactness does not imply that every symbolic function belongs to one solver. Polynomial
-root certification, equivalence-preserving algebraization, and the existing transcendental
-solver have distinct contracts. See
-[Transcendental and algebraic solving scope](../guides/transcendental_scope.md) for the
-canonical boundary.
+Exactness does not imply that every symbolic function belongs to one solver. Polynomial root certification, equivalence-preserving algebraization, and the existing transcendental solver have distinct contracts. See [Transcendental and algebraic solving scope](../guides/transcendental_scope.md) for the canonical boundary.
 

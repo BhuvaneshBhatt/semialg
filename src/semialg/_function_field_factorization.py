@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from itertools import count, permutations
+from itertools import count
 
 import sympy as sp
 
@@ -188,40 +188,49 @@ def _poly_shift_alpha(coeffs, field: MonogenicFunctionField, shift: int):
     return _poly_trim(out, field)
 
 
-def _perm_sign(p):
-    inv = sum(p[i] > p[j] for i in range(len(p)) for j in range(i + 1, len(p)))
-    return -1 if inv % 2 else 1
-
-
 def _det_poly(matrix, field):
+    """Fraction-free Bareiss determinant in field[t], with exact pivoting.
+
+    Polynomial exact division keeps the calculation inside field[t], including
+    when field is a monogenic tower. The number of elimination steps is cubic
+    in the matrix size rather than factorial permutation enumeration.
+    """
     n = len(matrix)
-    total = []
-    for perm in permutations(range(n)):
-        term = [field.one]
-        for i, j in enumerate(perm):
-            term = _poly_mul(term, matrix[i][j], field)
-        if _perm_sign(perm) < 0:
-            term = [-c for c in term]
-        total = _poly_add(total, term, field)
-    return total
+    if any(len(row) != n for row in matrix):
+        raise ValueError("determinant matrix must be square")
+    if not n:
+        return [field.one]
+    rows = [[_poly_trim(entry, field) for entry in row] for row in matrix]
+    previous = [field.one]
+    sign = 1
+    for k in range(n - 1):
+        pivot_row = next((i for i in range(k, n) if rows[i][k]), None)
+        if pivot_row is None:
+            return []
+        if pivot_row != k:
+            rows[k], rows[pivot_row] = rows[pivot_row], rows[k]
+            sign = -sign
+        pivot = rows[k][k]
+        for i in range(k + 1, n):
+            for j in range(k + 1, n):
+                numerator = _poly_sub(
+                    _poly_mul(pivot, rows[i][j], field),
+                    _poly_mul(rows[i][k], rows[k][j], field),
+                    field,
+                )
+                quotient, remainder = _poly_divmod(numerator, previous, field)
+                if remainder:
+                    raise FunctionFieldError("inexact Bareiss determinant division")
+                rows[i][j] = quotient
+            rows[i][k] = []
+        previous = pivot
+    determinant = rows[-1][-1]
+    return _poly_trim([field.neg(c) for c in determinant], field) if sign < 0 else determinant
 
 
 def _norm_polynomial(coeffs, ext: MonogenicFunctionField):
     # determinant of multiplication by p(z) on L/K as K[z]-module.
     d = ext.degree
-    cols = []
-    for j in range(d):
-        basis = [ext.base.zero] * d
-        basis[j] = ext.base.one
-        bj = MonogenicElement(ext, tuple(basis))
-        col = []
-        for c in coeffs:
-            prod = ext.mul(c, bj)
-            for row in range(d):
-                while len(col) <= row:
-                    col.append([])
-                # handled below
-        cols.append(bj)
     matrix = [[[] for _ in range(d)] for _ in range(d)]
     for j in range(d):
         basis = [ext.base.zero] * d

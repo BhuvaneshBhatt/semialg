@@ -3,6 +3,7 @@ from __future__ import annotations
 import sympy as sp
 
 from ..cad_algorithms.bounds import AlgebraicRootFunction
+from ..internal_symbols import fresh_dummy
 
 
 def primitive_fiber_polynomial(poly: sp.Expr, fiber_var: sp.Symbol) -> sp.Expr:
@@ -36,23 +37,39 @@ class root_of(sp.Function):
         if not polynomial.free_symbols <= {fiber_var}:
             return None
         try:
-            roots = sp.real_roots(polynomial, fiber_var)
+            roots = sp.Poly(polynomial, fiber_var).real_roots(multiple=False)
         except (NotImplementedError, sp.PolynomialError, ValueError):
             return None
         index = int(root_index)
         if 0 <= index < len(roots):
-            return roots[index]
+            return roots[index][0]
+        # At a collision of all real sections, their common endpoint is
+        # unambiguous even though there are fewer distinct roots in that fiber.
+        if len(roots) == 1 and 0 <= index < roots[0][1]:
+            return roots[0][0]
         return None
 
     def _eval_is_real(self):
         # By definition this selector denotes an ordered real root.
         return True
 
+    @property
+    def free_symbols(self):
+        return self.args[0].free_symbols - {self.args[1]}
+
     def _eval_subs(self, old, new):
-        # Treat the fiber variable as bound within this root selector.
-        if old == self.args[1]:
+        polynomial, fiber_var, root_index = self.args
+        if old == fiber_var or fiber_var in old.free_symbols:
             return self
-        return super()._eval_subs(old, new)
+        if fiber_var in new.free_symbols:
+            renamed = fresh_dummy(fiber_var.name, **fiber_var.assumptions0)
+            polynomial = polynomial.xreplace({fiber_var: renamed})
+        else:
+            renamed = fiber_var
+        substituted = polynomial._subs(old, new)
+        if substituted == polynomial:
+            return self
+        return self.func(substituted, renamed, root_index)
 
 
 def root_function_expr(poly: sp.Expr, fiber_var: sp.Symbol, root_index: int) -> sp.Expr:

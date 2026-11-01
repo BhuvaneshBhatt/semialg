@@ -30,6 +30,7 @@ def main(argv: list[str] | None = None) -> int:
         subprocess.run(
             [
                 sys.executable,
+                "-S",
                 "-m",
                 "pip",
                 "install",
@@ -38,6 +39,7 @@ def main(argv: list[str] | None = None) -> int:
                 str(target),
                 str(wheel),
             ],
+            env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)},
             check=True,
         )
         copied = temp / contract.name
@@ -45,14 +47,14 @@ def main(argv: list[str] | None = None) -> int:
         env = os.environ.copy()
         env.update(
             {
-                "PYTHONPATH": str(target),
+                "PYTHONPATH": os.pathsep.join([str(target), *sys.path]),
                 "SEMIALG_INSTALLED_WHEEL_TEST": "1",
                 "SEMIALG_SOURCE_ROOT": str(source_root),
                 "SEMIALG_TARGET_INSTALL": str(target),
             }
         )
         completed = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q", str(copied)],
+            [sys.executable, "-S", "-m", "pytest", "-q", str(copied)],
             cwd=temp,
             env=env,
             check=False,

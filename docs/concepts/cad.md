@@ -6,15 +6,11 @@ Cylindrical algebraic decomposition (CAD) partitions real space into finitely ma
 
 Consider the unit disk
 
-\[
-x^2+y^2\le1.
-\]
+\[ x^2+y^2\le1. \]
 
 Projecting the boundary polynomial with respect to \(y\) identifies the critical \(x\)-values
 
-\[
-x=-1,\qquad x=1.
-\]
+\[ x=-1,\qquad x=1. \]
 
 The \(x\)-axis is decomposed into
 
@@ -24,11 +20,7 @@ The \(x\)-axis is decomposed into
 
 Over the middle interval, the boundary has two ordered root functions,
 
-\[
-y=-\sqrt{1-x^2},
-\qquad
-y=\sqrt{1-x^2}.
-\]
+\[ y=-\sqrt{1-x^2}, \qquad y=\sqrt{1-x^2}. \]
 
 Lifting over that base interval produces sectors and sections:
 
@@ -68,6 +60,8 @@ Once a truth-invariant CAD has been built, quantified formulas can be evaluated 
 ## Reduced CAD and equational constraints
 
 An equation known to be logically necessary can permit less projection/lifting work. `semialg` uses reduced/EC-aware paths only when the required conditions are certified. It does not treat an arbitrary resultant or projection polynomial as a logical equality constraint.
+
+Sign invariance is weaker than order invariance. A polynomial can vanish everywhere on a cell yet have different orders of vanishing at different points of that cell. That distinction matters when the polynomial is a discriminant or resultant needed to justify the next lift. Isolated nullification points receive derivative-based delineation; positive-dimensional nullification uses the full Lazard projection/valuation fallback. A sign-table replay at representative samples does not prove these geometric conditions. See [projection and fallback scope](../cad_qe.md#reduced-projection-and-fallback).
 
 ## CAD is exact but not cheap
 

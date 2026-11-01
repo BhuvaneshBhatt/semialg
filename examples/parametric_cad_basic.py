@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sympy as sp
 
+from semialg.decision import equivalent
 from semialg.decomposition import parametric_cad
 
 a, x = sp.symbols("a x", real=True)
@@ -22,3 +23,7 @@ for case in result.cases:
         "solution=",
         case.solution_formula,
     )
+
+
+assert equivalent(result.generic_formula, sp.Ne(a, 0), (a,))
+assert result.exceptional_formula.subs(a, 0) is sp.true

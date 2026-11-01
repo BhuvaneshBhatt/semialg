@@ -9,12 +9,14 @@ from .bounds import (
     RootOrderCertificate,
     verify_cad_cell_bounds,
 )
+from .certification import CADVerification, verify_cad
 from .decomposition import (
     CADDiagnostics,
     CompleteCAD,
     decomp_collins_complete,
     decomp_from_proj_tower,
     decomp_groebner_variety,
+    decomp_lazard_complete,
 )
 from .integration import (
     CADCellIntegral,
@@ -51,6 +53,8 @@ from .projection.reduced import ProjectionValidity, ReducedProjectionTower
 from .selected_samples import SelectedCADSample, extract_selected_cad_samples
 
 __all__ = [
+    "CADVerification",
+    "verify_cad",
     "CADCell",
     "CADBound",
     "AlgebraicRootFunction",
@@ -81,6 +85,7 @@ __all__ = [
     "collins_projection_step",
     "collins_proj_entries",
     "decomp_collins_complete",
+    "decomp_lazard_complete",
     "decomp_groebner_variety",
     "decomp_from_proj_tower",
     "sign_table",

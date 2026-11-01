@@ -49,8 +49,7 @@ integrate_over_region(1, x**2 + y**2 <= 1, [x, y], method="auto")
 # symbolic if possible, numeric otherwise
 ```
 
-`method="symbolic"` is the default. It requires exact symbolic evaluation and raises `NotImplementedError` if any reduced piece remains unevaluated.
- It also never substitutes numerical root finding for failed exact real-root isolation: if an exact boundary cannot be isolated, the exact reduction is declined instead of approximated.
+`method="symbolic"` is the default. It requires exact symbolic evaluation and raises `NotImplementedError` if any reduced piece remains unevaluated. It also never substitutes numerical root finding for failed exact real-root isolation: if an exact boundary cannot be isolated, the exact reduction is declined instead of approximated.
 
 ## Measure
 
@@ -64,15 +63,9 @@ semialgebraic_measure(x**2 + y**2 <= 1, [x, y])
 
 ### Bound validation
 
-`bounds=` is validated centrally. Every bound key must resolve to one of the declared
-integration variables; duplicate variables, malformed pairs, and exactly reversed
-endpoints raise `ValueError`. This prevents misspelled bounds from being silently
-ignored and prevents reversed intervals from producing signed/negative measures.
+`bounds=` is validated centrally. Every bound key must resolve to one of the declared integration variables; duplicate variables, malformed pairs, and exactly reversed endpoints raise `ValueError`. This prevents misspelled bounds from being silently ignored and prevents reversed intervals from producing signed/negative measures.
 
-`integrate_over_standard_region` follows the same symbol-identity rule as formula-based
-integration: a string variable name is resolved against the actual SymPy symbol in the
-integrand before a new real symbol is created. Boolean intersections of explicit
-intervals and boxes compare exact algebraic endpoints without floating-point ordering.
+`integrate_over_standard_region` follows the same symbol-identity rule as formula-based integration: a string variable name is resolved against the actual SymPy symbol in the integrand before a new real symbol is created. Boolean intersections of explicit intervals and boxes compare exact algebraic endpoints without floating-point ordering.
 
 ## Intrinsic-dimensional measure
 
@@ -152,20 +145,13 @@ Arbitrary-dimensional CAD cells can be converted to typed nested cylindrical bou
 
 ## Typed CAD bounds
 
-`extract_cylindrical_solution(...)` preserves both expression bounds and typed bounds.
-The typed form distinguishes explicit/infinite endpoints from delineable
-`AlgebraicRootFunction` boundaries and retains open/closed sector information.
-`verify_cad_cell_bounds(cell)` checks triangular variable dependence, section
-root certificates, adjacent-root ordering, and sample containment.
+`extract_cylindrical_solution(...)` preserves both expression bounds and typed bounds. The typed form distinguishes explicit/infinite endpoints from delineable `AlgebraicRootFunction` boundaries and retains open/closed sector information. `verify_cad_cell_bounds(cell)` checks triangular variable dependence, section root certificates, adjacent-root ordering, and sample containment.
 
-For direct cell integration, use `full_dimensional_cell_integral(...)`.
-Lower-dimensional cells are handled by the separate
-`intrinsic_cell_integral(...)` adapter, which uses the induced metric
-`sqrt(det(J.T*J))` for verified triangular graph cells.
+For direct cell integration, use `full_dimensional_cell_integral(...)`. Lower-dimensional cells are handled by the separate `intrinsic_cell_integral(...)` adapter, which uses the induced metric `sqrt(det(J.T*J))` for verified triangular graph cells.
 
 ## Regular/singular intrinsic stratification
 
-`stratify_intrinsic_solution(...)` classifies cylindrical solution cells by certified regularity. `IntrinsicStratification.regular_strata` and `.singular_strata` keep the distinction explicit. Algebraic sections require a cell-wide `DelineabilityCertificate` with verified regularity; an algebraic root function without such a certificate is never without reporting treated as a regular manifold graph.
+`stratify_intrinsic_solution(...)` classifies cylindrical solution cells by certified regularity. `IntrinsicStratification.regular_strata` and `.singular_strata` keep the distinction explicit. Algebraic sections require a cell-wide `DelineabilityCertificate` with verified regularity; an algebraic root function without such a certificate is never treated as a regular manifold graph.
 
 For a regular graph cell with mapping Jacobian `J`, intrinsic integration uses
 
@@ -177,24 +163,11 @@ as the Hausdorff metric factor. Singular strata of the requested dimension cause
 
 ## Explicit and parametric region validation
 
-Explicit standard-region objects validate geometric invariants at construction time.
-`Interval` and `Box` reject bounds whose order is exactly known to be
-reversed. Radius-based regions reject provably negative radii, and
-`SphericalShell` additionally requires the inner radius not to exceed the
-outer radius when that ordering is exactly decidable. Constructors for compound
-regions check ambient-coordinate dimensions before integration. Symbolic values
-whose sign or order cannot be established exactly are not rejected merely because
-they are undecidable.
+Explicit standard-region objects validate geometric invariants at construction time. `Interval` and `Box` reject bounds whose order is exactly known to be reversed. Radius-based regions reject provably negative radii, and `SphericalShell` additionally requires the inner radius not to exceed the outer radius when that ordering is exactly decidable. Constructors for compound regions check ambient-coordinate dimensions before integration. Symbolic values whose sign or order cannot be established exactly are not rejected merely because they are undecidable.
 
-`ParametricRegion` requires each declared parameter to have exactly one integration
-limit, rejects undeclared or duplicate limit variables, and requires multiplicity
-to be provably positive. Parametric integration resolves string ambient-variable
-names against the symbols already present in the integrand and mapping, preserving
-SymPy symbol identity and assumptions.
+`ParametricRegion` requires each declared parameter to have exactly one integration limit, rejects undeclared or duplicate limit variables, and requires multiplicity to be provably positive. Parametric integration resolves string ambient-variable names against the symbols already present in the integrand and mapping, preserving SymPy symbol identity and assumptions.
 
-Boolean-region integration uses exact intersection semantics. In particular,
-`BooleanRegion.difference(A, B)` integrates over `A \ B`, equivalently subtracting the
-integral over `A ∩ B`; it does not assume that `B` is contained in `A`.
+Boolean-region integration uses exact intersection semantics. In particular, `BooleanRegion.difference(A, B)` integrates over `A \ B`, equivalently subtracting the integral over `A ∩ B`; it does not assume that `B` is contained in `A`.
 
 
 ## Parameter-dependent algebraic endpoints

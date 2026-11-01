@@ -4,7 +4,7 @@ import sympy as sp
 import semialg
 from semialg.cache_utils import BoundedLRU
 from semialg.parameters import SolvabilityConditionsResult
-from semialg.sampling import _dedupe_points
+from semialg.sampling import _validated
 from semialg.symbolic_regions import (
     RegionElement,
     RegionSubset,
@@ -33,7 +33,7 @@ def test_boolean_dedup_preserves_same_name_symbol_identity(left_index, right_ind
 def test_point_dedup_preserves_same_name_symbol_identity(left_index, right_index):
     symbols = _same_name_symbols()
     left, right = symbols[left_index], symbols[right_index]
-    points = _dedupe_points(({left: 1}, {right: 1}))
+    points = tuple(_validated(({left: 1}, {right: 1}), sp.true, strict=True))
     assert len(points) == 2
     assert tuple(points[0]) == (left,)
     assert tuple(points[1]) == (right,)

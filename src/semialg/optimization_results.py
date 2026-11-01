@@ -11,7 +11,12 @@ import sympy as sp
 
 @dataclass(frozen=True)
 class FunctionRangeResult:
-    """Exact range summary for a supported semialgebraic image problem."""
+    """A real-image formula or an explicitly requested interval enclosure.
+
+    diagnostics["range_kind"] distinguishes exact images from interval bounds.
+    For an enclosure, interval metadata describe the bound formula, including
+    values that the original function may never attain.
+    """
 
     expression: sp.Expr
     formula: sp.Expr

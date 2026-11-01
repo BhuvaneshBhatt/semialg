@@ -1,0 +1,44 @@
+[
+  {
+    "id": "closed-qe",
+    "input": "exists x: (x^2-2=0 and x>0)",
+    "expected": "true",
+    "purpose": "partial decision and projection reuse"
+  },
+  {
+    "id": "native-multiplicity",
+    "input": "y^2-x^2+2 at x=sqrt(2)",
+    "expected": "root 0, multiplicity 2",
+    "purpose": "native tower derivative evaluation"
+  },
+  {
+    "id": "shared-image",
+    "input": "range(x^2, -1<=x<=2)",
+    "expected": "[0,4]",
+    "purpose": "shared exact image/range certification"
+  },
+  {
+    "id": "semantic-implication",
+    "input": "x>1 implies x>0",
+    "expected": "true",
+    "purpose": "shared truth and implication contexts"
+  },
+  {
+    "id": "lazy-qe",
+    "input": "forall x exists y: y^2=x",
+    "expected": "false",
+    "purpose": "lifted stacks, evaluated leaves and visited cells"
+  },
+  {
+    "id": "free-parameter-qe",
+    "input": "forall x exists y: y^2=x^2+a",
+    "expected": "a>=0",
+    "purpose": "complete parameter-cell truth with partial quantified lifting"
+  },
+  {
+    "id": "linear-boolean",
+    "input": "forall x exists y: (x+a<y<x+b) or (x+b<y<x+a)",
+    "expected": "a!=b",
+    "purpose": "bounded linear-Boolean dispatch before CAD"
+  }
+]

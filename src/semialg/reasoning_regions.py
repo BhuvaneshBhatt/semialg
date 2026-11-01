@@ -328,6 +328,10 @@ def region_bounded(
 
     expr = normalize_formula(region)
     vars_ = normalize_variables(variables, expr)
+    from .quadratic_forms import coercively_bounded
+
+    if coercively_bounded(expr, vars_):
+        return True
     if not is_satisfiable(expr, vars_, strategy=strategy):
         return True
     if len(vars_) == 0:

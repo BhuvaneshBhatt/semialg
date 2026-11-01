@@ -1,6 +1,6 @@
 # Limitations
 
-`semialg` is conservative by design. Exact APIs should return certified results for supported cases and decline unsupported or uncertifiable cases instead of without reporting promote a fixed-precision approximation into an exact symbolic claim.
+Exact APIs return certified results for supported cases and decline unsupported or uncertifiable cases instead of promoting a fixed-precision approximation into an exact symbolic claim.
 
 ## Fundamental computational limits
 
@@ -12,9 +12,17 @@
 
 ## CAD and quantifier elimination
 
-The complete path uses structural presolve, safe affine substitution, exact Fourier–Motzkin elimination, quantifier-aware variable ordering, and specialized exact backends before general CAD. Reduced/equational-constraint CAD is used only when its side conditions are certified; otherwise the complete path remains authoritative.
+The complete path uses structural presolve, safe affine substitution, exact Fourier–Motzkin elimination, quantifier-aware variable ordering and specialized exact backends before general CAD. The ambient driver starts with coefficient/discriminant/resultant projection and isolated-point delineation, then restarts with full Lazard projection and native valuation lifting when needed. The full Lazard backend handles positive-dimensional nullification over supported exact arithmetic. It does not implement the separate Collins reducta/subresultant or Hong algorithms. See [CAD and QE](cad_qe.md#reduced-projection-and-fallback).
+
+Recursive EC acceleration requires replayable implications, degree invariance and intermediate order-invariance hypotheses. A degree drop, unresolved nullification or positive valuation prevents that shortcut; the full ambient backend remains available. Finite-variety and reduced/TTICAD proof formats are not accepted by the independent native geometric replay API. Symbolic operation cost and explicit resource limits can still prevent completion.
 
 Pilot lifting is a bounded cost probe, not a proof procedure. It avoids full CAD sign/provenance work. A cheap heuristic score can therefore mispredict runtime without affecting correctness.
+
+## Exact images and analytic consumers
+
+The exact `function_range` modes preserve disconnected output sets and decline unsupported exact projection. Explicit `bounds`/`optimization` modes return interval enclosures, which may include missing interior values. General transcendental graphs are outside real-closed-field QE unless a supported equivalence-preserving algebraization removes the analytic dependence. A dense trajectory closure, numerical sample or interval hull is not an exact image. See [function range](function_range.md), [image semantics](range-images.md) and [transcendental scope](guides/transcendental_scope.md).
+
+funcprops owns general function-image analysis and symbopt owns optimizer strategies. Their source-domain, critical-coverage, value-accuracy and attainment obligations remain separate from semialg's exact graph projection. This package does not supply general analytic parameter collision detection or arbitrary transcendental range elimination.
 
 ## Parameter-dependent results
 
@@ -28,7 +36,7 @@ An exact result may remain a quantified first-order relation. Quantifier-free pr
 
 ## Intrinsic integration
 
-Regular triangular CAD graph strata can be integrated with the induced Hausdorff metric, and disjoint regular CAD cells are summed as a multi-chart intrinsic decomposition. General singular/non-graph stratification, overlapping chart covers, and arbitrary singular manifolds remain incomplete. Uncertified algebraic sections are not without reporting treated as regular.
+Regular triangular CAD graph strata can be integrated with the induced Hausdorff metric, and disjoint regular CAD cells are summed as a multi-chart intrinsic decomposition. General singular/non-graph stratification, overlapping chart covers, and arbitrary singular manifolds remain incomplete. Uncertified algebraic sections are not treated as regular.
 
 ## Formula simplification
 
@@ -45,6 +53,7 @@ Ambient-measure integration supports standard regions and typed CAD-cell bounds,
 ## Topology and geometry
 
 - Connected components, connectivity/path-connectivity decisions, Euler characteristic, and certified CAD connector chains are available for supported semialgebraic sets.
+- CAD closure incidence certifies degree-preserving multiple-root limits by ordered multiplicity/conjugate-pair conservation. Ambiguous one-dimensional base limits use exact Sturm continuation germs. This covers the solid-torus corpus and complex-to-real births. One-parameter degree loss and escaping roots use oriented reciprocal charts and Sturm germs. Multibase degree loss, ambiguous higher-dimensional base limits and path-dependent collisions still raise `ExactComputationUnavailable`; a branch certificate assumes the source selector is delineable and the target belongs to its closure. See [Native CAD proofs](native_cad_proofs.md).
 - `roadmap` certifies the BPR roadmap conditions for sets of dimension at most one and for compact convex sets through a projection-spanning segment; the recursive pseudo-critical-value construction for general higher-dimensional roadmaps is outside the supported implementation. `path_between` therefore remains a CAD connector-chain API in higher dimensions.
 - Exact simplicial homology over `QQ` is implemented for every region handled by the certified triangulation backend (currently compact polyhedral regions and compact subsets of the real line). `b0` remains available generally and `b1` for compact one-dimensional sets. General curved higher-dimensional sets still need a certified triangulation or oriented CAD-cell boundary operators.
 - The optimization backend can analyze a positive-dimensional projected KKT or singular active-boundary locus through exact function-range/image-CAD computation when recursive coordinate elimination stops, and can recover an exact witness for an attained endpoint. `critical_values` returns discrete values; `critical_value_image` additionally retains exact supported images of varying positive-dimensional KKT and singular components.
@@ -59,10 +68,9 @@ Exact witness generation may use numerical evaluation to **propose** rational ca
 
 ## Failure and unsupported cases
 
-Expected strategy failure, malformed input, certification failure, and resource limits have distinct exception/result paths. Non-core helpers may use conservative fallback behavior, but unexpected implementation failures should not be converted into mathematical claims.
+Expected strategy failure, malformed input, certification failure, and resource limits have distinct exception/result paths. Non-core helpers may return explicitly unsupported results, but unexpected implementation failures should not be converted into mathematical claims.
 
 See [Errors and failure modes](guides/errors_and_failure_modes.md) for user-facing behavior and [Exactness and certification](concepts/exactness_and_certification.md) for the proof/representation distinction.
-
 
 ## Limitation types and extensibility
 
@@ -74,30 +82,18 @@ The remaining limitations fall into different categories and should not be inter
 | Semialgebraic function graph coverage | Missing implementation | Actively extensible. Current exact coverage includes nested rational/algebraic graphs, `Abs`, `sign`, `Heaviside`, `Min`, `Max`, finite `Piecewise`, real `re`/`im`/`conjugate` wrappers, and broader Boolean formula composition. |
 | Parameterized real-root counts above quartic | Engineering/algorithmic | Improved: general subresultant/Sturm sign stratification is available, with conservative fallback when exact CAD construction fails. |
 | Closed-form antiderivatives after exact geometric decomposition | External symbolic-integration limitation | Exact geometry can be retained even when presentation as an elementary closed form fails; broader exact-unevaluated and certified-numerical result modes are feasible extensions. |
-| Positive-dimensional critical-value images | Partial implementation | `critical_value_image` reuses exact function-range/image-CAD analysis on supported projected KKT and singular loci. Unsupported components are conservatively omitted instead of approximated. |
+| Positive-dimensional critical-value images | Partial implementation | `critical_value_image` reuses exact function-range/image-CAD analysis on supported projected KKT and singular loci. `critical_value_image` now raises when a required component computation is unavailable, preserving the completeness of returned unions. Candidate-only internal searches may defer unavailable loci to their separate global certification stage. |
 | Corners/nonsmooth boundary strata | Partial implementation | `region_nonsmooth_locus` detects algebraic singularities plus transverse corners/ridges, and `region_active_boundary_strata` classifies active inequality sets. Full Whitney/regular stratification remains open. |
 | Betti numbers/homology | Partial | `b0` is exact generally; compact one-dimensional sets have exact `b1`; and certified triangulations now provide all Betti numbers through exact rational boundary matrices. General curved higher-dimensional sets still need broader certified triangulation/cellular incidence. |
 | Globally minimal formula representation | Fundamental/representation-dependent | Local deterministic simplification can improve, but no globally minimal representation is promised. |
 
 ## Parametric geometry and affine specializations
 
-Bounded structural charts are currently provided for recognized points,
-intervals, boxes, simplices, polygons, polyhedra, parallelograms,
-parallelepipeds, and bounded `ParametricRegion` objects. A formula region needs
-explicit finite clipping bounds to obtain an identity-chart cover without CAD.
-If parameter-domain dimension or map rank is not certified uniformly, dimension
-queries fall back to the complete CAD implementation instead of using a
-generic rank as a universal statement.
+Bounded structural charts are currently provided for recognized points, intervals, boxes, simplices, polygons, polyhedra, parallelograms, parallelepipeds, and bounded `ParametricRegion` objects. A formula region needs explicit finite clipping bounds to obtain an identity-chart cover without CAD. If parameter-domain dimension or map rank is not certified uniformly, dimension queries fall back to the complete CAD implementation instead of using a generic rank as a universal statement.
 
-`parametric_map_degree` is the generic complex algebraic degree of a rational
-map. It does not count only real fibers or impose semialgebraic parameter-domain
-restrictions; those are separate data needed by change-of-variables and
-intrinsic-integration code.
+`parametric_map_degree` is the generic complex algebraic degree of a rational map. It does not count only real fibers or impose semialgebraic parameter-domain restrictions; those are separate data needed by change-of-variables and intrinsic-integration code.
 
-Affine box clipping is restricted to one- and two-dimensional
-affine subspaces. General polyhedral intersections continue to use the ordinary
-region/CAD machinery.
-
+Affine box clipping is restricted to one- and two-dimensional affine subspaces. General polyhedral intersections continue to use the ordinary region/CAD machinery.
 
 ## Fast-path scope
 

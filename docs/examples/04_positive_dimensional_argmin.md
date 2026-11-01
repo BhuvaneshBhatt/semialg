@@ -6,15 +6,11 @@ Return the entire minimizer set instead of a single witness.
 
 Minimizing \(x^2\) over the rectangle does not select one point. Every point on
 
-\[
-\{(0,y):0\le y\le1\}
-\]
+\[ \{(0,y):0\le y\le1\} \]
 
 is a global minimizer.
 
-This is exactly the situation in which `argmin_set` is preferable to an
-optimization result containing one or several representative optimizer points.
-The returned semialgebraic formula describes the complete optimizer locus.
+This is exactly the situation in which `argmin_set` is preferable to an optimization result containing one or several representative optimizer points. The returned semialgebraic formula describes the complete optimizer locus.
 
 ## Executable example
 
@@ -33,5 +29,4 @@ print(minimizers)
 assert is_equal(minimizers, expected, [x, y])
 ```
 
-The matching executable file is `examples/gallery/04_positive_dimensional_argmin.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/04_positive_dimensional_argmin.py`; the documentation test suite runs every gallery script.

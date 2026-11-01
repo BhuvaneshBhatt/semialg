@@ -72,7 +72,12 @@ def _intervals_from_range_set(
         return ((-sp.oo, sp.oo, False, False),)
     if isinstance(range_set, sp.Interval):
         return (
-            (range_set.start, range_set.end, not range_set.left_open, not range_set.right_open),
+            (
+                range_set.start,
+                range_set.end,
+                not range_set.left_open,
+                not range_set.right_open,
+            ),
         )
     if isinstance(range_set, sp.FiniteSet):
         return tuple(
@@ -166,6 +171,7 @@ def _range_result_from_formula(
         method,
         {
             **dict(diagnostics),
+            "range_kind": "exact_image",
             "metadata_source": "range_formula_as_set" if interval_count is not None else "unknown",
         },
         is_interval,
@@ -202,7 +208,11 @@ def _range_via_optimization_bounds(
         minimum.points,
         maximum.points,
         "optimization_bounds",
-        {"constraints": sp.sstr(condition), "metadata_source": "optimization_bounds"},
+        {
+            "constraints": sp.sstr(condition),
+            "metadata_source": "optimization_bounds",
+            "range_kind": "interval_enclosure",
+        },
         is_interval,
         interval_count,
     )
@@ -221,13 +231,17 @@ def function_range(
     return_stratified: bool = False,
     eliminate_quantifiers: bool = False,
 ) -> sp.Expr | FunctionRangeResult | object:
-    """Return a quantifier-free formula describing a real function range.
+    """Return an exact real image, or explicitly requested interval bounds.
 
-    The preferred direct backend uses the semialgebraic image formulation
-    ``exists variables. constraints and value_symbol == expression``. It first
-    applies guarded exact graph-elimination shortcuts for common univariate
-    images, then tries complete CAD/QE, and may use optimization bounds for
-    ``method='auto'`` or ``method='bounds'``.
+    The exact modes ``qe``, ``cad`` and ``auto`` use the image formulation
+    ``exists variables. constraints and value_symbol == expression``. Guarded
+    image shortcuts precede complete CAD/QE; unsupported elimination raises
+    NotImplementedError without replacing a disconnected image by an interval.
+
+    ``bounds`` and ``optimization`` request the interval between the infimum and
+    supremum. This enclosure can contain missing interior values. With
+    return_result=True, diagnostics["range_kind"] identifies "exact_image" or
+    "interval_enclosure"; interval metadata describe the returned formula.
     """
 
     from ._function_graph_image import (
@@ -341,7 +355,7 @@ def function_range(
             (),
             (),
             "constant",
-            {"metadata_source": "constant"},
+            {"metadata_source": "constant", "range_kind": "exact_image"},
             True,
             1,
         )
@@ -395,7 +409,7 @@ def function_range(
 
     cad_formula = (
         _try_complete_cad_image(expr, condition, vars_, val_sym)
-        if requested_method == "cad"
+        if requested_method in {"qe", "cad", "auto"}
         else None
     )
     if cad_formula is not None:
@@ -409,29 +423,7 @@ def function_range(
         )
         return result if return_result else result.formula
 
-    if requested_method == "cad":
-        raise NotImplementedError(
-            "CAD/QE-image range computation failed for this expression/domain"
-        )
-
-    result = _range_via_optimization_bounds(expr, condition, vars_, val_sym, domain)
-    result = FunctionRangeResult(
-        result.expression,
-        result.formula,
-        result.value_symbol,
-        result.variables,
-        result.infimum,
-        result.supremum,
-        result.minimum_attained,
-        result.maximum_attained,
-        result.minimizers,
-        result.maximizers,
-        "optimization_bounds_after_qe_image_fallback",
-        {**dict(result.diagnostics), "requested_method": requested_method},
-        result.is_interval,
-        result.interval_count,
-    )
-    return result if return_result else result.formula
+    raise NotImplementedError("CAD/QE-image range computation failed for this expression/domain")
 
 
 __all__ = ["function_range"]

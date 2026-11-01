@@ -42,7 +42,7 @@ class SemialgebraicRoadmap:
 
 
 def roadmap(region, variables=None) -> SemialgebraicRoadmap:
-    """Construct an exact Basu--Pollack--Roy roadmap when currently supported.
+    """Construct an exact Basu–Pollack–Roy roadmap when currently supported.
 
     Zero- and one-dimensional semialgebraic sets are returned as their own
     roadmap. Compact convex sets use an exact projection-spanning segment.

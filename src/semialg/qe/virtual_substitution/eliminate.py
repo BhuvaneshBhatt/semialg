@@ -115,8 +115,7 @@ def try_quadratic_vs_qe(
             ),
         )
     if quantifier_names != {"exists"}:
-        if full:
-            return None
+        return None
 
     current_formula = _to_negation_normal_form(matrix)
     current_size = max(1, int(sp.count_ops(current_formula, visual=False)))

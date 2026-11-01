@@ -8,9 +8,10 @@ import sympy as sp
 from .._zero_testing import certified_equal, certified_pointwise_zero, certified_zero
 from ..algebraic.samples import sample_to_expr
 from ..decomposition.cylindrical import CADResult, CellSet, cad
+from ..errors import ResourceLimitError
 from ..exact_arithmetic import compare_exact_reals
 from ..normalization import normalize_formula, normalize_problem_variables
-from ..reconstruct.cylindrical import path_condition, section_value_bound
+from ..reconstruct.cylindrical import _section_root_index, path_condition, section_value_bound
 from ..reconstruct.radicals import fiber_root_candidates
 from ..structural_keys import symbol_identity_key
 from .bounds import (
@@ -22,7 +23,6 @@ from .bounds import (
     bound_expr,
 )
 from .lifting.stack import CADCell
-from .polynomial_utils import exact_univariate_poly
 
 
 @dataclass(frozen=True)
@@ -231,18 +231,7 @@ def _section_delineability_certificate(
     sample_subs = dict(base_subs)
     sample_subs[variable] = sample_to_expr(section.sample[section.level - 1])
     sample_root_verified = certified_zero(poly.subs(sample_subs)) is True
-    local_root_index = 0
-    try:
-        specialized = exact_univariate_poly(
-            sp.expand(poly.subs(base_subs)), variable, algebraic_extension=False
-        )
-        roots = tuple(sp.real_roots(specialized.as_expr()))
-        sample_value = sample_to_expr(section.sample[section.level - 1])
-        matches = [i for i, root in enumerate(roots) if certified_equal(root, sample_value) is True]
-        if matches:
-            local_root_index = matches[0]
-    except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
-        local_root_index = 0
+    local_root_index = _section_root_index(section, variable, variables[: section.level - 1])
     siblings = _siblings(cells_by_level, section.level, section.parent_index)
     sections = [cell for cell in siblings if cell.kind == "section"]
     ordered = [cell.root_index for cell in sections]
@@ -486,7 +475,7 @@ def extract_structured_cad_cells(
 
     if isinstance(condition_or_cad, CADResult):
         result = condition_or_cad
-    elif isinstance(condition_or_cad, CellSet):
+    elif isinstance(condition_or_cad, CellSet) and selected_only:
         vars_ = tuple(condition_or_cad.variables)
         cells = tuple(
             _structured_cell_from_leaf(cell, vars_, condition_or_cad.cells_by_level, selected=True)
@@ -494,7 +483,13 @@ def extract_structured_cad_cells(
         )
         return StructuredCADCellDecomposition(vars_, cells, condition_or_cad.formula)
     else:
-        formula = normalize_formula(condition_or_cad)
+        formula = (
+            condition_or_cad.formula
+            if isinstance(condition_or_cad, CellSet)
+            else normalize_formula(condition_or_cad)
+        )
+        if isinstance(condition_or_cad, CellSet):
+            variables = condition_or_cad.variables
         if variables is None:
             variables = tuple(sorted(formula.free_symbols, key=symbol_identity_key))
         result = cad(
@@ -502,8 +497,16 @@ def extract_structured_cad_cells(
             normalize_problem_variables(variables, formula),
             output="cells",
             return_result=True,
+            strategy="auto" if selected_only else "full",
         )
 
+    variety_only = result.cad.tower.metadata.get("variety_only", False)
+    if result.status != "complete" or (not result.cad.complete and not variety_only):
+        raise ResourceLimitError("cannot extract solution cells from an incomplete CAD")
+    if not selected_only and variety_only:
+        result = cad(
+            result.formula, result.variables, strategy="full", output="cells", return_result=True
+        )
     vars_ = tuple(result.variables)
     if selected_only:
         leaves = tuple(result.cell_set.cells)

@@ -194,8 +194,3 @@ def test_programming_errors_in_root_presentation_are_not_swallowed():
 
     with pytest.raises(NameError, match="programmer bug"):
         _root_function_expr(root, broken)
-
-
-def test_pytest_configuration_supports_src_layout(pytestconfig):
-    configured = [str(path) for path in pytestconfig.getini("pythonpath")]
-    assert any(path.endswith("src") for path in configured)

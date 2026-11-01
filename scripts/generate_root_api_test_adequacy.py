@@ -146,7 +146,9 @@ def collect():
                 if name in public and self.stack and self.stack[-1].startswith("test_"):
                     ref = f"{self.current_path.relative_to(ROOT).as_posix()}::{self.stack[-1]}"
                     ev[name]["nominal"].add(ref)
-                    hay = (self.stack[-1] + " " + self.current_path.as_posix()).lower()
+                    hay = (
+                        self.stack[-1] + " " + self.current_path.relative_to(ROOT).as_posix()
+                    ).lower()
                     for dim, keys in DIMENSION_KEYWORDS.items():
                         if any(k in hay for k in keys):
                             ev[name][dim].add(ref)

@@ -10,7 +10,7 @@ from ..cad_algorithms.lifting.stack import CADCell
 from ..reconstruct.merge import compressed_formula_from_cells
 from ..simplify.boolean import simplify_boolean
 from ..simplify.formula import simplify_qe_formula
-from .incidence import cell_dimension, final_cells, is_cell_in_closure
+from .incidence import final_cells, is_cell_in_closure
 
 
 @dataclass(frozen=True)
@@ -117,14 +117,11 @@ def exterior_cells(
     """Return the Euclidean exterior: interior of the complement."""
 
     closure = {cell.index for cell in closure_cells(selected, cad, variables)}
-    dim = len(tuple(variables))
+    # The complement of a closed cell union is already open. Internal CAD
+    # sections can lie in that open set and must not be discarded by dimension.
     return tuple(
         sorted(
-            (
-                cell
-                for cell in final_cells(cad)
-                if cell.index not in closure and cell_dimension(cell, cad.cells_by_level) == dim
-            ),
+            (cell for cell in final_cells(cad) if cell.index not in closure),
             key=lambda cell: cell.index,
         )
     )

@@ -116,10 +116,7 @@ An adapted CAD gives a finite exact combinatorial representation. From it one ca
 
 A full-dimensional cylindrical CAD cell has nested bounds
 
-\[
-a_1<x_1<b_1,
-\quad a_2(x_1)<x_2<b_2(x_1),\ldots
-\]
+\[ a_1<x_1<b_1, \quad a_2(x_1)<x_2<b_2(x_1),\ldots \]
 
 which directly define an iterated integral. `semialg` combines such CAD extraction with cheaper recognizers for intervals, boxes, simplexes, radial regions, and ellipses. Intrinsic integration over lower-dimensional regular strata additionally requires metric/Jacobian factors.
 
@@ -134,3 +131,8 @@ This separation matters: a conforming sampled mesh is useful for visualization a
 General quantifier elimination over real closed fields is expensive, and CAD has doubly exponential worst-case behavior in the number of variables. This is why variable order, decomposition, equational constraints, specialized solvers, caching, and conservative early exits matter so much in practice.
 
 The package's strategy is therefore **exact-first, structure-aware, and fallback-driven**, not “always build a full CAD.”
+
+
+## Derivations and complete worked computations
+
+This page surveys the methods used by the package. For step-by-step mathematical explanations, see [Sturm sequences, resultants and Gröbner elimination](algebraic_computation.md), the [21-cell worked CAD](cad_worked_example.md), and [complexity and practical scope](complexity.md). The [optimization chapter](optimization_positivity.md) gives a closed-form ellipsoid extremum and discusses attainment and exact certificates. These mathematical examples complement—not replace—the supported-backend contracts above.

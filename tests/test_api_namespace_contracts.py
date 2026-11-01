@@ -1,4 +1,4 @@
-"""The 1.2 API intentionally carries no compatibility aliases."""
+"""Canonical package exports have one authoritative spelling."""
 
 import semialg
 import semialg.algebraic as algebraic

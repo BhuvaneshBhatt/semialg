@@ -10,7 +10,6 @@ from semialg.cad_algorithms.cells import (
     IntrinsicCellStratum,
     IntrinsicStratification,
     extract_explicit_cylindrical_solution,
-    intrinsic_cell_integral,
     intrinsic_solution_integrals,
     stratify_intrinsic_solution,
 )
@@ -79,14 +78,6 @@ def test_dimension_filter_in_stratification():
     assert sol is not None
     assert len(stratify_intrinsic_solution(sol, dimension=1).strata) == 1
     assert not stratify_intrinsic_solution(sol, dimension=0).strata
-
-
-def test_intrinsic_stratification_api_is_importable():
-    assert IntrinsicCellStratum is not None
-    assert IntrinsicStratification is not None
-    assert callable(stratify_intrinsic_solution)
-    assert callable(intrinsic_cell_integral)
-    assert callable(intrinsic_solution_integrals)
 
 
 def test_algebraic_section_without_certificate_is_never_classified_regular() -> None:

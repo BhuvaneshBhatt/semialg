@@ -33,13 +33,7 @@ Checks the structural/logical validity of a proposed parameter partition in supp
 
 These expose parameter-dependent existence/count/classification information.
 
-`SolvabilityConditionsResult` has Boolean truth only for the two
-unconditional cases: an identically true solvability condition is truthy and an
-identically false condition is falsey. A genuinely parameter-dependent condition
-raises `TypeError` in `bool(result)`; inspect `result.formula`,
-`result.is_conditional`, `result.is_unconditionally_solvable`, or
-`result.is_never_solvable` instead. This prevents a condition such as `a >= 0`
-from being mistaken for unconditional solvability.
+`SolvabilityConditionsResult` has Boolean truth only for the two unconditional cases: an identically true solvability condition is truthy and an identically false condition is falsey. A genuinely parameter-dependent condition raises `TypeError` in `bool(result)`; inspect `result.formula`, `result.is_conditional`, `result.is_unconditionally_solvable`, or `result.is_never_solvable` instead. This prevents a condition such as `a >= 0` from being mistaken for unconditional solvability.
 
 ## Parametric optimization and ranges
 

@@ -30,16 +30,13 @@ The primary entry point is imported directly from the package root:
 from semialg import cad
 ```
 
-CAD implementation modules are available to expert users under
-`semialg.cad_algorithms`; that package name is distinct from the
-root `cad` function.
+CAD implementation modules are available to expert users under `semialg.cad_algorithms`; that package name is distinct from the root `cad` function.
 
 Constructs or queries a cylindrical algebraic decomposition for supported semialgebraic input. Depending on options/output, CAD can support decision procedures, topology, structured cells, bounds, and integration adapters.
 
 ### Understanding direct CAD output and `CADResult`
 
-By default, `cad()` returns the representation selected by `output`. The default
-`output="formula"` therefore returns the reconstructed exact SymPy Boolean formula:
+By default, `cad()` returns the representation selected by `output`. The default `output="formula"` therefore returns the reconstructed exact SymPy Boolean formula:
 
 ```python
 import sympy as sp
@@ -54,8 +51,7 @@ membership = cad(condition, [x, y], output="function")
 tree = cad(condition, [x, y], output="tree")
 ```
 
-Use `return_result=True` when the decomposition, diagnostics, status, and all output
-representations are needed together:
+Use `return_result=True` when the decomposition, diagnostics, status, and all output representations are needed together:
 
 ```python
 result = cad(condition, [x, y], return_result=True)
@@ -86,30 +82,13 @@ A `CADResult` has the following principal fields and views:
 - `result.diagnostics` records strategy, preprocessing, resource-limit, and related
   metadata when available.
 
-The central CAD invariant is **truth invariance**: after projection and lifting, the
-input formula has a constant truth value on each final cell. Consequently, for a
-complete result, `cell_set` is exactly the union of final cells on which the input
-formula (or requested operation) is true. Cell indices encode the cylindrical path
-through successive lifting levels; they are decomposition identifiers rather than
-Cartesian coordinates.
+The central CAD invariant is **truth invariance**: after projection and lifting, the input formula has a constant truth value on each final cell. Consequently, for a complete result, `cell_set` is exactly the union of final cells on which the input formula (or requested operation) is true. Cell indices encode the cylindrical path through successive lifting levels; they are decomposition identifiers rather than Cartesian coordinates.
 
 ### Variable ordering is a first-class performance decision
 
-CAD is unusually sensitive to variable order. Two orders describe the same
-mathematical set but can produce projection towers with very different polynomial
-degrees, coefficient sizes, numbers of projection factors, algebraic root
-complexity, and final cell counts. On nontrivial problems these differences can
-translate into orders-of-magnitude differences in runtime and memory. A simple
-answer therefore does **not** imply that every CAD order is cheap.
+CAD is unusually sensitive to variable order. Two orders describe the same mathematical set but can produce projection towers with very different polynomial degrees, coefficient sizes, numbers of projection factors, algebraic root complexity, and final cell counts. On nontrivial problems these differences can translate into orders-of-magnitude differences in runtime and memory. A simple answer therefore does **not** imply that every CAD order is cheap.
 
-`result.variables` records the actual cylindrical/lifting order. In that order,
-the first variable is the base coordinate and the final variable is eliminated
-first during Collins-style projection. If the order is supplied explicitly,
-`semialg` respects it where the operation's logical structure permits. Automatic
-planning uses structural incidence/degree information and, on selected candidates,
-projection and bounded pilot-lifting estimates. Expert users can inspect candidate
-orders with `semialg.heuristics.suggest_variable_order(...)` or
-`suggest_cad_variable_order(...)`.
+`result.variables` records the actual cylindrical/lifting order. In that order, the first variable is the base coordinate and the final variable is eliminated first during Collins-style projection. If the order is supplied explicitly, `semialg` respects it where the operation's logical structure permits. Automatic planning uses structural incidence/degree information and, on selected candidates, projection and bounded pilot-lifting estimates. Expert users can inspect candidate orders with `semialg.heuristics.suggest_variable_order(...)` or `suggest_cad_variable_order(...)`.
 
 A good order is problem-dependent. Useful signals include:
 
@@ -123,26 +102,13 @@ A good order is problem-dependent. Useful signals include:
 
 For example, the region
 
-\[
-0\le y\le1,\qquad y^2\le x\le y
-\]
+\[ 0\le y\le1,\qquad y^2\le x\le y \]
 
-has especially simple cylindrical bounds in the order `(y, x)`: first
-`0 <= y <= 1`, then `y**2 <= x <= y`. Using `(x, y)` can instead force a
-description involving `sqrt(x)`. The CAD-driven region-integration planner therefore
-searches alternative legal orders and scores the resulting certified cells/bounds
-rather than always inheriting the caller's coordinate order.
+has especially simple cylindrical bounds in the order `(y, x)`: first `0 <= y <= 1`, then `y**2 <= x <= y`. Using `(x, y)` can instead force a description involving `sqrt(x)`. The CAD-driven region-integration planner therefore searches alternative legal orders and scores the resulting certified cells/bounds rather than always inheriting the caller's coordinate order.
 
-Quantifiers restrict what may be reordered. Variables inside the same quantifier
-block can often be permuted without changing meaning, but moving variables across
-alternating `Exists`/`ForAll` blocks changes the logical formula and is not a legal
-performance optimization. Likewise, free-variable order can affect the desired
-shape of reconstructed output. Automatic planning must preserve those semantic
-constraints.
+Quantifiers restrict what may be reordered. Variables inside the same quantifier block can often be permuted without changing meaning, but moving variables across alternating `Exists`/`ForAll` blocks changes the logical formula and is not a legal performance optimization. Likewise, free-variable order can affect the desired shape of reconstructed output. Automatic planning must preserve those semantic constraints.
 
-When diagnosing an unexpectedly expensive CAD, inspect variable order early. See
-[CAD concepts](../concepts/cad.md) for the projection/lifting reason and the
-[Performance guide](../guides/performance.md) for practical tuning guidance.
+When diagnosing an unexpectedly expensive CAD, inspect variable order early. See [CAD concepts](../concepts/cad.md) for the projection/lifting reason and the [Performance guide](../guides/performance.md) for practical tuning guidance.
 
 The `output` option controls the direct return value whenever `return_result=False`:
 
@@ -151,19 +117,11 @@ The `output` option controls the direct return value whenever `return_result=Fal
 - `output="function"` returns a `CADFunction`;
 - `output="tree"` returns the CAD tree.
 
-Setting `return_result=True` instead returns the full `CADResult`; its `output` field
-records the requested representation, while the other representations remain
-available from the structured result.
+Setting `return_result=True` instead returns the full `CADResult`; its `output` field records the requested representation, while the other representations remain available from the structured result.
 
 ### Preprocessing resource guard
 
-Supported semialgebraic syntax such as `Abs` and rational powers may be converted to
-polynomial constraints using existential auxiliary variables.  `max_preprocess_aux_vars`
-(default `3`) bounds how many such auxiliaries `cad()` will eliminate automatically;
-set it to `None` to disable this guard.  If the guard is exceeded, a structured call
-returns `status="unknown"` with diagnostic details.  Calls with `return_result=False`
-or `strict=True` raise `ResourceLimitError` instead of fabricating a mathematical
-formula.
+Supported semialgebraic syntax such as `Abs` and rational powers may be converted to polynomial constraints using existential auxiliary variables.  `max_preprocess_aux_vars` (default `3`) bounds how many such auxiliaries `cad()` will eliminate automatically; set it to `None` to disable this guard.  If the guard is exceeded, a structured call returns `status="unknown"` with diagnostic details.  Calls with `return_result=False` or `strict=True` raise `ResourceLimitError` instead of fabricating a mathematical formula.
 
 ## `parametric_cad(...)`
 
@@ -191,6 +149,8 @@ Public CAD types include `CADBound`, `CADCellBoundsCertificate`, `StructuredCADL
 
 Algebraic section bounds can be represented by certified root functions instead of approximate decimal endpoints.
 
+Root certificates are bound to the polynomial, fiber variable, family-local root rank, base-variable order, base cell and stack position. Changing that identity requires a matching certificate before radical-branch, regularity or cell-wide ordering claims can be reused. `AlgebraicRootFunction.compare_certified(..., base_point=...)` performs the requested exact pointwise comparison and declines certification when that fiber cannot be evaluated. See [CAD and QE](../cad_qe.md#point-location-and-cylindrical-cells) for an executable example.
+
 ## Exactness
 
 Certified lifting, root ordering, sector sampling, and topology decisions use exact algebraic comparisons. Numerical approximations may be used for presentation/exploration only where explicitly allowed.
@@ -199,16 +159,14 @@ See [CAD and QE](../cad_qe.md) and [Performance](../guides/performance.md).
 
 ## Primary CAD configuration and context
 
-`CADOptions` collects the user-facing controls for CAD construction, including
-output form, strategy, resource limits, diagnostics, and formula reconstruction.
-`SemialgebraicContext` stores reusable exact problem state, while
-`computation_context` scopes shared caches and exact-computation settings for a
-sequence of related operations.
+`CADOptions` collects the user-facing controls for CAD construction, including output form, strategy, resource limits, diagnostics, and formula reconstruction. `SemialgebraicContext` stores reusable exact problem state, while `computation_context` scopes shared caches and exact-computation settings for a sequence of related operations.
 
 ## Gröbner-structured finite-variety CAD
 
 `strategy="auto"` may select `effective_backend="groebner-variety"` when common polynomial equalities define an exact zero-dimensional ideal. The returned decomposition is a variety sub-CAD, so `complete` is false even though formula reconstruction is exact for the requested set. `strategy="collins"` forces a full-space decomposition.
 
 Structured diagnostics include `variety_only`, `equality_dimension`, and `quotient_dimension`. Coordinate eliminants are lazy; exact uncertainty during specialized lifting causes fallback to complete Collins CAD. Pure existential QE may use this backend, while universal or mixed prefixes require complete-space semantics.
+
+`CADFunction.project` and `project_cell_set` support nonempty coordinate prefixes. A finite-variety source projects to exact finite point sets, preserving the relations between retained coordinates. Ambient CAD projection can produce intervals or higher-dimensional regions. Projection onto no coordinates remains a feasibility query handled by existential QE.
 
 For the algorithm, compatibility of coordinate roots, quotient dimension versus point count, fallback contract, and diagnostic examples, see [Gröbner variety CAD](../concepts/groebner_variety_cad.md).

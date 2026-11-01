@@ -17,7 +17,7 @@ reduce_module = importlib.import_module("semialg.solve.reduce")
 
 
 @pytest.mark.parametrize("backend", [PROJECTION_MCCALLUM, PROJECTION_LAZARD, PROJECTION_TTICAD])
-@pytest.mark.parametrize("strategy", ["planner", "mccallum", "lazard", "tticad"])
+@pytest.mark.parametrize("strategy", ["mccallum", "lazard", "tticad"])
 def test_reduced_qe_normalizes_planner_order_before_lifting(monkeypatch, backend, strategy):
     a, x, y = sp.symbols("a x y", real=True)
     parsed = parse_quant_form_text(

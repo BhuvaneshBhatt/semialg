@@ -6,15 +6,11 @@ Eliminate a coordinate from a parabolic strip and recover the exact projected in
 
 The region is
 
-\[
-S=\{(x,y):x^2\le y\le1\}.
-\]
+\[ S=\{(x,y):x^2\le y\le1\}. \]
 
 Projecting onto the \(x\)-axis asks exactly the quantified question
 
-\[
-\exists y\;(x^2\le y\le1).
-\]
+\[ \exists y\;(x^2\le y\le1). \]
 
 Such a \(y\) exists iff \(x^2\le1\), hence the projected set is \([-1,1]\).
 
@@ -40,5 +36,4 @@ print(projection)
 assert is_equal(projection, (x >= -1) & (x <= 1), [x])
 ```
 
-The matching executable file is `examples/gallery/01_projection_and_qe.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/01_projection_and_qe.py`; the documentation test suite runs every gallery script.

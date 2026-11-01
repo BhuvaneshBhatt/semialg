@@ -4,14 +4,9 @@ Minimize a polynomial over a curved compact region and inspect attainment and ce
 
 ## Problem and interpretation
 
-The objective is squared distance from \((2,0)\). Its unconstrained minimizer
-lies outside the unit disk, so the constrained optimum occurs on the curved
-boundary at \((1,0)\).
+The objective is squared distance from \((2,0)\). Its unconstrained minimizer lies outside the unit disk, so the constrained optimum occurs on the curved boundary at \((1,0)\).
 
-The example illustrates why the structured result is useful: the exact value,
-optimizer witness, attainment status, and global certificate are separate
-pieces of information. Candidate generation may use KKT/active-set structure,
-while certification rules out every better feasible point exactly.
+The example illustrates why the structured result is useful: the exact value, optimizer witness, attainment status, and global certificate are separate pieces of information. Candidate generation may use KKT/active-set structure, while certification rules out every better feasible point exactly.
 
 ## Executable example
 
@@ -33,5 +28,4 @@ assert result.attained is True
 assert result.certified is True
 ```
 
-The matching executable file is `examples/gallery/03_certified_nonconvex_optimization.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/03_certified_nonconvex_optimization.py`; the documentation test suite runs every gallery script.

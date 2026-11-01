@@ -336,6 +336,11 @@ def _try_optimization_specializations(
 ) -> OptimizationResult | None:
     """Run cheap exact specializations before the general KKT path."""
 
+    from ._optimization_ellipsoid import linear_ellipsoid_optimum
+
+    support = linear_ellipsoid_optimum(objective, condition, variables, kind=kind)
+    if support is not None:
+        return support
     linear = _linear_polytope_specialization(objective, condition, variables, kind=kind)
     if linear is not None:
         return linear

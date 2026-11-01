@@ -238,17 +238,41 @@ def _cylindrical_cell_from_structured(cell: StructuredCADCell) -> CylindricalSol
 def cylindrical_solution_from_structured(
     decomposition: StructuredCADCellDecomposition,
 ) -> CylindricalSolution:
-    """Convert structured CAD cells to the public cylindrical solution form."""
+    """Convert structured cells, retaining coverage proved by their source CAD.
+
+    Cells without a source result can still be rendered and have their bounds
+    checked, but do not establish complete coverage of a formula.
+    """
 
     cells = tuple(_cylindrical_cell_from_structured(cell) for cell in decomposition.cells)
     from .bounds import verify_cad_cell_bounds
 
+    source = decomposition.cad_result
+    indices = {cell.index for cell in decomposition.cells}
+    unique = len(indices) == len(decomposition.cells)
+    coverage = False
+    disjoint = False
+    if source is not None and source.status == "complete":
+        leaves = {
+            cell.index: cell for cell in source.cad.cells_by_level.get(len(source.variables), ())
+        }
+        source_valid = source.cad.complete or source.cad.tower.metadata.get("variety_only", False)
+        native_cells = all(
+            cell.source_cell is leaves.get(cell.index) for cell in decomposition.cells
+        )
+        disjoint = bool(source_valid and unique and native_cells)
+        coverage = bool(
+            disjoint
+            and decomposition.variables == source.variables
+            and decomposition.formula == source.formula
+            and indices in (set(leaves), set(source.cell_set.indices))
+        )
     cert = CylindricalDecompositionCertificate(
-        coverage_verified=True,
-        pairwise_disjoint=True,
+        coverage_verified=coverage,
+        pairwise_disjoint=disjoint,
         cells_verified=all(verify_cad_cell_bounds(cell).verify() for cell in cells),
         source="cad",
-        notes=("CAD leaf cells form a cylindrical partition of the selected formula",),
+        notes=("coverage requires all selected or all ambient cells of a completed source CAD",),
     )
     return CylindricalSolution(
         variables=decomposition.variables,
@@ -273,7 +297,7 @@ def extract_cylindrical_solution(
     from levels ``< k``.
     """
 
-    if not isinstance(condition_or_cad, (CADResult, CellSet)):
+    if selected_only and not isinstance(condition_or_cad, (CADResult, CellSet)):
         formula = normalize_formula(condition_or_cad)
         vars_ = (
             normalize_problem_variables(variables, formula)

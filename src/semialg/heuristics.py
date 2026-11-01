@@ -15,6 +15,12 @@ from .structural_keys import symbol_identity_key
 
 @dataclass(frozen=True)
 class VariableOrderScore:
+    """Variable ordering together with the heuristic measures used to rank it.
+
+    Projection counts are estimates of symbolic work, not correctness
+    guarantees or promises of reduced CAD runtime.
+    """
+
     order: tuple[sp.Symbol, ...]
     strategy: str
     score: tuple[int, ...]
@@ -146,7 +152,16 @@ def _cheap_auto_order(
 def _projection_score(polys: Sequence[sp.Expr], order: tuple[sp.Symbol, ...]) -> tuple[int, int]:
     from .cad_algorithms.projection.collins import build_collins_proj_set
 
-    tower = build_collins_proj_set(polys, order)
+    # A quantifier block can be only part of the polynomial coordinates.
+    # Retain other symbols as lower parameter coordinates for this score;
+    # omitting them would lose parameter-dependent projection boundaries.
+    parameters = tuple(
+        sorted(
+            set().union(*(poly.free_symbols for poly in polys)) - set(order),
+            key=symbol_identity_key,
+        )
+    )
+    tower = build_collins_proj_set(polys, (*parameters, *order))
     total_count = sum(len(level.polynomials) for level in tower.levels)
     sotd = 0
     for level in tower.levels:

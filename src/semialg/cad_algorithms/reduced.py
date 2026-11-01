@@ -6,15 +6,20 @@ from typing import Literal
 
 import sympy as sp
 
-from ..algebraic.comparison import compare_samples
-from ..formula import Formula, equational_constraints, formula_polynomials
+from ..algebraic.samples import FiberRootContext
+from ..algebraic.signs import sign_at_sample
+from ..errors import ExactEvaluationFailure
+from ..formula import Formula, equational_constraints, formula_polynomials, to_sympy
 from ..qe.complete import evaluate_formula_on_cell
 from .decomposition import CompleteCAD, decomp_collins_complete, decomp_from_proj_tower
+from .invariant_scope import _missing_boundaries, _with_invariant
 from .lifting.stack import CADCell
 from .polynomial_utils import polynomial_key as _poly_key
+from .polynomial_utils import univariate_leading_coefficient
+from .projection.ec_hypotheses import ec_parent_admissible, replay_ec_projection
 from .projection.lazard import build_lazard_proj_set
 from .projection.mccallum import build_mccallum_proj_set
-from .projection.reduced import ProjectionValidity, ReducedProjectionTower
+from .projection.reduced import ProjectionValidity, ReducedProjectionTower, _candidate_ec
 
 ReducedBackend = Literal["mccallum", "lazard"]
 
@@ -23,26 +28,26 @@ ReducedBackend = Literal["mccallum", "lazard"]
 class NullificationEvent:
     """A reduced-projection side-condition failure candidate.
 
-    The event records that a polynomial used for lifting at ``level`` becomes
-    identically zero over a lower-dimensional base cell. McCallum-style
-    projection cannot use such a cell without extra delineating-polynomial
-    repair or fallback.
+    The event records that a lifting polynomial becomes identically zero at a
+    base sample. Extending that observation to the whole cell requires the
+    relevant coefficient invariants. Reduced lifting needs repair or fallback
+    when its nullification conditions cannot be established.
     """
 
     level: int
     cell_index: tuple[int, ...]
     variable: sp.Symbol
     polynomial: sp.Expr
-    reason: str = "polynomial nullifies over lower-dimensional cell"
+    reason: str = "polynomial nullifies at the base sample"
 
 
 @dataclass(frozen=True)
 class ReducedSideReport:
-    """Intrinsic reduced-CAD side-condition report.
+    """Sample-level nullification and valuation diagnostics for reduced CAD.
 
-    This is separate from the Collins-refinement certificate. A reduced CAD is
-    accepted only when the intrinsic side conditions and the refinement-based
-    invariant certificate both pass.
+    The safe driver combines these lifting checks with an intrinsic theorem
+    certificate or a Collins-refinement certificate for the requested invariant.
+    The sample checks alone do not establish degree invariance on a base cell.
     """
 
     valid: bool
@@ -58,12 +63,12 @@ class ReducedSideReport:
 class ReducedCertificate:
     """Post-lifting proof object for a reduced-CAD attempt.
 
-    The certificate is conservative. A reduced CAD is accepted
-    only when every cell of a full Collins refinement maps to a reduced cell and
-    the requested invariant is constant on each reduced cell. For raw
-    polynomial decomposition the invariant is the sign vector of the input
-    polynomials. For formula decomposition the invariant is the truth value of
-    the formula matrix.
+    An intrinsic certificate records the reduced theorem's side conditions.
+    Otherwise every cell of a complete Collins refinement must map to a reduced
+    cell, with a constant requested invariant on each reduced cell. Polynomial
+    decomposition uses the input sign vector; formula decomposition uses the
+    matrix truth value. Refinement certificates report the number of checked
+    reference cells; intrinsic certificates report zero.
     """
 
     valid: bool
@@ -94,40 +99,34 @@ class SafeReducedCAD:
         return self.cad.cells
 
 
-def _reduced_cell_contains(
-    reduced_cells_by_level: Mapping[int, Sequence[CADCell]],
-    reduced_cell: CADCell,
-    sample: Sequence[object],
-) -> bool:
-    if len(sample) < reduced_cell.level:
-        return False
-    for level in range(1, reduced_cell.level + 1):
-        prefix = reduced_cell.index[:level]
-        try:
-            level_cell = next(
-                item for item in reduced_cells_by_level[level] if item.index == prefix
-            )
-        except StopIteration:
-            return False
-        coord = sample[level - 1]
-        left, right = level_cell.interval or (None, None)
-        if level_cell.kind == "section":
-            if left is None or compare_samples(coord, left) != 0:
-                return False
-        else:
-            if left is not None and compare_samples(coord, left) <= 0:
-                return False
-            if right is not None and compare_samples(coord, right) >= 0:
-                return False
-    return True
-
-
 def _locate_reduced_cell(reduced: CompleteCAD, full_cell: CADCell) -> CADCell | None:
-    candidates = reduced.cells_by_level.get(full_cell.level, tuple())
-    for cell in candidates:
-        if _reduced_cell_contains(reduced.cells_by_level, cell, full_cell.sample):
-            return cell
-    return None
+    try:
+        return reduced._point_locator.locate(full_cell.sample)
+    except (ExactEvaluationFailure, ArithmeticError, ValueError, IndexError, NotImplementedError):
+        # A failed exact boundary evaluation cannot establish refinement
+        # containment. The certificate records a failure and requests fallback.
+        return None
+
+
+def _refinement_failures(reduced, refiner, variables, polynomials) -> tuple[str, ...]:
+    """Require an ambient sign-invariant reference covering the requested boundaries.
+
+    Agreement at sample points proves an invariant only when the reference CAD
+    already separates every polynomial factor used by that invariant. A finite
+    variety or a decomposition for an unrelated family cannot supply this proof.
+    """
+
+    variables = tuple(variables)
+    if reduced.tower.variables != variables or refiner.tower.variables != variables:
+        return ("refinement variable order does not match the requested invariant",)
+    if not refiner.complete or not refiner.tower.metadata.get("complete", False):
+        return ("reference must be a complete ambient sign-invariant CAD",)
+    if refiner.diagnostics is not None and refiner.diagnostics.invariant_failures:
+        return tuple(refiner.diagnostics.invariant_failures)
+    missing = _missing_boundaries(refiner.tower, polynomials)
+    if missing:
+        return (f"reference omits polynomial boundaries: {missing!r}",)
+    return ()
 
 
 def _certify_sign_invariance(
@@ -137,19 +136,27 @@ def _certify_sign_invariance(
     input_polys: Sequence[sp.Expr | sp.Poly],
     variables: Sequence[sp.Symbol],
 ) -> ReducedCertificate:
+    reference_failures = _refinement_failures(reduced, refiner, variables, input_polys)
+    if reference_failures:
+        return ReducedCertificate(False, "sign", 0, 0, reference_failures)
     polys = tuple(
         poly if isinstance(poly, sp.Poly) else sp.Poly(sp.expand(poly), *variables)
         for poly in input_polys
     )
     keys = tuple(_poly_key(poly) for poly in polys)
-    grouped: dict[tuple[int, ...], set[tuple[int | None, ...]]] = {}
+    grouped: dict[tuple[int, ...], set[tuple[int, ...]]] = {}
     failures: list[str] = []
     for full_cell in refiner.cells:
         reduced_cell = _locate_reduced_cell(reduced, full_cell)
         if reduced_cell is None:
             failures.append(f"could not locate reduced cell for full cell {full_cell.index}")
             continue
-        signs = tuple(full_cell.signs.get(key) for key in keys)
+        signs = tuple(
+            full_cell.signs[key]
+            if key in full_cell.signs
+            else sign_at_sample(poly, full_cell.sample)
+            for key, poly in zip(keys, polys, strict=True)
+        )
         grouped.setdefault(reduced_cell.index, set()).add(signs)
     for index, values in grouped.items():
         if len(values) > 1:
@@ -174,6 +181,13 @@ def certify_truth_inv(
     formula: Formula,
     variables: Sequence[sp.Symbol],
 ) -> ReducedCertificate:
+    """Check truth invariance against a complete CAD for the formula polynomials."""
+
+    reference_failures = _refinement_failures(
+        reduced, refiner, variables, formula_polynomials(formula)
+    )
+    if reference_failures:
+        return ReducedCertificate(False, "truth", 0, 0, reference_failures)
     grouped: dict[tuple[int, ...], set[bool]] = {}
     failures: list[str] = []
     for full_cell in refiner.cells:
@@ -277,39 +291,8 @@ def build_reduced_proj(
     raise ValueError(f"unknown reduced CAD backend: {backend!r}")
 
 
-def _specialize_with_lazard(
-    poly: sp.Poly, variables: Sequence[sp.Symbol], sample: Sequence[object], level: int
-) -> tuple[sp.Expr, tuple[int, ...]]:
-    from .lifting.lazard import lazard_evaluate
-
-    assigned = variables[: level - 1]
-    values: list[sp.Expr] = []
-    from ..algebraic.samples import sample_to_expr
-
-    for item in sample[: level - 1]:
-        values.append(sample_to_expr(item))
-    result = lazard_evaluate(poly.as_expr(), assigned, values)
-    return sp.expand(result.final_expr), result.valuation
-
-
-def _specialized_expr(
-    poly: sp.Poly,
-    variables: Sequence[sp.Symbol],
-    sample: Sequence[object],
-    level: int,
-    *,
-    backend: ReducedBackend,
-) -> tuple[sp.Expr, tuple[int, ...]]:
-    from ..algebraic.samples import sample_to_expr
-
-    if backend == "lazard":
-        return _specialize_with_lazard(poly, variables, sample, level)
-    substitutions = {variables[i]: sample_to_expr(sample[i]) for i in range(level - 1)}
-    return sp.expand(poly.as_expr().subs(substitutions)), ()
-
-
 def _scan_reduced_conditions(cad: CompleteCAD, *, backend: ReducedBackend) -> ReducedSideReport:
-    """Check reduced-CAD lifting cells for nullification and Lazard valuation conditions."""
+    """Check reduced-CAD base samples for nullification and Lazard valuations."""
     variables = cad.tower.variables
     events: list[NullificationEvent] = []
     valuations: dict[tuple[int, tuple[int, ...], str], tuple[int, ...]] = {}
@@ -321,13 +304,30 @@ def _scan_reduced_conditions(cad: CompleteCAD, *, backend: ReducedBackend) -> Re
         level_polys = cad.tower.level(level).polynomials
         variable = variables[level - 1]
         for parent in parent_cells:
-            for poly in level_polys:
-                expr, valuation = _specialized_expr(
-                    poly, variables, parent.sample, level, backend=backend
-                )
+            if cad.tower.metadata.get("ec_lifting") and not ec_parent_admissible(cad.tower, parent):
+                continue
+            plans = {plan.level: plan for plan in cad.tower.metadata.get("ec_levels", ())}
+            checked_polys = level_polys
+            if level in plans and plans[level].operator == "ec-sign":
+                checked_polys = (sp.Poly(plans[level].equational_constraint, *variables[:level]),)
+            for poly in checked_polys:
+                if poly.degree(variable) <= 0:
+                    continue
+                context = FiberRootContext(poly, variables[:level], parent.sample, variable)
+                nullified = context.is_nullified_at_parent()
+                valuation = ()
+                if backend == "lazard":
+                    from .lifting.lazard import native_lazard_evaluate
+
+                    valuation = (0,) * (level - 1)
+                    if nullified:
+                        valuation = native_lazard_evaluate(
+                            poly, variables[:level], parent.sample
+                        ).valuation
+                        nullified = False
                 if backend == "lazard" and valuation:
                     valuations[(level, parent.index, _poly_key(poly))] = valuation
-                if sp.expand(expr) == 0:
+                if nullified:
                     # Lazard cancellation can turn a nullified expression into a
                     # nonzero quotient. Only report an event if the final
                     # Lazard-evaluated expression is still zero.
@@ -526,22 +526,85 @@ def _intrinsic_formula_certificate(
 ) -> ReducedCertificate | None:
     """Certify formula truth-invariance from the reduced-projection theorem.
 
-    A formula-wide equational constraint is required by every Boolean branch.
-    For McCallum/Lazard reduced projection, absence of nullification (with
-    Lazard valuation-aware lifting for the Lazard backend) supplies the
-    projection theorem's side condition.  In that situation the designated EC
-    sections are delineable and the remaining projection polynomials are
-    sign-invariant where the formula can be true, so a Collins refinement is
-    unnecessary.
+    Recursive lifting uses the recorded leading coefficients, discriminants
+    and resultants to preserve degree and order on admissible EC sections.
+    Positive Lazard valuations do not establish truth invariance of the
+    original EC: its Taylor residue may be nonzero where the EC itself vanishes.
+    Missing hypotheses require an ambient sign-invariant fallback.
     """
 
     constraints = tuple(equational_constraints(formula))
     reduced_levels = tuple(reduced.tower.metadata.get("reduced_levels", ()))
-    if not constraints or not reduced_levels or not side_conditions.valid:
+    variables = reduced.tower.variables
+    if reduced.tower.metadata.get("ec_lifting"):
+        if (
+            not constraints
+            or not side_conditions.valid
+            or not replay_ec_projection(reduced.tower, formula)
+        ):
+            return None
+        if any(
+            any(order > 0 for order in valuation)
+            for valuation in side_conditions.lazard_valuations.values()
+        ):
+            return None
+        for plan in reduced.tower.metadata["ec_levels"]:
+            if plan.level <= 1:
+                continue
+            for parent in reduced.cells_by_level[plan.level - 1]:
+                if not ec_parent_admissible(reduced.tower, parent):
+                    continue
+                for coefficient in plan.degree_coefficients:
+                    if (
+                        sign_at_sample(
+                            sp.Poly(coefficient, *variables[: plan.level - 1], domain="EX"),
+                            parent.sample,
+                        )
+                        == 0
+                    ):
+                        return None
+        return ReducedCertificate(
+            valid=True,
+            invariant="truth",
+            checked_refinement_cells=0,
+            checked_reduced_cells=len(reduced.cells),
+            grouped_values={
+                (-1,): (
+                    "recursive EC degree/order induction",
+                    "replayed EC implications and projection closure",
+                )
+            },
+        )
+    if not constraints or reduced_levels != (len(variables),) or not side_conditions.valid:
         return None
+    if backend == "lazard" and any(
+        any(order > 0 for order in valuation)
+        for valuation in side_conditions.lazard_valuations.values()
+    ):
+        return None
+    active = [
+        poly
+        for poly in reduced.tower.level(len(variables)).polynomials
+        if poly.degree(variables[-1]) > 0
+    ]
+    designated = _candidate_ec(active, constraints)
+    if designated is None:
+        return None
+    leading = univariate_leading_coefficient(designated, variables[-1])
+    if leading.free_symbols:
+        leading_poly = sp.Poly(leading, *variables[:-1], domain="EX")
+        # Lower levels use full projection, so the projected leading
+        # coefficient has invariant sign on each of these base cells.
+        if any(
+            sign_at_sample(leading_poly, parent.sample) == 0
+            for parent in reduced.cells_by_level.get(len(variables) - 1, ())
+        ):
+            return None
     checked = (
         f"{backend} reduced-projection theorem",
         "formula-wide equational constraint",
+        "single top-level reduced step",
+        "degree-invariant designated equational constraint",
         "nullification-free reduced lifting",
     )
     return ReducedCertificate(
@@ -588,7 +651,26 @@ def _attempt_reduced_certifi(
                 fallback_backend=None,
                 details={**dict(reduced_projection.validity.details), "certificate": intrinsic},
             )
-            return reduced_cad, side_conditions, intrinsic, validity
+            return (
+                _with_invariant(reduced_cad, "truth", formulas=(to_sympy(formula),)),
+                side_conditions,
+                intrinsic,
+                validity,
+            )
+    if formula is not None and reduced_cad.tower.metadata.get("ec_lifting"):
+        # Sample agreement with a reference CAD cannot establish delineability
+        # of an EC-only stack whose degree/order induction has failed.
+        certificate = ReducedCertificate(
+            False,
+            "truth",
+            0,
+            len(reduced_cad.cells),
+            ("recursive EC degree/order hypotheses could not be established",),
+        )
+        validity = proj_validity_from_cert(
+            reduced_projection.validity, certificate, backend=backend
+        )
+        return reduced_cad, side_conditions, certificate, validity
     collins_cad = collins_cad or decomp_collins_complete(polys, variables)
     if formula is None:
         certificate = _certify_sign_invariance(
@@ -608,6 +690,12 @@ def _attempt_reduced_certifi(
         reduced_projection.validity, certificate, backend=backend
     )
     validity = _validity_with_condition(certificate_validity, side_conditions, backend=backend)
+    if certificate.valid and side_conditions.valid:
+        reduced_cad = _with_invariant(
+            reduced_cad,
+            certificate.invariant,
+            formulas=() if formula is None else (to_sympy(formula),),
+        )
     return reduced_cad, side_conditions, certificate, validity
 
 
@@ -621,6 +709,7 @@ def decompose_reduced_safe(
 ) -> SafeReducedCAD:
     """Attempt active reduced CAD, then localized repair before fallback."""
 
+    polys = tuple(polys)
     vars_tuple = tuple(variables)
     reduced_projection = build_reduced_proj(
         polys,
@@ -693,7 +782,7 @@ def decompose_reduced_safe(
 
     return SafeReducedCAD(
         requested_backend=backend,
-        effective_backend="collins-complete",
+        effective_backend=collins_cad.backend,
         complete=True,
         used_fallback=True,
         reduced_projection=reduced_projection,
@@ -716,12 +805,15 @@ def decomp_form_reduced_safe(
 
     vars_tuple = tuple(variables)
     polys = formula_polynomials(formula)
-    reduced_projection = build_reduced_proj(
+    from .projection.reduced import build_reduced_proj_tower
+
+    reduced_projection = build_reduced_proj_tower(
         polys,
         vars_tuple,
-        backend=backend,
+        theory=backend,
         equational_constraints=equational_constraints(formula),
-        certify_reduced=certify_reduced,
+        certify=certify_reduced,
+        recursive_ec=True,
     )
     collins_cad = None
     reduced_cad, side_conditions, certificate, validity = _attempt_reduced_certifi(
@@ -792,7 +884,7 @@ def decomp_form_reduced_safe(
 
     return SafeReducedCAD(
         requested_backend=backend,
-        effective_backend="collins-complete",
+        effective_backend=collins_cad.backend,
         complete=True,
         used_fallback=True,
         reduced_projection=reduced_projection,

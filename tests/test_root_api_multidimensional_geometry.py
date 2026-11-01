@@ -79,7 +79,6 @@ def test_component_constraint_descriptions_cover_each_axis_component():
 
 def test_critical_value_image_contains_stationary_value_on_compact_interval():
     image = sa.critical_value_image(X**2, (X >= -2) & (X <= 3), (X,))
-    assert image is not None
     assert 0 in image.isolated_values
 
 
@@ -176,7 +175,7 @@ def test_polyhedral_shell_accessors_preserve_outer_shell_without_cavities():
     assert len(sa.polyhedron_face_indices(boundary)) == 1
 
 
-def test_topological_predicates_cover_open_closed_dense_and_full_dimensional_cases():
+def test_topological_predicates_for_region_types():
     closed = (X >= 0) & (X <= 1)
     opened = (X > 0) & (X < 1)
     assert sa.is_closed(closed, (X,)) and not sa.is_open(closed, (X,))

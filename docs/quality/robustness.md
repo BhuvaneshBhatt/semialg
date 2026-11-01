@@ -1,15 +1,10 @@
 # Robustness and exactness
 
-`semialg` treats exactness and certification as explicit API contracts. Exact
-algorithms either produce a result justified by symbolic or algebraic reasoning
-or decline the computation; finite-precision numerics are not used as proof.
+`semialg` treats exactness and certification as explicit API contracts. Exact algorithms either produce a result justified by symbolic or algebraic reasoning or decline the computation; finite-precision numerics are not used as proof.
 
 ## Symbol identity
 
-Public APIs that accept variable or parameter names resolve those names against
-the symbols already present in the input expressions. This preserves SymPy
-assumptions and object identity. If distinct symbols share the same printed
-name, callers must pass the desired `Symbol` object explicitly.
+Public APIs that accept variable or parameter names resolve those names against the symbols already present in the input expressions. This preserves SymPy assumptions and object identity. If distinct symbols share the same printed name, callers must pass the desired `Symbol` object explicitly.
 
 ## Exact algebraic decisions
 
@@ -24,37 +19,24 @@ The certified algebraic layer uses exact operations for:
 - virtual-substitution witness ordering;
 - lazy-CAD root ordering and algebraic-root RUR fallback ordering.
 
-Certified paths do not fall back to `nroots()` or `evalf()` when an exact
-operation is unavailable. Low-degree fibers with exact algebraic coefficients
-are solved symbolically when possible; otherwise the operation is declined.
+Certified paths do not fall back to `nroots()` or `evalf()` when an exact operation is unavailable. Low-degree fibers with exact algebraic coefficients are solved symbolically when possible; otherwise the operation is declined.
 
 
 ## Bounds and explicit-region validation
 
-Shared bound normalization rejects undeclared variables, duplicate entries, malformed
-bound tuples, and exactly reversed endpoints. Public measure/integration APIs therefore
-do not without reporting ignore misspelled bounds or turn a reversed interval into a negative
-measure.
+Shared bound normalization rejects undeclared variables, duplicate entries, malformed bound tuples, and exactly reversed endpoints. Public measure/integration APIs therefore do not ignore misspelled bounds or turn a reversed interval into a negative measure.
 
-One-dimensional component reconstruction compares algebraic endpoints exactly and
-merges overlapping intervals by their true union, including containment and endpoint
-closure.
+One-dimensional component reconstruction compares algebraic endpoints exactly and merges overlapping intervals by their true union, including containment and endpoint closure.
 
 ## Root-function semantics
 
-`root_of(p, y, k)` treats `y` as a bound fiber variable. Substitution may
-specialize base parameters without replacing the bound variable inside the
-defining polynomial. Once the base parameters are specialized, the selector can
-resolve to the requested exact real root.
+`root_of(p, y, k)` treats `y` as a bound fiber variable. Substitution may specialize base parameters without replacing the bound variable inside the defining polynomial. Once the base parameters are specialized, the selector can resolve to the requested exact real root.
 
-`AlgebraicRootFunction` keeps CAD root identity, base-cell validity, ordering,
-and regularity certification separate from optional radical presentation.
+`AlgebraicRootFunction` keeps CAD root identity, base-cell validity, ordering, and regularity certification separate from optional radical presentation.
 
 ## CAD and topology certificates
 
-Reduced CAD paths are accepted only when their side conditions and invariants
-are certified. Cell-bound verification uses exact comparisons, and topology
-incidence specializes algebraic root functions before evaluating relations.
+Reduced CAD paths are accepted only when their side conditions and invariants are certified. Cell-bound verification uses exact comparisons, and topology incidence specializes algebraic root functions before evaluating relations.
 
 Decomposition certification distinguishes three claims:
 
@@ -66,106 +48,55 @@ These claims are not inferred from one another.
 
 ## Optimization certification
 
-Exact optimization compares algebraic candidate values exactly. A disjunctive
-optimum is globally certified only when every feasible branch has been
-certified. Cost-controlled CAD range certification may be declined in automatic
-mode; `certification="complete"` explicitly requests the full exact fallback.
+Exact optimization compares algebraic candidate values exactly. A disjunctive optimum is globally certified only when every feasible branch has been certified. Cost-controlled CAD range certification may be declined in automatic mode; `certification="complete"` explicitly requests the full exact fallback.
 
 ## Computation context
 
-A top-level solve uses an `ExactComputationContext` to share transient caches
-across nested CAD, QE, optimization, range, root, sign, specialization, and RUR
-operations. Bounded process-level caches provide reuse across independent calls
-without allowing a single solve to retain unbounded state.
+A top-level solve uses an `ExactComputationContext` to share transient caches across nested CAD, QE, optimization, range, root, sign, specialization, and RUR operations. Bounded process-level caches provide reuse across independent calls without allowing a single solve to retain unbounded state.
 
-## Conservative failure
+## Failure handling
 
-Expected strategy failure, unavailable exact arithmetic, and failed
-certification should be represented explicitly. Internal programming errors
-must not be converted into successful fallback results. Production code catches only explicit expected failure classes at fallback
-boundaries; unexpected programming errors propagate instead of being converted
-into ordinary strategy failures.
+Expected strategy failure, unavailable exact arithmetic, and failed certification should be represented explicitly. Internal programming errors must not be converted into successful fallback results. Production code catches only explicit expected failure classes at fallback boundaries; unexpected programming errors propagate instead of being converted into ordinary strategy failures.
 
 ## Validation
 
-The test suite includes exactness, symbol-identity, root-ordering, topology,
-optimization-certificate, parameter-stratification, and CAD consistency tests.
-Computationally expensive CAD cases are marked `slow` so CI can run them with an
-appropriate time budget.
+The test suite includes exactness, symbol-identity, root-ordering, topology, optimization-certificate, parameter-stratification, and CAD consistency tests. Computationally expensive CAD cases are marked `slow` so CI can run them with an appropriate time budget.
 
 ## Region and API validation
 
-The standard-region layer enforces exact, local construction invariants so malformed
-regions cannot without reporting reach integration. The parametric-region layer preserves
-ambient symbol identity and validates complete one-to-one parameter limits and
-positive multiplicity. Deterministic metamorphic tests verify interval measure
-identities for union, intersection, and difference.
+The standard-region layer enforces exact, local construction invariants so malformed regions cannot reach integration. The parametric-region layer preserves ambient symbol identity and validates complete one-to-one parameter limits and positive multiplicity. Deterministic metamorphic tests verify interval measure identities for union, intersection, and difference.
 
-A public-function coverage test scans the test suite and compares direct function
-calls with the exported function set. This prevents adding public
-functions without at least one behavioral contract test.
+A public-function coverage test scans the test suite and compares direct function calls with the exported function set. This prevents adding public functions without at least one behavioral contract test.
 
 
 ## Algebraic root presentation
 
-Low-degree root presentation is interval-certified. When SymPy cannot build a
-native `RootOf` over an algebraic coefficient domain, semialg keeps the ordered
-root as an exact isolating-interval object. A readable radical is returned only
-when exactly one certified real radical candidate lies in that interval. This
-prevents presentation logic from changing CAD root identity.
+Low-degree root presentation is interval-certified. When SymPy cannot build a native `RootOf` over an algebraic coefficient domain, semialg keeps the ordered root as an exact isolating-interval object. A readable radical is returned only when exactly one certified real radical candidate lies in that interval. This prevents presentation logic from changing CAD root identity.
 
 ## Exactness safeguards
 
 Integer witness bounds use exact `floor`/`ceiling`. Exact real interval sampling constructs rational candidates whose membership is certified with exact real comparison, so sub-machine-precision intervals are not collapsed by binary floats or epsilon perturbations. Rational lower/upper bounds may use numerical evaluation to propose a compact candidate, but the bound relation is accepted only after exact comparison. Algebraic sign certification uses symbolic/algebraic-number reasoning only and raises when it cannot certify a sign. CAD implication caches retain immutable SymPy expressions and symbol objects, preserving assumptions and same-name symbol identity.
 
 
-## Conservative affine fast paths
+## Verified affine fast paths
 
-Affine recognition is separated from permission to divide. For
-example, `a*x <= 1` is syntactically linear in `x`, but without assumptions on
-`a` there is no globally valid orientation: the inequality reverses for
-`a < 0` and has a separate `a = 0` stratum. The inexpensive bound extractor
-therefore returns an incomplete result instead of guessing. Callers that need a
-complete answer may continue to exact CAD/QE.
+Affine recognition is separated from permission to divide. For example, `a*x <= 1` is syntactically linear in `x`, but without assumptions on `a` there is no globally valid orientation: the inequality reverses for `a < 0` and has a separate `a = 0` stratum. The inexpensive bound extractor therefore returns an incomplete result instead of guessing. Callers that need a complete answer may continue to exact CAD/QE.
 
-`coordinate_bounds` retains endpoint openness. Equal lower and upper endpoints
-are inconsistent whenever either endpoint is strict, so `(x > 0) & (x < 0)`
-is recognized as empty. The explicit false formula is likewise an empty, and
-hence bounded, solution set.
+`coordinate_bounds` retains endpoint openness. Equal lower and upper endpoints are inconsistent whenever either endpoint is strict, so `(x > 0) & (x < 0)` is recognized as empty. The explicit false formula is likewise an empty, and hence bounded, solution set.
 
 ## Structural symbol identity
 
-Canonical cache/order keys distinguish SymPy Symbols with the same printed name
-but different assumptions. Do not replace the package's assumption-aware symbol
-key with `Symbol.name` or `sympy.default_sort_key`: those can tie for
-assumption-distinct Symbols and make cache identity depend on insertion order.
+Canonical cache/order keys distinguish SymPy Symbols with the same printed name but different assumptions. Do not replace the package's assumption-aware symbol key with `Symbol.name` or `sympy.default_sort_key`: those can tie for assumption-distinct Symbols and make cache identity depend on insertion order.
 
 ## Certificate mutation and independent differential checks
 
-Replayable exact certificates are tested with a table-driven mutation harness.
-For each registered certificate family, every populated proof-relevant dataclass
-field—including fields nested inside component and recursive proof objects—is
-changed independently. Exact replay must reject every mutation. Search provenance
-such as modular prime history and method labels is classified separately because
-it is not part of the mathematical proof. Adding a populated proof field to a
-registered dataclass therefore expands the mutation surface automatically.
+Replayable exact certificates are tested with a table-driven mutation harness. For each registered certificate family, every populated proof-relevant dataclass field—including fields nested inside component and recursive proof objects—is changed independently. Exact replay must reject every mutation. Search provenance such as modular prime history and method labels is classified separately because it is not part of the mathematical proof. Adding a populated proof field to a registered dataclass therefore expands the mutation surface automatically.
 
-The algebraic test strategy also includes an optional Singular differential
-oracle. Generated bounded rational ideals are decomposed independently by
-Singular's `primdecGTZ` and by `semialg`; the development harness compares source
-dimension, associated-prime supports, matched primary components, reconstruction,
-and component degree/multiplicity. `semialg` must replay its own certificate
-before any comparison is made. Agreement with Singular is diagnostic evidence,
-not a substitute for exact replay.
+The algebraic test strategy also includes an optional Singular differential oracle. Generated bounded rational ideals are decomposed independently by Singular's `primdecGTZ` and by `semialg`; the development harness compares source dimension, associated-prime supports, matched primary components, reconstruction, and component degree/multiplicity. `semialg` must replay its own certificate before any comparison is made. Agreement with Singular is diagnostic evidence, not a substitute for exact replay.
 
 ## Installed-artifact testing
 
-CI builds a wheel and installs it outside the source checkout before running a
-public-API smoke test. The smoke also executes the core workflows used by the
-primary-decomposition, SOS-certification, and factorized-CAD tutorials. It
-asserts that `semialg.__file__` resolves to the installed artifact rather than
-`src/semialg`, preventing editable-tree path leakage from hiding packaging or
-subprocess-import defects.
+CI builds a wheel and installs it outside the source checkout before running a public-API smoke test. The smoke also executes the core workflows used by the primary-decomposition, SOS-certification, and factorized-CAD tutorials. It asserts that `semialg.__file__` resolves to the installed artifact rather than `src/semialg`, preventing editable-tree path leakage from hiding packaging or subprocess-import defects.
 
 ## Differential semantic testing
 

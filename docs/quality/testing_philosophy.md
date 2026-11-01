@@ -24,10 +24,18 @@ A symbolic-looking result is not automatically certified. Tests distinguish exac
 
 ## Documentation as executable behavior
 
-The worked-example gallery has a one-to-one Markdown/Python pairing. CI parses every script, requires every script to have a documented companion, and checks that the fenced Python block is byte-for-byte synchronized with its executable source. Core gallery paths are executed as smoke contracts. Documentation registries and generated adequacy reports must also be reproducible from a source distribution.
+The worked-example gallery has a one-to-one Markdown/Python pairing. CI parses every script, requires every script to have a documented companion, and checks that the fenced Python block and executable source have the same parsed Python structure. Core gallery paths are executed as smoke contracts. Documentation registries and generated adequacy reports must also be reproducible from a source distribution.
 
 ## Downstream compatibility
 
 Semialg does not depend on downstream packages. `tests/test_asymptotic_downstream_contract.py` is an optional compatibility contract: release validation can install asymptotic and select the `downstream` marker to exercise the exact Semialg surface used for multivariate limit support. Without asymptotic installed the test skips, preserving the dependency direction.
 
 A downstream compatibility failure should be resolved by deciding which package owns the broken contract; Semialg must not add downstream-specific workarounds that weaken its own mathematical semantics.
+
+## Installed examples, arithmetic floors and field policies
+
+The example catalog in `examples/catalog.json` accounts for every runnable application. `tools/check_examples.py` rejects source imports and executes scripts in fresh interpreters and temporary directories, with assertions enabled and per-workflow timeouts. Executable tutorial fences use an explicit marker; displayed signatures remain reference text.
+
+CI exercises the supported effective arithmetic floor in `ci/minimum.txt` and independently resolved latest dependencies. The lower floor is SymPy 1.14.0 and python-flint 0.9.0, with matching backend inputs where needed. Python coefficient jobs test the conversion layer independently of FLINT ground coefficients. Local checks do not imply that remote matrix jobs have run.
+
+[Certificate-field audits](../certificate_audits.md) classify proof data and non-proof metadata explicitly and produce machine-readable outcomes. Coverage, disjointness, exact reconstruction, module map identities and known finite point sets supply independent mathematical expectations. Timing distributions and structural input sizes belong in benchmark reports, not correctness thresholds.

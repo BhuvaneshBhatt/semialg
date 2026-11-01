@@ -1,175 +1,122 @@
 # Function range computation
 
-`function_range` computes the real range of an expression over a semialgebraic domain.
+Use `function_range` to find which real outputs are reachable under polynomial or supported semialgebraic constraints. This is useful for inverse feasibility, reachable-output analysis and exact validation of an optimizer's proposed value. A range can be disconnected, so the primary answer is an output formula.
 
-## Range as a semialgebraic image
+<!-- examples: executable -->
 
-The range of `f(x)` over a domain `C(x)` is represented by an existential
-formula.  Programmatically, semialg represents it with `Exists`:
-
-```python
-from semialg import Exists
-
-image_relation = Exists(x, sp.And(C, graph_f))
-```
-
-Mathematically this is $\exists x\,[C(x) \land \operatorname{graph}_f(x,t)]$,
-where `t` is a value symbol. Eliminating the original variables gives a condition on `t`.
+## Exact image and interval bounds
 
 ```python
 import sympy as sp
 from semialg import function_range
+from semialg.decision import equivalent
 
-x, t = sp.symbols("x t", real=True)
-
-function_range(x, sp.Or(x <= -1, x >= 1), [x], value_symbol=t)
-# Abs(t) >= 1
+x, t, z = sp.symbols("x t z", real=True)
+image = function_range(1 / x, sp.Ne(x, 0), [x], value_symbol=t, return_result=True)
+assert equivalent(image.formula, sp.Ne(t, 0), (t,))
+assert image.is_interval is False and image.interval_count == 2
+assert image.diagnostics["range_kind"] == "exact_image"
 ```
 
-The result may be disconnected, so the primary answer is a formula, not just a pair of bounds.
-
-## Polynomial and rational expressions
-
-For rational expressions, `semialg` clears denominators:
-
-```text
-t = p(x)/q(x)
-```
-
-becomes:
-
-```text
-t*q(x) - p(x) == 0 and q(x) != 0
-```
-
-Example:
+The exact modes `qe` (the default), `cad` and `auto` describe attainable values. They use exact image shortcuts and graph projection, and raise `NotImplementedError` when the required exact projection is unsupported. They do not fill image holes with an enclosing interval.
 
 ```python
-function_range(1 / x, x > 0, [x], value_symbol=t)
-# t > 0
+source = sp.Eq((x - 1) * (x - 3), 0)
+image = function_range(x, source, [x, z], value_symbol=t, return_result=True)
+assert image.formula.as_set() == sp.FiniteSet(1, 3)
+bounds = function_range(
+    x,
+    source,
+    [x, z],
+    value_symbol=t,
+    method="bounds",
+    return_result=True,
+)
+assert bounds.formula.as_set() == sp.Interval(1, 3)
+assert bounds.diagnostics["range_kind"] == "interval_enclosure"
 ```
 
-## Semialgebraic expression graphs
+`bounds` and its alias `optimization` request the interval between the extremal bounds, with endpoint attainment information. That interval can contain values absent from the image. The result's interval metadata describe the returned formula. See [exact images and bounds](range-images.md) for the distinction.
 
-The current implementation supports common semialgebraic expressions by introducing graph constraints.
+## Graph projection and source definedness
+
+The image of `f` over a source condition `C` is the existential relation `exists x: C(x) and graph_f(x,t)`. Exact graph construction preserves the source's definition guards. A rational equation `t = p/q` uses both `t*q - p = 0` and `q != 0`. Inverse-map substitutions must preserve their own poles as well.
 
 ```python
-function_range(sp.Abs(x), True, [x], value_symbol=t)
-# t >= 0
-
-function_range(sp.sqrt(1 - x**2), True, [x], value_symbol=t)
-# (t >= 0) & (t <= 1)
-
-function_range(sp.Max(x, 0), sp.And(x >= -1, x <= 2), [x], value_symbol=t)
-# (t >= 0) & (t <= 2)
-
-function_range(sp.Min(x, 1), sp.And(x >= 0, x <= 3), [x], value_symbol=t)
-# (t >= 0) & (t <= 1)
+positive = function_range(1 / x, x > 0, [x], value_symbol=t)
+assert equivalent(positive, t > 0, (t,))
+restricted = function_range(x, sp.Or(x <= -1, x >= 1), [x], value_symbol=t)
+assert equivalent(restricted, sp.Or(t <= -1, t >= 1), (t,))
 ```
 
-Simple `Piecewise` expressions are also supported when their branches can be represented semialgebraically.
+If SymPy already erased a source operation before the query, the package cannot recover it. Supply its excluded points or other original source conditions explicitly. A principal square root and a real odd root are different graphs; use `sympy.real_root` when a real odd root is intended.
+
+## Supported graphs and exact reductions
+
+| Source form | Representation | Conditions retained |
+| --- | --- | --- |
+| Polynomial or rational expression | Direct polynomial graph | Nonzero denominators |
+| `Abs`, `sign`, `Heaviside`, finite `Min`/`Max` | Auxiliary graph relations | Supported nested arguments and zero-value choices |
+| Rational powers and canonical `real_root` forms | Exact algebraic graphs | Real locus and principal or selected real branch |
+| Finite `Piecewise` | Ordered branch graph | Branch ownership and supported semialgebraic conditions |
+| Selected commensurate trigonometric families | Circle variables with `s**2 + c**2 = 1` | An exact reduction that removes all remaining source dependence |
+| Selected commensurate exponential/hyperbolic families | `u = exp(g*x)` with `u > 0` | Exact transformed source constraints |
+| General mixed transcendental expressions | No general semialgebraic graph | A supported exact reduction is required |
+
+```python
+semicircle = function_range(sp.sqrt(1 - x * x), True, [x], value_symbol=t)
+assert equivalent(semicircle, sp.And(t >= 0, t <= 1), (t,))
+absolute = function_range(sp.Abs(x), True, [x], value_symbol=t)
+assert equivalent(absolute, t >= 0, (t,))
+```
+
+Commensurate reductions are exact only when the transformed objective and constraints no longer depend on the original source variable. They do not replace unrelated transcendental values by independent bounded coordinates. Incommensurate phases and expressions such as `x + sin(x)` need other analytic arguments. Restricted source intervals can also require phase/domain information that a full circle or positive-axis substitution would lose. See [transcendental solving scope](guides/transcendental_scope.md).
 
 ## Metadata
 
-Use `return_result=True` for metadata.
+`return_result=False` returns the mathematical condition. `return_result=True` returns a `FunctionRangeResult` with `formula`/`range_condition`, extremal summaries, endpoint attainment, interval structure, method and diagnostics.
 
 ```python
-r = function_range(
+result = function_range(
     2 * x + 1,
     sp.And(x > 0, x < 1),
     [x],
     value_symbol=t,
     return_result=True,
 )
-
-r.range_condition
-r.lower_bound
-r.upper_bound
-r.lower_bound_attained
-r.upper_bound_attained
-r.is_interval
-r.interval_count
+assert result.range_condition.as_set() == sp.Interval.open(1, 3)
+assert result.lower_bound == 1 and result.upper_bound == 3
+assert not result.lower_bound_attained and not result.upper_bound_attained
 ```
 
-The primary answer is `range_condition`; `lower_bound` and `upper_bound` are summaries and may lose information for disconnected ranges.
+The lower and upper summaries alone cannot recover a disconnected image. Consumers should use the formula and `diagnostics["range_kind"]` to determine whether they received an exact image or an explicitly requested interval enclosure.
 
-## Parameter-stratified ranges
+## Declaring parameters
 
-When an expression or its domain depends on symbolic parameters, pass `parameters=[...]` and `return_stratified=True`. The result is a `ParameterStratifiedResult`; each branch contains an exact `ParametricFunctionRangeResult` guarded by a semialgebraic parameter condition. The branch relation is left quantified by default. Add `eliminate_quantifiers=True` when a quantifier-free formula is needed and the extra complete-CAD/QE cost is acceptable.
+Symbol roles must be explicit. Ordinary variable normalization can add free symbols from the objective and constraints to the source-variable list. Passing `variables=[x]` alone does not declare every other symbol a free parameter. For a parameter-dependent image, pass `parameters=[...]` with `return_stratified=True`.
 
 ```python
 a = sp.Symbol("a", real=True)
-
-r = function_range(
+family = function_range(
     x + a,
     sp.And(x >= 0, x <= 1),
     [x],
+    value_symbol=t,
     parameters=[a],
     return_stratified=True,
+    eliminate_quantifiers=True,
 )
+for av in (-2, 0, 3):
+    specialized = sp.Or(
+        *(sp.And(branch.condition, branch.value.formula).subs(a, av) for branch in family.branches)
+    )
+    assert equivalent(specialized, sp.And(t >= av, t <= av + 1), (t,))
 ```
 
-`ParametricFunctionRangeResult.formula` is an exact first-order image relation.
-Expression-facing code, wrap that relation with `Exists` (or use
-`apply_quantifiers`) when a single first-class quantified expression is desired;
-`quantifiers` remains available as the normalized internal elimination prefix. The relation is not forced through a second potentially expensive CAD elimination: `quantifier_free` is therefore `False`. This preserves an exact first-class parametric answer without making a range query unexpectedly perform a much larger QE problem.
+The default `eliminate_quantifiers=False` retains an exact first-order relation in each `ParametricFunctionRangeResult`, along with its normalized `quantifiers` prefix. Its `formula` is the matrix to which that prefix applies. Use `apply_quantifiers` to build a first-class quantified expression, or opt into elimination as above. The extra QE cost is separate from exactness, and a compact quantifier-free result is not promised for every family. Candidate degree-loss strata and source-domain exceptions must remain in the parameter conditions.
 
-## Limitations
+## Analytic ranges and optimization
 
-`function_range` targets polynomial, rational, and common semialgebraic expression graphs. Arbitrary transcendental expressions are outside the exact real-closed-field setting and are not generally supported.
+For general supported transcendental image analysis, use [funcprops](https://github.com/BhuvaneshBhatt/funcprops/blob/main/docs/range-analysis.md), which supplies explicit implicit-critical-value, periodic, tail and partial-image interfaces. For optimizer selection, infima, minimizing points and optimization certificate replay, use [symbopt](https://github.com/BhuvaneshBhatt/symbopt/blob/main/docs/guide/ranges-and-extrema.md). semialg supplies exact real algebraic projection and side conditions; it does not require either consumer package.
 
-## Exact algebraization of selected transcendental forms
-
-`function_range` remains grounded in semialgebraic computation, but an input
-expression need not be syntactically polynomial when it admits a certified
-finite reduction to a semialgebraic image problem.  Current exact reductions
-include commensurate trigonometric expressions and commensurate
-exponential/hyperbolic expressions in one real source variable.
-
-```python
-import sympy as sp
-from semialg import function_range
-
-x, t = sp.symbols("x t", real=True)
-
-function_range(sp.sin(x) + sp.cos(2 * x), variables=[x], value_symbol=t)
-# equivalent to -2 <= t <= 9/8
-
-function_range(sp.exp(x) + sp.exp(-x), variables=[x], value_symbol=t)
-# t >= 2
-
-function_range(sp.cosh(2 * x), variables=[x], value_symbol=t)
-# t >= 1
-```
-
-For trigonometric expressions the reducer finds a common frequency `g`, writes
-all `sin(n*g*x)` and `cos(n*g*x)` terms as polynomials in `s = sin(g*x)` and
-`c = cos(g*x)`, and adds `s**2 + c**2 = 1`.  Because real `x` covers the whole
-unit circle, this is exact when no untransformed dependence on `x` remains.
-
-For exponential/hyperbolic expressions it writes all rates as integer multiples
-of a common `g`, substitutes `u = exp(g*x)`, and adds `u > 0`.  The map from real
-`x` to positive `u` is bijective, so the transformed range problem is again
-exact.
-
-The implementation does **not** replace unrelated transcendental values by
-independent bounded variables.  For example, `sin(x) + sin(sqrt(2)*x)` is not
-turned into an unconstrained two-circle problem, and `sin(x) + x` is not treated
-as though `sin(x)` were independent of `x`.
-
-## Supported semialgebraic graph algebra
-
-`function_range` can eliminate an exact graph representation for rational expressions and recursively nested semialgebraic heads. The graph layer covers:
-
-| Expression/formula form | Exact graph encoding | Important domain semantics |
-|---|---|---|
-| Polynomial or rational expression | Yes | Denominators are constrained nonzero. |
-| `Abs(f)`, `sign(f)`, and `Heaviside(f, h0)` | Yes | Arguments, including the zero value `h0`, may themselves use supported graph forms. |
-| Rational principal powers `f**(p/q)` | Yes | SymPy principal-branch real locus is preserved; negative bases are not without reporting reinterpreted as real odd roots. |
-| `real_root(f, q)` canonical forms and integer powers | Yes | Odd-denominator real-root powers use a direct exact polynomial graph, including negative integer powers away from zero. |
-| Finite `Min` / `Max` | Yes | Arguments may be nested supported graph expressions. |
-| Finite `Piecewise` | Yes | Branch order is respected; supported semialgebraic function heads may occur in branch conditions. |
-| Semialgebraic function heads inside constraints | Yes | Relational residuals are algebraized with auxiliary graph variables; `And`, `Or`, `Not`, `Xor`, `Implies`, and `Equivalent` compositions are supported. |
-| General transcendental functions | No | Separate recognized exact reductions exist for selected commensurate trig/exponential families. |
-
-The graph conversion introduces auxiliary variables only when needed. Cheap direct univariate image formulas are attempted before CAD/QE, so adding graph support does not force every supported range problem through the most expensive backend.
+The image, its closure, its extremal bounds and its attained extrema are different mathematical objects. More decimal precision does not replace a proof of source definedness, exhaustive root coverage or endpoint membership. See [package ownership](package_ownership.md), [optimization](optimization.md) and the [range reference](reference/optimization_and_range.md).

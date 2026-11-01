@@ -12,6 +12,7 @@ from ..algebraic.rational_univariate import RationalUnivariateError, solve_formu
 from ..decomposition.components import component_instances
 from ..formula import Formula, ParsedPrenexFormula, parse_formula, parse_quant_form_text, to_sympy
 from ..instances.real_fallbacks import find_real_witnesses, satisfies_formula
+from ..normalization import normalize_problem_variables
 from ..partial.qe import lazy_find_inst_form
 from ..qe.virtual_substitution import try_quadratic_vs_witness
 from ..status import SolverStatus
@@ -127,9 +128,11 @@ def _make_result(
     method: str,
     diagnostics: Mapping[str, object] | None = None,
     exact: bool = True,
+    status: SolverStatus | str | None = None,
 ) -> InstanceResult:
     inst_tuple = tuple(dict(inst) for inst in instances)
-    status = SolverStatus.SAT if inst_tuple else SolverStatus.UNSAT
+    if status is None:
+        status = SolverStatus.SAT if inst_tuple else SolverStatus.UNKNOWN
     return InstanceResult(
         instances=inst_tuple,
         approximate=tuple(_as_approx(inst) for inst in inst_tuple),
@@ -148,7 +151,7 @@ def _finite_set_instances(
     out: list[dict[sp.Symbol, sp.Expr]] = []
     if isinstance(solset, sp.FiniteSet):
         for item in solset:
-            values = item if isinstance(item, tuple) else (item,)
+            values = item if isinstance(item, (tuple, sp.Tuple)) else (item,)
             out.append({var: sp.sympify(val) for var, val in zip(vars_, values, strict=True)})
             if len(out) >= count:
                 break
@@ -196,6 +199,7 @@ def _real_instances(
                     domain=SolveDomain.REALS,
                     method="rational_univariate_instance",
                     diagnostics=diagnostics,
+                    status=SolverStatus.UNSAT if rur.complete and not rur.assignments else None,
                 )
             if rur.status == SolverStatus.UNSAT and not cad_allowed:
                 return _make_result(
@@ -204,6 +208,7 @@ def _real_instances(
                     domain=SolveDomain.REALS,
                     method="rational_univariate_instance",
                     diagnostics=diagnostics,
+                    status=SolverStatus.UNSAT if rur.complete and not rur.assignments else None,
                 )
 
     if strategy_name in {"auto", "ars"} and count == 1:
@@ -220,6 +225,7 @@ def _real_instances(
                 domain=SolveDomain.REALS,
                 method=f"{ars.method}_instance",
                 diagnostics=diagnostics,
+                status=SolverStatus.UNSAT if ars.satisfiable is False else SolverStatus.SAT,
             )
         if strategy_name == "ars":
             return _make_result(
@@ -256,8 +262,10 @@ def _real_instances(
                 method=f"{fb.method}_instance",
                 diagnostics=diagnostics,
                 exact=fb.exact,
+                status=SolverStatus.UNSAT,
             )
 
+    status = SolverStatus.UNKNOWN
     if cad_allowed:
         comps = component_instances(
             expr, vars_, strategy=strategy, max_components=count, return_result=True
@@ -269,6 +277,8 @@ def _real_instances(
         diagnostics.update(
             {"component_count": len(comps), "component_diagnostics": comps.diagnostics}
         )
+        if comps.status == "complete" and not comps.instances:
+            status = SolverStatus.UNSAT
         if cad_instances:
             return _make_result(
                 instances=cad_instances[:count],
@@ -285,6 +295,7 @@ def _real_instances(
         domain=SolveDomain.REALS,
         method=method,
         diagnostics=diagnostics,
+        status=status,
     )
 
 
@@ -375,6 +386,7 @@ def _quadratic_vs_instance(
             domain=SolveDomain.REALS,
             method="quadratic_virtual_substitution_instance",
             diagnostics=diagnostics,
+            status=witness.status,
         )
     return _make_result(
         instances=[witness.instance],
@@ -394,52 +406,65 @@ def _lazy_real_instance(parsed: ParsedPrenexFormula, count: int) -> InstanceResu
         domain=SolveDomain.REALS,
         method="partial_cad_instance",
         diagnostics={"lazy_result": lazy, "stats": lazy.stats, "found": lazy.found},
+        status=SolverStatus.SAT
+        if instances
+        else SolverStatus.UNSAT
+        if lazy.status == "complete"
+        else SolverStatus.UNKNOWN,
     )
 
 
 def _complex_instances(expr: sp.Expr, vars_: Sequence[sp.Symbol], count: int) -> InstanceResult:
-    instances: list[dict[sp.Symbol, sp.Expr]] = []
-    if len(vars_) == 1:
-        sol = sp.solveset(expr, vars_[0], domain=S.Complexes)
-        instances = _finite_set_instances(vars_, sol, count)
-    else:
-        try:
+    try:
+        if len(vars_) == 1:
+            solution = sp.solveset(expr, vars_[0], domain=S.Complexes)
+        else:
             equations = [
                 arg.lhs - arg.rhs if isinstance(arg, sp.Equality) else arg
                 for arg in sp.And.make_args(expr)
             ]
-            sol = sp.nonlinsolve(equations, vars_)
-            instances = _finite_set_instances(vars_, sol, count)
-        except (ValueError, TypeError, sp.SympifyError) as exc:
-            return _make_result(
-                instances=[],
-                variables=vars_,
-                domain=SolveDomain.COMPLEXES,
-                method="sympy_complex_instance",
-                diagnostics={"status_reason": f"complex solving failed: {exc}"},
-                exact=False,
-            )
+            solution = sp.nonlinsolve(equations, vars_)
+        instances = _finite_set_instances(vars_, solution, count)
+    except (ValueError, TypeError, sp.SympifyError, NotImplementedError) as exc:
+        return _make_result(
+            instances=[],
+            variables=vars_,
+            domain=SolveDomain.COMPLEXES,
+            method="sympy_complex_instance",
+            exact=False,
+            diagnostics={"status_reason": f"complex solving failed: {exc}"},
+        )
     return _make_result(
         instances=instances,
         variables=vars_,
         domain=SolveDomain.COMPLEXES,
         method="sympy_complex_instance",
+        status=SolverStatus.UNSAT if solution is S.EmptySet else None,
     )
 
 
 def _integer_instances(expr: sp.Expr, vars_: Sequence[sp.Symbol], count: int) -> InstanceResult:
     instances: list[dict[sp.Symbol, sp.Expr]] = []
+    status = None
     specialized = solve_int_methods(expr, vars_)
     if specialized is not None and specialized.solutions:
         instances = [
-            {var: sp.sympify(val) for var, val in zip(vars_, pt, strict=True)}
-            for pt in specialized.solutions[:count]
+            {var: sp.sympify(val) for var, val in zip(vars_, point, strict=True)}
+            for point in specialized.solutions[:count]
         ]
+    elif specialized is not None and specialized.complete and specialized.formula is sp.false:
+        status = SolverStatus.UNSAT
     elif len(vars_) == 1:
-        sol = sp.solveset(expr, vars_[0], domain=S.Integers)
-        instances = _finite_set_instances(vars_, sol, count)
+        solution = sp.solveset(expr, vars_[0], domain=S.Integers)
+        instances = _finite_set_instances(vars_, solution, count)
+        if solution is S.EmptySet:
+            status = SolverStatus.UNSAT
     return _make_result(
-        instances=instances, variables=vars_, domain=SolveDomain.INTEGERS, method="integer_instance"
+        instances=instances,
+        variables=vars_,
+        domain=SolveDomain.INTEGERS,
+        method="integer_instance",
+        status=status,
     )
 
 
@@ -461,6 +486,7 @@ def _boolean_instances(expr: sp.Expr, vars_: Sequence[sp.Symbol], count: int) ->
         domain=SolveDomain.BOOLEANS,
         method="boolean_bruteforce_instance",
         exact=True,
+        status=SolverStatus.SAT if instances else SolverStatus.UNSAT,
     )
 
 
@@ -564,7 +590,11 @@ def find_instance(
     dom = normalize_domain(domain)
     if count <= 0:
         result = _make_result(
-            instances=[], variables=vars_, domain=dom, method="empty_instance_request"
+            instances=[],
+            variables=vars_,
+            domain=dom,
+            method="empty_instance_request",
+            status=SolverStatus.UNKNOWN,
         )
     elif dom is SolveDomain.REALS:
         public_vars = vars_
@@ -645,7 +675,23 @@ def find_instance_formula(
     inst_count = count if count is not None else (max_instances if max_instances is not None else 1)
     dom = normalize_domain(domain)
     expr = apply_assumptions(to_sympy(parsed.matrix), assumptions)
-    if dom is SolveDomain.REALS:
+    parsed = ParsedPrenexFormula(
+        vars=normalize_problem_variables(
+            parsed.vars, expr, tuple(v for _, v in parsed.quantifiers)
+        ),
+        quantifiers=parsed.quantifiers,
+        matrix=parse_formula(expr),
+        matrix_expr=expr,
+    )
+    if inst_count <= 0:
+        result = _make_result(
+            instances=[],
+            variables=parsed.vars,
+            domain=dom,
+            method="empty_instance_request",
+            status=SolverStatus.UNKNOWN,
+        )
+    elif dom is SolveDomain.REALS:
         strategy_name = (strategy or "lazy").lower()
         rur_result = None
         use_rur = all(str(q).lower() == "exists" for q, _ in parsed.quantifiers) and (
@@ -672,6 +718,9 @@ def find_instance_formula(
                 domain=SolveDomain.REALS,
                 method="rational_univariate_instance",
                 diagnostics={"rur_result": rur_result},
+                status=SolverStatus.UNSAT
+                if rur_result.complete and not rur_result.assignments
+                else None,
             )
         else:
             vs_result = _quadratic_vs_instance(parsed, inst_count, strategy_name)

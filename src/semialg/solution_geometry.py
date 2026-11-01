@@ -385,12 +385,17 @@ def discretize_region_geometry(
     elif isinstance(region, Polygon):
         polygons.append(region.vertices)
     elif isinstance(region, Parallelogram):
-        o = sp.Matrix(region.origin)
-        v1 = sp.Matrix(region.vectors[0])
-        v2 = sp.Matrix(region.vectors[1])
-        verts = [tuple(o), tuple(o + v1), tuple(o + v1 + v2), tuple(o + v2)]
-        if len(verts[0]) == 2:
-            polygons.append(tuple(verts))
+        origin = sp.Matrix(region.origin)
+        first_edge = sp.Matrix(region.vectors[0])
+        second_edge = sp.Matrix(region.vectors[1])
+        vertices = [
+            tuple(origin),
+            tuple(origin + first_edge),
+            tuple(origin + first_edge + second_edge),
+            tuple(origin + second_edge),
+        ]
+        if len(vertices[0]) == 2:
+            polygons.append(tuple(vertices))
     elif isinstance(region, (Ball, Sphere)) and len(region.center) == 2:
         cx, cy = region.center
         r = region.radius

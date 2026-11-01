@@ -366,6 +366,9 @@ def _line_ball_intersection(line, ball):
 def structural_subset(left: object, right: object) -> bool | None:
     """Return a certified subset result for canonical cases, or ``None``."""
 
+    if any(isinstance(region, StandardRegion) and region.conditions for region in (left, right)):
+        return None
+
     if left == right:
         return True
     if not isinstance(left, StandardRegion) or not isinstance(right, StandardRegion):
@@ -416,6 +419,9 @@ def structural_subset(left: object, right: object) -> bool | None:
 
 def structural_disjoint(left: object, right: object) -> bool | None:
     """Return a certified disjointness result for canonical cases, or ``None``."""
+
+    if any(isinstance(region, StandardRegion) and region.conditions for region in (left, right)):
+        return None
 
     if not isinstance(left, StandardRegion) or not isinstance(right, StandardRegion):
         return None
@@ -470,6 +476,9 @@ def structural_disjoint(left: object, right: object) -> bool | None:
 
 def structural_intersection(left: object, right: object):
     """Return a canonical intersection when one is cheaply determined."""
+
+    if any(isinstance(region, StandardRegion) and region.conditions for region in (left, right)):
+        return UNRESOLVED
 
     if left == right:
         return left
@@ -551,6 +560,9 @@ def structural_intersection(left: object, right: object):
 def structural_product(left: object, right: object):
     """Return a canonical Cartesian product when one has a direct representation."""
 
+    if any(isinstance(region, StandardRegion) and region.conditions for region in (left, right)):
+        return UNRESOLVED
+
     if isinstance(left, Interval) and isinstance(right, Interval):
         if not all((left.lower_closed, left.upper_closed, right.lower_closed, right.upper_closed)):
             return UNRESOLVED
@@ -572,6 +584,9 @@ def structural_product(left: object, right: object):
 
 def structural_minkowski_sum(left: object, right: object):
     """Return a canonical Minkowski sum when a closed form is available."""
+
+    if any(isinstance(region, StandardRegion) and region.conditions for region in (left, right)):
+        return UNRESOLVED
 
     if isinstance(left, Point) and isinstance(right, Point):
         return Point(tuple(a + b for a, b in zip(left.coordinates, right.coordinates, strict=True)))

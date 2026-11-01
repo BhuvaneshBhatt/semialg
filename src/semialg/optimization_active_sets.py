@@ -6,9 +6,14 @@ from collections.abc import Sequence
 from itertools import combinations
 
 import sympy as sp
-from sympy.polys.polyerrors import PolynomialError
+from sympy.polys.polyerrors import CoercionFailed, PolynomialError
 
-from .algebraic.groebner_utils import compute_groebner_basis
+from ._zero_testing import certified_pointwise_zero
+from .algebraic.groebner_utils import (
+    algebraic_coefficient_field,
+    compute_groebner_basis,
+    polynomial_coordinates,
+)
 from .internal_symbols import fresh_real_dummy
 from .normalization import conjuncts
 from .relations import split_relation
@@ -37,12 +42,18 @@ def jacobian_rank_equations(
 
 
 def canonical_residual(expr: sp.Expr, variables: Sequence[sp.Symbol]) -> sp.Expr:
-    """Canonicalize a polynomial zero set up to nonzero rational scale."""
+    """Canonicalize a polynomial zero set up to a nonzero algebraic scale."""
 
-    poly = sp.Poly(sp.expand(expr), *variables, domain=sp.QQ)
+    expressions, coordinates = polynomial_coordinates((sp.expand(expr),), variables)
+    domain = algebraic_coefficient_field(expressions, coordinates)
+    poly = sp.Poly(expressions[0], *coordinates, domain=domain)
     if poly.is_zero:
         return sp.Integer(0)
-    return sp.expand(poly.monic().as_expr())
+    return sp.expand(
+        poly.monic()
+        .as_expr()
+        .subs(dict(zip(coordinates, variables, strict=True)), simultaneous=True)
+    )
 
 
 def active_equations_consistent(active: Sequence[sp.Expr], variables: Sequence[sp.Symbol]) -> bool:
@@ -51,10 +62,12 @@ def active_equations_consistent(active: Sequence[sp.Expr], variables: Sequence[s
     if not active:
         return True
     try:
-        basis = compute_groebner_basis(active, variables, order="grevlex", domain=sp.QQ)
-    except (PolynomialError, ValueError, TypeError):
+        active, coordinates = polynomial_coordinates(active, variables)
+        domain = algebraic_coefficient_field(active, coordinates)
+        basis = compute_groebner_basis(active, coordinates, order="grevlex", domain=domain)
+    except (CoercionFailed, PolynomialError, ValueError, TypeError):
         return True
-    var_set = set(variables)
+    var_set = set(coordinates)
     return not any(
         poly.as_expr().free_symbols.isdisjoint(var_set) and poly.as_expr() != 0
         for poly in basis.polys
@@ -72,7 +85,7 @@ def constant_gradient_rank(equalities: Sequence[sp.Expr], variables: Sequence[sp
         for rows in combinations(range(jacobian.rows), rank):
             for cols in combinations(range(jacobian.cols), rank):
                 det = sp.expand(jacobian.extract(rows, cols).det())
-                if det != 0 and not det.free_symbols:
+                if not det.free_symbols and certified_pointwise_zero(det) is False:
                     return rank
     return 0
 
@@ -93,7 +106,7 @@ def strict_boundary_keys(condition: sp.Expr | None, variables: Sequence[sp.Symbo
             continue
         try:
             residual = canonical_residual(residual, variables)
-        except (PolynomialError, ValueError, TypeError):
+        except (CoercionFailed, PolynomialError, ValueError, TypeError):
             residual = sp.expand(residual)
         keys.add(residual)
     return keys
@@ -112,7 +125,7 @@ def pruned_active_subsets(
     for eq in equalities:
         try:
             canon = canonical_residual(eq, variables)
-        except (PolynomialError, ValueError, TypeError):
+        except (CoercionFailed, PolynomialError, ValueError, TypeError):
             canon = sp.expand(eq)
         key = canon
         if canon != 0 and key not in equality_keys:
@@ -122,26 +135,35 @@ def pruned_active_subsets(
     equality_basis = None
     if canonical_eqs:
         try:
-            equality_basis = compute_groebner_basis(
-                canonical_eqs, variables, order="grevlex", domain=sp.QQ
+            coefficient_system, basis_coordinates = polynomial_coordinates(
+                (*canonical_eqs, *inequalities), variables
             )
-        except (PolynomialError, ValueError, TypeError):
+            equality_basis = compute_groebner_basis(
+                coefficient_system[: len(canonical_eqs)],
+                basis_coordinates,
+                order="grevlex",
+                domain=algebraic_coefficient_field(coefficient_system, basis_coordinates),
+            )
+        except (CoercionFailed, PolynomialError, ValueError, TypeError):
             equality_basis = None
     filtered: list[sp.Expr] = []
     seen: set[sp.Expr] = set()
     for inequality in inequalities:
         try:
             canon = canonical_residual(inequality, variables)
-        except (PolynomialError, ValueError, TypeError):
+        except (CoercionFailed, PolynomialError, ValueError, TypeError):
             canon = sp.expand(inequality)
         if canon == 0:
             continue
         if equality_basis is not None:
             try:
-                _, remainder = equality_basis.reduce(canon)
+                normalized = canon.subs(
+                    dict(zip(variables, basis_coordinates, strict=True)), simultaneous=True
+                )
+                _, remainder = equality_basis.reduce(normalized)
                 if sp.expand(remainder) == 0:
                     continue
-            except (PolynomialError, ValueError, TypeError):
+            except (CoercionFailed, PolynomialError, ValueError, TypeError):
                 pass
         key = canon
         if key not in seen:

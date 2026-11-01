@@ -32,7 +32,11 @@ def test_published_cad_provenance():
 
 
 def test_qe_formulas_parse():
-    assert all(case.parse() is not None for case in qe_cases())
+    for case in qe_cases():
+        parsed = case.parse()
+        assert parsed.quantifiers
+        assert parsed.matrix_expr.free_symbols <= set(parsed.vars)
+        assert {variable.name for variable in parsed.vars} == set(case.variables)
 
 
 def test_topology_expectations():

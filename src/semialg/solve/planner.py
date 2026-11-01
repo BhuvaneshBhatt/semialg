@@ -187,7 +187,7 @@ def exact_linear_feasibility(
     formula: sp.Expr,
     variables: Sequence[sp.Symbol],
 ) -> tuple[bool, sp.Expr] | None:
-    """Prove feasibility of a linear conjunction by Fourier--Motzkin elimination.
+    """Prove feasibility of a linear conjunction by Fourier–Motzkin elimination.
 
     The second return value is the fully eliminated truth condition.  This is a
     decision certificate only; callers retain the original/reconstructed linear

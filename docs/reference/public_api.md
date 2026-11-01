@@ -498,3 +498,15 @@ Primary reference: [Regions](regions.md#canonicalization-polygonal-paths-convers
 | `local_image` | function | Compute an exact image germ. |
 | `local_preimage` | function | Compute a unique-point exact preimage germ. |
 | `path_independent` | function | Certify a value on a sufficiently small local germ. |
+
+## Optimization geometry and families
+
+Primary reference: [Geometry for optimization](../optimization_geometry.md)
+
+| Public name | Implementation module | Kind | Summary |
+|---|---|---|---|
+| `bounding_cover` | `semialg.region_covers` | function | Structural exact outer coordinate bounds. |
+| `optimization_cover` | `semialg.region_covers` | function | Complete structural covering maps for optimization. |
+| `region_family` | `semialg.region_families` | function | Parameter cells and exact fiber data. |
+| `RegionFamily` | `semialg.region_families` | class | Family decomposition including empty fibers. |
+| `RegionFamilyStratum` | `semialg.region_families` | class | A parameter guard with fiber dimension and cells. |

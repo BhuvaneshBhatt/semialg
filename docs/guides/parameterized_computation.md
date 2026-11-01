@@ -13,9 +13,7 @@ a = sp.Symbol("a", real=True)
 
 Start with
 
-\[
-0\le x\le a.
-\]
+\[ 0\le x\le a. \]
 
 For \(a<0\), the region is empty. For \(a\ge0\), it is the interval \([0,a]\).
 
@@ -90,17 +88,13 @@ I = integrate_over_region(
 
 On \(a\ge0\),
 
-\[
-\int_0^a x^2\,dx=\frac{a^3}{3}.
-\]
+\[ \int_0^a x^2\,dx=\frac{a^3}{3}. \]
 
 ## 2. Algebraic endpoints: \(x^2\le a\)
 
 Consider
 
-\[
-S_a=\{x:x^2\le a\}.
-\]
+\[ S_a=\{x:x^2\le a\}. \]
 
 This is qualitatively different:
 

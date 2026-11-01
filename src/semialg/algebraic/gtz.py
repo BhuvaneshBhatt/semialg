@@ -1,7 +1,7 @@
 """Certified localization and contraction primitives for GTZ decomposition.
 
 This module implements the first two structural stages of the
-Gianni--Trager--Zacharias primary-decomposition strategy over ``QQ``:
+Gianni–Trager–Zacharias primary-decomposition strategy over ``QQ``:
 
 * choose and certify a maximal independent set ``U`` for ``QQ[x]/I``;
 * extend ``I`` to the zero-dimensional ideal ``I QQ(U)[X]``;

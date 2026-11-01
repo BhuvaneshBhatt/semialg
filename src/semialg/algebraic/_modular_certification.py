@@ -179,12 +179,26 @@ def verify_modular_subresultant_certificate(
     """Replay exact normalization and resultant obligations for a PRS certificate."""
     if not certificate.certified:
         return False
-    if not verify_modular_resultant_certificate(certificate.resultant_certificate):
+    resultant = certificate.resultant_certificate
+    if (
+        not isinstance(resultant, ModularResultantCertificate)
+        or resultant.variable != certificate.variable
+        or resultant.parameters != certificate.parameters
+    ):
         return False
     try:
         domain = sp.QQ.poly_ring(*certificate.parameters) if certificate.parameters else sp.QQ
         left = sp.Poly(certificate.first, certificate.variable, domain=domain)
         right = sp.Poly(certificate.second, certificate.variable, domain=domain)
+        # Resultant sign depends on input order, even though the PRS below
+        # starts with the higher-degree polynomial. Bind before that swap.
+        if (
+            sp.Poly(resultant.first, certificate.variable, domain=domain) != left
+            or sp.Poly(resultant.second, certificate.variable, domain=domain) != right
+        ):
+            return False
+        if not verify_modular_resultant_certificate(resultant):
+            return False
         if left.degree() < right.degree():
             left, right = right, left
         exact = tuple(sp.subresultants(left, right))

@@ -12,7 +12,7 @@ from ._zero_testing import certified_equal
 
 @dataclass(frozen=True)
 class CertificateReplayResult:
-    """Outcome of independently replaying an exact result certificate."""
+    """Outcome of the checks supported by a result family's replay handler."""
 
     verified: bool | None
     kind: str
@@ -51,6 +51,145 @@ def _bool_equal(left: object, right: object) -> bool:
     return left is right or left == right
 
 
+@_register_replay("semialg.cad_algorithms.decomposition", "CompleteCAD")
+def _replay_native_cad(result):
+    from .cad_algorithms import verify_cad
+
+    if result.tower.metadata.get("variety_only") or result.tower.metadata.get("ec_lifting"):
+        return CertificateReplayResult(
+            None,
+            "cad",
+            result.backend,
+            {"reason": "formula-scoped or finite-variety proof requires its statement"},
+        )
+    replay = verify_cad(result, return_result=True)
+    return CertificateReplayResult(
+        replay.valid,
+        "cad",
+        result.backend,
+        {
+            "scope": "ambient geometry",
+            "geometric_replay": replay,
+        },
+    )
+
+
+@_register_replay("semialg.decomposition.cylindrical", "CADResult")
+def _replay_public_cad(result):
+    """Bind native geometry, input truth, selected cells and public representations."""
+    from .cache_utils import cache_disabled
+    from .cad_algorithms import verify_cad
+    from .decomposition.cylindrical import CADOptions, _make_result, build_cad_tree
+    from .errors import ExactComputationUnavailable
+    from .formula import formula_polynomials, parse_formula
+
+    statement = result.diagnostics.get("input_formula")
+    if (
+        result.status != "complete"
+        or statement is None
+        or result.operation not in {None, "components"}
+        or result.diagnostics.get("preprocessed")
+        or result.cad.tower.metadata.get("variety_only")
+    ):
+        return CertificateReplayResult(
+            None,
+            "cad",
+            result.cad.backend,
+            {
+                "reason": "adapter supports complete native polynomial cell selection",
+            },
+        )
+    try:
+        formula = parse_formula(statement)
+        geometry = verify_cad(result.cad, formula=formula, polynomials=formula_polynomials(formula))
+        with cache_disabled():
+            expected = _make_result(
+                statement,
+                formula,
+                result.variables,
+                CADOptions(
+                    operation=result.operation,
+                    strategy="collins",
+                    output=result.output,
+                    formula_form=result.diagnostics.get("formula_form", "nested"),
+                    max_formula_terms=result.diagnostics.get("max_formula_terms", 512),
+                ),
+            )
+        verified = (
+            geometry
+            and result.variables == result.cad.tower.variables
+            and result.cell_set == expected.cell_set
+            and result.formula == expected.formula
+        )
+        if result.function is not None:
+            function = result.function
+            verified = verified and (
+                function.variables == result.variables
+                and function.formula == result.formula
+                and function.operation == result.operation
+                and function.cad == result.cad
+                and function.cell_set == result.cell_set
+                and function.tree == build_cad_tree(result.cad, result.cell_set)
+            )
+    except (ExactComputationUnavailable, sp.PolynomialError, TypeError, ValueError):
+        verified = False
+    return CertificateReplayResult(
+        bool(verified),
+        "cad",
+        result.cad.backend,
+        {
+            "scope": "input statement, ambient geometry, cell truth and canonical output",
+        },
+    )
+
+
+@_register_replay("semialg.partial.qe", "LazyQEResult")
+def _replay_partial_qe(result):
+    """Reconstruct the partial trace, then check truth using full geometric lifting."""
+    from .cache_utils import cache_disabled
+    from .cad_algorithms import verify_cad
+    from .cad_algorithms.decomposition import decomp_from_proj_tower
+    from .errors import ExactComputationUnavailable
+    from .formula import formula_polynomials, parse_formula
+    from .partial.qe import lazy_quantifier_eliminate
+    from .qe.complete import qe_from_cad
+
+    try:
+        with cache_disabled():
+            matrix = parse_formula(result.matrix)
+            reconstructed = lazy_quantifier_eliminate(
+                result.variables,
+                result.quantifiers,
+                matrix,
+                return_result=True,
+            )
+            full = decomp_from_proj_tower(result.tower)
+            geometry = verify_cad(full, polynomials=formula_polynomials(matrix))
+            reference = qe_from_cad(
+                full, result.variables, result.quantifiers, matrix, return_result=True
+            )
+        verified = (
+            geometry
+            and result.variables == result.tower.variables
+            and result.status == "complete"
+            and result.free_variables == reference.free_variables
+            and result.truth_by_index == reference.cell_truth
+            and result.formula == reconstructed.formula
+            and result.tower == reconstructed.tower
+            and result.cells_by_level == reconstructed.cells_by_level
+        )
+    except (ExactComputationUnavailable, sp.PolynomialError, ValueError, TypeError, KeyError):
+        verified = False
+    return CertificateReplayResult(
+        bool(verified),
+        "quantifier_elimination",
+        result.backend,
+        {
+            "scope": "partial trace, projection geometry and full-lifting truth reference",
+        },
+    )
+
+
 @_register_replay("semialg.model", "CADResult")
 def _replay_cad(result: object) -> CertificateReplayResult:
     from .invariants import validate_cad_result
@@ -85,7 +224,7 @@ def _replay_optimization(result: object) -> CertificateReplayResult:
             result.method,
             {"reason": "constraint_formula is unavailable for this result"},
         )
-    from .optimization import semialgebraic_maximize, semialgebraic_minimize
+    from .optimization import _is_feasible, semialgebraic_maximize, semialgebraic_minimize
 
     solver = semialgebraic_minimize if result.kind == "min" else semialgebraic_maximize
     replayed = solver(
@@ -96,10 +235,18 @@ def _replay_optimization(result: object) -> CertificateReplayResult:
         certification="complete" if result.certified else "auto",
     )
     value_equal = certified_equal(replayed.value, result.value)
-    verified = value_equal is True and replayed.attained == result.attained
+    verified = (
+        result.kind in {"min", "max"}
+        and (result.attained or not result.points)
+        and value_equal is True
+        and replayed.attained == result.attained
+        and (not result.certified or replayed.certified)
+    )
     if result.attained and result.points:
         verified = verified and all(
-            certified_equal(result.objective.subs(point), result.value) is True
+            set(result.variables).issubset(point)
+            and _is_feasible(condition, point)
+            and certified_equal(result.objective.subs(point), result.value) is True
             for point in result.points
         )
     return CertificateReplayResult(
@@ -126,7 +273,11 @@ def _replay_function_range(result: object) -> CertificateReplayResult:
         all(checks) if checks else None,
         "function_range",
         result.method,
-        {"endpoint_checks": tuple(checks)},
+        {
+            "endpoint_checks": tuple(checks),
+            "scope": "endpoint consistency",
+            "complete_image_proof": False,
+        },
     )
 
 
@@ -354,9 +505,9 @@ def _replay_convexity(result: object) -> CertificateReplayResult:
 def replay_certificate(result: object) -> CertificateReplayResult:
     """Replay a supported exact certificate through its registered verifier.
 
-    Replay prefers semantic rechecking over trusting stored flags.
-    ``verified=None`` means that the result type does not carry enough public
-    replay payload; it never means that a certificate failed.
+    Each registered handler has its own documented verification scope.
+    ``verified=None`` means an unregistered type or insufficient replay
+    payload; it never means that a certificate failed.
     """
 
     key = (type(result).__module__, type(result).__name__)

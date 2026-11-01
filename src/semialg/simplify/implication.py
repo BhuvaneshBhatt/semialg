@@ -8,6 +8,7 @@ import sympy as sp
 from sympy.core.relational import Relational
 from sympy.logic.boolalg import And as SymAnd
 
+from ..cache_utils import BoundedLRU
 from ..formulas.boolean import bounded_dnf_branches, make_and
 from ..structural_keys import symbol_identity_key
 from .boolean import simplify_boolean
@@ -36,8 +37,8 @@ class ImplicationMinimizationStats:
 
     @property
     def cad_cache_hits(self) -> int:
-        # Shared-CAD requests bypass the pairwise implication LRU, so they
-        # are excluded from these cache-hit statistics.
+        # A context build or pairwise-cache miss performs new work. Other
+        # requests reuse either an exact truth context or a cached decision.
         return max(0, self.cad_requests - self.shared_cad_builds - self.cad_cache_misses)
 
 
@@ -50,6 +51,7 @@ def clear_implication_minimization_stats() -> None:
     fresh = ImplicationMinimizationStats()
     _STATS.__dict__.update(fresh.__dict__)
     _is_unsatisfiable_cached.cache_clear()
+    _TRUTH_CONTEXTS.clear()
 
 
 def implication_minimization_stats() -> ImplicationMinimizationStats:
@@ -245,10 +247,13 @@ class _SharedCADTruthContext:
         return mask
 
 
+_TRUTH_CONTEXTS = BoundedLRU.operation_local(32, "simplify.truth-contexts")
+
+
 def _shared_truth_context(
     expr: sp.Expr, *, max_atoms: int = 8, max_vars: int = 3, max_degree: int = 4
 ) -> _SharedCADTruthContext | None:
-    """Build one guarded CAD containing every atom needed by a minimization pass."""
+    """Reuse a guarded truth context for the same polynomial boundaries in one operation."""
 
     if not _complexity_ok(expr, max_atoms=max_atoms, max_vars=max_vars, max_degree=max_degree):
         _STATS.guard_rejections += 1
@@ -258,15 +263,26 @@ def _shared_truth_context(
         return None
     try:
         from ..cad_algorithms.decomposition import decomp_collins_complete
+        from ..cad_algorithms.polynomial_utils import polynomial_family_key
+        from ..cad_algorithms.projection.collins import squarefree_basis
         from ..formula import formula_polynomials, parse_formula
 
         parsed = parse_formula(expr)
         polys = tuple(formula_polynomials(parsed)) or (sp.Integer(1),)
+        key = (
+            variables,
+            polynomial_family_key(squarefree_basis(sp.Poly(p, *variables) for p in polys)),
+        )
         _STATS.cad_requests += 1
+        cached = _TRUTH_CONTEXTS.get(key)
+        if cached is not None:
+            return cached
         cad = decomp_collins_complete(polys, variables)
         _STATS.shared_cad_builds += 1
         cells = tuple(cad.cells_by_level.get(len(variables), ()))
-        return _SharedCADTruthContext(variables, cells, {})
+        context = _SharedCADTruthContext(variables, cells, {})
+        _TRUTH_CONTEXTS.put(key, context)
+        return context
     except (
         sp.PolynomialError,
         TypeError,

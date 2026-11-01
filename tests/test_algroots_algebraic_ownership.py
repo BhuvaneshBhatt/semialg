@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 import algroots.border_basis
 import algroots.rational_univariate
+from packaging.requirements import Requirement
 
 import semialg.algebraic.border_basis as semialg_border
 from semialg.algebraic.rational_univariate import RationalUnivariateRepresentation, compute_rur
@@ -18,26 +20,24 @@ def test_algroots_owns_core_rur_representation_and_border_basis():
     assert semialg_border.compute_border_basis is algroots.border_basis.compute_border_basis
 
 
-def test_semialg_rur_construction_is_a_delegating_adapter():
-    module = Path(__file__).parents[1] / "src/semialg/algebraic/rational_univariate/construction.py"
-    source = module.read_text(encoding="utf-8")
-    assert "compute_rational_univariate_representation" in source
-    assert "sp.groebner(" not in source
-    assert "charpoly(" not in source
-    assert "separating_element(" not in source
+def test_quotient_parent():
+    import sympy as sp
+    from algroots.quotient import QuotientAlgebra
+
+    from semialg.algebraic.rational_univariate.quotient import QuotientAlgebra as BackendQuotient
+
+    assert BackendQuotient is QuotientAlgebra
+    x, y = sp.symbols("x y")
+    algebra = BackendQuotient.from_polynomials((x * x, y * y), (x, y))
+    assert algebra.dimension == 4 and algebra.geometric_solution_count == 1
 
 
-def test_semialg_quotient_module_contains_no_independent_staircase_algorithm():
-    module = Path(__file__).parents[1] / "src/semialg/algebraic/rational_univariate/quotient.py"
-    source = module.read_text(encoding="utf-8")
-    assert "from itertools import product" not in source
-    assert "def count_from(" not in source
-    assert "QuotientAlgebra" in source
-
-
-def test_semialg_declares_algroots_08_dependency():
-    pyproject = (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
-    assert '"algroots>=0.2.0"' in pyproject
+def test_algroots_dependency():
+    metadata = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    requirements = [Requirement(value) for value in metadata["project"]["dependencies"]]
+    dependency = next(requirement for requirement in requirements if requirement.name == "algroots")
+    assert "0.3.0" in dependency.specifier
+    assert "0.2.99" not in dependency.specifier
 
 
 def test_compute_rur_still_returns_algroots_core_type():

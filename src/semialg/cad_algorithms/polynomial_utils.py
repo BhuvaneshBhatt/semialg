@@ -10,10 +10,52 @@ from typing import TypeAlias
 import sympy as sp
 
 from .._flint_arithmetic import flint_resultant
+from ..errors import ExactComputationUnavailable
 
 PolynomialKey: TypeAlias = tuple[
     tuple[sp.Symbol, ...], object, tuple[tuple[tuple[int, ...], sp.Expr], ...]
 ]
+
+
+def _cad_input_polynomials(polynomials, variables):
+    """Bind a real polynomial family to its full ambient coordinate tuple.
+
+    A missing coordinate must not turn an input polynomial into a coefficient
+    that normalization discards as a unit. Constants in zero coordinates are
+    retained as scalar expressions, since SymPy Poly needs a generator.
+    """
+    variables = tuple(variables)
+    if any(not isinstance(variable, sp.Symbol) for variable in variables):
+        raise TypeError("CAD variables must be symbols")
+    if len(set(variables)) != len(variables):
+        raise ValueError("CAD variables must be distinct")
+    ambient = set(variables)
+    result = []
+    for item in polynomials:
+        expression = item.as_expr() if isinstance(item, sp.Poly) else sp.sympify(item)
+        missing = expression.free_symbols - ambient
+        if missing:
+            raise ValueError(
+                "CAD polynomial contains unassigned variables: "
+                + ", ".join(str(v) for v in sorted(missing, key=sp.default_sort_key))
+            )
+        if not variables:
+            from ..exact_arithmetic import exact_sign
+
+            if expression.is_real is False:
+                raise ValueError("CAD requires real polynomial coefficients")
+            exact_sign(expression)
+            result.append(expression)
+            continue
+        polynomial = (
+            item
+            if isinstance(item, sp.Poly) and item.gens == variables
+            else sp.Poly(expression, *variables)
+        )
+        if any(coefficient.is_real is False for coefficient in polynomial.coeffs()):
+            raise ValueError("CAD requires real polynomial coefficients")
+        result.append(polynomial)
+    return tuple(result)
 
 
 def polynomial_structural_key(poly: sp.Poly) -> PolynomialKey:
@@ -96,14 +138,14 @@ def _algebraic_generator_count(expr: sp.Expr) -> int:
     return len(generators)
 
 
-def coefficient_domain_decision(
+def _univariate_domain_data(
     expr: sp.Expr,
     var: sp.Symbol,
     *,
     algebraic_extension: bool = True,
     policy: CoefficientDomainPolicy = DEFAULT_DOMAIN_POLICY,
-) -> CoefficientDomainDecision:
-    """Choose an exact univariate coefficient representation by cost policy."""
+) -> tuple[CoefficientDomainDecision, sp.Poly | None]:
+    """Select the domain and retain the polynomial that established the choice."""
 
     value = sp.sympify(expr)
     try:
@@ -115,7 +157,7 @@ def coefficient_domain_decision(
         and natural.domain != sp.EX
         and getattr(natural.domain, "is_Exact", False)
     ):
-        return CoefficientDomainDecision(natural.domain, "natural_exact")
+        return CoefficientDomainDecision(natural.domain, "natural_exact"), natural
     ops = int(sp.count_ops(value))
     generators = _algebraic_generator_count(value)
     if (
@@ -123,23 +165,41 @@ def coefficient_domain_decision(
         or generators > policy.max_algebraic_generators
         or ops > policy.max_coefficient_ops
     ):
-        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops)
+        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops), None
     try:
         extended = sp.Poly(value, var, extension=True)
     except (sp.PolynomialError, TypeError, ValueError):
-        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops)
+        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops), None
     if extended.domain == sp.EX or not getattr(extended.domain, "is_Exact", False):
-        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops)
+        return CoefficientDomainDecision(sp.EX, "expression_domain", None, generators, ops), None
     degree = None
     try:
         degree = int(extended.domain.ext.minpoly.degree())
     except (AttributeError, TypeError, ValueError):
         degree = 1
     if degree is not None and degree > policy.max_extension_degree:
-        return CoefficientDomainDecision(sp.EX, "extension_too_large", degree, generators, ops)
-    return CoefficientDomainDecision(
-        extended.domain, "small_algebraic_extension", degree, generators, ops
+        return CoefficientDomainDecision(
+            sp.EX, "extension_too_large", degree, generators, ops
+        ), None
+    return (
+        CoefficientDomainDecision(
+            extended.domain, "small_algebraic_extension", degree, generators, ops
+        ),
+        extended,
     )
+
+
+def coefficient_domain_decision(
+    expr: sp.Expr,
+    var: sp.Symbol,
+    *,
+    algebraic_extension: bool = True,
+    policy: CoefficientDomainPolicy = DEFAULT_DOMAIN_POLICY,
+) -> CoefficientDomainDecision:
+    """Choose an exact univariate coefficient representation by cost policy."""
+    return _univariate_domain_data(
+        expr, var, algebraic_extension=algebraic_extension, policy=policy
+    )[0]
 
 
 def exact_univariate_poly(
@@ -152,17 +212,10 @@ def exact_univariate_poly(
     """Return an exact univariate polynomial using selective domain promotion."""
 
     value = sp.sympify(expr)
-    decision = coefficient_domain_decision(
+    _decision, poly = _univariate_domain_data(
         value, var, algebraic_extension=algebraic_extension, policy=policy
     )
-    if decision.strategy == "natural_exact":
-        return sp.Poly(value, var)
-    if decision.strategy == "small_algebraic_extension":
-        try:
-            return sp.Poly(value, var, extension=True)
-        except (sp.PolynomialError, TypeError, ValueError):
-            pass
-    return sp.Poly(value, var, domain="EX")
+    return poly if poly is not None else sp.Poly(value, var, domain="EX")
 
 
 @lru_cache(maxsize=1024)
@@ -186,10 +239,12 @@ def normalize_poly(poly: sp.Poly) -> sp.Poly | None:
         # for those domains rather than weakening normalization semantics.
         try:
             factors = sp.factor_list(primitive.as_expr(), *primitive.gens)[1]
-        except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
-            factors = [(primitive.as_expr(), 1)]
+        except (sp.PolynomialError, ValueError, TypeError, NotImplementedError) as exc:
+            raise ExactComputationUnavailable("CAD could not construct a squarefree basis") from exc
         if not factors and primitive.total_degree() > 0:
-            factors = [(primitive.as_expr(), 1)]
+            raise ExactComputationUnavailable(
+                "CAD factorization lost a nonconstant polynomial"
+            ) from None
         pieces = []
         for factor, _multiplicity in factors:
             try:
@@ -269,9 +324,17 @@ def resultant_expression(left: sp.Poly, right: sp.Poly, var: sp.Symbol) -> sp.Ex
 def derivative_resultant_expression(poly: sp.Poly, var: sp.Symbol) -> sp.Expr:
     """Return ``Res(poly, d(poly)/dvar, var)`` without repeated caller conversions."""
 
-    derivative = sp.Poly(sp.diff(poly.as_expr(), var), *poly.gens, domain=poly.domain)
+    differentiate_generator = var in poly.gens
+    if differentiate_generator:
+        derivative = poly.diff(var)
+    else:
+        expr = poly.as_expr()
+        derivative_expr = sp.diff(expr, var)
+        derivative = sp.Poly(derivative_expr, *poly.gens, domain=poly.domain)
     accelerated = flint_resultant(poly, derivative, var)
     if accelerated is not None:
         return accelerated
-    expr = poly.as_expr()
-    return sp.resultant(expr, sp.diff(expr, var), var)
+    if differentiate_generator:
+        expr = poly.as_expr()
+        derivative_expr = derivative.as_expr()
+    return sp.resultant(expr, derivative_expr, var)

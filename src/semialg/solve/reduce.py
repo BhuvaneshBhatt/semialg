@@ -21,7 +21,7 @@ from ..formula import ParsedPrenexFormula, parse_formula, parse_quant_form_text,
 from ..inequality_reduction import reduce_conjunctive_inequalities
 from ..model import ProjectionConfig
 from ..planner.select import select_strat_for_form
-from ..qe.complete import qe_by_complete_cad, qe_from_cad
+from ..qe.complete import norm_internal_order, qe_by_complete_cad, qe_from_cad
 from ..qe.virtual_substitution import try_quadratic_vs_qe
 from ..simplify.boolean import simplify_boolean
 from ..status import SolverStatus
@@ -154,6 +154,12 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
     selection = None
     vars_ = parsed.vars
     strategy_name = (strategy or "collins").lower()
+    if strategy_name in {"auto", "planner"} and parsed.quantifiers:
+        from ..qe.linear import try_linear_elimination
+
+        linear = try_linear_elimination(parsed.matrix_expr, parsed.quantifiers, vars_)
+        if linear is not None:
+            return linear.formula, linear, None
     if strategy_name in {
         "auto",
         "planner",
@@ -224,6 +230,21 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
                 vs_result.formula,
             )
             vars_ = parsed.vars
+    if parsed.quantifiers and strategy_name in {"auto", "planner", "lazy", "partial"}:
+        internal, free, _quantified, _notes = norm_internal_order(
+            vars_, parsed.quantifiers, parsed.matrix
+        )
+        if not free:
+            from ..partial.qe import lazy_resolve_formula
+
+            lazy = lazy_resolve_formula(internal, parsed.quantifiers, parsed.matrix)
+            return sp.true if lazy.truth_value else sp.false, lazy, None
+        from ..partial.qe import lazy_quantifier_eliminate
+
+        lazy = lazy_quantifier_eliminate(
+            internal, parsed.quantifiers, parsed.matrix, return_result=True
+        )
+        return lazy.formula, lazy, None
     if strategy_name in {"auto", "planner"}:
         selection = _safe_strategy_selection(parsed, vars_)
         vars_ = selection.variable_order
@@ -245,6 +266,9 @@ def _reduce_reals(parsed: ParsedPrenexFormula, config=None, *, strategy: str | N
             notes=(*base.notes, f"Explicit strategy requested: {strategy_name}."),
         )
     if selection is not None and selection.backend != PROJECTION_COLLINS:
+        # Reduced lifting must use the same free/prefix order as QE truth
+        # propagation. Planner orders may cross quantifier boundaries.
+        vars_, _, _, _ = norm_internal_order(vars_, parsed.quantifiers, parsed.matrix)
         if selection.backend == PROJECTION_TTICAD:
             safe = decompose_tticad_safe(parsed.matrix, vars_)
         else:
@@ -511,12 +535,23 @@ def reduce_formula(
         metadata = {"qe_result": qe_result}
         backend_name = getattr(qe_result, "backend", "")
         specialized_method = getattr(qe_result, "method", "")
-        if specialized_method.startswith("ars"):
+        if specialized_method.startswith("ars") or specialized_method == "linear-boolean":
             method = specialized_method
         elif backend_name == "quadratic-virtual-substitution-qe":
             method = "quadratic_virtual_substitution"
         elif backend_name == "rational-univariate-formula-solver":
             method = "rational_univariate"
+        elif backend_name in {"partial-collins-free", "partial-lazard-free"}:
+            method = "partial_cad_qe"
+            metadata.update(lazy_result=qe_result, stats=qe_result.stats)
+        elif backend_name in {"partial-collins-lazy", "partial-lazard-lazy"}:
+            method = "partial_cad_resolve"
+            metadata.update(
+                lazy_result=qe_result,
+                stats=qe_result.stats,
+                witness=qe_result.witness,
+                counterexample=qe_result.counterexample,
+            )
         else:
             method = "cad"
         if selection is not None:

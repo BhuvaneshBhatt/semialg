@@ -1,7 +1,6 @@
 # Decision layer quality notes
 
-These notes describe the public contracts for the decision, sampling, and sign-evaluation layer. The checks document expected behavior without adding a
-separate solving backend.
+These notes describe the public contracts for the decision, sampling, and sign-evaluation layer. The checks document expected behavior without adding a separate solving backend.
 
 ## Public contracts under test
 
@@ -28,9 +27,7 @@ The main regression files are:
 - `tests/test_decision_sign_evaluation.py`
 - `tests/test_decision_public_contracts.py`
 
-These tests are intended to be small, public-API-level contracts. They should
-remain readable and should not depend on private implementation details except
-where a backend method string is part of the documented behavior.
+These tests are intended to be small, public-API-level contracts. They should remain readable and should not depend on private implementation details except where a backend method string is part of the documented behavior.
 
 ## Quality checklist
 
@@ -42,5 +39,4 @@ pytest -q
 python scripts/verify_source_quality.py
 ```
 
-Generated archives should not include `__pycache__`, `.pytest_cache`, scratch
-`run_pytest_*` scripts, ad-hoc `check_*.py` files, or test logs.
+Generated archives should not include `__pycache__`, `.pytest_cache`, scratch `run_pytest_*` scripts, ad-hoc `check_*.py` files, or test logs.

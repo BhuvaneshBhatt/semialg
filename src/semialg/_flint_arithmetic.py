@@ -64,14 +64,16 @@ def to_flint_univariate(poly: sp.Poly) -> FlintUnivariate | None:
 
 
 def from_flint_univariate(value: object, variable: sp.Symbol, *, domain: str) -> sp.Poly:
+    """Rebuild a ZZ/QQ polynomial directly from native low-to-high coefficients."""
     coeffs: list[sp.Expr] = []
     for coeff in value:  # type: ignore[operator]
         if domain == "ZZ":
             coeffs.append(sp.Integer(int(coeff)))
         else:
             coeffs.append(sp.Rational(int(coeff.p), int(coeff.q)))
-    expr = sum(coeff * variable**index for index, coeff in enumerate(coeffs))
-    return sp.Poly(expr, variable, domain=sp.ZZ if domain == "ZZ" else sp.QQ)
+    return sp.Poly.from_list(
+        list(reversed(coeffs)), variable, domain=sp.ZZ if domain == "ZZ" else sp.QQ
+    )
 
 
 def to_flint_multivariate(poly: sp.Poly) -> FlintMultivariate | None:
@@ -94,17 +96,15 @@ def to_flint_multivariate(poly: sp.Poly) -> FlintMultivariate | None:
 def from_flint_multivariate(
     value: object, generators: Sequence[sp.Symbol], *, domain: str
 ) -> sp.Poly:
-    expr = sp.Integer(0)
+    """Rebuild a ZZ/QQ polynomial from native monomials in the declared order."""
+    coefficients = {}
     for powers, coeff in value.to_dict().items():  # type: ignore[attr-defined]
         if domain == "ZZ":
             sym_coeff: sp.Expr = sp.Integer(int(coeff))
         else:
             sym_coeff = sp.Rational(int(coeff.p), int(coeff.q))
-        monomial = sym_coeff
-        for generator, power in zip(generators, powers, strict=True):
-            monomial *= generator ** int(power)
-        expr += monomial
-    return sp.Poly(expr, *generators, domain=sp.ZZ if domain == "ZZ" else sp.QQ)
+        coefficients[tuple(int(power) for power in powers)] = sym_coeff
+    return sp.Poly.from_dict(coefficients, *generators, domain=sp.ZZ if domain == "ZZ" else sp.QQ)
 
 
 def flint_gcd(poly: sp.Poly, other: sp.Poly) -> sp.Poly | None:
@@ -149,16 +149,24 @@ def flint_resultant(left: sp.Poly, right: sp.Poly, variable: sp.Symbol) -> sp.Ex
 
     generators = tuple(dict.fromkeys((*left.gens, *right.gens)))
     try:
-        left_poly = sp.Poly(left.as_expr(), *generators)
-        right_poly = sp.Poly(right.as_expr(), *generators)
+        left_poly = (
+            left
+            if left.gens == generators and left.domain in (sp.ZZ, sp.QQ)
+            else sp.Poly(left.as_expr(), *generators)
+        )
+        right_poly = (
+            right
+            if right.gens == generators and right.domain in (sp.ZZ, sp.QQ)
+            else sp.Poly(right.as_expr(), *generators)
+        )
     except (sp.PolynomialError, TypeError, ValueError):
         return None
     if left_poly.domain not in (sp.ZZ, sp.QQ) or right_poly.domain not in (sp.ZZ, sp.QQ):
         return None
     domain = "QQ" if sp.QQ in (left_poly.domain, right_poly.domain) else "ZZ"
     if domain == "QQ":
-        left_poly = sp.Poly(left_poly.as_expr(), *generators, domain=sp.QQ)
-        right_poly = sp.Poly(right_poly.as_expr(), *generators, domain=sp.QQ)
+        left_poly = left_poly.set_domain(sp.QQ)
+        right_poly = right_poly.set_domain(sp.QQ)
     converted_left = to_flint_multivariate(left_poly)
     converted_right = to_flint_multivariate(right_poly)
     if converted_left is None or converted_right is None:

@@ -18,9 +18,9 @@ assert region_dimension(region) == 2
 assert "semialg.decomposition" not in sys.modules
 """
     env = dict(os.environ)
-    env["PYTHONPATH"] = str(ROOT / "src")
+    env["PYTHONPATH"] = os.pathsep.join(str(Path(p).resolve()) for p in sys.path if p)
     completed = subprocess.run(
-        [sys.executable, "-c", code],
+        [sys.executable, "-S", "-c", code],
         cwd=ROOT,
         env=env,
         capture_output=True,

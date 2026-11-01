@@ -14,7 +14,7 @@
 - `FunctionRangeResult`
 - `ParametricFunctionRangeResult`
 
-By default the optimization functions return an `OptimizationResult`. Pass `return_result=False` to request only the optimum value.
+By default the optimization functions return `[value, optimizer_points]`. Pass `return_result=True` for an `OptimizationResult` with attainment and certification metadata.
 
 ```python
 import sympy as sp
@@ -32,9 +32,14 @@ semialgebraic_maximize(
     x + y + z,
     [x**2 + y**2 + z**2 <= 1],
     [x, y, z],
+    return_result=True,
 ).value
 # sqrt(3)
 ```
+
+## Exact specializations
+
+Before the general candidate pipeline, constant-coefficient univariate polynomial problems use complete root isolation and polynomial limits. Affine objectives over a single positive-definite ellipsoid relation use exact support formulas, including unattained bounds on open ellipsoids. These rules avoid generic CAD certification because their mathematical hypotheses already prove global optimality. Bounded polytope and separable rules remain available. See the [rule scopes and executable examples](structural_rules.md).
 
 ## Candidate pipeline
 
@@ -65,7 +70,7 @@ Range certification is controlled by `OptimizationCertificationPolicy` and the c
 - `certification="candidate"` disables the full range fallback while still allowing the cheaper CAD query that proves that no strictly better feasible point exists;
 - `recursion_limit` bounds recursive optimization of positive-dimensional critical loci.
 
-For example, a three-variable open ball can return an unattained exact infimum through the range fallback:
+Exact structural rules remain available under every certification policy. For example, a three-variable open ball has an unattained exact infimum from ellipsoid support:
 
 ```python
 semialgebraic_minimize(
@@ -73,6 +78,7 @@ semialgebraic_minimize(
     [x**2 + y**2 + z**2 < 1],
     [x, y, z],
     certification="auto",
+    return_result=True,
 ).value
 # -1
 ```
@@ -100,23 +106,13 @@ Open sets are distinguished from closed ones. For example, minimizing `x` over `
 
 For optimization, a branch value is `ParametricOptimizationResult`; for ranges it is `ParametricFunctionRangeResult`. These objects keep the exact first-order relation and its explicit quantifier prefix instead of automatically performing another potentially enormous CAD elimination just to obtain a quantifier-free display. For a minimum with value symbol `t`, the exact relation encodes both
 
-$$
-\forall x\;(C(x,p)\Rightarrow f(x,p)\ge t)
-$$
+$$ \forall x\;(C(x,p)\Rightarrow f(x,p)\ge t) $$
 
 and the tightness condition
 
-$$
-\forall s>t\;\exists x\;(C(x,p)\land f(x,p)<s).
-$$
+$$ \forall s>t\;\exists x\;(C(x,p)\land f(x,p)<s). $$
 
-Thus unattained infima are represented correctly.  In programmatic code, these
-relations can be represented directly with semialg's `ForAll` and `Exists`
-nodes instead of hand-built quantifier tuples.  For example, the lower-bound
-condition has the shape `ForAll(x, Implies(C, f >= t))`, while tightness nests
-`Exists` beneath `ForAll`.  `sample_result` on a parametric optimization branch
-is representative convenience data only; the quantified relation is the
-stratum-wide answer.
+Thus unattained infima are represented correctly.  In programmatic code, these relations can be represented directly with semialg's `ForAll` and `Exists` nodes instead of hand-built quantifier tuples.  For example, the lower-bound condition has the shape `ForAll(x, Implies(C, f >= t))`, while tightness nests `Exists` beneath `ForAll`.  `sample_result` on a parametric optimization branch is representative convenience data only; the quantified relation is the stratum-wide answer.
 
 ## Boolean domains
 
@@ -124,7 +120,7 @@ Bounded DNF expansion is used for disjunctive domains. Each feasible branch is o
 
 ## Current limits
 
-The optimizer is strongest for low-dimensional polynomial problems whose KKT/active loci are zero-dimensional, safely reducible by equalities, or affordable for exact CAD range certification. Positive-dimensional critical loci are detected explicitly and recursively reduced when possible instead of being without reporting treated as failed finite solves. Higher-dimensional open/unbounded problems may still be declined when the estimated complete image-CAD cost exceeds the configured policy, and noncompact optimization at infinity has no dedicated asymptotic-critical-point algorithm. General non-polynomial optimization and SOS/SDP certificate search are outside the exact pipeline.
+The optimizer is strongest for low-dimensional polynomial problems whose KKT/active loci are zero-dimensional, safely reducible by equalities, or affordable for exact CAD range certification. Positive-dimensional critical loci are detected explicitly and recursively reduced when possible instead of being treated as failed finite solves. Higher-dimensional open/unbounded problems may still be declined when the estimated complete image-CAD cost exceeds the configured policy, and noncompact optimization at infinity has no dedicated asymptotic-critical-point algorithm. General non-polynomial optimization and SOS/SDP certificate search are outside the exact pipeline.
 
 
 ## Direct parametric relation reconstruction
@@ -133,14 +129,4 @@ When `return_stratified=True, eliminate_quantifiers=True` is requested, semialg 
 
 ### Exact polynomial nonnegativity backend
 
-Optimization clients can call `polynomial_nonnegative`, `find_negative_point`, or
-`zeng_negative_point` directly. `polynomial_nonnegative` is the single public
-global-nonnegativity dispatcher: it returns a Boolean by default and a
-`CertifiedDecisionResult` with `return_result=True`. This is a semialg public API rather
-than an optimization-package-specific hook, so downstream packages such as
-symbolic optimization layers can reuse the same exact certificates and witnesses.
-The result object distinguishes a certified negative point, certified global
-nonnegativity, and an unsupported/incomplete case. The current fast coercivity
-certificate accepts only positive even-monomial leading forms; a
-leading form containing mixed odd exponents falls back to an incomplete result
-unless another exact strategy supplies a negative witness.
+Optimization clients can call `polynomial_nonnegative`, `find_negative_point`, or `zeng_negative_point` directly. `polynomial_nonnegative` is the single public global-nonnegativity dispatcher: it returns a Boolean by default and a `CertifiedDecisionResult` with `return_result=True`. This is a semialg public API rather than an optimization-package-specific hook, so downstream packages such as symbolic optimization layers can reuse the same exact certificates and witnesses. The result object distinguishes a certified negative point, certified global nonnegativity, and an unsupported/incomplete case. The current fast coercivity certificate accepts only positive even-monomial leading forms; a leading form containing mixed odd exponents falls back to an incomplete result unless another exact strategy supplies a negative witness.

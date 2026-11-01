@@ -56,7 +56,7 @@ def verify_cad_sign_inv(
     checked_cells = 0
     checked_polys = 0
     for level, cells in sorted(cells_by_level.items()):
-        level_polys = tower.level(level).polynomials
+        level_polys = tower.level(level).polynomials if level else ()
         result = verify_recorded_signs(cells, level_polys)
         checked_cells += result.checked_cells
         checked_polys += result.checked_polynomials

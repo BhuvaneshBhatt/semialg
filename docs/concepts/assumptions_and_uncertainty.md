@@ -16,7 +16,7 @@ A symbolic expression can be nonzero as a polynomial yet vanish for particular p
 
 ## Assumptions
 
-Assumptions are inputs to a decision problem, not facts that semialg without reporting adds to its mathematical output. When an algorithm needs a sign, nonzeroness, or reality condition, that condition must be certified from exact data and the supplied assumptions.
+Assumptions are inputs to a decision problem, not facts that semialg adds to its mathematical output. When an algorithm needs a sign, nonzeroness, or reality condition, that condition must be certified from exact data and the supplied assumptions.
 
 ## Failure to certify
 

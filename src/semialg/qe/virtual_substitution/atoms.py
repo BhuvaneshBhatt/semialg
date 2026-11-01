@@ -67,7 +67,9 @@ def _polynomial_degree(expr: sp.Expr, variable: sp.Symbol) -> int:
         poly = sp.Poly(sp.expand(expr), variable, domain="EX")
     except sp.PolynomialError as exc:
         raise VirtualSubstitutionError(f"non-polynomial atom in {variable}: {expr!r}") from exc
-    return poly.degree()
+    # A zero atom still needs its constant coefficient slot. SymPy assigns it
+    # degree -oo, which cannot be used as a coefficient-array length.
+    return max(0, poly.degree())
 
 
 def _coefficient_list(expr: sp.Expr, variable: sp.Symbol, length: int) -> list[sp.Expr]:

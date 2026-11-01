@@ -69,19 +69,8 @@ The 2D syntactic parser is limited. For complete CAD output, use `extract_cylind
 
 ## Edge-case semantics
 
-`semialgebraic_level_function` relaxes strict inequalities to weak sublevel
-constraints and normalizes reversed relations before composing conjunctions
-with `Max` and disjunctions with `Min`. Equalities remain unsupported because
-a single scalar sublevel inequality would generally change their dimension;
-disequalities are ignored for closure-style use.
+`semialgebraic_level_function` relaxes strict inequalities to weak sublevel constraints and normalizes reversed relations before composing conjunctions with `Max` and disjunctions with `Min`. Equalities remain unsupported because a single scalar sublevel inequality would generally change their dimension; disequalities are ignored for closure-style use.
 
-`decompose_implicit_formula` first forms a Boolean disjunction of conjunctions,
-then normalizes both relation orientations. Strict inequalities become weak
-inequality residuals, equalities remain equality residuals, and disequalities
-are omitted.
+`decompose_implicit_formula` first forms a Boolean disjunction of conjunctions, then normalizes both relation orientations. Strict inequalities become weak inequality residuals, equalities remain equality residuals, and disequalities are omitted.
 
-`extract_symbolic_box_bounds` treats an explicitly supplied variable list as
-the coordinate list. Other free symbols are parameters, so symbolic bounds such
-as `a <= x <= b` do not turn `a` and `b` into additional box coordinates.
-Redundant bounds are merged exactly. Disjunctions are rejected because one
-`SymbolicBoxBounds` object represents one conjunctive cell.
+`extract_symbolic_box_bounds` treats an explicitly supplied variable list as the coordinate list. Other free symbols are parameters, so symbolic bounds such as `a <= x <= b` do not turn `a` and `b` into additional box coordinates. Redundant bounds are merged exactly. Disjunctions are rejected because one `SymbolicBoxBounds` object represents one conjunctive cell.

@@ -4,7 +4,7 @@ This audit checks documentation *quality dimensions* for every root-level functi
 
 The rubric deliberately distinguishes reference coverage from adequacy. Medium-risk functions require a clear purpose, inspectable signature, return semantics, and family-level exactness/limitations. High-risk functions additionally require parameter semantics and an executable-style documentation example. Critical functions additionally require algorithm/backend documentation.
 
-**Current result:** 226/238 functions satisfy their risk-adjusted adequacy requirements; 12 need documentation deepening.
+**Current result:** 224/241 functions satisfy their risk-adjusted adequacy requirements; 17 need documentation deepening.
 
 ## Gap summary
 
@@ -12,17 +12,20 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 |---|---:|
 | `purpose` | 0 |
 | `signature` | 0 |
-| `parameters` | 8 |
+| `parameters` | 11 |
 | `return_semantics` | 1 |
-| `exactness` | 0 |
+| `exactness` | 3 |
 | `algorithm` | 0 |
-| `limitations` | 0 |
-| `example` | 11 |
+| `limitations` | 3 |
+| `example` | 13 |
 
 ## Function-by-function audit
 
 | Function | Owner | Risk | Status | Missing dimensions | Reference |
 |---|---|---|---|---|---|
+| `bounding_cover` | geometry | high | needs deepening | `exactness`, `limitations`, `parameters` | [optimization_geometry.md](../optimization_geometry.md#structural-bounds-and-covers) |
+| `optimization_cover` | geometry | high | needs deepening | `exactness`, `limitations`, `parameters` | [optimization_geometry.md](../optimization_geometry.md#structural-bounds-and-covers) |
+| `region_family` | geometry | high | needs deepening | `exactness`, `limitations`, `parameters` | [optimization_geometry.md](../optimization_geometry.md#changing-fibers) |
 | `blowup_charts` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-maps-and-path-independence) |
 | `contact_order` | geometry | high | needs deepening | `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#curve-selection-and-relative-rates) |
 | `curve_selection` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#curve-selection-and-relative-rates) |
@@ -204,10 +207,10 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `region_difference` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_difference) |
 | `region_dimension` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_dimension) |
 | `region_interior` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_interior) |
-| `region_intersection` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#formula-based-region-operations) |
+| `region_intersection` | geometry | high | needs deepening | `example` | [reference/regions.md](../reference/regions.md#formula-based-region-operations) |
 | `region_product` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_product) |
 | `region_symmetric_difference` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#region_symmetric_difference) |
-| `region_union` | geometry | high | adequate | — | [reference/regions.md](../reference/regions.md#formula-based-region-operations) |
+| `region_union` | geometry | high | needs deepening | `example` | [reference/regions.md](../reference/regions.md#formula-based-region-operations) |
 | `classify_real_roots` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#classify_real_roots) |
 | `sample_point` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#sample_point-and-sample_points) |
 | `random_point` | solving | medium | adequate | — | [reference/solving_and_sampling.md](../reference/solving_and_sampling.md#canonical-region-random-sampling) |

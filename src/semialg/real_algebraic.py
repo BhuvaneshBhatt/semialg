@@ -6,7 +6,7 @@ reduced recursively to zero-dimensional systems; the RUR solver then constructs 
 witnesses. Generic polar parameters are handled symbolically over a rational
 function field, with an exact exceptional hypersurface controlling specialization.
 
-Algorithmic reference: Aubry--Rouillier--Safey El Din (2002), [ARS2002] in
+Algorithmic reference: Aubry–Rouillier–Safey El Din (2002), [ARS2002] in
 ``docs/references.md``.  The implementation adds semialg-specific exact
 generic-specialization and certificate checks.
 """
@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from itertools import combinations
 
 import sympy as sp
+from sympy.polys.polyerrors import BasePolynomialError
 
 from ._zero_testing import certified_zero
 from .algebraic.equality_ideal import EqualityIdealContext, _monomial_ideal_dimension
@@ -131,6 +132,41 @@ def _solve_real_zero_dimensional(
     except RationalUnivariateError:
         return None, "rur_failure"
     return tuple(points), None
+
+
+def _validate_algebraic_point(equations, variables, point):
+    """Validate RUR coordinates without turning unknown zero tests into rejection."""
+    point = tuple(sp.sympify(value) for value in point)
+    assignment = dict(zip(variables, point, strict=True))
+    decisions = tuple(certified_zero(eq.subs(assignment)) for eq in equations)
+    if all(decision is True for decision in decisions):
+        return True
+    if any(decision is False for decision in decisions):
+        return False
+    roots = tuple(
+        sorted(set().union(*(value.atoms(sp.CRootOf) for value in point)), key=sp.default_sort_key)
+    )
+    if not roots:
+        return None
+    try:
+        # Coordinate expressions from a RUR share an algebraic parameter.
+        # Evaluate sparse input polynomials directly in its exact number field;
+        # expanding a polynomial in CRootOf expressions can defeat zero testing.
+        field = sp.QQ.algebraic_field(*roots)
+        values = tuple(field.convert(value) for value in point)
+        for equation in equations:
+            polynomial = sp.Poly(equation, *variables, domain=sp.QQ)
+            residual = field.zero
+            for powers, coefficient in polynomial.terms():
+                term = field.convert(coefficient)
+                for value, power in zip(values, powers, strict=True):
+                    term *= value**power
+                residual += term
+            if residual != field.zero:
+                return False
+        return True
+    except (BasePolynomialError, ValueError, TypeError, NotImplementedError, ArithmeticError):
+        return None
 
 
 def _groebner_dimension_over_fraction_field(
@@ -343,6 +379,7 @@ def _real_algebraic_feasibility_result(
         max_generic_attempts=max_generic_attempts,
         max_pieces=max_pieces,
     )
+    unvalidated = False
     for system in systems:
         points, failure = _solve_real_zero_dimensional(system, vars_)
         if failure is not None or points is None:
@@ -351,11 +388,22 @@ def _real_algebraic_feasibility_result(
             )
         for point in points:
             assignment = dict(zip(vars_, point, strict=True))
-            if all(certified_zero(eq.subs(assignment)) is True for eq in eqs):
+            if _validate_algebraic_point(eqs, vars_, point) is True:
                 witness = tuple((v, sp.simplify(assignment[v])) for v in vars_)
                 return RealAlgebraicFeasibilityResult(
                     vars_, True, witness, True, "ars+rur", systems, notes
                 )
+            unvalidated = True
+    if unvalidated:
+        return RealAlgebraicFeasibilityResult(
+            vars_,
+            None,
+            None,
+            False,
+            "ars",
+            systems,
+            (*notes, "rur_witness_validation_incomplete"),
+        )
     if complete:
         return RealAlgebraicFeasibilityResult(vars_, False, None, True, "ars+rur", systems, notes)
     return RealAlgebraicFeasibilityResult(vars_, None, None, False, "ars", systems, notes)

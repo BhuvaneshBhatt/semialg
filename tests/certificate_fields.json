@@ -1,0 +1,789 @@
+{
+  "semialg.algebraic._root_certificate_types.PolynomialRootIntervalCertificate": {
+    "polynomial": {
+      "role": "proof"
+    },
+    "left": {
+      "role": "proof"
+    },
+    "right": {
+      "role": "proof"
+    },
+    "root_count": {
+      "role": "proof"
+    },
+    "left_is_root": {
+      "role": "proof"
+    },
+    "right_is_root": {
+      "role": "proof"
+    },
+    "method": {
+      "role": "provenance",
+      "reason": "Replay binds polynomial, endpoints and root count independently of the isolation algorithm label."
+    },
+    "include_left": {
+      "role": "proof"
+    },
+    "include_right": {
+      "role": "proof"
+    },
+    "descartes_variations": {
+      "role": "diagnostic",
+      "reason": "Sturm replay certifies the interval independently of an optional Descartes diagnostic."
+    }
+  },
+  "semialg.algebraic._modular_types.ModularGroebnerCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "order": {
+      "role": "proof"
+    },
+    "source_generators": {
+      "role": "proof"
+    },
+    "basis": {
+      "role": "proof"
+    },
+    "membership_representations": {
+      "role": "proof"
+    },
+    "primes": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    },
+    "modulus": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    },
+    "certified": {
+      "role": "derived",
+      "reason": "Replay establishes validity independently of the stored success flag."
+    },
+    "method": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    }
+  },
+  "semialg.algebraic._modular_types.ModularResultantCertificate": {
+    "variable": {
+      "role": "proof"
+    },
+    "parameters": {
+      "role": "proof"
+    },
+    "first": {
+      "role": "proof"
+    },
+    "second": {
+      "role": "proof"
+    },
+    "resultant": {
+      "role": "proof"
+    },
+    "parameter_degree_bounds": {
+      "role": "proof"
+    },
+    "verification_grid": {
+      "role": "proof"
+    },
+    "primes": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    },
+    "modulus": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    },
+    "certified": {
+      "role": "derived",
+      "reason": "Replay establishes validity independently of the stored success flag."
+    },
+    "method": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    }
+  },
+  "semialg.algebraic._modular_types.ModularSubresultantCertificate": {
+    "variable": {
+      "role": "proof"
+    },
+    "parameters": {
+      "role": "proof"
+    },
+    "first": {
+      "role": "proof"
+    },
+    "second": {
+      "role": "proof"
+    },
+    "polynomials": {
+      "role": "proof"
+    },
+    "resultant_certificate": {
+      "role": "proof"
+    },
+    "primes": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    },
+    "modulus": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    },
+    "certified": {
+      "role": "derived",
+      "reason": "Replay establishes validity independently of the stored success flag."
+    },
+    "method": {
+      "role": "provenance",
+      "reason": "Exact replay recomputes the rational identity; modular search history is not its proof."
+    }
+  },
+  "semialg.algebraic.gtz.IndependentLocalizationCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_generators": {
+      "role": "proof"
+    },
+    "dimension": {
+      "role": "proof"
+    },
+    "independent_variables": {
+      "role": "proof"
+    },
+    "dependent_variables": {
+      "role": "proof"
+    },
+    "leading_supports": {
+      "role": "proof"
+    },
+    "localized_basis": {
+      "role": "proof"
+    },
+    "quotient_dimension": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic.gtz.LocalizationContractionCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "independent_variables": {
+      "role": "proof"
+    },
+    "dependent_variables": {
+      "role": "proof"
+    },
+    "localized_generators": {
+      "role": "proof"
+    },
+    "canonical_localized_basis": {
+      "role": "proof"
+    },
+    "cleared_generators": {
+      "role": "proof"
+    },
+    "denominator_product": {
+      "role": "proof"
+    },
+    "contracted_generators": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic.gtz.SaturationStabilizationCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_generators": {
+      "role": "proof"
+    },
+    "splitter": {
+      "role": "conditional",
+      "reason": "Branch-specific evidence is mutated when present; an absent branch is reported as inactive."
+    },
+    "exponent": {
+      "role": "proof"
+    },
+    "colon_chain": {
+      "role": "proof"
+    },
+    "saturated_generators": {
+      "role": "proof"
+    },
+    "companion_generators": {
+      "role": "proof"
+    }
+  },
+  "semialg.sos_certificates.SOSCertificate": {
+    "polynomial": {
+      "role": "proof"
+    },
+    "variables": {
+      "role": "proof"
+    },
+    "monomial_basis": {
+      "role": "proof"
+    },
+    "gram_matrix": {
+      "role": "proof"
+    },
+    "source": {
+      "role": "provenance",
+      "reason": "The source label records certificate construction; the polynomial and Gram identity are replayed exactly."
+    }
+  },
+  "semialg._algebraic_decomposition_types.RegularChainDecompositionCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_equations": {
+      "role": "proof"
+    },
+    "splits": {
+      "role": "proof"
+    },
+    "components": {
+      "role": "proof"
+    },
+    "complete": {
+      "role": "proof"
+    },
+    "reconstruction_complete": {
+      "role": "proof"
+    },
+    "degree_complete": {
+      "role": "proof"
+    },
+    "source_dimension": {
+      "role": "proof"
+    },
+    "source_degree": {
+      "role": "proof"
+    },
+    "reduced_degree": {
+      "role": "proof"
+    }
+  },
+  "semialg._algebraic_decomposition_types.RegularChainSplitCertificate": {
+    "parent": {
+      "role": "proof"
+    },
+    "children": {
+      "role": "proof"
+    },
+    "method": {
+      "role": "provenance",
+      "reason": "Replay checks the exact parent/children ideal identities and coverage, independently of the split strategy label."
+    },
+    "splitter": {
+      "role": "conditional",
+      "reason": "Branch-specific evidence is mutated when present; an absent branch is reported as inactive."
+    }
+  },
+  "semialg._algebraic_decomposition_types.RegularChainComponent": {
+    "equations": {
+      "role": "proof"
+    },
+    "chain": {
+      "role": "proof"
+    },
+    "dimension": {
+      "role": "proof"
+    },
+    "degree": {
+      "role": "proof"
+    },
+    "squarefree_regular": {
+      "role": "proof"
+    }
+  },
+  "semialg._algebraic_decomposition_types.RadicalIdealCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_equations": {
+      "role": "proof"
+    },
+    "generators": {
+      "role": "proof"
+    },
+    "decomposition": {
+      "role": "proof"
+    }
+  },
+  "semialg._algebraic_decomposition_types.MinimalPrimeDecompositionCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_equations": {
+      "role": "proof"
+    },
+    "components": {
+      "role": "proof"
+    },
+    "primality_certificates": {
+      "role": "proof"
+    },
+    "radical_complete": {
+      "role": "proof"
+    },
+    "minimal_primes_complete": {
+      "role": "proof"
+    },
+    "degree_complete": {
+      "role": "proof"
+    }
+  },
+  "semialg._algebraic_decomposition_types.RadicalComponent": {
+    "equations": {
+      "role": "proof"
+    },
+    "dimension": {
+      "role": "proof"
+    },
+    "radical": {
+      "role": "proof"
+    },
+    "prime": {
+      "role": "proof"
+    },
+    "degree": {
+      "role": "proof"
+    },
+    "prime_method": {
+      "role": "proof"
+    }
+  },
+  "semialg._algebraic_decomposition_types.PrimaryDecompositionCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_equations": {
+      "role": "proof"
+    },
+    "components": {
+      "role": "proof"
+    },
+    "complete": {
+      "role": "proof"
+    },
+    "irredundant": {
+      "role": "proof"
+    }
+  },
+  "semialg._algebraic_decomposition_types.PrimaryComponent": {
+    "equations": {
+      "role": "proof"
+    },
+    "radical": {
+      "role": "proof"
+    },
+    "dimension": {
+      "role": "proof"
+    },
+    "degree": {
+      "role": "proof"
+    },
+    "primary": {
+      "role": "proof"
+    },
+    "method": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic.gtz_zero_dim.ZeroDimensionalPrimaryCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "coefficient_field": {
+      "role": "proof"
+    },
+    "source_generators": {
+      "role": "proof"
+    },
+    "field_relations": {
+      "role": "proof"
+    },
+    "ambient_variables": {
+      "role": "proof"
+    },
+    "components": {
+      "role": "proof"
+    },
+    "minimal_prime_cert": {
+      "role": "proof"
+    },
+    "extension_degree": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic_function_fields.RationalFunctionField": {
+    "parameters": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic.gtz_zero_dim.ZeroDimensionalPrimaryComponent": {
+    "generators": {
+      "role": "proof"
+    },
+    "radical": {
+      "role": "proof"
+    },
+    "degree": {
+      "role": "proof"
+    },
+    "primary": {
+      "role": "proof"
+    },
+    "method": {
+      "role": "proof"
+    },
+    "ambient_generators": {
+      "role": "proof"
+    },
+    "ambient_radical": {
+      "role": "proof"
+    },
+    "separator": {
+      "role": "proof"
+    },
+    "saturation_certificate": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic._gtz_primary_types.GTZPrimaryDecompositionCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_generators": {
+      "role": "proof"
+    },
+    "root": {
+      "role": "proof"
+    },
+    "final_components": {
+      "role": "proof"
+    },
+    "irredundant": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic._gtz_primary_types.GTZNodeCertificate": {
+    "variables": {
+      "role": "proof"
+    },
+    "source_generators": {
+      "role": "proof"
+    },
+    "dimension": {
+      "role": "proof"
+    },
+    "kind": {
+      "role": "proof"
+    },
+    "zero_dimensional_certificate": {
+      "role": "conditional",
+      "reason": "Branch-specific evidence is mutated when present; an absent branch is reported as inactive."
+    },
+    "localization_certificate": {
+      "role": "conditional",
+      "reason": "Branch-specific evidence is mutated when present; an absent branch is reported as inactive."
+    },
+    "local_primary_certificate": {
+      "role": "conditional",
+      "reason": "Branch-specific evidence is mutated when present; an absent branch is reported as inactive."
+    },
+    "contracted_components": {
+      "role": "proof"
+    },
+    "hull_generators": {
+      "role": "proof"
+    },
+    "split_certificate": {
+      "role": "conditional",
+      "reason": "Branch-specific evidence is mutated when present; an absent branch is reported as inactive."
+    },
+    "residual": {
+      "role": "conditional",
+      "reason": "Branch-specific evidence is mutated when present; an absent branch is reported as inactive."
+    }
+  },
+  "semialg.algebraic._gtz_primary_types.FractionFieldZeroDimensionalCertificate": {
+    "parameters": {
+      "role": "proof"
+    },
+    "variables": {
+      "role": "proof"
+    },
+    "source_generators": {
+      "role": "proof"
+    },
+    "standard_monomials": {
+      "role": "proof"
+    },
+    "trace_rank": {
+      "role": "proof"
+    },
+    "nilradical_generators": {
+      "role": "proof"
+    },
+    "primitive_coefficients": {
+      "role": "proof"
+    },
+    "primitive_element": {
+      "role": "proof"
+    },
+    "characteristic_polynomial": {
+      "role": "proof"
+    },
+    "factors": {
+      "role": "proof"
+    },
+    "components": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic._gtz_primary_types.LocalPrimaryFactor": {
+    "generators": {
+      "role": "proof"
+    },
+    "radical": {
+      "role": "proof"
+    },
+    "irreducible_factor": {
+      "role": "proof"
+    },
+    "multiplicity": {
+      "role": "proof"
+    },
+    "separator": {
+      "role": "proof"
+    }
+  },
+  "semialg.algebraic._gtz_primary_types.GTZContractedComponentCertificate": {
+    "equations": {
+      "role": "proof"
+    },
+    "radical": {
+      "role": "proof"
+    },
+    "dimension": {
+      "role": "proof"
+    },
+    "degree": {
+      "role": "proof"
+    },
+    "primary_contraction": {
+      "role": "proof"
+    },
+    "radical_contraction": {
+      "role": "proof"
+    }
+  },
+  "$overrides": {
+    "semialg.algebraic._gtz_primary_types.GTZPrimaryDecompositionCertificate": {
+      "final_components[].method": {
+        "role": "provenance",
+        "reason": "GTZ replay verifies the component contractions directly, independently of this component method label."
+      }
+    }
+  },
+  "semialg.topology.branch_correspondence.FiberSpectrum": {
+    "degree": {
+      "role": "proof"
+    },
+    "multiplicities": {
+      "role": "proof"
+    }
+  },
+  "semialg.topology.branch_correspondence.BranchCorrespondenceCertificate": {
+    "polynomial": {
+      "role": "context",
+      "reason": "Statement input: the caller binds this to the source CAD cell and its closure target before replay."
+    },
+    "variable": {
+      "role": "context",
+      "reason": "Statement input: the caller binds this to the source CAD cell and its closure target before replay."
+    },
+    "base_variables": {
+      "role": "context",
+      "reason": "Statement input: the caller binds this to the source CAD cell and its closure target before replay."
+    },
+    "source_samples": {
+      "role": "context",
+      "reason": "Statement input: the caller binds this to the source CAD cell and its closure target before replay."
+    },
+    "target_values": {
+      "role": "context",
+      "reason": "Statement input: the caller binds this to the source CAD cell and its closure target before replay."
+    },
+    "source_index": {
+      "role": "context",
+      "reason": "Statement input: the caller binds this to the source CAD cell and its closure target before replay."
+    },
+    "source_spectrum": {
+      "role": "proof"
+    },
+    "target_roots": {
+      "role": "proof"
+    },
+    "target_multiplicities": {
+      "role": "proof"
+    },
+    "target_index": {
+      "role": "proof"
+    },
+    "barriers": {
+      "role": "proof"
+    },
+    "continuation_ranks": {
+      "role": "proof"
+    }
+  },
+  "semialg.cad_algorithms.lifting.lazard.NativeLazardEvaluation": {
+    "polynomial": {
+      "role": "context",
+      "reason": "Statement input: CAD replay binds the polynomial, coordinate order and verified parent samples."
+    },
+    "variables": {
+      "role": "context",
+      "reason": "Statement input: CAD replay binds the polynomial, coordinate order and verified parent samples."
+    },
+    "parent_samples": {
+      "role": "context",
+      "reason": "Statement input: CAD replay binds the polynomial, coordinate order and verified parent samples."
+    },
+    "valuation": {
+      "role": "proof"
+    },
+    "residue": {
+      "role": "proof"
+    }
+  },
+  "semialg.cad_algorithms.projection.ec_hypotheses.ECImplication": {
+    "polynomial": {
+      "role": "proof"
+    },
+    "parents": {
+      "role": "proof"
+    },
+    "eliminated_variable": {
+      "role": "conditional",
+      "reason": "Absent for explicit equations; resultant implications must name the eliminated variable."
+    }
+  },
+  "semialg.cad_algorithms.projection.ec_hypotheses.ECLevelHypotheses": {
+    "level": {
+      "role": "proof"
+    },
+    "equational_constraint": {
+      "role": "proof"
+    },
+    "operator": {
+      "role": "proof"
+    },
+    "degree_coefficients": {
+      "role": "proof"
+    },
+    "order_polynomials": {
+      "role": "proof"
+    }
+  },
+  "semialg.cad_algorithms.certification.CADVerification": {
+    "valid": {
+      "role": "derived",
+      "reason": "Recomputed replay outcome and counters; this result is not itself accepted as evidence."
+    },
+    "invariant": {
+      "role": "derived",
+      "reason": "Recomputed replay outcome and counters; this result is not itself accepted as evidence."
+    },
+    "checked_cells": {
+      "role": "derived",
+      "reason": "Recomputed replay outcome and counters; this result is not itself accepted as evidence."
+    },
+    "checked_root_selectors": {
+      "role": "derived",
+      "reason": "Recomputed replay outcome and counters; this result is not itself accepted as evidence."
+    },
+    "checked_valuation_claims": {
+      "role": "derived",
+      "reason": "Recomputed replay outcome and counters; this result is not itself accepted as evidence."
+    },
+    "failures": {
+      "role": "derived",
+      "reason": "Recomputed replay outcome and counters; this result is not itself accepted as evidence."
+    }
+  },
+  "semialg.partial.qe.LazyQEResult": {
+    "formula": {
+      "role": "proof"
+    },
+    "variables": {
+      "role": "proof"
+    },
+    "free_variables": {
+      "role": "proof"
+    },
+    "quantifiers": {
+      "role": "proof"
+    },
+    "matrix": {
+      "role": "proof"
+    },
+    "tower": {
+      "role": "proof"
+    },
+    "cells_by_level": {
+      "role": "proof"
+    },
+    "truth_by_index": {
+      "role": "proof"
+    },
+    "status": {
+      "role": "proof"
+    },
+    "stats": {
+      "role": "diagnostic",
+      "reason": "Work counters and timing do not prove the quantified statement."
+    },
+    "backend": {
+      "role": "provenance",
+      "reason": "Geometric reconstruction and truth checks establish the result independently of its algorithm label."
+    }
+  },
+  "semialg.decomposition.cylindrical.CADResult": {
+    "formula": {
+      "role": "proof"
+    },
+    "variables": {
+      "role": "proof"
+    },
+    "cad": {
+      "role": "proof"
+    },
+    "cell_set": {
+      "role": "proof"
+    },
+    "status": {
+      "role": "proof"
+    },
+    "diagnostics": {
+      "role": "proof"
+    },
+    "function": {
+      "role": "proof"
+    },
+    "output": {
+      "role": "context",
+      "reason": "Presentation selection does not change the mathematical set."
+    },
+    "operation": {
+      "role": "context",
+      "reason": "The adapter supports ordinary cell selection and components; other topological operations require a separate proof format."
+    }
+  }
+}

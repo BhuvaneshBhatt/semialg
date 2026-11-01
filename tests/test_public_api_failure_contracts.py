@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
+from unittest.mock import patch
+
 import pytest
 import sympy as sp
 
@@ -149,18 +152,27 @@ def test_images_reject_duplicate_target_coordinates(names):
     "options", [{"max_cells": 1}, {"timeout": 1}], ids=["cell-budget", "time-budget"]
 )
 @pytest.mark.parametrize("output", ["formula", "cells", "function", "tree"])
-def test_unimplemented_cad_budgets_are_never_silently_ignored(options, output):
+def test_cad_budget_exhaustion(options, output):
     formula = X**2 <= 1
-    # Warm caches must not bypass validation of a requested budget.
     assert cad(formula, (X,)).as_set() == sp.Interval(-1, 1)
-    with pytest.raises(NotImplementedError, match="not implemented"):
-        cad(formula, (X,), output=output, **options)
-    with pytest.raises(NotImplementedError, match="not implemented"):
-        cad(formula, (X,), output=output, strict=True, return_result=True, **options)
-    result = cad(formula, (X,), output=output, return_result=True, **options)
+
+    def compute(**kwargs):
+        clock = (
+            patch("semialg.cad_algorithms.resource_limits.perf_counter", side_effect=[0, 2])
+            if "timeout" in options
+            else nullcontext()
+        )
+        with clock:
+            return cad(formula, (X,), output=output, **options, **kwargs)
+
+    with pytest.raises(ResourceLimitError):
+        compute()
+    with pytest.raises(ResourceLimitError):
+        compute(strict=True, return_result=True)
+    result = compute(return_result=True)
     assert result.status == "unknown"
     assert result.formula == formula
-    assert "not implemented" in result.diagnostics["reason"]
+    assert result.diagnostics["resource_limits"]["backend_enforced"]
     with pytest.raises(ResourceLimitError):
         result.as_function()
 

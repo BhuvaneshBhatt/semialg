@@ -1,0 +1,224 @@
+[
+  {
+    "file": "cad_operations.py",
+    "title": "cad operations",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "component_instances_basic.py",
+    "title": "component instances basic",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "find_instance_domains.py",
+    "title": "find instance domains",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/01_projection_and_qe.py",
+    "title": "01 projection and qe",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/02_exact_function_range.py",
+    "title": "02 exact function range",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/03_certified_nonconvex_optimization.py",
+    "title": "03 certified nonconvex optimization",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/04_positive_dimensional_argmin.py",
+    "title": "04 positive dimensional argmin",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/05_topology_and_components.py",
+    "title": "05 topology and components",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/06_measure_centroid_and_moments.py",
+    "title": "06 measure centroid and moments",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/07_singular_cusp_geometry.py",
+    "title": "07 singular cusp geometry",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/08_convex_geometry_operations.py",
+    "title": "08 convex geometry operations",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/09_distance_and_bounding_geometry.py",
+    "title": "09 distance and bounding geometry",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/10_parametric_interval_workflow.py",
+    "title": "10 parametric interval workflow",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/11_parametric_algebraic_endpoints.py",
+    "title": "11 parametric algebraic endpoints",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/12_images_and_linear_maps.py",
+    "title": "12 images and linear maps",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/13_direct_mathematical_returns.py",
+    "title": "13 direct mathematical returns",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/14_real_roots_and_exact_algebraization.py",
+    "title": "14 real roots and exact algebraization",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/15_canonical_formula_simplification.py",
+    "title": "15 canonical formula simplification",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/16_cad_integration_variable_order.py",
+    "title": "16 cad integration variable order",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/17_symbolic_region_conditions.py",
+    "title": "17 symbolic region conditions",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/18_specialist_namespaces.py",
+    "title": "18 specialist namespaces",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/19_boundary_topology.py",
+    "title": "19 boundary topology",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/20_closure_and_admissible_approaches.py",
+    "title": "20 closure and admissible approaches",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/21_correlated_directional_geometry.py",
+    "title": "21 correlated directional geometry",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/22_singular_local_strata.py",
+    "title": "22 singular local strata",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "gallery/23_local_germs_and_parameter_strata.py",
+    "title": "23 local germs and parameter strata",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "linkage_workspace.py",
+    "title": "linkage workspace",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "native_cad_proofs.py",
+    "title": "Native CAD proof replay and branch correspondence",
+    "guarantee": "Exact projection, stack replay, existential image and root-limit assertions",
+    "profile": "core"
+  },
+  {
+    "file": "parametric_cad_basic.py",
+    "title": "parametric cad basic",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "quadratic_strata.py",
+    "title": "quadratic strata",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "real_algebraic_decision.py",
+    "title": "real algebraic decision",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "real_graphs.py",
+    "title": "real graphs",
+    "guarantee": "Exact assertions in the script",
+    "profile": "core"
+  },
+  {
+    "file": "structural_rules.py",
+    "title": "Exact support, limits and boundaries",
+    "guarantee": "Exact bound, feasibility, attainment, infinity and boundary assertions",
+    "profile": "core"
+  },
+  {
+    "file": "control_quantifiers.py",
+    "title": "Adaptive versus fixed control",
+    "guarantee": "Exact mathematical assertions, endpoint or failure semantics, and replay where supported",
+    "profile": "core"
+  },
+  {
+    "file": "root_certificate_debugging.py",
+    "title": "Debug a root certificate",
+    "guarantee": "Exact mathematical assertions, endpoint or failure semantics, and replay where supported",
+    "profile": "core"
+  },
+  {
+    "file": "failure_aware_closure.py",
+    "title": "Handle unavailable branch continuation",
+    "guarantee": "Exact mathematical assertions, endpoint or failure semantics, and replay where supported",
+    "profile": "core"
+  },
+  {
+    "file": "parameter_cell_qe.py",
+    "title": "Quantified parameter cells and resource limits",
+    "guarantee": "Exact free-cell truth, resource status and statement replay",
+    "profile": "core"
+  }
+]

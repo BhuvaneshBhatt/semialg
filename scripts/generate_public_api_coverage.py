@@ -67,6 +67,8 @@ CRITICAL_APIS = {
 }
 
 INDIRECT_TYPES = {
+    "RegionFamily": ("factory-return", "region_family"),
+    "RegionFamilyStratum": ("factory-return", "region_family"),
     "AffineBoxClip": ("factory-return", "clip_affine_subspace_to_box"),
     "CADRegion": ("factory-return", "as_cad_region"),
     "Geometry": ("inheritance", "Interval"),

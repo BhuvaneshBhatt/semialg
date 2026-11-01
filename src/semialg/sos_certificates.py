@@ -51,6 +51,12 @@ class SOSSearchPlan:
 
 @dataclass(frozen=True)
 class SOSSearchResult:
+    """SOS search outcome, including a verified certificate when available.
+
+    A failed or incomplete search does not imply that the input polynomial is
+    negative or lacks a sums-of-squares representation.
+    """
+
     certificate: SOSCertificate | None
     complete: bool
     method: str
@@ -230,6 +236,8 @@ def verify_psd_exact(matrix: sp.MatrixBase) -> PSDVerification:
     work = sp.MutableDenseMatrix(matrix)
     if work.rows != work.cols or work != work.T:
         return PSDVerification(False, "ldl_congruence", reason="not_symmetric_square")
+    if any(value.has(sp.Float) or value.is_real is not True for value in work):
+        return PSDVerification(False, "ldl_congruence", reason="not_exact_real_matrix")
     pivots: list[sp.Expr] = []
     while work.rows:
         chosen = None
@@ -279,6 +287,8 @@ def verify_sos_certificate(
 ) -> bool:
     """Return whether an SOS certificate proves ``polynomial >= 0`` exactly.
 
+    The basis must consist of real polynomials and the Gram matrix must be
+    exact and real. Floating-point proof data is rejected.
     Malformed certificate payloads are rejected rather than leaking low-level
     SymPy conversion errors from a verification boundary.
     """
@@ -304,6 +314,33 @@ def verify_sos_certificate(
         return False
     if any((term.free_symbols - set(vars_)) for term in basis):
         return False
+    if (
+        expr.has(sp.Float)
+        or cert_polynomial.has(sp.Float)
+        or any(term.has(sp.Float) for term in basis)
+    ):
+        return False
+    try:
+        for term in basis:
+            if term.is_number:
+                if term.is_real is not True:
+                    return False
+                continue
+            # Standard Gram bases contain coefficient-one monomials. Their
+            # real-polynomial property follows from nonnegative integer powers.
+            if all(
+                base in vars_ and power.is_Integer and power >= 0
+                for base, power in term.as_powers_dict().items()
+            ):
+                continue
+            coefficients = sp.Poly(term, *vars_).coeffs() if vars_ else (term,)
+            if any(coefficient.is_real is not True for coefficient in coefficients):
+                return False
+    except (sp.PolynomialError, TypeError, ValueError):
+        return False
+    # A PSD real Gram matrix proves nonnegativity only for a real vector.
+    # Radicals or complex coefficients in the basis can otherwise "prove"
+    # x >= 0 with sqrt(x), or -1 >= 0 with I.
     z = sp.Matrix(basis)
     residual = sp.expand(expr - (z.T * sp.Matrix(gram) * z)[0])
     if certified_zero(residual) is not True:

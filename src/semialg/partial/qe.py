@@ -6,17 +6,20 @@ from time import perf_counter
 
 import sympy as sp
 
+from .._immutable import FrozenMappingPickle, freeze_mapping
 from .._zero_testing import certified_pointwise_zero
 from ..algebraic.comparison import sort_samples
 from ..algebraic.roots import isolate_real_roots
-from ..algebraic.samples import sample_to_expr
+from ..algebraic.samples import AlgebraicRoot, FiberRootContext, sample_to_expr
 from ..cad_algorithms.decomposition import _build_stack, _stack_roots_over_point
 from ..cad_algorithms.lifting.stack import CADCell
 from ..cad_algorithms.polynomial_utils import exact_univariate_poly
 from ..cad_algorithms.projection.collins import ProjectionTower, build_collins_proj_set
-from ..errors import InternalInvariantError
-from ..formula import Formula, equational_constraints, formula_polynomials
-from ..qe.complete import evaluate_formula_on_cell, norm_internal_order
+from ..cad_algorithms.resource_limits import CADBudget, budget_scope, current_budget
+from ..errors import InternalInvariantError, ProjectionNullification
+from ..exact_arithmetic import exact_truth
+from ..formula import Formula, equational_constraints, formula_polynomials, parse_formula, to_sympy
+from ..qe.complete import cells_to_formula, evaluate_formula_on_cell, norm_internal_order
 from .pruning import evaluate_pruning_status
 
 
@@ -81,6 +84,9 @@ class _TraversalState:
 
     def add_cells(self, level: int, cells: Sequence[CADCell]) -> None:
         self.cells_by_level.setdefault(level, []).extend(cells)
+        budget = current_budget()
+        if budget is not None:
+            budget.check(sum(map(len, self.cells_by_level.values())) + self.ec_skipped_sector_cells)
 
     def stats(
         self,
@@ -219,7 +225,26 @@ def _specialized_ec_roots(
             continue
         if poly.degree() <= 0:
             return tuple()
-        return tuple(isolate_real_roots(poly))
+        roots = tuple(isolate_real_roots(poly))
+        if parent is None:
+            return roots
+        context = FiberRootContext(
+            polynomial=sp.Poly(ec, *variables[:level]),
+            variables=tuple(variables[:level]),
+            parent_samples=parent.sample,
+            fiber_variable=var,
+        )
+        return tuple(
+            AlgebraicRoot(
+                root.polynomial,
+                root.interval,
+                root.root_index,
+                root.multiplicity_hint,
+                root.root_expr,
+                context,
+            )
+            for root in roots
+        )
     return None
 
 
@@ -230,6 +255,27 @@ def _stack_for_parent(
     variables = state.variables
     ec_roots = _specialized_ec_roots(state, parent, level) if ec_sections_only else None
     if ec_roots is not None:
+        if (
+            parent is not None
+            and level < len(variables)
+            and any(position % 2 == 0 for position in parent.index)
+        ):
+            # Restricting an existential lift to EC sections does not discharge
+            # order-invariance requirements for other projection polynomials.
+            for poly in tower.level(level).polynomials:
+                if poly.degree(variables[level - 1]) <= 0:
+                    continue
+                context = FiberRootContext(
+                    polynomial=poly,
+                    variables=variables[:level],
+                    parent_samples=parent.sample,
+                    fiber_variable=variables[level - 1],
+                )
+                if context.is_nullified_at_parent():
+                    raise ProjectionNullification(
+                        "EC-restricted CAD needs refinement of a positive-dimensional "
+                        "projection-nullification cell"
+                    )
         roots = sort_samples(tuple(ec_roots))
         full = _build_stack(parent, roots, level, tower)
         stack = tuple(cell for cell in full if cell.kind == "section")
@@ -250,7 +296,9 @@ def _stack_for_parent(
             variables,
             parent.sample,
             variables[level - 1],
-            use_lazard=str(tower.metadata.get("projection", "")) == "lazard",
+            use_lazard=tower.metadata.get("projection") in {"lazard", "lazard-complete"},
+            delineate_nullification=level < len(variables),
+            base_is_point=all(position % 2 == 1 for position in parent.index),
         )
         stack = _build_stack(parent, roots, level, tower)
     state.lifted_stacks += 1
@@ -317,10 +365,22 @@ def lazy_resolve_formula(
     """
 
     start = perf_counter()
+    quantifiers = tuple(quantifiers)
     variables, free, _quantified, notes = norm_internal_order(vars_, quantifiers, matrix, None)
     if free:
         raise ValueError(
             "lazy_resolve_formula requires a sentence; use reduce for formulas with free variables"
+        )
+    if not variables:
+        truth = exact_truth(to_sympy(matrix))
+        state = _TraversalState(ProjectionTower((), (), ()), (), matrix)
+        return LazyResolveResult(
+            truth,
+            "complete",
+            "partial-collins-lazy",
+            state.stats(quantifiers, start, notes=notes),
+            witness={} if truth else None,
+            counterexample=None if truth else {},
         )
     quantifiers = tuple((q.lower(), sym) for q, sym in quantifiers)
     qmap = _quantifier_map(quantifiers)
@@ -342,7 +402,12 @@ def lazy_resolve_formula(
         except (sp.PolynomialError, ValueError, TypeError):
             pass
     polys = formula_polynomials(matrix) or [sp.Integer(1)]
+    budget = current_budget()
+    if budget is not None:
+        budget.check()
     tower = build_collins_proj_set(polys, variables)
+    if budget is not None:
+        budget.check()
     ecs = tuple(equational_constraints(matrix))
     ecs_by_level, derived_ec_count = _propagate_equational_constraints(ecs, variables)
     state = _TraversalState(
@@ -401,23 +466,35 @@ def lazy_resolve_formula(
             return True, last_cell
         raise ValueError(f"unsupported quantifier: {q!r}")
 
-    if not variables:
-        truth = bool(sp.simplify(sp.sympify(matrix)))
-        return LazyResolveResult(
-            truth, "complete", "partial-collins-lazy", state.stats(quantifiers, start, notes=notes)
-        )
+    try:
+        truth, leaf = visit_truth_path(1, None)
+    except ProjectionNullification:
+        if budget is not None:
+            budget.restart()
+        from ..cad_algorithms.projection.lazard_complete import build_lazard_complete_projection
 
-    truth, leaf = visit_truth_path(1, None)
+        state = _TraversalState(
+            build_lazard_complete_projection(polys, variables), variables, matrix
+        )
+        witness = counterexample = None
+        notes = (*notes, "restarted with full Lazard projection and native valuation lifting")
+        truth, leaf = visit_truth_path(1, None)
     if leaf is not None:
         mapping = {k: v for k, v in _sample_mapping(variables, leaf).items()}
         if truth:
             witness = witness or mapping
         else:
             counterexample = counterexample or mapping
+    if budget is not None:
+        budget.complete(
+            sum(map(len, state.cells_by_level.values())) + state.ec_skipped_sector_cells
+        )
     return LazyResolveResult(
         truth_value=truth,
         status="complete",
-        backend="partial-collins-lazy",
+        backend="partial-lazard-lazy"
+        if state.tower.metadata.get("projection") == "lazard-complete"
+        else "partial-collins-lazy",
         stats=state.stats(quantifiers, start, notes=notes),
         witness=witness,
         counterexample=counterexample,
@@ -433,7 +510,8 @@ def lazy_find_inst_form(
     """Find one satisfying real sample by lazy existential CAD search."""
 
     start = perf_counter()
-    if quantifiers is None or len(tuple(quantifiers)) == 0:
+    quantifiers = tuple(quantifiers) if quantifiers is not None else ()
+    if not quantifiers:
         variables = tuple(vars_)
         quantifiers = tuple(("exists", sym) for sym in variables)
     else:
@@ -447,6 +525,16 @@ def lazy_find_inst_form(
         else:
             quantifiers = tuple((q.lower(), sym) for q, sym in quantifiers)
     qmap = _quantifier_map(quantifiers)
+    if not variables:
+        truth = exact_truth(to_sympy(matrix))
+        state = _TraversalState(ProjectionTower((), (), ()), (), matrix)
+        return LazyInstanceResult(
+            {} if truth else None,
+            "complete",
+            "partial-collins-lazy",
+            state.stats(quantifiers, start),
+            found=truth,
+        )
     if variables and len(set(qmap.values())) == 1:
         try:
             from ..planner.features import extract_problem_features
@@ -461,7 +549,12 @@ def lazy_find_inst_form(
         except (sp.PolynomialError, ValueError, TypeError):
             pass
     polys = formula_polynomials(matrix) or [sp.Integer(1)]
+    budget = current_budget()
+    if budget is not None:
+        budget.check()
     tower = build_collins_proj_set(polys, variables)
+    if budget is not None:
+        budget.check()
     ecs = tuple(equational_constraints(matrix))
     ecs_by_level, derived_ec_count = _propagate_equational_constraints(ecs, variables)
     state = _TraversalState(
@@ -505,12 +598,32 @@ def lazy_find_inst_form(
             return True
         raise ValueError(f"unsupported quantifier: {q!r}")
 
-    found = visit_instance_path(1, None) if variables else False
+    try:
+        found = visit_instance_path(1, None) if variables else False
+    except ProjectionNullification:
+        if budget is not None:
+            budget.restart()
+        from ..cad_algorithms.projection.lazard_complete import build_lazard_complete_projection
+
+        state = _TraversalState(
+            build_lazard_complete_projection(polys, variables), variables, matrix
+        )
+        found_cell = None
+        found = visit_instance_path(1, None)
     instance = _sample_mapping(variables, found_cell) if found_cell is not None and found else None
+    if instance is not None:
+        for variable in variables:
+            instance.setdefault(variable, sp.S.Zero)
+    if budget is not None:
+        budget.complete(
+            sum(map(len, state.cells_by_level.values())) + state.ec_skipped_sector_cells
+        )
     return LazyInstanceResult(
         instance=instance,
         status="complete",
-        backend="partial-collins-lazy",
+        backend="partial-lazard-lazy"
+        if state.tower.metadata.get("projection") == "lazard-complete"
+        else "partial-collins-lazy",
         stats=state.stats(quantifiers, start, notes=("lazy existential instance search",)),
         found=bool(found and instance is not None),
     )
@@ -523,3 +636,133 @@ __all__ = [
     "lazy_find_inst_form",
     "lazy_resolve_formula",
 ]
+
+
+@dataclass(frozen=True)
+class LazyQEResult(FrozenMappingPickle):
+    """Free-cell truth table with a partially lifted quantified suffix.
+
+    Every free-coordinate cell is present. Quantified stacks may be absent
+    after a decisive branch, so ``cells_by_level`` is not a complete ambient
+    CAD. The projection tower and original matrix retain the exact statement.
+    """
+
+    formula: sp.Expr
+    variables: tuple[sp.Symbol, ...]
+    free_variables: tuple[sp.Symbol, ...]
+    quantifiers: tuple[tuple[str, sp.Symbol], ...]
+    matrix: sp.Expr
+    tower: ProjectionTower
+    cells_by_level: Mapping[int, tuple[CADCell, ...]]
+    truth_by_index: Mapping[tuple[int, ...], bool]
+    stats: LazyCADStats
+    status: str = "complete"
+    backend: str = "partial-collins-free"
+
+    def __post_init__(self):
+        object.__setattr__(self, "cells_by_level", freeze_mapping(self.cells_by_level))
+        object.__setattr__(self, "truth_by_index", freeze_mapping(self.truth_by_index))
+
+
+def _quantified_truth(state, level, parent, quantifiers):
+    """Resolve one fiber without dropping any cells of its free-coordinate base."""
+    if parent is not None:
+        truth = _prefix_truth(state, parent)
+        if truth is not None:
+            return truth
+    if level > len(state.variables):
+        state.evaluated_leaf_cells += 1
+        return evaluate_formula_on_cell(state.matrix, parent, state.variables)
+    existential = quantifiers[state.variables[level - 1]] == "exists"
+    stack = _stack_for_parent(state, parent, level, ec_sections_only=existential)
+    for child in stack:
+        truth = _quantified_truth(state, level + 1, child, quantifiers)
+        if truth == existential:
+            state.stopped_early = True
+            return truth
+    return not existential
+
+
+def lazy_quantifier_eliminate(
+    variables, quantifiers, matrix, *, max_cells=None, timeout=None, return_result=False
+):
+    """Eliminate an alternating real prefix with complete free-cell truth coverage.
+
+    Projection is complete; only the quantified suffix is lifted partially.
+    Ordinary projection nullification restarts the entire computation with
+    full Lazard projection and valuation lifting. Budgets include both attempts.
+    Set ``return_result=True`` to retain the projection and free-cell truth table.
+    """
+    quantifiers = tuple((kind.lower(), variable) for kind, variable in quantifiers)
+    matrix = matrix if isinstance(matrix, Formula) else parse_formula(matrix)
+    variables, free, _quantified, notes = norm_internal_order(variables, quantifiers, matrix)
+    if not free:
+        raise ValueError("use lazy_resolve_formula for a closed sentence")
+    budget = (
+        CADBudget(max_cells, timeout)
+        if max_cells is not None or timeout is not None
+        else current_budget()
+    )
+    start = perf_counter()
+    polynomials = formula_polynomials(matrix) or [sp.Integer(1)]
+    qmap = _quantifier_map(quantifiers)
+    ecs = tuple(equational_constraints(matrix))
+    ecs_by_level, derived_count = _propagate_equational_constraints(ecs, variables)
+
+    def construct(builder):
+        if budget is not None:
+            budget.check()
+        tower = builder(polynomials, variables)
+        if budget is not None:
+            budget.check()
+        ordinary = tower.metadata.get("projection") != "lazard-complete"
+        state = _TraversalState(
+            tower,
+            variables,
+            matrix,
+            equational_constraints=ecs if ordinary else (),
+            ec_by_level=ecs_by_level if ordinary else {},
+            derived_ec_count=derived_count if ordinary else 0,
+        )
+        parents = (None,)
+        for level in range(1, len(free) + 1):
+            parents = tuple(
+                child for parent in parents for child in _stack_for_parent(state, parent, level)
+            )
+        truth = {
+            parent.index: _quantified_truth(state, len(free) + 1, parent, qmap)
+            for parent in parents
+        }
+        selected = tuple(parent for parent in parents if truth[parent.index])
+        formula = cells_to_formula(selected, free, state.cells_by_level)
+        if budget is not None:
+            budget.complete(
+                sum(map(len, state.cells_by_level.values())) + state.ec_skipped_sector_cells
+            )
+        return state, truth, formula
+
+    with budget_scope(budget):
+        try:
+            state, truth, formula = construct(build_collins_proj_set)
+        except ProjectionNullification:
+            from ..cad_algorithms.projection.lazard_complete import build_lazard_complete_projection
+
+            if budget is not None:
+                budget.restart()
+            notes = (*notes, "restarted with full Lazard projection and native valuation lifting")
+            state, truth, formula = construct(build_lazard_complete_projection)
+    result = LazyQEResult(
+        formula,
+        variables,
+        free,
+        quantifiers,
+        to_sympy(matrix),
+        state.tower,
+        {level: tuple(cells) for level, cells in state.cells_by_level.items()},
+        truth,
+        state.stats(quantifiers, start, notes=notes),
+        backend="partial-lazard-free"
+        if state.tower.metadata.get("projection") == "lazard-complete"
+        else "partial-collins-free",
+    )
+    return result if return_result else result.formula

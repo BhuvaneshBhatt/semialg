@@ -163,7 +163,7 @@ def try_quadratic_vs_witness(
     ``base_instance_finder`` is called as ``finder(reduced_formula, variables)``
     after VS has eliminated eligible existential variables. It should return a
     mapping for the remaining free variables, or ``None`` when no base witness
-    is found.
+    is found. ``None`` leaves satisfiability unknown; it is not an UNSAT proof.
     """
 
     normalized_quantifiers = tuple((_normalize_quantifier_name(q), sym) for q, sym in quantifiers)
@@ -205,14 +205,30 @@ def try_quadratic_vs_witness(
     remaining_symbols = tuple(
         sym for sym in _free_symbols_in_expr(current_formula) if sym not in set(eliminated)
     )
-    base_instance = base_instance_finder(current_formula, remaining_symbols)
+    if not remaining_symbols:
+        try:
+            truth = exact_truth(current_formula)
+        except ValueError:
+            truth = None
+        if truth is False:
+            return VirtualSubstitutionWitnessResult(
+                instance=None,
+                eliminated_variables=tuple(eliminated),
+                reduced_formula=current_formula,
+                reduced_variables=(),
+                status=SolverStatus.UNSAT,
+                notes=tuple(notes) + ("the ground reduced formula is exactly false",),
+            )
+        base_instance = {} if truth else None
+    else:
+        base_instance = base_instance_finder(current_formula, remaining_symbols)
     if base_instance is None:
         return VirtualSubstitutionWitnessResult(
             instance=None,
             eliminated_variables=tuple(eliminated),
             reduced_formula=current_formula,
             reduced_variables=remaining_symbols,
-            status=SolverStatus.UNSAT,
+            status=SolverStatus.UNKNOWN,
             notes=tuple(notes) + ("no witness found for reduced formula",),
         )
 

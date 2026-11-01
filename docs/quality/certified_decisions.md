@@ -8,4 +8,4 @@ semialg distinguishes identity questions from pointwise parameter questions.
 
 For example, `a` is not the zero polynomial but vanishes on the stratum `a = 0`. A negative identity result therefore cannot justify division by `a`, exclusion of that stratum, a regularity claim, or a pointwise `a != 0` conclusion.
 
-Exact representation properties such as `Poly.is_zero` are safe to query directly. General SymPy expressions use the shared certification helpers whenever the result controls a mathematical branch. Conservative syntactic recognizers may decline a simplification, but they must not turn failure to recognize an identity into a mathematical negation.
+Exact representation properties such as `Poly.is_zero` are safe to query directly. General SymPy expressions use the shared certification helpers whenever the result controls a mathematical branch. Syntactic recognizers may decline a simplification, but they must not turn failure to recognize an identity into a mathematical negation.

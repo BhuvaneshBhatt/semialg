@@ -82,3 +82,37 @@ def test_exact_bad_parameter_avoidance_can_leave_origin():
     a, b = sp.symbols("a b")
     point = _rational_point_off_hypersurface(a * (b - 1), (a, b))
     assert sp.expand((a * (b - 1)).subs({a: point[0], b: point[1]})) != 0
+
+
+def test_nonlinear_graph_has_a_validated_real_polar_witness():
+    from semialg.real_algebraic import _validate_algebraic_point
+
+    x, y, z = sp.symbols("x y z", real=True)
+    polynomial = (x * x + y * y) ** 2 - z
+    result = real_algebraic_feasibility((polynomial,), (x, y, z), return_result=True)
+    assert result.complete and result.satisfiable and result.assignment is not None
+    assert (
+        _validate_algebraic_point(
+            (polynomial,), (x, y, z), tuple(result.assignment[v] for v in (x, y, z))
+        )
+        is True
+    )
+
+
+def test_unvalidated_terminal_points_cannot_certify_emptiness(monkeypatch):
+    import semialg.real_algebraic as implementation
+
+    x, y, a = sp.symbols("x y a")
+    monkeypatch.setattr(
+        implementation,
+        "_polar_zero_dimensional_systems",
+        lambda *args, **kwargs: (((x, y),), True, ()),
+    )
+    monkeypatch.setattr(
+        implementation,
+        "_solve_real_zero_dimensional",
+        lambda *args, **kwargs: (((a, sp.S.Zero),), None),
+    )
+    result = real_algebraic_feasibility((x * x + y * y - 1,), (x, y), return_result=True)
+    assert result.satisfiable is None and not result.complete
+    assert "rur_witness_validation_incomplete" in result.notes

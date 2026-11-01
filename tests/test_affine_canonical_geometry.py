@@ -20,7 +20,9 @@ def test_affine_space_uses_independent_directions():
     assert space.dimension() == 2
     assert space.ambient_dimension() == 3
     assert len(space.directions) == 2
-    assert space.as_formula((x, y, z), eliminate=True) == sp.Eq(z, 3)
+    formula = space.as_formula((x, y, z), eliminate=True)
+    assert isinstance(formula, sp.Equality)
+    assert sp.Poly(formula.lhs - formula.rhs, x, y, z).monic().as_expr() == z - 3
 
 
 def test_hyperplane_and_halfspace_lower_directly():

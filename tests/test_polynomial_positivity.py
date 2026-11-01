@@ -51,25 +51,24 @@ def test_coercivity_certificate_rejects_mixed_odd_exponent_leading_terms():
     assert sp.expand(polynomial.subs(y, -x)) == -8 * x**4
 
 
-def test_coercivity_sphere_certificate_accepts_positive_mixed_leading_form():
+def test_coercive_mixed_form():
     from semialg.polynomial_positivity import _coercivity_certificate
 
     x, y = sp.symbols("x y", real=True)
     leading = x**4 - x**2 * y**2 + y**4
     certificate = _coercivity_certificate(leading + x + 7, (x, y))
     assert certificate.certified is True
-    assert certificate.method == "leading_form_sphere"
     assert certificate.leading_form == leading
-    assert any(note.startswith("sphere_method=") for note in certificate.notes)
+    assert sp.expand(4 * leading - (x * x + y * y) ** 2 - 3 * (x * x - y * y) ** 2) == 0
 
 
-def test_zeng_uses_stronger_sphere_coercivity_certificate():
+def test_positive_mixed_quartic():
     x, y = sp.symbols("x y", real=True)
     polynomial = x**4 - x**2 * y**2 + y**4 + 1
     result = zeng_negative_point(polynomial, (x, y), random_lines=0)
     assert result.complete is True
     assert result.has_negative_point is False
-    assert "coercivity_method=leading_form_sphere" in result.notes
+    assert sp.expand(polynomial - 1 - (x * x + y * y) ** 2 / 4 - 3 * (x * x - y * y) ** 2 / 4) == 0
 
 
 def test_coercivity_sos_margin_route_precedes_sphere():

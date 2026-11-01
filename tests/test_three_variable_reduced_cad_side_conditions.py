@@ -32,7 +32,8 @@ def test_mccallum_detects_nested_three_variable_nullification():
 
     assert side.valid is False
     levels = {event.level for event in side.nullification_events}
-    assert {2, 3} <= levels
+    assert levels == {3}
+    assert all(event.polynomial.has(event.variable) for event in side.nullification_events)
     assert any(event.polynomial == x * z + y for event in side.nullification_events)
 
 
@@ -46,7 +47,7 @@ def test_three_variable_nullification_produces_lower_level_repair_factors():
         for event in side.nullification_events
     }
 
-    assert x in repairs[2]
+    assert set(repairs) == {3}
     assert x in repairs[3]
     assert y in repairs[3]
 

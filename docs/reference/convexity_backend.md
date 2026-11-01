@@ -111,34 +111,16 @@ When symbolic quantities other than the monotonicity variable remain free, they 
 
 ## Function monotonic partition
 
-`function_monotonic_partition(f, x, domain=...)` computes an exact univariate
-partition using a sign-invariant CAD for `diff(f, x)`.  Sector cells are
-classified as strictly increasing/decreasing or constant and isolated critical
-sections are absorbed when they do not destroy the stronger neighboring
-property.  Disconnected function domains remain separate.  Free symbols other
-than `x` are treated as parameters automatically; a parameter-first CAD returns
-a `ParameterStratifiedResult` whose values are exact partitions.
+`function_monotonic_partition(f, x, domain=...)` computes an exact univariate partition using a sign-invariant CAD for `diff(f, x)`.  Sector cells are classified as strictly increasing/decreasing or constant and isolated critical sections are absorbed when they do not destroy the stronger neighboring property.  Disconnected function domains remain separate.  Free symbols other than `x` are treated as parameters automatically; a parameter-first CAD returns a `ParameterStratifiedResult` whose values are exact partitions.
 
 ## Function convex partition
 
-`function_convex_partition(f, x, domain=...)` is the analogous exact univariate
-partition based on a sign-invariant CAD for `diff(f, x, 2)`.  Cells are
-classified as convex, concave, or affine.  Supported semialgebraic/nonsmooth
-expressions fall back through function-graph algebraization when their derivative
-sign cannot be represented directly.  Parameter-dependent inflection geometry
-is represented by parameter strata instead of generic assumptions.
+`function_convex_partition(f, x, domain=...)` is the analogous exact univariate partition based on a sign-invariant CAD for `diff(f, x, 2)`.  Cells are classified as convex, concave, or affine.  Supported semialgebraic/nonsmooth expressions fall back through function-graph algebraization when their derivative sign cannot be represented directly.  Parameter-dependent inflection geometry is represented by parameter strata instead of generic assumptions.
 
 
 ## Function sign partition
 
-`function_sign_partition(f, x, domain=...)` decomposes the exact real function
-domain into connected regions on which the sign is respectively `positive`,
-`zero`, or `negative`. It uses the same function-graph algebraization as
-`function_sign`, so supported nonsmooth and algebraic expressions are handled
-without numerical sampling. Disconnected natural-domain components remain
-separate. Free symbols other than `x` are parameters automatically, and a
-parameter-first CAD returns a `ParameterStratifiedResult` whose branch values
-are exact sign partitions.
+`function_sign_partition(f, x, domain=...)` decomposes the exact real function domain into connected regions on which the sign is respectively `positive`, `zero`, or `negative`. It uses the same function-graph algebraization as `function_sign`, so supported nonsmooth and algebraic expressions are handled without numerical sampling. Disconnected natural-domain components remain separate. Free symbols other than `x` are parameters automatically, and a parameter-first CAD returns a `ParameterStratifiedResult` whose branch values are exact sign partitions.
 
 ```python
 from sympy import Abs, symbols

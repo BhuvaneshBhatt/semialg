@@ -2,8 +2,6 @@
 
 `semialg` is a Python package for exact computational semialgebraic  and real algebraic geometry. It combines cylindrical algebraic decomposition (CAD), quantifier elimination (QE), exact real-algebraic arithmetic, polynomial-system and algebraic-decomposition methods, and specialized algorithms for solving, decision problems, geometric analysis, optimization, and integration.
 
-The package has certified paths that prefer an exact answer (or an explicit failure).
-
 ## Why use `semialg`?
 
 `semialg` is especially useful when a problem mixes polynomial equations and inequalities, Boolean conditions, parameters, (exact) algebraic numbers, or global questions such as feasibility, equivalence, projection, optimization, topology, or measure. Specialized algebraic and geometric methods handle inexpensive cases first; CAD and QE provide fallback machinery for supported real-polynomial formulas. Cheap Boolean certificates, affine presolve, exact linear feasibility, univariate reduction, finite algebraic solving, and local geometric structure are used when their applicability conditions can be certified.
@@ -193,6 +191,25 @@ parametric.select({a: -1})
 
 Parametric optimization and range APIs keep quantified relations by default. Pass `eliminate_quantifiers=True` together with `return_stratified=True` when a quantifier-free relation is worth the additional CAD/QE cost. Common affine one-dimensional parameter families are reconstructed directly before a second CAD/QE is attempted.
 
+For parameter-dependent geometry, `region_family` identifies exact parameter strata, including empty fibers and changes in fiber dimension or (for scalar fibers) component count. `bounding_cover` gives a potentially loose exact outer box without optimization, while `optimization_cover` retains a structural parametrization including boundary and lower-dimensional pieces:
+
+```python
+from semialg import Ball, bounding_cover, optimization_cover, region_family
+
+a = sp.Symbol("a", real=True)
+ball = Ball((1, 2), 3)
+assert bounding_cover(ball, (x, y)) == {x: (-2, 4), y: (-1, 5)}
+assert optimization_cover(ball, (x, y)).charts
+family = region_family(sp.Eq(x**2, a), (x,), (a,))
+assert sp.simplify(family.empty_condition.subs(a, -1)) is sp.true
+```
+
+`bounding_cover` computes exact, potentially loose outer coordinate bounds for standard geometric regions, supported Boolean combinations, and transformed/parametrized regions whose coordinate maps admit interval bounds. `optimization_cover` constructs finite parametrization charts for supported bounded geometry, including balls, spheres, ellipsoids, simplices, polygons, finite point sets, unions, and transformed regions. It retains boundaries and lower-dimensional pieces. General formula-defined regions require a different approach, such as `bounded_parametric_cover` with explicit finite clipping bounds.
+
+`region_family` analyzes polynomial semialgebraic families using certified CAD. It reports parameter strata, empty fibers, and fiber dimensions. One-dimensional fibers additionally have exact component counts and graph/band topology; polynomial ball and sphere families have structural topology invariants. General higher-dimensional fibers have cylindrical decomposition data, but arbitrary component counts, Betti numbers, and Hardt trivializations are not currently provided.
+
+See [Optimization geometry and parameter families](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/optimization_geometry.md).
+
 ### Quantifier elimination and CAD planning
 
 `quantifier_eliminate(...)` is the public analogue of a real `Resolve` operation: quantified variables are eliminated while free parameters are preserved.
@@ -201,6 +218,10 @@ Parametric optimization and range APIs keep quantified relations by default. Pas
 from semialg import Exists, ForAll, quantifier_eliminate
 
 a, b, c = sp.symbols("a b c", real=True)
+
+# Project x**2 = a onto the real parameter axis.
+condition = quantifier_eliminate(Exists(x, sp.Eq(x**2, a)))
+# a >= 0
 
 quantifier_eliminate(Exists((x, y), x**2 + y**2 < 1))
 # True
@@ -241,6 +262,8 @@ set(score.order)
 ```
 
 Univariate parameter-dependent integrals can use algebraic CAD root functions as moving endpoints. For example, the measure of `x**2 <= a` is stratfied exactly as zero for `a <= 0` and the distance between the two ordered roots for `a > 0`; specialization gives `4` at `a=4` and `6` at `a=9`.
+
+For supported quadratic inequalities and Cartesian-product regions, structural topology rules can determine closures, interiors, boundaries, and some connectivity properties before general CAD. See [Exact rules before CAD](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/structural_rules.md).
 
 ### Geometric queries
 
@@ -309,6 +332,22 @@ Region topology uses CAD semantics even for atomic polynomial inequalities; comp
 
 `is_path_connected` is an exact decision through CAD connectivity. `path_between` returns an explicit piecewise-linear path in the certified 1-D case and a certified CAD cell/connector chain in higher dimensions; full Canny/Basu-Pollack-Roy roadmap parametrization is not implemented yet.
 
+### Exact optimization specializations
+
+Affine objectives on supported ellipsoids and univariate polynomial objectives can use exact structural methods before general CAD. Optimization results preserve whether an infimum or supremum is actually attained:
+
+```python
+from semialg import semialgebraic_minimize
+
+ellipse = (x - 2)**2 + 4*(y + 1)**2 <= 9
+minimum = semialgebraic_minimize(3*x + 4*y + 5, ellipse, (x, y), return_result=True)
+assert minimum.attained and minimum.certified
+punctured = semialgebraic_minimize(x**2, sp.Ne(x, 0), (x,), return_result=True)
+assert punctured.value == 0 and not punctured.attained
+```
+
+These shortcuts require supported exact polynomial inputs; otherwise the ordinary exact optimization backends apply. See [Structural rules](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/structural_rules.md).
+
 ## Primary and specialized APIs
 
 The package root is the everyday mathematical interface. Specialized algorithms and certificate-building functions live in their owning namespaces such as  `semialg.parameters.root_count_conditions`, `semialg.roadmaps.roadmap`, `semialg.topology.semialgebraic.triangulate_region`, `semialg.parametric_geometry.bounded_parametric_cover`, and `semialg.map_degree.parametric_map_degree`. See [API namespaces](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/api_namespaces.md).
@@ -322,7 +361,7 @@ Semialgebraic function analysis is composition-aware for the supported graph fra
 - **Solving and sampling:** an exact solver with affine presolve, Boolean/incidence decomposition, univariate and linear fast paths, zero-dimensional RUR, Groebner presolve, and CAD/QE fallback, plus structured witnesses and samples.
 - **Algebraic roots and parameters:** exact root isolation, certified algebraic root functions, root classification, and parameter-stratified results.
 - **Toric and lattice algebra:** saturated integer kernels, lattice and toric ideals, Laurent-monomial elimination, and exact Markov bases.
-- **Algebraic statistics:** exact semialgebraic local geometry for polynomial statistical models, active/redundant constraints, tangent cones and local dimension, parameterization geometry, toric/lattice constructions, and certificate-aware hypothesis-testing geometry.
+- **Algebraic statistics:** exact semialgebraic local geometry for polynomial statistical models, active/redundant constraints, tangent cones and local dimension, parametrisation geometry, toric/lattice constructions, and certificate-aware hypothesis-testing geometry.
 - **Regions:** Boolean region operations, exact set relations/properties, topology, CAD connected components, transforms, standard geometric regions, and CAD-derived geometry.
 - **Geometric queries:** exact projection/image/preimage/fibers, extrema sets, bounding boxes, distances/diameter, support/width, transforms/Minkowski sums, staged exact convexity certificates, connectivity/property predicates, Euler characteristic, moments, singular loci, tangent spaces, and tangent cones.
 - **Algebraic image geometry:** exact polynomial-map implicitization, Zariski closures by Groebner elimination, and Jacobian-criterion singular loci.
@@ -377,7 +416,7 @@ line geometry as `x = 0`.
 
 `polynomial_constraints`, `active_constraints`, `relative_interior`, `relative_boundary`, `semialgebraic_tangent_cone`, and `local_dimension` expose the local geometry needed by inequality-constrained statistical models. `parameterization_geometry` then analyzes full-dimensional polynomial/rational parameter domains, including generic rank, exact image and generic-fiber dimensions, critical loci, and critical-value images.
 
-- Added certified implied/redundant polynomial inequalities, nonnegative-combination/SOS certificate replay, and component-aware semialgebraic constraint descriptions for hypothesis-testing geometry.
+Semialgebraic constraint analysis identifies implied and redundant polynomial inequalities, supports independently verifiable nonnegative-combination and sum-of-squares (SOS) certificates, and provides component-aware constraint descriptions for hypothesis-testing geometry.
 
 Polyhedral geometry also includes canonical polygon/polyhedron normalization, deterministic pulling/placing/barycentric polytope triangulations, and conforming mixed-cell tetrahedralization based on shared global vertex identifiers.
 
@@ -391,30 +430,30 @@ The polyhedral stack includes canonicalization, winding-rule polygonal path fill
 `quantifier_eliminate(...)` is the primary real-QE interface.  It uses specialized methods first and falls back to certified CAD; `project_region(...)` is the corresponding existential projection operation. Use
 `return_result=True` to retain method and backend provenance.
 
-The certified QE dispatcher exploits independent variable-incidence blocks, equality-ideal preprocessing, RUR/virtual substitution, and CAD without confusing Zariski elimination with real existential projection. Reusable parameterized CAD objects support specialization without rebuilding the decomposition.
+The certified QE dispatcher exploits independent variable-incidence blocks, equality-ideal preprocessing, RUR/virtual substitution, and CAD. Reusable parametrized CAD objects support specialization without rebuilding the decomposition.
 
 ## Worked examples
 
-The documentation includes a [worked example gallery](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/examples/index.md) with executable examples for projection/QE, exact ranges and optimization, topology, moments, singular geometry, convex operations, distances, and parameterized algebraic integration.
+The documentation includes a [worked example gallery](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/examples/index.md) with executable examples for projection/QE, exact ranges and optimization, topology, moments, singular geometry, convex operations, distances, and parametrized algebraic integration.
 
 ## Documentation
-
-- [Benchmark and conformance suite](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/benchmarks.md) — published Wilson CAD and TTICAD corpora plus parameterized Gröbner families, includes commands for reproducible conformance/performance runs.
 
 New users should start with **[Getting started](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/getting_started.md)** and then follow the task-oriented links in the **[documentation index](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/index.md)**.
 
 Here is some conceptual material:
 
 - [Introduction to semialgebraic geometry](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/semialgebraic_geometry/introduction.md)
+- [Comprehensive semialgebraic geometry overview](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/semialgebraic_geometry/index.md)
+- [Region invariants](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/region_invariants.md)
+- [Toric and lattice algebra](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/toric_algebra.md)
+- [API overview](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/api_overview.md)
 - [Exactness and certification](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/concepts/exactness_and_certification.md)
 - [Performance guide](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/performance.md)
 - [Errors and failure modes](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/errors_and_failure_modes.md)
 - [Symbol handling](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/symbol_handling.md)
-- [Region invariants](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/region_invariants.md)
-- [API overview](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/api_overview.md)
-- [Toric and lattice algebra](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/toric_algebra.md)
+- [Benchmark and conformance suite](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/benchmarks.md) — published Wilson CAD and TTICAD corpora plus parametrized Gröbner families, includes commands for reproducible conformance/performance runs.
 
-A progressive executable tutorial is available in [`notebooks/semialg_demo.ipynb`](https://github.com/BhuvaneshBhatt/semialg/blob/main/notebooks/semialg_demo.ipynb).
+An executable tutorial is available in [`notebooks/semialg_demo.ipynb`](https://github.com/BhuvaneshBhatt/semialg/blob/main/notebooks/semialg_demo.ipynb).
 
 ## Development
 

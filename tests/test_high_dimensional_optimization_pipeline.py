@@ -23,28 +23,31 @@ def test_cost_controlled_range_certifies_three_variable_open_ball():
     assert result.value == -1
     assert result.attained is False
     assert result.certified is True
-    assert "cad_range_certificate" in result.method
 
 
-def test_cost_policy_can_decline_expensive_range_fallback():
+def test_range_policy_preserves_cheap_exact_rules():
+    from unittest.mock import patch
+
+    from semialg._optimization_certification import _certify_optimum_by_range
+
     x, y, z = sp.symbols("x y z", real=True)
-    with pytest.raises(NotImplementedError):
-        semialgebraic_minimize(
-            x,
-            [x**2 + y**2 + z**2 < 1],
-            [x, y, z],
-            certification="auto",
-            range_cost_limit=1,
-            return_result=True,
-        )
-    with pytest.raises(NotImplementedError):
-        semialgebraic_minimize(
-            x,
-            [x**2 + y**2 + z**2 < 1],
-            [x, y, z],
-            certification="candidate",
-            return_result=True,
-        )
+    condition = x * x + y * y + z * z < 1
+    with patch(
+        "semialg._optimization_certification._cached_complete_range_certification",
+        side_effect=AssertionError("image CAD"),
+    ):
+        for mode in ("auto", "candidate"):
+            policy = OptimizationCertificationPolicy(mode, range_cost_limit=1)
+            assert (
+                _certify_optimum_by_range(x, condition, (x, y, z), kind="min", policy=policy)
+                is None
+            )
+            result = semialgebraic_minimize(
+                x, condition, (x, y, z), certification=mode, range_cost_limit=1, return_result=True
+            )
+            assert result.value == -1
+            assert result.attained is False
+            assert result.certified
 
 
 @pytest.mark.slow

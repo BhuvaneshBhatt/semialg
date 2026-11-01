@@ -33,7 +33,13 @@ def exact_sign(expr: object) -> int:
         return -1
     try:
         algebraic = sp.polys.numberfields.to_number_field(value).to_root()
-    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError) as exc:
+    except (
+        TypeError,
+        ValueError,
+        NotImplementedError,
+        sp.PolynomialError,
+        sp.polys.polyerrors.NotAlgebraic,
+    ) as exc:
         raise ValueError(f"could not determine exact sign of {sp.sstr(value)}") from exc
     if algebraic == 0 or algebraic.is_zero is True:
         return 0

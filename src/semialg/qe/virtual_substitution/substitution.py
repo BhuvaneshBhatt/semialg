@@ -16,7 +16,6 @@ from .atoms import (
     _iter_atoms,
     _or,
     _polynomial_degree,
-    _relation,
 )
 from .results import VirtualSubstitutionError, _QuadraticPoint
 
@@ -156,11 +155,8 @@ def substitute_perturbed_root_atom(
         )
     if operator == "<=":
         identically_zero = _and(*(sp.Eq(coeff, 0) for coeff in coeffs))
-        infinitesimally_negative = substitute_perturbed_root_atom(
-            _relation(polynomial, "<"),
-            variable,
-            point,
-            side,
+        infinitesimally_negative = substitute_quadratic_root(
+            _negative_side_formula(polynomial, variable, side), variable, point
         )
         return _or(identically_zero, infinitesimally_negative)
     raise VirtualSubstitutionError(f"unsupported relation operator: {operator!r}")
@@ -217,8 +213,8 @@ def substitute_infinity_in_atom(atom: Relational, variable: sp.Symbol, side: int
         return _infinity_negative_formula(coeffs, side)
     if operator == "<=":
         return _or(
-            substitute_infinity_in_atom(_relation(polynomial, "="), variable, side),
-            substitute_infinity_in_atom(_relation(polynomial, "<"), variable, side),
+            _and(*(sp.Eq(coeff, 0) for coeff in coeffs)),
+            _infinity_negative_formula(coeffs, side),
         )
     raise VirtualSubstitutionError(f"unsupported relation operator: {operator!r}")
 

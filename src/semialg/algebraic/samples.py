@@ -16,6 +16,7 @@ from .cache import (
     record_refinement_request,
     record_sign_refinement_advance,
     record_sign_refinement_chain,
+    sample_certificate_key,
     sample_identity_key,
 )
 from .intervals import RationalInterval
@@ -220,7 +221,7 @@ class FiberRootContext:
         inverses are taken modulo the selected parent's defining polynomial and no
         global primitive element is constructed.
         """
-        if len(self.parent_samples) != 1:
+        if len(self.parent_samples) != 1 or self._coefficient_domain != sp.QQ:
             return None
         parent = self.parent_samples[0]
         if (
@@ -366,7 +367,9 @@ class FiberRootContext:
             )
             equations.append(sp.expand(equation.subs(exact_substitutions)))
         try:
-            basis = sp.groebner(equations, *active_parents, order="lex", domain=sp.QQ)
+            basis = sp.groebner(
+                equations, *active_parents, order="lex", domain=self._coefficient_domain
+            )
 
             def red(expr: sp.Expr) -> sp.Expr:
                 return sp.expand(basis.reduce(sp.expand(expr))[1])
@@ -391,7 +394,8 @@ class FiberRootContext:
                     return cached
                 is_zero = (
                     sign_at_sample(
-                        sp.Poly(reduced, *active_parents, domain=sp.QQ), tuple(active_samples)
+                        sp.Poly(reduced, *active_parents, domain=self._coefficient_domain),
+                        tuple(active_samples),
                     )
                     == 0
                 )
@@ -506,7 +510,8 @@ class FiberRootContext:
             if value is None:
                 expression = coefficients[-1]
                 sign = sign_at_sample(
-                    sp.Poly(expression, *parents, domain=sp.QQ), self.parent_samples
+                    sp.Poly(expression, *parents, domain=self._coefficient_domain),
+                    self.parent_samples,
                 )
                 if negative_infinity and (len(coefficients) - 1) % 2:
                     sign = -sign
@@ -516,7 +521,8 @@ class FiberRootContext:
                 for coefficient in reversed(coefficients[:-1]):
                     expression = sp.expand(expression * q + coefficient)
                 sign = sign_at_sample(
-                    sp.Poly(expression, *parents, domain=sp.QQ), self.parent_samples
+                    sp.Poly(expression, *parents, domain=self._coefficient_domain),
+                    self.parent_samples,
                 )
             signs.append(sign)
         return tuple(signs)
@@ -639,10 +645,35 @@ class FiberRootContext:
         return tuple(signs)
 
     @cached_property
+    def _coefficient_domain(self):
+        """Keep exact ground algebraics separate from the selected parent tower."""
+        domain = self.polynomial.domain
+        if not (domain.is_ZZ or domain.is_QQ or domain.is_AlgebraicField):
+            domain = sp.Poly(self.polynomial.as_expr(), *self.variables, extension=True).domain
+        domain = domain.get_field()
+        for sample in self.parent_samples:
+            if not isinstance(sample, AlgebraicRoot):
+                continue
+            defining = (
+                sample.polynomial
+                if sample.fiber_context is None
+                else sample.fiber_context.polynomial
+            )
+            ground = defining.domain
+            if not (ground.is_ZZ or ground.is_QQ or ground.is_AlgebraicField):
+                ground = sp.Poly(defining.as_expr(), *self.variables, extension=True).domain
+            domain = domain.unify(ground.get_field())
+        return domain
+
+    def _parent_function_field(self, parents):
+        domain = self._coefficient_domain
+        return domain.frac_field(*parents) if parents else domain
+
+    @cached_property
     def _squarefree_fiber_poly(self) -> sp.Poly:
         """Canonical squarefree fiber polynomial over the parent fraction field."""
         parents = self.variables[:-1]
-        domain = sp.QQ.frac_field(*parents) if parents else sp.QQ
+        domain = self._parent_function_field(parents)
         key = ("squarefree-fiber-poly", self._sturm_identity)
         cached = CACHE.compiled_polys.get(key)
         if isinstance(cached, sp.Poly):
@@ -682,7 +713,7 @@ class FiberRootContext:
         }
         expression = sp.expand(self.polynomial.as_expr().subs(point_substitutions))
         active_parents = tuple(parent for parent in parents if parent not in point_substitutions)
-        domain = sp.QQ.frac_field(*active_parents) if active_parents else sp.QQ
+        domain = self._parent_function_field(active_parents)
         poly = sp.Poly(expression, self.fiber_variable, domain=domain).sqf_part()
         if poly.degree() <= 0:
             return (poly,)
@@ -723,12 +754,12 @@ class FiberRootContext:
                     sp.Poly(
                         sp.expand(numerator),
                         fiber,
-                        domain=sp.QQ.frac_field(*parents) if parents else sp.QQ,
+                        domain=self._parent_function_field(parents),
                     ),
                     sp.Poly(
                         sp.expand(denominator),
                         fiber,
-                        domain=sp.QQ.frac_field(*parents) if parents else sp.QQ,
+                        domain=self._parent_function_field(parents),
                     ),
                 )
             )
@@ -829,11 +860,15 @@ class FiberRootContext:
 
                     if _fiber_poly_zero_at_root(zero_poly, self.parent_samples[-1]):
                         return 0
-            # Preserve the established exact path for unsupported coefficient rings.
-            poly_key_ = ("qq-poly", expr_key(expression), parents)
+            poly_key_ = (
+                "ground-field-poly",
+                expr_key(expression),
+                parents,
+                self._coefficient_domain,
+            )
             poly = CACHE.compiled_polys.get(poly_key_)
             if poly is None:
-                poly = sp.Poly(expression, *parents, domain=sp.QQ)
+                poly = sp.Poly(expression, *parents, domain=self._coefficient_domain)
                 CACHE.compiled_polys.put(poly_key_, poly)
             return sign_at_sample(poly, self.parent_samples)
 
@@ -1647,7 +1682,7 @@ class AlgebraicRoot:
     polynomial: sp.Poly
     interval: RationalInterval
     root_index: int
-    multiplicity: int = 1
+    multiplicity_hint: int | None = None
     root_expr: sp.Expr | None = None
     fiber_context: FiberRootContext | None = None
 
@@ -1658,18 +1693,68 @@ class AlgebraicRoot:
             raise ValueError("AlgebraicRoot requires a positive-degree polynomial")
         if self.root_index < 0:
             raise ValueError("root_index must be nonnegative")
-        if self.multiplicity < 1:
+        if self.multiplicity_hint is not None and self.multiplicity_hint < 1:
             raise ValueError("multiplicity must be positive")
 
     @property
     def variable(self) -> sp.Symbol:
         return self.polynomial.gens[0]
 
+    @cached_property
+    def multiplicity(self) -> int:
+        """Return exact multiplicity in this specialized fiber, computed on demand.
+
+        Isolation supplies a known hint for ordinary univariate roots. A native
+        parent fiber can gain repeated roots after specialization, so its hint
+        is absent and exact derivative signs determine the multiplicity. Root
+        refinement carries the hint without forcing this extra computation.
+        """
+        if self.multiplicity_hint is not None:
+            return self.multiplicity_hint
+        from ..errors import ExactComputationUnavailable
+        from .signs import sign_at_sample
+
+        context = self.fiber_context
+        polynomial = self.polynomial if context is None else context.polynomial
+        samples = (self,) if context is None else (*context.parent_samples, self)
+        if context is not None and context.is_nullified_at_parent():
+            raise ExactComputationUnavailable("a nullified fiber has no finite root multiplicity")
+        derivative = polynomial
+        for order in range(1, polynomial.degree(self.variable) + 1):
+            derivative = derivative.diff(self.variable)
+            if sign_at_sample(derivative, samples) != 0:
+                return order
+        raise ExactComputationUnavailable("root multiplicity could not be established")
+
     def as_expr(self) -> sp.Expr:
+        """Return an exact SymPy expression selecting this certified real root."""
         if _TOWER_EXPRESSION_GUARD.get():
             CACHE.stats.tower_escapes += 1
         if self.root_expr is not None:
             return self.root_expr
+        if self.interval.is_point():
+            return self.interval.left
+        key = ("root-expression", sample_certificate_key(self))
+        cached = CACHE.specializations.get(key)
+        if cached is not None:
+            return cached
+        value = self._exact_expression()
+        CACHE.specializations.put(key, value)
+        return value
+
+    def _exact_expression(self):
+        """Recover an exact presentation from the family's isolating certificate."""
+        if self.fiber_context is not None and self.polynomial.as_expr().free_symbols - {
+            self.variable
+        }:
+            expression_key = ("tower-root-expression", sample_identity_key(self))
+            cached = CACHE.specializations.get(expression_key)
+            if cached is not None:
+                return cached
+            exact = local_tower_root_expr(self)
+            if exact is not None:
+                CACHE.specializations.put(expression_key, exact)
+                return exact
         try:
             ordered = sp.real_roots(self.polynomial.as_expr())
             interval_roots: list[sp.Expr] = []
@@ -1761,12 +1846,7 @@ def local_tower_root_expr(sample: Sample) -> sp.Expr | None:
     if sample.root_expr is not None:
         return sample.root_expr
     if sample.fiber_context is None:
-        if sample.polynomial.domain in (sp.ZZ, sp.QQ):
-            try:
-                return sp.CRootOf(sample.polynomial.as_expr(), sample.root_index)
-            except (sp.PolynomialError, ValueError, TypeError):
-                return None
-        return None
+        return sample.as_expr()
     context = sample.fiber_context
     substitutions: dict[sp.Symbol, sp.Expr] = {}
     for variable, parent in zip(context.variables[:-1], context.parent_samples, strict=True):
@@ -1782,7 +1862,14 @@ def local_tower_root_expr(sample: Sample) -> sp.Expr | None:
         )
         if specialized.degree() <= 0 or sample.root_index >= specialized.degree():
             return None
-        return sp.CRootOf(specialized.as_expr(), sample.root_index)
+        if specialized.as_expr().free_symbols - {context.fiber_variable}:
+            return None
+        # Preserve the isolating interval and distinct-root rank. CRootOf's
+        # positional index counts multiplicities and cannot represent every
+        # algebraic coefficient domain.
+        return AlgebraicRoot(
+            specialized, sample.interval, sample.root_index, sample.multiplicity_hint
+        ).as_expr()
     except (
         sp.PolynomialError,
         sp.polys.polyerrors.DomainError,

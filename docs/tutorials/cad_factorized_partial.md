@@ -4,9 +4,7 @@ CAD is a semantic decomposition, not a promise to preserve the syntactic form of
 
 Consider
 
-\[
-f=(x-1)(x+1)(y-1).
-\]
+\[ f=(x-1)(x+1)(y-1). \]
 
 The complete Collins projection builder first forms an exact squarefree basis. Internally it may retain the factors `x - 1`, `x + 1`, and `y - 1` instead of the redundant product `f`.
 

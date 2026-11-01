@@ -34,7 +34,7 @@ Check structured optimization fields such as `value`, `attained`, and `certified
 
 ## Unsupported exact case
 
-Some valid semialgebraic problems lie outside a specialized fast path or exact representation implemented by semialg. Certified code should decline such a step instead of without reporting substitute a floating-point decision.
+Some valid semialgebraic problems lie outside a specialized fast path or exact representation implemented by semialg. Certified code should decline such a step instead of substituting a floating-point decision.
 
 A different backend, a simpler formulation, or complete CAD may still solve the problem.
 
@@ -44,16 +44,9 @@ A different backend, a simpler formulation, or complete CAD may still solve the 
 
 Use `certification="complete"` only when you accept the potentially much larger computation.
 
-For `cad`, `max_preprocess_aux_vars` is an enforced preprocessing limit. Exceeding it
-raises `ResourceLimitError` for direct or strict calls. A non-strict call with
-`return_result=True` instead returns `status="unknown"`, preserves the input formula,
-and records the limit in diagnostics. This formula is not a completed decomposition;
-converting the result with `as_function()` raises `ResourceLimitError`.
+For `cad`, `max_preprocess_aux_vars` is an enforced preprocessing limit. Exceeding it raises `ResourceLimitError` for direct or strict calls. A non-strict call with `return_result=True` instead returns `status="unknown"`, preserves the input formula, and records the limit in diagnostics. This formula is not a completed decomposition; converting the result with `as_function()` raises `ResourceLimitError`.
 
-The CAD backend does not implement the `max_cells` and `timeout` controls. Supplying
-either control raises `NotImplementedError` for direct or strict calls, or returns an
-unknown structured result with an explanatory diagnostic. These controls must not be
-interpreted as enforced computation budgets. Cached results do not bypass this validation.
+The CAD backend does not implement the `max_cells` and `timeout` controls. Supplying either control raises `NotImplementedError` for direct or strict calls, or returns an unknown structured result with an explanatory diagnostic. These controls must not be interpreted as enforced computation budgets. Cached results do not bypass this validation.
 
 ## Candidate found, certification incomplete
 

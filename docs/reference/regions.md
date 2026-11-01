@@ -2,37 +2,19 @@
 
 ## Geometry protocol
 
-`Geometry` is the common protocol for explicit geometric objects. Existing
-`StandardRegion` classes inherit it and retain their structural shape data.
-The protocol provides `dimension()`, `ambient_dimension()`, the
-`intrinsic_dimension` property, `as_formula()`, `as_semialgebraic_region()`,
-`contains()`, and `boundary()`. `affine_hull()` is an optional structural
-capability and raises `NotImplementedError` until a concrete geometry provides
-it.
+`Geometry` is the common protocol for explicit geometric objects. Existing `StandardRegion` classes inherit it and retain their structural shape data. The protocol provides `dimension()`, `ambient_dimension()`, the `intrinsic_dimension` property, `as_formula()`, `as_semialgebraic_region()`, `contains()`, and `boundary()`. `affine_hull()` is an optional structural capability and raises `NotImplementedError` until a concrete geometry provides it.
 
-`as_formula(variables, eliminate=False)` is the canonical lowering boundary.
-It preserves structural existential parameters by default; pass
-`eliminate=True` when a quantifier-free formula is required by CAD or a
-decision procedure.
+`as_formula(variables, eliminate=False)` is the canonical lowering boundary. It preserves structural existential parameters by default; pass `eliminate=True` when a quantifier-free formula is required by CAD or a decision procedure.
 
 ### Canonical affine geometry
 
-`Point`, `AffineSpace`, `Hyperplane`, `HalfSpace`, `AffineHalfSpace`, `Line`,
-and `Ray` are the canonical affine objects. They preserve structural data while
-sharing the `Geometry` lowering contract. `Line` specializes `AffineSpace`;
-`Ray` and `AffineHalfSpace` use a nonnegative half-direction; and each object
-exposes its structural affine hull when applicable.
+`Point`, `AffineSpace`, `Hyperplane`, `HalfSpace`, `AffineHalfSpace`, `Line`, and `Ray` are the canonical affine objects. They preserve structural data while sharing the `Geometry` lowering contract. `Line` specializes `AffineSpace`; `Ray` and `AffineHalfSpace` use a nonnegative half-direction; and each object exposes its structural affine hull when applicable.
 
 ### Canonical radial and quadric geometry
 
-`Ball` is the canonical filled Euclidean ball and `Sphere` is its boundary; both
-work in arbitrary ambient dimension and retain their center and radius.
-`Sphere.through()`, `Sphere.circumscribed()`, and `Sphere.inscribed()` construct canonical spheres from point/simplex data. `Circle.through()` is the two-dimensional convenience surface and also returns `Sphere`.
+`Ball` is the canonical filled Euclidean ball and `Sphere` is its boundary; both work in arbitrary ambient dimension and retain their center and radius. `Sphere.through()`, `Sphere.circumscribed()`, and `Sphere.inscribed()` construct canonical spheres from point/simplex data. `Circle.through()` is the two-dimensional convenience surface and also returns `Sphere`.
 
-`Ellipsoid` stores a center and positive-definite shape matrix `Q`, representing
-`(x-c).T Q^-1 (x-c) <= 1`. `Ellipsoid.from_radii()` is the axis-aligned
-convenience constructor. Symbolic positive-definiteness conditions that cannot
-be decided at construction time are retained as `construction_conditions`.
+`Ellipsoid` stores a center and positive-definite shape matrix `Q`, representing `(x-c).T Q^-1 (x-c) <= 1`. `Ellipsoid.from_radii()` is the axis-aligned convenience constructor. Symbolic positive-definiteness conditions that cannot be decided at construction time are retained as `construction_conditions`.
 
 ## Canonical geometry names
 
@@ -44,7 +26,7 @@ Representation and composition classes keep the `Region` suffix because they des
 
 **Mathematical return.** Region APIs construct exact semialgebraic sets, decide exact set/geometric properties, or return exact images, projections, components, distances, transforms, and local algebraic-geometric objects.
 
-**Exactness and certification.** Boolean/set relations are semantic instead of syntactic. Geometry queries reuse exact QE, CAD, optimization, and algebraic-geometry machinery; unsupported exact cases do not without reporting become numerical approximations.
+**Exactness and certification.** Boolean/set relations are semantic instead of syntactic. Geometry queries reuse exact QE, CAD, optimization, and algebraic-geometry machinery; unsupported exact cases do not become numerical approximations.
 
 **Algorithm.** Cheap substitutions/derived identities are used where possible; general projections/images and global geometric predicates may reduce to QE/CAD or exact optimization.
 
@@ -233,51 +215,24 @@ This table is the substantive coverage target for the primary APIs assigned to t
 
 ## Parametric covers and structural dimension
 
-`bounded_parametric_cover` exposes bounded geometry as a finite collection of
-`ParametricChart` objects. Recognized boxes, simplices, polygons, polyhedra,
-parallelepipeds, points, intervals, and bounded `ParametricRegion` objects use
-their structural parametrizations. Formula regions can be clipped by explicit
-finite bounds and represented by an exact identity chart without invoking CAD.
+`bounded_parametric_cover` exposes bounded geometry as a finite collection of `ParametricChart` objects. Recognized boxes, simplices, polygons, polyhedra, parallelepipeds, points, intervals, and bounded `ParametricRegion` objects use their structural parametrizations. Formula regions can be clipped by explicit finite bounds and represented by an exact identity chart without invoking CAD.
 
-`intrinsic_parametric_cover` extends the same chart contract to intrinsic geometry. Canonical balls, spheres, ellipsoids, ellipsoid boundaries, simplexes, polygons, boxes, and parallelepipeds use structural charts. Formula regions are converted from verified regular CAD strata. Every `ParametricChart` exposes its exact Jacobian, Gram matrix, intrinsic metric factor, pullback, and metric-weighted intrinsic integrand. Target-dimensional singular CAD strata are rejected instead of without reporting discarded.
+`intrinsic_parametric_cover` extends the same chart contract to intrinsic geometry. Canonical balls, spheres, ellipsoids, ellipsoid boundaries, simplexes, polygons, boxes, and parallelepipeds use structural charts. Formula regions are converted from verified regular CAD strata. Every `ParametricChart` exposes its exact Jacobian, Gram matrix, intrinsic metric factor, pullback, and metric-weighted intrinsic integrand. Target-dimensional singular CAD strata are rejected instead of being discarded.
 
 
-A chart carries explicit parameter bounds, an additional parameter condition,
-and the coordinate mapping. When the parameter-domain dimension and generic
-Jacobian rank are certified, `region_dimension` reuses that information before
-falling back to a complete adapted CAD. The fallback preserves the existing
-exact dimension contract for cases whose chart rank or domain dimension cannot
-be certified structurally.
+A chart carries explicit parameter bounds, an additional parameter condition, and the coordinate mapping. When the parameter-domain dimension and generic Jacobian rank are certified, `region_dimension` reuses that information before falling back to a complete adapted CAD. The fallback preserves the existing exact dimension contract for cases whose chart rank or domain dimension cannot be certified structurally.
 
 ## Boundary metadata
 
-`region_boundary_result` computes one exact boundary CAD and retains it on the
-result. Each `BoundaryStratum` records its exact cell formula, Euclidean
-dimension, whether that boundary cell belongs to the original region, and the
-recognized active inequality residuals. This explicitly distinguishes, for
-example, the included endpoint of `[0, 1)` from its excluded endpoint and lets
-plotting, meshing, topology, and singularity routines reuse the same boundary
-decomposition.
+`region_boundary_result` computes one exact boundary CAD and retains it on the result. Each `BoundaryStratum` records its exact cell formula, Euclidean dimension, whether that boundary cell belongs to the original region, and the recognized active inequality residuals. This explicitly distinguishes, for example, the included endpoint of `[0, 1)` from its excluded endpoint and lets plotting, meshing, topology, and singularity routines reuse the same boundary decomposition.
 
 ## Distance critical points and affine geometry
 
-For a smooth pure equality variety, `distance_to_region` first constructs the
-exact Lagrange critical-point system for squared distance. When that system is
-zero-dimensional, the algebraic solver returns all real critical points and the
-nearest one is selected by exact comparison; otherwise the general exact
-optimization backend remains the fallback.
+For a smooth pure equality variety, `distance_to_region` first constructs the exact Lagrange critical-point system for squared distance. When that system is zero-dimensional, the algebraic solver returns all real critical points and the nearest one is selected by exact comparison; otherwise the general exact optimization backend remains the fallback.
 
-`analyze_affine_map` centralizes affine rank, determinant, inverse, and scaled
-isometry recognition. `affine_image` reuses this analysis for its exact
-invertible-map shortcut on formula inputs and its structure-preserving canonical path. `parametric_map_degree` computes the generic algebraic
-fiber degree of polynomial/rational maps; real-domain restrictions are kept
-separate from this generic complex degree so later integration code can combine
-the two explicitly.
+`analyze_affine_map` centralizes affine rank, determinant, inverse, and scaled isometry recognition. `affine_image` reuses this analysis for its exact invertible-map shortcut on formula inputs and its structure-preserving canonical path. `parametric_map_degree` computes the generic algebraic fiber degree of polynomial/rational maps; real-domain restrictions are kept separate from this generic complex degree so later integration code can combine the two explicitly.
 
-`clip_affine_subspace_to_box` is narrow: it handles one- and
-two-dimensional affine subspaces by exact facet intersection and does not
-replace general region intersection. It exists for geometry/meshing paths where
-the specialized linear-algebra computation is measurably cheaper than CAD.
+`clip_affine_subspace_to_box` is narrow: it handles one- and two-dimensional affine subspaces by exact facet intersection and does not replace general region intersection. It exists for geometry/meshing paths where the specialized linear-algebra computation is measurably cheaper than CAD.
 
 ## Formula-based region operations
 
@@ -374,37 +329,13 @@ These are compositions of the certified lower-level algorithms. Direct substitut
 
 ## Region wrappers, regularization, and display geometry
 
-`BooleanRegion` represents named Boolean combinations of standard regions, and
-`TransformedRegion` represents an exact transformed standard region before it is
-lowered to a semialgebraic formula.
+`BooleanRegion` represents named Boolean combinations of standard regions, and `TransformedRegion` represents an exact transformed standard region before it is lowered to a semialgebraic formula.
 
-`closure_of_interior` computes the closure of a region's interior and
-`interior_of_closure` computes the interior of its closure. The predicates
-`is_regular_closed_region` and `is_regular_open_region` test the corresponding
-fixed-point identities. `simplify_region` removes Boolean redundancy while
-preserving exact region semantics.
+`closure_of_interior` computes the closure of a region's interior and `interior_of_closure` computes the interior of its closure. The predicates `is_regular_closed_region` and `is_regular_open_region` test the corresponding fixed-point identities. `simplify_region` removes Boolean redundancy while preserving exact region semantics.
 
-`region_singular_locus` uses reduced-real component-relative algebraic regularity
-and analyzes an inequality boundary only on exact CAD cells where that residual is
-actually active. Boundary sections are tested relative to the corresponding equality
-component, and the result is restricted to the actual topological boundary. The
-formula-only API raises `NotImplementedError` if those component-sensitive proof
-obligations cannot be certified; it never falls back to one global maximum-dimension
-Jacobian threshold. `region_singular_locus_result` exposes the same computation with
-explicit `complete`, `formula`, `known_singular_formula`, and diagnostic metadata.
-`region_nonsmooth_locus` additionally detects transverse intersections on realized
-multi-active inequality strata (polygonal corners and higher-dimensional ridges).
-`region_active_boundary_strata` reuses the same rich boundary metadata and returns
-exact pairwise-disjoint formulas classified by the realized active residual set; it
-is a defining-constraint stratification and does not claim Whitney regularity.
-`region_regular_locus` remains the complement of the algebraic singular locus;
-`local_dimension` complements them by measuring the largest incident CAD-cell
-dimension at a point.
+`region_singular_locus` uses reduced-real component-relative algebraic regularity and analyzes an inequality boundary only on exact CAD cells where that residual is actually active. Boundary sections are tested relative to the corresponding equality component, and the result is restricted to the actual topological boundary. The formula-only API raises `NotImplementedError` if those component-sensitive proof obligations cannot be certified; it never falls back to one global maximum-dimension Jacobian threshold. `region_singular_locus_result` exposes the same computation with explicit `complete`, `formula`, `known_singular_formula`, and diagnostic metadata. `region_nonsmooth_locus` additionally detects transverse intersections on realized multi-active inequality strata (polygonal corners and higher-dimensional ridges). `region_active_boundary_strata` reuses the same rich boundary metadata and returns exact pairwise-disjoint formulas classified by the realized active residual set; it is a defining-constraint stratification and does not claim Whitney regularity. `region_regular_locus` remains the complement of the algebraic singular locus; `local_dimension` complements them by measuring the largest incident CAD-cell dimension at a point.
 
-`discretize_solution` and `discretize_region_geometry` produce numerical display
-data from exact solution or region objects. `plot_solution` and
-`plot_region_geometry` are convenience plotting functions built on those
-representations; plotting does not change the exact mathematical object.
+`discretize_solution` and `discretize_region_geometry` produce numerical display data from exact solution or region objects. `plot_solution` and `plot_region_geometry` are convenience plotting functions built on those representations; plotting does not change the exact mathematical object.
 
 
 ## Exact polyhedral representations
@@ -421,18 +352,9 @@ representations; plotting does not change the exact mathematical object.
 
 ## Symbolic geometry validity and assumptions
 
-Canonical geometry keeps undecidable constructor requirements explicit instead of silently
-assuming them. Every `Geometry` exposes `conditions`, and `is_valid(assumptions=...)` returns
-`True`, `False`, or `None` according to whether those requirements are proved, disproved, or
-remain undecidable. Existing constructor provenance such as simplex triangle inequalities,
-ellipsoid positive-definiteness, cylinder/cone nondegeneracy, and torus radius restrictions
-feeds the same protocol; radial regions additionally expose their nonnegative-radius
-requirements.
+Canonical geometry keeps undecidable constructor requirements explicit instead of silently assuming them. Every `Geometry` exposes `conditions`, and `is_valid(assumptions=...)` returns `True`, `False`, or `None` according to whether those requirements are proved, disproved, or remain undecidable. Existing constructor provenance such as simplex triangle inequalities, ellipsoid positive-definiteness, cylinder/cone nondegeneracy, and torus radius restrictions feeds the same protocol; radial regions additionally expose their nonnegative-radius requirements.
 
-`Ball`, `Sphere`, `Ellipsoid`, and `EllipsoidBoundary` accept an optional `assumptions=` argument for assumption-sensitive
-construction. Common SymPy sign predicates such as `Q.positive(r)` are normalized to the same
-real relational assumptions used by semialg's reasoning layer. Constructors reject only a
-provable contradiction; an undecidable symbolic requirement remains in `conditions`.
+`Ball`, `Sphere`, `Ellipsoid`, and `EllipsoidBoundary` accept an optional `assumptions=` argument for assumption-sensitive construction. Common SymPy sign predicates such as `Q.positive(r)` are normalized to the same real relational assumptions used by semialg's reasoning layer. Constructors reject only a provable contradiction; an undecidable symbolic requirement remains in `conditions`.
 
 ## Roadmaps and low-dimensional topology
 
@@ -461,26 +383,11 @@ The current generality is narrower than the existence theorems. Higher-dimension
 
 ## Canonical boundary topology
 
-`Polygon` continues to mean one simple planar polygon.  `PolygonalSet` represents
-one or more disconnected filled polygonal components, with each
-`PolygonalComponent` storing one outer boundary and zero or more hole
-boundaries.  Outer cycles are normalized counterclockwise and hole cycles
-clockwise.  `outer_polygons()`, `inner_polygons()`, and `polygon_vertices()`
-inspect that topology without triangulating it.
+`Polygon` continues to mean one simple planar polygon.  `PolygonalSet` represents one or more disconnected filled polygonal components, with each `PolygonalComponent` storing one outer boundary and zero or more hole boundaries.  Outer cycles are normalized counterclockwise and hole cycles clockwise.  `outer_polygons()`, `inner_polygons()`, and `polygon_vertices()` inspect that topology without triangulating it.
 
-For three-dimensional boundary representations, `PolyhedralShell` stores one
-connected, closed, consistently oriented polygonal 2-manifold.  Construction
-validates face indices, exact vertex deduplication, planar faces, two-face edge
-incidence, orientation across shared edges, and face connectivity.
-`PolyhedralComponent` associates an outer shell with explicitly classified
-cavity shells, while `Polyhedron` may contain several disconnected solid
-components.  `outer_polyhedra()`, `inner_polyhedra()`,
-`polyhedron_vertices()`, and `polyhedron_face_indices()` expose this structure.
-`deduplicate_indexed_vertices()` provides the shared exact coordinate-deduplication and cell-reindexing primitive.
+For three-dimensional boundary representations, `PolyhedralShell` stores one connected, closed, consistently oriented polygonal 2-manifold.  Construction validates face indices, exact vertex deduplication, planar faces, two-face edge incidence, orientation across shared edges, and face connectivity. `PolyhedralComponent` associates an outer shell with explicitly classified cavity shells, while `Polyhedron` may contain several disconnected solid components.  `outer_polyhedra()`, `inner_polyhedra()`, `polyhedron_vertices()`, and `polyhedron_face_indices()` expose this structure. `deduplicate_indexed_vertices()` provides the shared exact coordinate-deduplication and cell-reindexing primitive.
 
-Boundary objects record already-classified outer/inner topology rather than
-inferring geometric nesting.  Automatic shell/ring nesting and canonical
-classification belong to the canonicalization layer.
+Boundary objects record already-classified outer/inner topology rather than inferring geometric nesting.  Automatic shell/ring nesting and canonical classification belong to the canonicalization layer.
 
 
 ## Reduced algebraic variety semantics
@@ -491,7 +398,7 @@ Use `certified_radicalization` before ideal-sensitive geometric analysis when th
 
 `polynomial_constraints` exposes a quantifier-free polynomial region as a DNF-preserving structured constraint system. `active_constraints` identifies exactly active equality/inequality constraints at a feasible exact point.
 
-`relative_interior` and `relative_boundary` compute topology relative to a **certified affine hull**. They raise `NotImplementedError` when the current formula does not expose enough globally valid linear equalities to certify that hull, instead of without reporting substituting ambient or local-dimension topology.
+`relative_interior` and `relative_boundary` compute topology relative to a **certified affine hull**. They raise `NotImplementedError` when the current formula does not expose enough globally valid linear equalities to certify that hull, instead of substituting ambient or local-dimension topology.
 
 `semialgebraic_tangent_cone` computes the exact Bouligand/contingent cone as the closure of secant velocities, using quantifier elimination. `local_dimension` remains the exact CAD-derived local semialgebraic dimension.
 
@@ -523,38 +430,20 @@ Canonical region types include `FinitePointSet`, `Interval`, `Box`, `Parallelogr
 
 ## Exact hulls, generation, refinement, and polyhedral Boolean fast paths
 
-`convex_hull(points, canonical=True)` constructs the exact convex hull of rational or
-algebraic points, including lower-dimensional hulls embedded in a larger ambient
-space. With canonicalization enabled, recognized hulls are returned through the
-strongest certified standard-region representation.
+`convex_hull(points, canonical=True)` constructs the exact convex hull of rational or algebraic points, including lower-dimensional hulls embedded in a larger ambient space. With canonicalization enabled, recognized hulls are returned through the strongest certified standard-region representation.
 
-`random_polygon()` and `random_polytope()` provide seeded exact lattice examples for
-experiments and tests. `subdivide_triangular_faces()` performs conforming triangular
-1-to-4 refinement, while `geodesic_refinement()` radially projects such a refinement
-to an exact symbolic sphere.
+`random_polygon()` and `random_polytope()` provide seeded exact lattice examples for experiments and tests. `subdivide_triangular_faces()` performs conforming triangular 1-to-4 refinement, while `geodesic_refinement()` radially projects such a refinement to an exact symbolic sphere.
 
-`polyhedral_intersection()` is the exact convex-polytope structural intersection
-backend. `polyhedral_boolean()` preserves structural polyhedral results when they can
-be certified without subdivision and otherwise returns the ordinary Boolean-region
-representation instead of convexifying a nonconvex result.
+`polyhedral_intersection()` is the exact convex-polytope structural intersection backend. `polyhedral_boolean()` preserves structural polyhedral results when they can be certified without subdivision and otherwise returns the ordinary Boolean-region representation instead of convexifying a nonconvex result.
 
 ## Semialgebraic statistical model geometry and constraint certificates
 
-`polynomial_constraints()` returns a Boolean-preserving `PolynomialConstraintSystem`
-whose `PolynomialConstraintClause` objects contain normalized `PolynomialConstraint`
-relations. `active_constraints()` returns an `ActiveConstraintResult` at an exact
-feasible point. `relative_interior()`, `relative_boundary()`, and
-`semialgebraic_tangent_cone()` retain the real inequality geometry rather than
-replacing a model by its Zariski closure.
+`polynomial_constraints()` returns a Boolean-preserving `PolynomialConstraintSystem` whose `PolynomialConstraintClause` objects contain normalized `PolynomialConstraint` relations. `active_constraints()` returns an `ActiveConstraintResult` at an exact feasible point. `relative_interior()`, `relative_boundary()`, and `semialgebraic_tangent_cone()` retain the real inequality geometry rather than replacing a model by its Zariski closure.
 
-`parameterization_geometry()` returns `ParameterizationGeometry`, while
-`parameterization_critical_locus()` and `parameterization_critical_values()` expose
-rank-drop and critical-value geometry for polynomial/rational parameterizations.
+`parameterization_geometry()` returns `ParameterizationGeometry`, while `parameterization_critical_locus()` and `parameterization_critical_values()` expose rank-drop and critical-value geometry for polynomial/rational parameterizations.
 
-`nonnegative_combination_certificate()` produces a replayable
-`NonnegativeCombinationCertificate`; `verify_nonnegative_certificate()`
-checks it independently. `implied_polynomial_inequality()` returns an
-`ImpliedPolynomialInequality`, `redundant_polynomial_inequalities()` returns
-`RedundantPolynomialInequality` records, and `component_constraint_descriptions()`
-returns `ComponentConstraintDescription` objects that attach real constraints to
-certified irreducible algebraic components.
+`nonnegative_combination_certificate()` produces a replayable `NonnegativeCombinationCertificate`; `verify_nonnegative_certificate()` checks it independently. `implied_polynomial_inequality()` returns an `ImpliedPolynomialInequality`, `redundant_polynomial_inequalities()` returns `RedundantPolynomialInequality` records, and `component_constraint_descriptions()` returns `ComponentConstraintDescription` objects that attach real constraints to certified irreducible algebraic components.
+
+## Optimization geometry and families
+
+`bounding_cover` supplies structural outer boxes; `optimization_cover` preserves all structural chart strata. `region_family` returns parameter guards, empty fibers and dimension-aware cylindrical cells, with Hardt component data for scalar fibers. See [the executable geometry guide](../optimization_geometry.md) for examples and limits.

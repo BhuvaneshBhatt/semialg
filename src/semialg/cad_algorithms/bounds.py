@@ -170,7 +170,11 @@ def _root_function_expr(root, candidate_solver) -> sp.Expr:
 
     poly = primitive_fiber_polynomial(root.polynomial, root.fiber_variable)
     cert = root.certificate
-    if cert is not None and cert.representation_verified and cert.radical_branch_index is not None:
+    if (
+        root._has_matching_certificate()
+        and cert.representation_verified
+        and cert.radical_branch_index is not None
+    ):
         candidates = candidate_solver(poly, root.fiber_variable, ordered=False)
         if 0 <= cert.radical_branch_index < len(candidates):
             return candidates[cert.radical_branch_index]
@@ -189,7 +193,7 @@ def _root_function_expr(root, candidate_solver) -> sp.Expr:
 
     if poly.free_symbols <= {root.fiber_variable}:
         try:
-            roots = tuple(sp.real_roots(poly))
+            roots = tuple(root for root, _ in sp.real_roots(poly, multiple=False))
             if 0 <= root.root_index < len(roots):
                 return roots[root.root_index]
         except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
@@ -201,8 +205,9 @@ def _root_function_expr(root, candidate_solver) -> sp.Expr:
 class AlgebraicRootFunction(CADBound):
     """A delineable real root function over a CAD base cell.
 
-    ``root_index`` is zero-based in the sorted real-root order used by the CAD
-    lifting stack.  The polynomial coefficients may depend on ``base_variables``.
+    ``root_index`` is zero-based among the distinct real roots of the defining
+    polynomial. ``stack_root_index`` records its position among all section
+    families in the lifting stack. Coefficients may depend on ``base_variables``.
     """
 
     polynomial: sp.Expr
@@ -224,6 +229,24 @@ class AlgebraicRootFunction(CADBound):
         from ..reconstruct.radicals import fiber_root_candidates
 
         return _root_function_expr(self, fiber_root_candidates)
+
+    def _has_matching_certificate(self) -> bool:
+        """Bind a delineability proof to this root, variable order and base cell."""
+
+        cert = self.certificate
+        return (
+            cert is not None
+            and cert.verify()
+            and cert.fiber_variable == self.fiber_variable
+            and cert.root_index == self.root_index
+            and cert.base_variables == self.base_variables
+            and cert.base_index == self.base_index
+            and cert.stack_root_index == self.stack_root_index
+            and (
+                cert.polynomial == self.polynomial
+                or sp.expand(cert.polynomial - self.polynomial) == 0
+            )
+        )
 
     def evaluate(self, base_point: Mapping[sp.Symbol, object] | None = None) -> Sample:
         """Evaluate this algebraic root function at an exact point of its CAD base cell."""
@@ -296,7 +319,7 @@ class AlgebraicRootFunction(CADBound):
     def is_regular(self) -> bool:
         """Whether regularity is certified over the entire CAD base cell."""
 
-        return self.certificate is not None and self.certificate.verify_regularity()
+        return self._has_matching_certificate() and self.certificate.verify_regularity()
 
     def fiber_derivative_expr(self) -> sp.Expr:
         """Return ``d polynomial / d fiber`` evaluated on this root function."""
@@ -400,19 +423,14 @@ class AlgebraicRootFunction(CADBound):
         With ``base_point`` supplied, an exact pointwise comparison is attempted.
         """
 
-        if isinstance(other, AlgebraicRootFunction):
+        if base_point is None and isinstance(other, AlgebraicRootFunction):
             same_stack = (
                 sp.expand(self.polynomial - other.polynomial) == 0
                 and self.fiber_variable == other.fiber_variable
                 and self.base_variables == other.base_variables
                 and self.base_index == other.base_index
             )
-            certs_ok = (
-                self.certificate is not None
-                and other.certificate is not None
-                and self.certificate.verify()
-                and other.certificate.verify()
-            )
+            certs_ok = self._has_matching_certificate() and other._has_matching_certificate()
             if same_stack and certs_ok:
                 relation = (
                     -1
@@ -446,7 +464,12 @@ class AlgebraicRootFunction(CADBound):
                 ExactEvaluationFailure,
             ):
                 pass
-        return CertifiedRootComparison(None, False, "unknown", "global ordering is not certified")
+        reason = (
+            "pointwise ordering could not be certified"
+            if base_point is not None
+            else "global ordering is not certified"
+        )
+        return CertifiedRootComparison(None, False, "unknown", reason)
 
 
 def as_cad_bound(value: object, *, closed: bool = False) -> CADBound:
@@ -595,7 +618,7 @@ def verify_cad_cell_bounds(cell: object) -> CADCellBoundsCertificate:
                 }
                 dependencies_valid = dependencies_valid and coefficient_symbols <= allowed
                 if bound.certificate is not None:
-                    dependencies_valid = dependencies_valid and bound.certificate.verify()
+                    dependencies_valid = dependencies_valid and bound._has_matching_certificate()
         section_verified = True
         if getattr(level, "is_section", False):
             section_verified = certified_equal(lower_expr, upper_expr) is True
@@ -609,7 +632,7 @@ def verify_cad_cell_bounds(cell: object) -> CADCellBoundsCertificate:
             if not isinstance(bound, AlgebraicRootFunction):
                 continue
             cert = bound.certificate
-            if cert is None:
+            if not bound._has_matching_certificate():
                 repr_consistent = False
                 continue
             display = bound.as_expr()

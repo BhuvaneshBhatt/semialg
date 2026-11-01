@@ -48,6 +48,8 @@ The resulting object is a **variety sub-CAD**. It is exact for the requested for
 
 This distinction matters for operations such as topology and universal quantification. A universal statement ranges over omitted sectors as well as equality sections, so universal or mixed quantifier prefixes use complete CAD. Pure existential elimination can use the finite-variety backend when the common equalities are required by the matrix.
 
+When passed a variety sub-CAD, `qe_from_cad` rebuilds from its current matrix. This recovers points that a source formula's residual inequalities may have excluded and preserves ambient quantifier semantics. Projected `CellUnion` results mark finite varieties explicitly and reconstruct a union of exact points, preserving coordinate correlations. Selecting all listed points does not imply the whole ambient space.
+
 ## Exact fallback contract
 
 Failure of an exact algebraic operation is never interpreted as mathematical falsehood. If a specialized fiber cannot be constructed, a root sign cannot be certified, or another required exact lifting operation is unsupported, the variety backend declines and semialg restarts with complete Collins CAD.

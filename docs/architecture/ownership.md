@@ -22,18 +22,9 @@ This rule is especially important for bounds/signs, parameter representatives, g
 
 ### Algebra implementation ownership
 
-Large exact-algebra modules keep their public algorithm entry points stable while
-private support code is divided by semantic responsibility. Immutable result and
-replay-certificate records live in `_modular_types`, `_gtz_primary_types`, and
-`_root_certificate_types`. Equality-only zero-dimensional quotient algebra, RUR
-construction/solving, exact border bases, and their low-level linear-algebra kernels
-are canonically owned by `algroots>=0.8.0`; Semialg keeps compatibility facades and
-adds the real-sign, Thom, Boolean-formula, inequality-filtering, witness, and
-decision/QE layers that are genuinely semialgebraic. New equality-only quotient
-algorithms must be added to algroots rather than reimplemented under `semialg.algebraic`.
+Large exact-algebra modules keep their public algorithm entry points stable while private support code is divided by semantic responsibility. Immutable result and replay-certificate records live in `_modular_types`, `_gtz_primary_types`, and `_root_certificate_types`. Equality-only zero-dimensional quotient algebra, RUR construction/solving, exact border bases, and their low-level linear-algebra kernels are canonically owned by `algroots>=0.3.0`; Semialg uses thin adapters and adds the real-sign, Thom, Boolean-formula, inequality-filtering, witness, and decision/QE layers that are genuinely semialgebraic. New equality-only quotient algorithms must be added to algroots rather than reimplemented under `semialg.algebraic`.
 
-The remaining public algebraic algorithm modules retain hot loops and backend calls
-directly for modular reconstruction, GTZ recursion, and root isolation/refinement.
+The remaining public algebraic algorithm modules retain hot loops and backend calls directly for modular reconstruction, GTZ recursion, and root isolation/refinement.
 
 ### Exact algebra implementation boundaries
 
@@ -43,4 +34,4 @@ These boundaries use direct function re-exports instead of forwarding wrappers, 
 
 ## Algroots namespace contract
 
-Semialg 1.3.2 requires algroots 0.8.0 or newer. Delegation uses `algroots.quotient`, `algroots.rational_univariate`, `algroots.border_basis`, and `algroots.errors`; advanced algroots names are no longer imported from its root. The Semialg-facing adapters retain their branch filtering, error translation and point enrichment.
+Semialg requires algroots 0.3.0 or newer. Delegation uses `algroots.quotient`, `algroots.rational_univariate`, `algroots.border_basis`, and `algroots.errors`; advanced algroots names are no longer imported from its root. The Semialg-facing adapters retain their branch filtering, error translation and point enrichment.

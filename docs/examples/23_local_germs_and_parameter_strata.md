@@ -1,7 +1,6 @@
 # Local germs and parameter strata
 
-Local geometry can separate admissible signs at a closure point and classify
-parameter values by a caller-defined semialgebraic invariant.
+Local geometry can separate admissible signs at a closure point and classify parameter values by a caller-defined semialgebraic invariant.
 
 <!-- semialg-exec -->
 ```python
@@ -31,5 +30,4 @@ assert sp.simplify(strata[0].condition.subs(a, 0)) is sp.true
 assert sp.simplify(strata[1].condition.subs(a, 1)) is sp.true
 ```
 
-The parameter cases are made disjoint in insertion order. Put a more specific
-case before a more general overlapping case.
+The parameter cases are made disjoint in insertion order. Put a more specific case before a more general overlapping case.

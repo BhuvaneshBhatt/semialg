@@ -17,10 +17,25 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting started: getting_started.md
+  - Package ownership: package_ownership.md
+  - Certificate-field audits: certificate_audits.md
+  - Worked applications: worked_applications.md
+  - Real graph verification: function_verification.md
+  - Expert API index: reference/expert_api.md
   - API overview: api_overview.md
   - Feature matrix: feature_matrix.md
+  - Exact structural rules: structural_rules.md
   - Semialgebraic geometry:
+      - Overview and learning path: semialgebraic_geometry/index.md
       - Introduction: semialgebraic_geometry/introduction.md
+      - Algebraic foundations: semialgebraic_geometry/foundations.md
+      - Real closed fields and quantifier elimination: semialgebraic_geometry/real_geometry.md
+      - Algebraic computation and exact roots: semialgebraic_geometry/algebraic_computation.md
+      - Worked cylindrical algebraic decomposition: semialgebraic_geometry/cad_worked_example.md
+      - Topology, triangulation, and roadmaps: semialgebraic_geometry/topology.md
+      - Optimization and positivity: semialgebraic_geometry/optimization_positivity.md
+      - Complexity and scope: semialgebraic_geometry/complexity.md
+      - Exercises and selected answers: semialgebraic_geometry/exercises.md
       - Concepts and theory: semialgebraic_geometry/theory.md
       - Algorithms and techniques: semialgebraic_geometry/algorithms.md
       - Applications: semialgebraic_geometry/applications.md
@@ -54,6 +69,7 @@ nav:
           - Transcendental and algebraic solving scope: guides/transcendental_scope.md
       - Mathematical tasks:
           - CAD and QE: cad_qe.md
+          - Native CAD proofs: native_cad_proofs.md
           - Decision procedures: decision_procedures.md
           - Quantified expressions: quantified_expressions.md
           - Solving: solving.md
@@ -61,8 +77,10 @@ nav:
           - Convexity: convexity.md
           - Optimization: optimization.md
           - Function range: function_range.md
+          - Exact images and interval bounds: range-images.md
           - Region operations: region_operations.md
           - Geometry queries: geometry_queries.md
+          - Optimization geometry: optimization_geometry.md
           - Region integration: region_integration.md
           - Moments: moments.md
           - Implicit utilities: implicit_utilities.md
@@ -71,6 +89,12 @@ nav:
           - Toric algebra: toric_algebra.md
           - Transcendental methods: transcendental_methods.md
   - Examples: examples/index.md
+  - Application tutorials:
+      - Adaptive and fixed control: tutorials/control_quantifiers.md
+      - Debug root certificates: tutorials/root_certificate_debugging.md
+      - Failure-aware closure: tutorials/failure_aware_closure.md
+      - Quantified parameter cells: tutorials/parameter_cell_qe.md
+      - Algebraic coefficient fields: tutorials/algebraic_coefficient_fields.md
   - Region tutorials:
       - Analyze an annulus: tutorials/annulus.md
       - Project a 3-D set: tutorials/projection_3d.md
@@ -85,6 +109,8 @@ nav:
   - Performance research: performance-research.md
   - Limitations: limitations.md
   - Known issues: known_issues.md
+  - Lower-priority findings: minor_issues.md
+  - Capability priorities: capability_priorities.md
   - Changelog: changelog.md
   - References: references.md
   - Quality:
@@ -133,6 +159,9 @@ nav:
       - Exceptions: reference/exceptions.md
       - Package metadata: reference/package_metadata.md
 
+  - Chart certificates: chart_certificates.md
+  - Real curve parametrization: curve_parametrization.md
+  - Functional decomposition: functional_decomposition.md
   - API namespaces: api_namespaces.md
 
   - Internal ownership and limitations: quality/internal-ownership-and-limitations.md

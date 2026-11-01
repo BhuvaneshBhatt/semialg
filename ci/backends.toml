@@ -1,0 +1,8 @@
+[algroots]
+repository = "https://github.com/BhuvaneshBhatt/algroots.git"
+commit = "8656990e8dfacf7eeb0e3b4c8521478e47795689"
+source_archive = "sources/algroots.tar.gz"
+source_archive_sha256 = "326f61565fb3f114f0f480f3adbe8db4b8b8e6c318e74b8fd21b1b7ca9ac0f6d"
+patch = "patches/algroots.patch"
+patch_sha256 = "f6685ab78c1425d2b085358eb0fd03420dc96bf6b5a23ed75beb5ec3fc788ee5"
+source_sha256 = "2f75e0daebf7984aa2358099711bb12e1178019263c3bef8bf348c5fe78b7123"

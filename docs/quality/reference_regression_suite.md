@@ -44,21 +44,14 @@ Public result objects are tested for stable fields, formula conversion, witness 
 
 ## Distribution checks
 
-The default suite runs on supported Python versions. Additional publishing checks cover the minimum declared SymPy version, reproducible randomized test orders, and the complete slow suite before distributions are built and published.
+The default suite runs on supported Python versions. Publication depends on the ordinary test matrix, quality checks and optional SDP checks. The dependency matrix covers minimum and latest effective arithmetic requirements. A separate weekly run exercises the bounded slow suite and installs Singular for the independent algebra corpus; it does not gate ordinary publication. Reproducible randomized orders can also be selected for local runs.
 
 ## Package lifecycle and differential corpus
 
-The lifecycle regression layer adds deterministic generated invariants in
-`tests/test_package_lifecycle.py`. It differentially compares certified
-modular Groebner bases with direct exact Groebner bases, generates families of
-primary decompositions with known linear associated primes, checks invariance
-under multiplication by rational units, replays every resulting certificate,
-and repeatedly exercises cache-heavy workloads before unified teardown.
+The lifecycle regression layer adds deterministic generated invariants in `tests/test_package_lifecycle.py`. It differentially compares certified modular Groebner bases with direct exact Groebner bases, generates families of primary decompositions with known linear associated primes, checks invariance under multiplication by rational units, replays every resulting certificate, and repeatedly exercises cache-heavy workloads before unified teardown.
 
-`scripts/benchmark_package.py` reports JSON records for cold/warm GTZ,
-direct-versus-modular Groebner computation, CAD feasibility, and cache state
-before/after teardown. `scripts/differential_singular.py` is an optional external
-smoke corpus: when Singular is installed it compares dimension and associated
-prime/component counts against `primdecGTZ`, while semialg independently replays
-its own exact certificates. The external script exits successfully with an
-explicit skip message when Singular is unavailable.
+`scripts/benchmark_package.py` reports JSON records for cold/warm GTZ, direct-versus-modular Groebner computation, CAD feasibility, and cache state before/after teardown. `scripts/differential_singular.py` is an optional external smoke corpus: when Singular is installed it compares dimension, associated primes, primary components, radical ideals, multiplicities and reconstruction against `primdecGTZ`, while semialg independently replays its own exact certificates. The external script exits successfully with an explicit skip message when Singular is unavailable.
+
+## Shared finite quotient arithmetic
+
+The GTZ driver builds finite algebras over QQ(parameters) with `algroots.quotient.QuotientAlgebra`. Standard monomials, multiplication characteristic polynomials, trace rank and nilradicals use that backend. semialg retains localization/contraction, component assembly, proof records and independent certificate replay. The replay reconstructs the quotient from the stored source and checks each obligation; a backend result alone does not establish a GTZ certificate. Stored monomial coordinates follow the backend's total-degree ordering. Zero-algebra certificates are checked separately.

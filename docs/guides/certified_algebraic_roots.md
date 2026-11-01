@@ -115,3 +115,8 @@ assert neighborhood.interval.left < neighborhood.interval.right
 These interval APIs require exact univariate polynomials over `QQ`. They do not accept arbitrary analytic functions, numerical root brackets, or floating-point approximations as proof objects. Existing transcendental solving remains a separate subsystem with its own supported fragment and certification rules.
 
 For signatures and result fields, see the [Algebraic reference](../reference/algebraic.md). For the general proof model, see [Exactness and certification](../concepts/exactness_and_certification.md) and [Certificate model](../concepts/certificate_model.md).
+
+
+## Distinct roots and specialization multiplicity
+
+An interval certificate counts distinct real roots. Multiplicity is separate: after specializing `y**2-x**2+2` at `x=sqrt(2)`, there is one distinct root `y=0` of multiplicity two. Its ordered root index is zero. Native tower samples compute `root_multiplicity` by exact derivative signs when the multiplicity is first requested; ordinary isolated roots reuse their known factor multiplicity. Root refinement and ordering do not force this extra computation. A nullified fiber has no finite root-multiplicity value and raises `ExactComputationUnavailable`.

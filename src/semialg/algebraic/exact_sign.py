@@ -22,7 +22,13 @@ def exact_algebraic_sign(expr: object) -> int | None:
         return int(sign)
     try:
         algebraic = sp.polys.numberfields.to_number_field(value)
-    except (sp.PolynomialError, TypeError, ValueError, NotImplementedError):
+    except (
+        sp.PolynomialError,
+        TypeError,
+        ValueError,
+        NotImplementedError,
+        sp.polys.polyerrors.NotAlgebraic,
+    ):
         return None
     if algebraic.is_zero is True:
         return 0

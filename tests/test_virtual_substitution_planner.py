@@ -40,7 +40,9 @@ def test_virtual_substitution_prepass_falls_back_when_degree_is_too_high():
         return_result=True,
     )
 
-    assert result.method == "cad"
+    assert result.method == "partial_cad_qe"
+    assert result.result is sp.true
+    assert all(result.metadata["qe_result"].truth_by_index.values())
     assert x not in result.result.free_symbols
     assert result.metadata["qe_result"].backend != "quadratic-virtual-substitution-qe"
 

@@ -1,31 +1,32 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from functools import cached_property
 from time import perf_counter
 
 import sympy as sp
 
-from .._immutable import freeze_mapping
+from .._immutable import FrozenMappingPickle, freeze_mapping
 from ..algebraic.cache import CACHE, poly_key, sample_identity_key
 from ..algebraic.comparison import compare_samples, sort_samples
 from ..algebraic.roots import isolate_real_roots
 from ..algebraic.sample_points import choose_sector_sample
 from ..algebraic.samples import AlgebraicRoot, FiberRootContext, RationalSample, Sample
 from ..algebraic.signs import sign_at_sample
-from ..errors import VarietyCADUnsupported
+from ..errors import ExactComputationUnavailable, ProjectionNullification, VarietyCADUnsupported
 from .lifting.groebner import GroebnerLiftOps, lift_groebner_variety
 from .lifting.sign_invariance import SignInvarianceCheck, verify_cad_sign_inv
 from .lifting.stack import CADCell, sign_table
 from .performance_cache import COMPLETE_CADS, STATS
-from .polynomial_utils import exact_univariate_poly, polynomial_family_key
+from .polynomial_utils import _cad_input_polynomials, exact_univariate_poly, polynomial_family_key
 from .polynomial_utils import polynomial_key as _poly_key
 from .projection.collins import ProjectionTower, build_collins_proj_set
 from .projection.groebner import GroebnerVarietyProjection
 
 
 @dataclass(frozen=True)
-class CADDiagnostics:
+class CADDiagnostics(FrozenMappingPickle):
     cell_count_by_level: Mapping[int, int]
     proj_poly_count_by_level: Mapping[int, int]
     max_stack_size: int
@@ -41,7 +42,7 @@ class CADDiagnostics:
 
 
 @dataclass(frozen=True)
-class CompleteCAD:
+class CompleteCAD(FrozenMappingPickle):
     tower: ProjectionTower
     cells_by_level: Mapping[int, tuple[CADCell, ...]]
     complete: bool = True
@@ -54,6 +55,12 @@ class CompleteCAD:
     @property
     def cells(self) -> tuple[CADCell, ...]:
         return self.cells_by_level.get(len(self.tower.variables), tuple())
+
+    @cached_property
+    def _point_locator(self):
+        from .lifting.point_location import _CellLocator
+
+        return _CellLocator(self.tower.variables, self.cells_by_level)
 
     def cell_count_by_level(self) -> dict[int, int]:
         return {level: len(cells) for level, cells in self.cells_by_level.items()}
@@ -75,6 +82,7 @@ class CompleteCAD:
         return max_size
 
     def verify_sign_invariance(self) -> SignInvarianceCheck:
+        """Replay recorded sample signs, without re-proving geometric delineability."""
         return verify_cad_sign_inv(self.cells_by_level, self.tower)
 
     def failed_invariants(self) -> tuple[str, ...]:
@@ -123,7 +131,7 @@ def _sample_for_fiber_arithmetic(sample: Sample) -> sp.Expr:
         if sample.fiber_context is None or not sample.fiber_context.is_nullified_at_parent():
             return sample.interval.left
     if sample.fiber_context is None and sample.polynomial.domain in (sp.ZZ, sp.QQ):
-        return sp.CRootOf(sample.polynomial.as_expr(), sample.root_index)
+        return sample.as_expr()
     if sample.fiber_context is not None:
         exact = local_tower_root_expr(sample)
         if exact is not None:
@@ -196,7 +204,9 @@ def _merge_ordered_root_streams(
     if active:
         from ..algebraic.comparison import prepare_shared_fiber_partition
 
-        prepare_shared_fiber_partition(tuple(root for stream in active for root in stream))
+        prepare_shared_fiber_partition(
+            tuple(root for stream in active for root in stream), complete=True
+        )
     positions = [0] * len(active)
     merged: list[AlgebraicRoot] = []
     while True:
@@ -231,6 +241,74 @@ def _merge_ordered_root_streams(
     return tuple(merged)
 
 
+def _delineating_polynomials(
+    poly: sp.Poly,
+    variables: Sequence[sp.Symbol],
+    prefix: Sequence[Sample],
+    var: sp.Symbol,
+) -> tuple[sp.Poly, ...]:
+    """Find the first nonzero base jet of a polynomial nullified at a point.
+
+    Over a zero-dimensional base cell, the zeros of these specialized
+    derivatives contain every place where the polynomial's order can exceed
+    its generic order along the vertical line. Splitting at their roots makes
+    that order constant on each sector; sections are points. All derivatives
+    of the first nonzero order are retained, avoiding a choice of direction.
+    """
+    derivatives = (poly,)
+    parents = tuple(variables[: len(prefix)])
+    while derivatives:
+        next_derivatives = {
+            derivative
+            for item in derivatives
+            for parent in parents
+            if not (derivative := item.diff(parent)).is_zero
+        }
+        nonzero = tuple(
+            derivative
+            for derivative in sorted(
+                next_derivatives, key=lambda item: sp.default_sort_key(item.as_expr())
+            )
+            if not FiberRootContext(
+                polynomial=derivative,
+                variables=(*parents, var),
+                parent_samples=tuple(prefix),
+                fiber_variable=var,
+            ).is_nullified_at_parent()
+        )
+        if nonzero:
+            return nonzero
+        derivatives = tuple(next_derivatives)
+    return ()
+
+
+def _roots_in_parent_tower(context: FiberRootContext) -> tuple[AlgebraicRoot, ...]:
+    """Isolate a non-nullified fiber without constructing a global number field."""
+    parents = context.variables[:-1]
+    poly = context.polynomial
+    var = context.fiber_variable
+    point_values = {}
+    for parent_var, sample in zip(parents, context.parent_samples, strict=True):
+        if isinstance(sample, RationalSample):
+            point_values[parent_var] = sample.value
+        elif sample.interval.is_point():
+            point_values[parent_var] = sample.interval.left
+    if len(point_values) == len(parents):
+        family_poly = sp.Poly(sp.expand(poly.as_expr().subs(point_values)), var, extension=True)
+        ordinary_roots = isolate_real_roots(family_poly)
+        return tuple(
+            AlgebraicRoot(family_poly, root.interval, index, root.multiplicity_hint, None, context)
+            for index, root in enumerate(ordinary_roots)
+        )
+    intervals = context.isolate_all_roots()
+    domain = context._parent_function_field(parents)
+    family_poly = sp.Poly(poly.as_expr(), var, domain=domain)
+    return tuple(
+        AlgebraicRoot(family_poly, interval, index, None, None, context)
+        for index, interval in enumerate(intervals)
+    )
+
+
 def _stack_roots_over_point(
     polys: Sequence[sp.Poly],
     variables: Sequence[sp.Symbol],
@@ -238,9 +316,42 @@ def _stack_roots_over_point(
     var: sp.Symbol,
     *,
     use_lazard: bool = False,
+    delineate_nullification: bool = False,
+    base_is_point: bool = True,
+    valuation_records=None,
 ) -> tuple[AlgebraicRoot, ...]:
+    """Collect ordered fiber roots, with optional order-invariant delineation.
+
+    Intermediate projection levels need order invariance for subsequent
+    lifting. Isolated nullifications can be delineated locally; a
+    positive-dimensional base requires a stronger projection/refinement.
+    At the final lift, nullified polynomials already have constant zero sign.
+    """
+
+    def nullified_roots(poly):
+        if not delineate_nullification or poly.degree(var) <= 0:
+            return ()
+        if not base_is_point:
+            raise ProjectionNullification(
+                "CAD needs order-invariant refinement for projection-polynomial "
+                "nullification over a positive-dimensional base cell"
+            )
+        delineating = _delineating_polynomials(poly, variables, prefix, var)
+        return _stack_roots_over_point(delineating, variables, prefix, var)
+
     streams: list[tuple[AlgebraicRoot, ...]] = []
     for poly in polys:
+        if use_lazard and prefix:
+            original_context = FiberRootContext(
+                poly, tuple(variables[: len(prefix) + 1]), tuple(prefix), var
+            )
+            if original_context.is_nullified_at_parent():
+                from .lifting.lazard import native_lazard_evaluate
+
+                evaluation = native_lazard_evaluate(poly, variables[: len(prefix) + 1], prefix)
+                if valuation_records is not None:
+                    valuation_records.append(evaluation)
+                poly = evaluation.residue
         context = (
             FiberRootContext(
                 polynomial=poly,
@@ -248,45 +359,18 @@ def _stack_roots_over_point(
                 parent_samples=tuple(prefix),
                 fiber_variable=var,
             )
-            if prefix and not use_lazard
+            if prefix
             else None
         )
         if context is not None:
-            # Complete Collins lifting needs only the ordered real sections.
-            # Isolate them directly over the certified parent tower; do not first
-            # specialize parent algebraic samples into a global AlgebraicField.
+            nullified = False
             try:
-                if context.is_nullified_at_parent():
+                nullified = context.is_nullified_at_parent()
+                if not nullified:
+                    stream = _roots_in_parent_tower(context)
+                    if stream:
+                        streams.append(stream)
                     continue
-                parents = context.variables[:-1]
-                point_values = {}
-                for parent_var, sample in zip(parents, prefix, strict=True):
-                    if isinstance(sample, RationalSample):
-                        point_values[parent_var] = sample.value
-                    elif sample.interval.is_point():
-                        point_values[parent_var] = sample.interval.left
-                if len(point_values) == len(parents):
-                    family_poly = sp.Poly(
-                        sp.expand(poly.as_expr().subs(point_values)), var, extension=True
-                    )
-                    ordinary_roots = isolate_real_roots(family_poly)
-                    stream = tuple(
-                        AlgebraicRoot(
-                            family_poly, root.interval, index, root.multiplicity, None, context
-                        )
-                        for index, root in enumerate(ordinary_roots)
-                    )
-                else:
-                    intervals = context.isolate_all_roots()
-                    domain = sp.QQ.frac_field(*parents) if parents else sp.QQ
-                    family_poly = sp.Poly(poly.as_expr(), var, domain=domain)
-                    stream = tuple(
-                        AlgebraicRoot(family_poly, interval, index, 1, None, context)
-                        for index, interval in enumerate(intervals)
-                    )
-                if stream:
-                    streams.append(stream)
-                continue
             except (
                 ArithmeticError,
                 NotImplementedError,
@@ -298,38 +382,45 @@ def _stack_roots_over_point(
                 # The fallback remains for unsupported coefficient operations,
                 # but benchmark counters make any global-field use visible.
                 CACHE.stats.number_field_fallbacks += 1
-
-        if use_lazard and prefix:
-            from .lifting.lazard import lazard_evaluate
-
-            sample_prefix = [_sample_for_fiber_arithmetic(prefix[i]) for i in range(len(prefix))]
-            expr = sp.expand(
-                lazard_evaluate(poly.as_expr(), variables[: len(prefix)], sample_prefix).final_expr
-            )
-        else:
-            specialized = _specialize_fiber_polynomial(poly, variables, prefix)
-            if isinstance(specialized, TowerFiberSpecialization):
-                tower_context = specialized.context()
-                if tower_context.is_nullified_at_parent():
-                    continue
-                intervals = tower_context.isolate_all_roots()
-                parents = specialized.variables[:-1]
-                domain = sp.QQ.frac_field(*parents) if parents else sp.QQ
-                family_poly = sp.Poly(specialized.expression, var, domain=domain)
-                stream = tuple(
-                    AlgebraicRoot(family_poly, interval, index, 1, None, tower_context)
-                    for index, interval in enumerate(intervals)
-                )
+            if nullified:
+                # A failed delineation must propagate, not be discarded by the
+                # coefficient-operation fallback above.
+                stream = nullified_roots(poly)
                 if stream:
                     streams.append(stream)
                 continue
-            expr = specialized
+
+        specialized = _specialize_fiber_polynomial(poly, variables, prefix)
+        if isinstance(specialized, TowerFiberSpecialization):
+            tower_context = specialized.context()
+            if tower_context.is_nullified_at_parent():
+                stream = nullified_roots(poly)
+                if stream:
+                    streams.append(stream)
+                continue
+            intervals = tower_context.isolate_all_roots()
+            parents = specialized.variables[:-1]
+            domain = tower_context._parent_function_field(parents)
+            family_poly = sp.Poly(specialized.expression, var, domain=domain)
+            stream = tuple(
+                AlgebraicRoot(family_poly, interval, index, None, None, tower_context)
+                for index, interval in enumerate(intervals)
+            )
+            if stream:
+                streams.append(stream)
+            continue
+        expr = specialized
         if expr == 0:
+            stream = nullified_roots(poly)
+            if stream:
+                streams.append(stream)
             continue
         try:
             univar = exact_univariate_poly(expr, var, algebraic_extension=False)
-        except (sp.PolynomialError, TypeError, ValueError):
-            continue
+        except (sp.PolynomialError, TypeError, ValueError) as exc:
+            raise ExactComputationUnavailable(
+                "CAD could not construct an exact fiber polynomial"
+            ) from exc
         if univar.degree() <= 0:
             continue
         fallback_context = (
@@ -347,7 +438,7 @@ def _stack_roots_over_point(
                 root.polynomial,
                 root.interval,
                 root.root_index,
-                root.multiplicity,
+                root.multiplicity_hint,
                 root.root_expr,
                 fallback_context,
             )
@@ -381,6 +472,10 @@ def _section_poly_for_root(
         for poly in level_polys:
             if _poly_key(poly) == defining_key:
                 return poly.as_expr(), defining_key
+        # Local delineating sections come from derivatives of a nullified
+        # projection polynomial. Their defining polynomial is not a member of
+        # the original level family, whose signs may all vanish on this fiber.
+        return defining.as_expr(), defining_key
     for poly in level_polys:
         if fiber_var not in poly.as_expr().free_symbols:
             continue
@@ -464,45 +559,109 @@ def _make_diagnostics(
     )
 
 
-def decomp_from_proj_tower(tower: ProjectionTower, *, backend: str | None = None) -> CompleteCAD:
+def decomp_from_proj_tower(
+    tower: ProjectionTower, *, backend: str | None = None, budget=None
+) -> CompleteCAD:
+    """Lift a projection tower, accounting for standalone and reduced attempts.
+
+    Complete constructors supply and finish their own attempt budget. Direct
+    reduced/EC lifts inherit the enclosing budget and charge their work before
+    a safe driver builds a refinement or fallback.
+    """
+    if budget is not None:
+        return _lift_projection_tower(tower, backend=backend, budget=budget)
+    from .resource_limits import current_budget
+
+    shared = current_budget()
+    if shared is None:
+        return _lift_projection_tower(tower, backend=backend)
+    shared.check()
+    try:
+        result = _lift_projection_tower(tower, backend=backend, budget=shared)
+    except ExactComputationUnavailable:
+        shared.restart()
+        raise
+    shared.complete(sum(map(len, result.cells_by_level.values())))
+    return result
+
+
+def _lift_projection_tower(
+    tower: ProjectionTower, *, backend: str | None = None, budget=None
+) -> CompleteCAD:
     """Lift a CAD from an already-built projection tower.
 
     This is the common lifting engine used by the complete Collins path and by
     safe reduced-CAD attempts. Correctness is not inferred from this function
-    alone: callers using reduced towers must attach a separate proof/fallback
-    certificate.
+    alone: raw reduced towers have ``complete=False`` until a safe driver
+    attaches the scope of a successful invariance certificate.
     """
 
     timings: dict[str, float] = {"projection": 0.0}
     variables = tower.variables
-    use_lazard = str(tower.metadata.get("projection", "")) == "lazard"
+    use_lazard = tower.metadata.get("projection") in {"lazard", "lazard-complete"}
+    valuation_records = []
     cells_by_level: dict[int, tuple[CADCell, ...]] = {}
     if not variables:
-        diagnostics = _make_diagnostics(tower, {0: tuple()}, timings)
+        cells_by_level = {0: (CADCell(level=0, index=(), sample=()),)}
+        diagnostics = _make_diagnostics(tower, cells_by_level, timings)
         return CompleteCAD(
             tower=tower,
-            cells_by_level={0: tuple()},
+            cells_by_level=cells_by_level,
+            complete=bool(tower.metadata.get("complete", False)),
             backend=backend or str(tower.metadata.get("projection", "custom")),
             diagnostics=diagnostics,
         )
     lift_start = perf_counter()
     roots: list[AlgebraicRoot] = []
-    for poly in tower.level(1).polynomials:
+    ec_plans = (
+        {plan.level: plan for plan in tower.metadata.get("ec_levels", ())}
+        if tower.metadata.get("ec_lifting")
+        else {}
+    )
+    base_polynomials = tower.level(1).polynomials
+    if 1 in ec_plans and ec_plans[1].equational_constraint is not None:
+        base_polynomials = (sp.Poly(ec_plans[1].equational_constraint, variables[0]),)
+    for poly in base_polynomials:
         roots.extend(isolate_real_roots(poly))
     cells_by_level[1] = _build_stack(None, sort_samples(tuple(roots)), 1, tower)
+    cell_count = len(cells_by_level[1])
+    if budget is not None:
+        budget.check(cell_count)
     for level in range(2, len(variables) + 1):
         next_cells: list[CADCell] = []
         for parent in cells_by_level[level - 1]:
+            from .projection.ec_hypotheses import ec_parent_admissible
+
+            lifting_polynomials = tower.level(level).polynomials
+            if ec_plans:
+                if not ec_parent_admissible(tower, parent):
+                    lifting_polynomials = ()
+                elif level in ec_plans and ec_plans[level].equational_constraint is not None:
+                    lifting_polynomials = (
+                        sp.Poly(ec_plans[level].equational_constraint, *variables[:level]),
+                    )
             stack_roots = _stack_roots_over_point(
-                tower.level(level).polynomials,
+                lifting_polynomials,
                 variables,
                 parent.sample,
                 variables[level - 1],
                 use_lazard=use_lazard,
+                valuation_records=valuation_records,
+                delineate_nullification=(
+                    level < len(variables) and tower.metadata.get("projection") == "collins"
+                ),
+                base_is_point=all(position % 2 == 1 for position in parent.index),
             )
             next_cells.extend(_build_stack(parent, stack_roots, level, tower))
+            if budget is not None:
+                budget.check(cell_count + len(next_cells))
         cells_by_level[level] = tuple(next_cells)
+        cell_count += len(next_cells)
     timings["lifting"] = perf_counter() - lift_start
+    if use_lazard:
+        tower = replace(
+            tower, metadata={**dict(tower.metadata), "lazard_lifts": tuple(valuation_records)}
+        )
     diag_start = perf_counter()
     diagnostics = _make_diagnostics(tower, cells_by_level, timings)
     timings["diagnostics"] = perf_counter() - diag_start
@@ -516,6 +675,7 @@ def decomp_from_proj_tower(tower: ProjectionTower, *, backend: str | None = None
     return CompleteCAD(
         tower=tower,
         cells_by_level=cells_by_level,
+        complete=bool(tower.metadata.get("complete", False)),
         backend=backend or str(tower.metadata.get("projection", "custom")),
         diagnostics=diagnostics,
     )
@@ -565,16 +725,38 @@ def try_decomp_groebner_variety(
 
 
 def decomp_collins_complete(
-    polys: Sequence[sp.Expr | sp.Poly], variables: Sequence[sp.Symbol]
+    polys: Sequence[sp.Expr | sp.Poly],
+    variables: Sequence[sp.Symbol],
+    *,
+    max_cells=None,
+    timeout=None,
 ) -> CompleteCAD:
-    """Construct a complete Collins CAD with exact projection, lifting, and diagnostic metadata."""
+    """Construct an ambient sign-invariant CAD with cooperative resource limits.
+
+    Count limits include every lifting level and apply to cached decompositions
+    too. Deadlines are checked between exact operations, not inside a symbolic
+    primitive. Incomplete work raises and is never stored in the complete cache.
+    Isolated projection nullifications use delineating derivatives. A failed
+    ordinary lift restarts with full Lazard projection and native Taylor
+    valuations, including positive-dimensional nullification strata.
+    """
+    from .resource_limits import CADBudget, current_budget
+
     vars_tuple = tuple(variables)
+    polys = _cad_input_polynomials(polys, vars_tuple)
+    budget = (
+        CADBudget(max_cells, timeout)
+        if max_cells is not None or timeout is not None
+        else current_budget()
+    )
+    if budget is not None:
+        budget.check()
     if not vars_tuple:
         tower = ProjectionTower(
             variables=tuple(),
             levels=tuple(),
-            original_polynomials=tuple(),
-            metadata={"projection": "collins-complete", "zero_variable": True},
+            original_polynomials=polys,
+            metadata={"projection": "collins-complete", "zero_variable": True, "complete": True},
         )
         cell = CADCell(level=0, index=tuple(), sample=tuple(), kind="sector")
         diagnostics = CADDiagnostics(
@@ -584,33 +766,41 @@ def decomp_collins_complete(
             timing_by_stage={},
             invariant_failures=(),
         )
+        if budget is not None:
+            budget.complete(1)
         return CompleteCAD(
             tower=tower,
             cells_by_level={0: (cell,)},
             backend="collins-complete",
             diagnostics=diagnostics,
         )
-    try:
-        input_polys = tuple(
-            poly
-            if isinstance(poly, sp.Poly) and tuple(poly.gens) == vars_tuple
-            else sp.Poly(poly.as_expr() if isinstance(poly, sp.Poly) else poly, *vars_tuple)
-            for poly in polys
-        )
-        cache_key = (polynomial_family_key(input_polys), vars_tuple)
-    except (sp.PolynomialError, TypeError, ValueError):
-        cache_key = None
-    if cache_key is not None:
-        cached = COMPLETE_CADS.get(cache_key)
-        if cached is not None:
-            STATS.complete_cad_hits += 1
-            return cached  # type: ignore[return-value]
-        STATS.complete_cad_misses += 1
+    cache_key = (polynomial_family_key(polys), vars_tuple)
+    cached = COMPLETE_CADS.get(cache_key)
+    if cached is not None:
+        if budget is not None:
+            budget.complete(sum(len(cells) for cells in cached.cells_by_level.values()))
+        STATS.complete_cad_hits += 1
+        return cached
+    STATS.complete_cad_misses += 1
 
     start = perf_counter()
+    if budget is not None:
+        budget.check()
     tower = build_collins_proj_set(polys, vars_tuple)
     projection_time = perf_counter() - start
-    cad = decomp_from_proj_tower(tower, backend="collins-complete")
+    if budget is not None:
+        budget.check()
+    try:
+        cad = decomp_from_proj_tower(tower, backend="collins-complete", budget=budget)
+    except ExactComputationUnavailable:
+        from .projection.lazard_complete import build_lazard_complete_projection
+
+        if budget is not None:
+            budget.restart()
+        fallback_start = perf_counter()
+        tower = build_lazard_complete_projection(polys, vars_tuple)
+        projection_time += perf_counter() - fallback_start
+        cad = decomp_from_proj_tower(tower, backend="lazard-complete", budget=budget)
     timings = dict(cad.diagnostics.timing_by_stage if cad.diagnostics is not None else {})
     timings["projection"] = projection_time
     diagnostics = CADDiagnostics(
@@ -622,7 +812,49 @@ def decomp_collins_complete(
             cad.diagnostics.invariant_failures if cad.diagnostics is not None else ()
         ),
     )
-    result = CompleteCAD(tower=tower, cells_by_level=cad.cells_by_level, diagnostics=diagnostics)
-    if cache_key is not None:
-        COMPLETE_CADS.put(cache_key, result)
+    result = CompleteCAD(
+        tower=cad.tower,
+        cells_by_level=cad.cells_by_level,
+        backend=cad.backend,
+        diagnostics=diagnostics,
+    )
+    if budget is not None:
+        budget.complete(sum(len(cells) for cells in result.cells_by_level.values()))
+    COMPLETE_CADS.put(cache_key, result)
     return result
+
+
+def decomp_lazard_complete(polys, variables, *, max_cells=None, timeout=None):
+    """Construct a full Lazard CAD with native valuation-aware lifting."""
+    from .projection.lazard_complete import build_lazard_complete_projection
+    from .resource_limits import CADBudget, current_budget
+
+    polys = tuple(polys)
+    variables = tuple(variables)
+    if not variables:
+        cad = decomp_collins_complete(polys, variables, max_cells=max_cells, timeout=timeout)
+        return replace(cad, backend="lazard-complete")
+    polys = _cad_input_polynomials(polys, variables)
+    budget = (
+        CADBudget(max_cells, timeout)
+        if max_cells is not None or timeout is not None
+        else current_budget()
+    )
+    key = (
+        "lazard-complete",
+        polynomial_family_key(polys),
+        variables,
+    )
+    cached = COMPLETE_CADS.get(key)
+    if cached is not None:
+        if budget is not None:
+            budget.complete(sum(map(len, cached.cells_by_level.values())))
+        return cached
+    if budget is not None:
+        budget.check()
+    tower = build_lazard_complete_projection(polys, variables)
+    cad = decomp_from_proj_tower(tower, backend="lazard-complete", budget=budget)
+    if budget is not None:
+        budget.complete(sum(map(len, cad.cells_by_level.values())))
+    COMPLETE_CADS.put(key, cad)
+    return cad

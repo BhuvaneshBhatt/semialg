@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import sympy as sp
 
 from .._zero_testing import certified_zero
+from ..exact_arithmetic import exact_sign
 from .cache import (
     CACHE,
     expr_key,
@@ -15,7 +16,12 @@ from .cache import (
     sample_identity_key,
 )
 from .exact_sign import exact_algebraic_sign
-from .roots import _ordinary_root_count, refine_root_once
+from .roots import (
+    _ordinary_root_count,
+    _ordinary_sturm_sequence,
+    _ordinary_sturm_variation,
+    refine_root_once,
+)
 from .samples import AlgebraicRoot, RationalSample, Sample, sample_to_expr
 
 
@@ -101,6 +107,7 @@ class SharedFiberPartition:
     contexts: dict[object, object]
     roots: dict[object, tuple[AlgebraicRoot, ...]]
     boundary_ranks: dict[sp.Rational, dict[object, int]]
+    root_counts: dict[object, int] = field(default_factory=dict)
 
 
 def _shared_fiber_partition_key(root: AlgebraicRoot) -> object | None:
@@ -132,18 +139,22 @@ def _shared_fiber_partition(root: AlgebraicRoot) -> SharedFiberPartition | None:
 
 
 def _rank_from_known_root_intervals(
-    roots: tuple[AlgebraicRoot, ...], value: sp.Rational
+    roots: tuple[AlgebraicRoot, ...], value: sp.Rational, *, total_roots: int | None = None
 ) -> int | None:
-    """Derive a family rank from isolated root nodes without a Sturm endpoint."""
-    below = 0
+    """Infer an absolute rank only when known nodes bracket that rank exactly.
+
+    Pairwise comparisons may register just one selected root, not its siblings.
+    Counting registered nodes would then mistake a partial family for the whole
+    real-root set and publish an incorrect Sturm boundary rank.
+    """
+    lower = 0
+    upper = total_roots
     for root in roots:
         if root.interval.right <= value:
-            below += 1
+            lower = max(lower, root.root_index + 1)
         elif value < root.interval.left:
-            break
-        else:
-            return None
-    return below
+            upper = root.root_index if upper is None else min(upper, root.root_index)
+    return lower if upper == lower else None
 
 
 def _classify_shared_boundary(
@@ -168,7 +179,9 @@ def _classify_shared_boundary(
     for family, context in tuple(partition.contexts.items()):
         if family in ranks:
             continue
-        rank = _rank_from_known_root_intervals(partition.roots.get(family, ()), value)
+        rank = _rank_from_known_root_intervals(
+            partition.roots.get(family, ()), value, total_roots=partition.root_counts.get(family)
+        )
         if rank is None and family in required_set:
             rank = context.roots_left_of(value)
         if rank is not None:
@@ -197,7 +210,7 @@ def _root_below_shared_boundary(
             return True
         if (
             cert.node_root_count == 1
-            and root.multiplicity % 2 == 1
+            and cert.interval.left < value
             and context.polynomial.degree(context.fiber_variable) >= 3
         ):
             try:
@@ -205,9 +218,14 @@ def _root_below_shared_boundary(
                 if value_sign == 0:
                     return True
                 left_sign = context.sign_at_rational(cert.interval.left)
-                if left_sign == 0:
-                    return True
-                return value_sign != left_sign
+                right_sign = context.sign_at_rational(cert.interval.right)
+                # A left endpoint may be an earlier root excluded by the
+                # ranked node. Fiber specialization may also introduce even
+                # multiplicity despite the generic root's metadata. Require
+                # an actual sign change with nonzero endpoints before using
+                # the single-root sign shortcut.
+                if left_sign * right_sign == -1:
+                    return value_sign != left_sign
             except (ArithmeticError, ValueError, TypeError):
                 pass
     below = context.root_on_or_below(root.root_index, value)
@@ -217,8 +235,15 @@ def _root_below_shared_boundary(
     return below
 
 
-def prepare_shared_fiber_partition(roots: Sequence[AlgebraicRoot]) -> None:
-    """Register all root families in one K-way merge before comparisons begin."""
+def prepare_shared_fiber_partition(
+    roots: Sequence[AlgebraicRoot], *, complete: bool = False
+) -> None:
+    """Register root families, optionally with their complete isolation result.
+
+    Only callers providing every root of each represented family may set
+    ``complete``. That count also certifies boundaries above the last root
+    without a new Sturm endpoint. Ordinary pairwise registrations stay partial.
+    """
     by_family: dict[object, list[AlgebraicRoot]] = {}
     partition = None
     for root in roots:
@@ -232,7 +257,15 @@ def prepare_shared_fiber_partition(roots: Sequence[AlgebraicRoot]) -> None:
     if partition is None:
         return
     for family, family_roots in by_family.items():
-        partition.roots[family] = tuple(sorted(family_roots, key=lambda root: root.root_index))
+        ordered = tuple(
+            {
+                root.root_index: root
+                for root in sorted(family_roots, key=lambda root: root.root_index)
+            }.values()
+        )
+        partition.roots[family] = ordered
+        if complete:
+            partition.root_counts[family] = len(ordered)
 
 
 def _order_from_shared_boundaries(
@@ -348,7 +381,8 @@ def _fiber_family_relationship(
     parents = left_context.variables[:-1]
     resultant_zero = False
     try:
-        domain = sp.QQ.frac_field(*parents) if parents else sp.QQ
+        ground = left_context._coefficient_domain.unify(right_context._coefficient_domain)
+        domain = ground.frac_field(*parents) if parents else ground
         left_compile_key = (
             "fiber-family-field-poly",
             poly_key(left_context.polynomial),
@@ -387,7 +421,7 @@ def _fiber_family_relationship(
             if CACHE.compiled_polys.get(candidate_key) is None:
                 candidate_expr = sp.expand(numerator / denominator)
                 parent_poly = (
-                    sp.Poly(candidate_expr, *parents, domain=sp.QQ)
+                    sp.Poly(candidate_expr, *parents, domain=ground)
                     if parents
                     else sp.Poly(candidate_expr)
                 )
@@ -396,10 +430,10 @@ def _fiber_family_relationship(
                 )
 
         numerator_sign = sign_at_sample(
-            sp.Poly(sp.expand(numerator), *parents, domain=sp.QQ), left_context.parent_samples
+            sp.Poly(sp.expand(numerator), *parents, domain=ground), left_context.parent_samples
         )
         denominator_sign = sign_at_sample(
-            sp.Poly(sp.expand(denominator), *parents, domain=sp.QQ), left_context.parent_samples
+            sp.Poly(sp.expand(denominator), *parents, domain=ground), left_context.parent_samples
         )
         if denominator_sign == 0:
             # The generic resultant lives over QQ(parents).  At an exceptional
@@ -569,7 +603,9 @@ def _fiber_degree_zero_coprimality_candidate(
                 fiber,
             )
         )
-        parent_poly = sp.Poly(resultant, *parents, domain=sp.QQ) if parents else sp.Poly(resultant)
+        parent_poly = (
+            sp.Poly(resultant, *parents, extension=True) if parents else sp.Poly(resultant)
+        )
     except (
         sp.PolynomialError,
         sp.polys.polyerrors.CoercionFailed,
@@ -594,7 +630,7 @@ def _fiber_degree_zero_coprime_at_section(
     if candidate is None:
         return False
     if candidate.parent_poly.total_degree() == 0:
-        sign = int(sp.sign(sp.Rational(candidate.parent_poly.as_expr())))
+        sign = exact_sign(candidate.parent_poly.as_expr())
     else:
         from .signs import sign_at_sample
 
@@ -743,11 +779,10 @@ def _fiber_common_gcd_context(
                         )
                         coefficient_poly = CACHE.compiled_polys.get(compiled_key)
                         if not isinstance(coefficient_poly, sp.Poly):
-                            coefficient_poly = sp.Poly(coefficient_expr, *parents, domain=sp.QQ)
+                            coefficient_poly = sp.Poly(coefficient_expr, *parents, extension=True)
                             CACHE.compiled_polys.put(compiled_key, coefficient_poly)
                         if coefficient_poly.total_degree() == 0:
-                            constant = sp.Rational(coefficient_poly.as_expr())
-                            coefficient_sign = int(sp.sign(constant))
+                            coefficient_sign = exact_sign(coefficient_poly.as_expr())
                         else:
                             coefficient_sign = int(
                                 sign_at_sample(coefficient_poly, left_context.parent_samples)
@@ -780,7 +815,7 @@ def _fiber_common_gcd_context(
             )
             gcd_poly = CACHE.compiled_polys.get(gcd_key)
             if not isinstance(gcd_poly, sp.Poly):
-                gcd_poly = sp.Poly(candidate.expression, *left_context.variables, domain=sp.QQ)
+                gcd_poly = sp.Poly(candidate.expression, *left_context.variables, extension=True)
                 CACHE.compiled_polys.put(gcd_key, gcd_poly)
             relationship.common_gcd = gcd_poly
             CACHE.fiber_common_gcds.put(gcd_cache_key, FiberCommonFactorCertificate(gcd_poly))
@@ -828,10 +863,10 @@ def _linear_common_factor_zero_at_root(
         specialized = gcd_poly.eval(fiber, sp.Rational(boundary))
         if isinstance(specialized, sp.Poly):
             parent_poly = specialized
-            if tuple(parent_poly.gens) != parents or parent_poly.domain != sp.QQ:
-                parent_poly = sp.Poly(parent_poly.as_expr(), *parents, domain=sp.QQ)
+            if tuple(parent_poly.gens) != parents:
+                parent_poly = sp.Poly(parent_poly.as_expr(), *parents, extension=True)
         else:
-            parent_poly = sp.Poly(sp.expand(specialized), *parents, domain=sp.QQ)
+            parent_poly = sp.Poly(sp.expand(specialized), *parents, extension=True)
         return int(sign_at_sample(parent_poly, context.parent_samples))
 
     left = sp.Rational(root.interval.left)
@@ -898,10 +933,10 @@ def _common_factor_positive_at_root(
         parents = context.variables[:-1]
         if isinstance(specialized, sp.Poly):
             parent_poly = specialized
-            if tuple(parent_poly.gens) != parents or parent_poly.domain != sp.QQ:
-                parent_poly = sp.Poly(parent_poly.as_expr(), *parents, domain=sp.QQ)
+            if tuple(parent_poly.gens) != parents:
+                parent_poly = sp.Poly(parent_poly.as_expr(), *parents, extension=True)
         else:
-            parent_poly = sp.Poly(sp.expand(specialized), *parents, domain=sp.QQ)
+            parent_poly = sp.Poly(sp.expand(specialized), *parents, extension=True)
         result = int(sign_at_sample(parent_poly, context.parent_samples))
         signs[q] = result
         return result
@@ -1014,8 +1049,8 @@ def _fiber_poly_zero_at_root(target_poly: sp.Poly, root: AlgebraicRoot) -> bool:
     # Recognize this before constructing a subresultant certificate; exceptional
     # degree-drop sections otherwise force unnecessary coefficient-field work.
     defining_poly = context.polynomial
-    if tuple(defining_poly.gens) != context.variables or defining_poly.domain != sp.QQ:
-        defining_poly = sp.Poly(defining_poly.as_expr(), *context.variables, domain=sp.QQ)
+    if tuple(defining_poly.gens) != context.variables or defining_poly.domain == sp.EX:
+        defining_poly = sp.Poly(defining_poly.as_expr(), *context.variables, extension=True)
     defining_key = poly_key(defining_poly)
     if target_key == defining_key:
         CACHE.fiber_zero_certs.put(cert_key, True)
@@ -1149,26 +1184,34 @@ def _sample_is_root_at_rational(sample: Sample, point: sp.Rational) -> bool:
     if point < sample.interval.left or point > sample.interval.right:
         return False
     if sample.fiber_context is not None:
-        try:
-            # A fiber polynomial can vanish at an interval endpoint because a
-            # *different* root of the same family lies there.  Equality with a
-            # ranked section therefore requires both endpoint vanishing and the
-            # section's absolute root rank at that boundary.
-            return (
-                sample.fiber_context.sign_at_rational(point) == 0
-                and sample.fiber_context.roots_left_of(point) == sample.root_index + 1
-            )
-        except (ArithmeticError, ValueError):
+        # Endpoint vanishing may belong to another root in the same family.
+        # An unresolved rank must not be interpreted as a strict inequality.
+        return (
+            sample.fiber_context.sign_at_rational(point) == 0
+            and sample.fiber_context.roots_left_of(point) == sample.root_index + 1
+        )
+    zero = certified_zero(sample.polynomial.eval(point))
+    if zero is False:
+        return False
+    if zero is None:
+        sign = exact_algebraic_sign(sample.polynomial.eval(point))
+        if sign is None:
+            raise ArithmeticError("could not certify the polynomial sign at a root endpoint")
+        if sign:
             return False
-    if certified_zero(sample.polynomial.eval(point)) is not True:
-        return False
-    # Ordinary isolating intervals may likewise use another root as an endpoint.
-    # Ask for the selected root, rather than equating polynomial vanishing with
-    # equality of this root object.
-    try:
-        return bool(sp.CRootOf(sample.polynomial.as_expr(), sample.root_index) == point)
-    except (NotImplementedError, ValueError, TypeError):
-        return False
+    # Sturm variations count distinct roots, including a root at the right
+    # endpoint. CRootOf positions instead include multiplicity and are not
+    # available for all algebraic coefficient domains.
+    signs = []
+    for element in _ordinary_sturm_sequence(sample.polynomial):
+        sign = exact_algebraic_sign((-1) ** element.degree() * element.LC())
+        if sign is None:
+            raise ArithmeticError("could not certify Sturm variation at negative infinity")
+        if sign:
+            signs.append(sign)
+    negative_infinity = sum(left != right for left, right in zip(signs, signs[1:], strict=False))
+    through_point = negative_infinity - _ordinary_sturm_variation(sample.polynomial, point)
+    return through_point == sample.root_index + 1
 
 
 def compare_samples(left: Sample, right: Sample) -> int:
@@ -1218,7 +1261,7 @@ def compare_samples(left: Sample, right: Sample) -> int:
                 left.polynomial,
                 cached,
                 left.root_index,
-                left.multiplicity,
+                left.multiplicity_hint,
                 left.root_expr,
                 left.fiber_context,
             )
@@ -1229,7 +1272,7 @@ def compare_samples(left: Sample, right: Sample) -> int:
                 right.polynomial,
                 cached,
                 right.root_index,
-                right.multiplicity,
+                right.multiplicity_hint,
                 right.root_expr,
                 right.fiber_context,
             )

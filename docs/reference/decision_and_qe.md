@@ -76,6 +76,8 @@ Structured certified QE result containing the quantifier-free formula, free and 
 
 Runs the complete-CAD quantifier-elimination backend for supported real polynomial formulas. It returns the eliminated Boolean formula by default. Set `return_result=True` when CAD cells, witnesses, truth-propagation state, or diagnostics are needed. The companion expert APIs `qe_from_cad`, `qe_prenex`, `qe_prenex_suffix`, `qe_blocks`, `qe_parsed`, and `qe_text` use the same convention.
 
+`qe_from_cad` checks the supplied matrix against the source's certified invariant scope. Full sign invariance permits reuse of the proved polynomial factors; reduced truth invariance permits reuse of the certified formulas. A new boundary or a query outside that scope triggers reconstruction for the current matrix. Raw reduced towers have no completed invariant certificate and are rejected. A zero-variable result has a zero-coordinate CAD containing the unique ambient empty-tuple point. See [CAD and QE](../cad_qe.md#reusing-cad-regions-safely) for executable reuse and zero-coordinate examples.
+
 ## Variables and domains
 
 Variables may be SymPy symbols or, in supported APIs, unambiguous string names. See [Symbol handling](../guides/symbol_handling.md).
@@ -85,3 +87,7 @@ Variables may be SymPy symbols or, in supported APIs, unambiguous string names. 
 A Boolean decision is a mathematical conclusion. A witness/counterexample returned by structured decision APIs is validated against the original formula before exposure.
 
 For implementation and strategy details, see [Decision procedures](../decision_procedures.md) and [Exactness and certification](../concepts/exactness_and_certification.md).
+
+## Partial and full construction
+
+Automatic closed-sentence QE uses lazy partial lifting after supported specialist passes. General free-parameter elimination retains a complete free-cell truth table and lifts its quantified suffix partially. The lazy route builds projection upfront and completes a logical decision, without claiming a full ambient decomposition. Explicit Collins strategy and `qe_by_complete_cad` retain full construction. See the [routing and executable example](../cad_qe.md#partial-cad-and-full-cad).

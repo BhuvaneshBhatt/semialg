@@ -119,6 +119,8 @@ def _canonical_affine_image(region, matrix, offset=None):
     if not isinstance(region, StandardRegion):
         raise TypeError("affine_image requires a canonical region or HRepresentation")
     A, b = _map_data(matrix, offset, region.ambient_dimension())
+    if region.conditions:
+        return _lazy_affine_image(region, A, b)
 
     if isinstance(region, Point):
         return Point(_mapped_point(A, b, region.coordinates))
@@ -171,7 +173,13 @@ def _canonical_affine_image(region, matrix, offset=None):
         vertices = tuple(_mapped_point(A, b, vertex) for vertex in region.vertices)
         if A.rows == 2 and _is_invertible_square(A):
             return Polygon(vertices)
-        return Polytope(vertices)
+        from ._standard_region_geometry import _is_convex_polygon
+
+        if _is_convex_polygon(region.vertices):
+            return Polytope(vertices)
+        # The hull of mapped vertices fills the missing pieces of a concave
+        # polygon under an embedding. Retain its actual mapped region.
+        return _lazy_affine_image(region, A, b)
     if isinstance(region, Parallelepiped):
         origin = _mapped_point(A, b, region.origin)
         vectors = tuple(_mapped_vector(A, vector) for vector in region.vectors)

@@ -4,21 +4,15 @@ Compute several geometric statistics of the unit disk from exact region integral
 
 ## Problem and interpretation
 
-Symmetry forces the centroid to the origin and the off-diagonal moments to
-vanish. The uniform probability covariance is
+Symmetry forces the centroid to the origin and the off-diagonal moments to vanish. The uniform probability covariance is
 
-\[
-\frac14 I,
-\]
+\[ \frac14 I, \]
 
 while the unit-density planar inertia tensor about the origin is
 
-\[
-\frac{\pi}{4}I.
-\]
+\[ \frac{\pi}{4}I. \]
 
-The example demonstrates how measure and moment APIs share the same exact
-integration machinery but return mathematically different normalizations.
+The example demonstrates how measure and moment APIs share the same exact integration machinery but return mathematically different normalizations.
 
 ## Executable example
 
@@ -55,5 +49,4 @@ assert region_measure(segment, [x, y]) == 0
 assert region_measure(segment, [x, y], measure_dimension="intrinsic") == 1
 ```
 
-The matching executable file is `examples/gallery/06_measure_centroid_and_moments.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/06_measure_centroid_and_moments.py`; the documentation test suite runs every gallery script.

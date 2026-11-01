@@ -6,9 +6,9 @@ an exact zero-dimensional gradient system.  A result is marked complete only
 when these hypotheses prove that every global minimum is represented by the
 critical system. Unsupported cases remain explicitly incomplete.
 
-References: Zeng--Zeng (2004) [ZZ2004] motivates the ``zeng``
+References: Zeng–Zeng (2004) [ZZ2004] motivates the ``zeng``
 naming; the present attained-minimum/critical-value route is closer in spirit
-to Zeng--Xiao (2012) [ZX2012].  See ``docs/references.md``.  This module does
+to Zeng–Xiao (2012) [ZX2012].  See ``docs/references.md``.  This module does
 not claim a verbatim implementation of either paper.
 """
 

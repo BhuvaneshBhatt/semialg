@@ -6,9 +6,7 @@ This page summarizes the mathematical ideas behind semialgebraic computation. It
 
 A **basic closed semialgebraic set** has the form
 
-\[
-\{x\in\mathbb R^n:f_i(x)=0,\;g_j(x)\ge0\}.
-\]
+\[ \{x\in\mathbb R^n:f_i(x)=0,\;g_j(x)\ge0\}. \]
 
 Allowing strict inequalities, disequalities, and finite Boolean combinations gives the general class of semialgebraic sets. Disjunctive normal form can express such a set as a finite union of basic pieces, although explicit DNF expansion can be exponentially expensive and should not be treated as a computational default.
 
@@ -18,9 +16,7 @@ The first-order theory of real closed fields admits **quantifier elimination**. 
 
 For example,
 
-\[
-\exists y\;(y^2=x)
-\]
+\[ \exists y\;(y^2=x) \]
 
 is equivalent over the reals to \(x\ge0\).
 
@@ -40,15 +36,11 @@ The geometric form of quantifier elimination is the **Tarski-Seidenberg theorem*
 
 If
 
-\[
-S\subseteq\mathbb R^{n+m},
-\]
+\[ S\subseteq\mathbb R^{n+m}, \]
 
 then
 
-\[
-\pi(S)=\{x\in\mathbb R^n:\exists y\in\mathbb R^m\;(x,y)\in S\}
-\]
+\[ \pi(S)=\{x\in\mathbb R^n:\exists y\in\mathbb R^m\;(x,y)\in S\} \]
 
 is semialgebraic.
 
@@ -77,9 +69,7 @@ Local dimension can vary. For a union of an isolated point and a curve, the isol
 
 Semialgebraic sets are stable under standard topological operations. Their closure, interior, and boundary are again semialgebraic. This allows exact computation of notions such as:
 
-\[
-\partial S=\overline S\setminus S^\circ.
-\]
+\[ \partial S=\overline S\setminus S^\circ. \]
 
 A set is **regular closed** when \(S=\overline{S^\circ}\), and **regular open** when \(S=(\overline S)^\circ\). These regularizations are useful in constructive solid geometry and in eliminating lower-dimensional artifacts.
 
@@ -93,15 +83,11 @@ More generally, semialgebraic sets admit triangulations and finite stratificatio
 
 Given a finite cell decomposition with \(c_k\) cells of dimension \(k\), the compactly supported semialgebraic Euler characteristic is
 
-\[
-\chi_c(S)=\sum_k(-1)^k c_k.
-\]
+\[ \chi_c(S)=\sum_k(-1)^k c_k. \]
 
 For compact semialgebraic sets this agrees with the ordinary Euler characteristic. Additivity is especially useful:
 
-\[
-\chi(A\cup B)=\chi(A)+\chi(B)-\chi(A\cap B).
-\]
+\[ \chi(A\cup B)=\chi(A)+\chi(B)-\chi(A\cap B). \]
 
 `CADCellComplex` and the region Euler API compute this invariant from exact CAD cells.
 
@@ -109,9 +95,7 @@ For compact semialgebraic sets this agrees with the ordinary Euler characteristi
 
 For an algebraic hypersurface \(f=0\), a point is singular when
 
-\[
-f=0,\qquad \nabla f=0.
-\]
+\[ f=0,\qquad \nabla f=0. \]
 
 For systems of equations, Jacobian-rank conditions generalize this test. Semialgebraic boundaries introduce additional subtleties: a corner formed by intersecting two smooth inequality boundaries is not necessarily an algebraic singularity of either boundary polynomial. `semialg` documents this distinction explicitly in its singular-locus API.
 
@@ -119,10 +103,18 @@ For systems of equations, Jacobian-rank conditions generalize this test. Semialg
 
 Questions of polynomial positivity over semialgebraic sets connect real algebraic geometry with optimization. A global minimum statement
 
-\[
-f(x)\ge m\quad\text{for all }x\in S
-\]
+\[ f(x)\ge m\quad\text{for all }x\in S \]
 
 is itself a quantified semialgebraic assertion. KKT systems, discriminants, algebraic critical points, CAD, and exact range computation provide complementary methods for proving such statements.
 
 Algebraic positivity certificates such as Positivstellensatz representations form another major branch of the theory. `semialg` emphasizes exact decision/CAD and structural optimization certificates instead of a full sums-of-squares/Positivstellensatz engine.
+
+
+## Further mathematical explanations and worked examples
+
+The [expanded mathematical overview](index.md) develops several foundations summarized on this page:
+
+- [Algebraic foundations](foundations.md) expands the ideal–variety correspondence, radical ideals, real radicals, elimination and dimension.
+- [Real closed fields](real_geometry.md) derives a concrete quantified projection and explains the appropriate noncompact triangulation statement.
+- [Topology and roadmaps](topology.md) distinguishes component connectivity, triangulation existence, and the package's certified topology subset.
+- [Optimization and positivity](optimization_positivity.md) separates SOS, SDP searches, exact positivity proofs and CAD decisions.

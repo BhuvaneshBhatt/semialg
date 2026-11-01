@@ -4,12 +4,9 @@ Use CAD semantics to recover components and basic exact topology.
 
 ## Problem and interpretation
 
-The two-ray set has two connected components. The disk has Euler characteristic
-\(1\), whereas the closed annulus has Euler characteristic \(0\).
+The two-ray set has two connected components. The disk has Euler characteristic \(1\), whereas the closed annulus has Euler characteristic \(0\).
 
-These operations use exact CAD-cell topology instead of a sampled graph.
-They are therefore insensitive to numerical meshing resolution, though the
-cost can be much higher than numerical topology for large problems.
+These operations use exact CAD-cell topology instead of a sampled graph. They are therefore insensitive to numerical meshing resolution, though the cost can be much higher than numerical topology for large problems.
 
 ## Executable example
 
@@ -33,5 +30,4 @@ assert euler_characteristic(disk, [x, y]) == 1
 assert euler_characteristic(annulus, [x, y]) == 0
 ```
 
-The matching executable file is `examples/gallery/05_topology_and_components.py`; the documentation
-test suite runs every gallery script.
+The matching executable file is `examples/gallery/05_topology_and_components.py`; the documentation test suite runs every gallery script.

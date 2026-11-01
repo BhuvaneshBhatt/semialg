@@ -45,6 +45,20 @@ def _check_samples(samples: Sequence[Sample]) -> None:
             raise TypeError("sign_at_sample requires explicit semialg Sample objects")
 
 
+def _compiled_exact_poly(expr, gens):
+    """Compile rational coefficients cheaply, extending only the ground field when needed."""
+    try:
+        return _compiled_qq_poly(expr, gens)
+    except sp.polys.polyerrors.CoercionFailed:
+        key = ("exact-coefficient-poly", expr_key(expr), tuple(gens))
+        cached = CACHE.compiled_polys.get(key)
+        if isinstance(cached, sp.Poly):
+            return cached
+        poly = sp.Poly(expr, *gens, extension=True)
+        CACHE.compiled_polys.put(key, poly)
+        return poly
+
+
 def _interval_add(
     a: tuple[sp.Rational, sp.Rational], b: tuple[sp.Rational, sp.Rational]
 ) -> tuple[sp.Rational, sp.Rational]:
@@ -69,24 +83,30 @@ def _interval_pow(
     return min(values), max(values)
 
 
-def _rational_polynomial_interval(
+def _polynomial_interval(
     expr: sp.Expr, gens: Sequence[sp.Symbol], samples: Sequence[Sample]
-) -> tuple[sp.Rational, sp.Rational] | None:
-    """Enclose a rational polynomial on the certified sample box."""
+) -> tuple[sp.Expr, sp.Expr] | None:
+    """Enclose a polynomial with real algebraic coefficients on the sample box."""
     active_gens = tuple(gens[: len(samples)])
     terms_key = ("rational-interval-terms", expr_key(sp.sympify(expr)), active_gens)
     terms = CACHE.interval_poly_terms.get(terms_key)
     if terms is None:
         try:
             poly = sp.Poly(expr, *active_gens, domain=sp.QQ)
-        except (sp.PolynomialError, sp.polys.polyerrors.CoercionFailed):
+        except sp.polys.polyerrors.CoercionFailed:
+            poly = sp.Poly(expr, *active_gens, extension=True)
+            if not poly.domain.is_AlgebraicField or any(
+                c.is_real is not True for c in poly.coeffs()
+            ):
+                return None
+        except sp.PolynomialError:
             return None
-        terms = tuple((powers, sp.Rational(coefficient)) for powers, coefficient in poly.terms())
+        terms = tuple(poly.terms())
         CACHE.interval_poly_terms.put(terms_key, terms)
     total = (sp.Rational(0), sp.Rational(0))
     boxes = tuple((sample.interval.left, sample.interval.right) for sample in samples)
     for powers, coefficient in terms:
-        term = (sp.Rational(coefficient), sp.Rational(coefficient))
+        term = (coefficient, coefficient)
         for box, exponent in zip(boxes, powers, strict=True):
             term = _interval_mul(term, _interval_pow(box, exponent))
         total = _interval_add(total, term)
@@ -592,7 +612,7 @@ def _tower_zero_from_fiber(
         context = root.fiber_context
         if set(expr.free_symbols).issubset(set(context.variables)):
             try:
-                target_poly = _compiled_qq_poly(expr, context.variables)
+                target_poly = _compiled_exact_poly(expr, context.variables)
                 from .comparison import _fiber_poly_zero_at_root
 
                 if _fiber_poly_zero_at_root(target_poly, root):
@@ -623,8 +643,8 @@ def _tower_zero_from_fiber(
         }
         try:
             specialized = sp.expand(expr.subs(later_subs)) if later_subs else expr
-            target_poly = _compiled_qq_poly(specialized, context.variables)
-            defining_poly = _compiled_qq_poly(context.polynomial.as_expr(), context.variables)
+            target_poly = _compiled_exact_poly(specialized, context.variables)
+            defining_poly = _compiled_exact_poly(context.polynomial.as_expr(), context.variables)
             # A global polynomial multiple of the selected fiber's defining
             # family vanishes on every section of that family.  Consume this
             # certificate before asking the more expensive section-specific
@@ -656,7 +676,7 @@ def _tower_zero_from_fiber(
         active_context = _active_context_variables(context)
         if tuple(gens[: len(samples)]) in (context.variables, active_context):
             try:
-                target_poly = _compiled_qq_poly(expr, context.variables)
+                target_poly = _compiled_exact_poly(expr, context.variables)
                 from .comparison import _fiber_cached_sign
 
                 cached_sign = _fiber_cached_sign(target_poly, root)
@@ -803,7 +823,17 @@ def _reduce_over_fiber_tower(
                 _sparse_qq_expr(sparse, active_gens) if sparse is not None else working_expr
             )
         coefficient_vars = tuple(g for g in active_gens if g != variable)
-        domain = sp.QQ.poly_ring(*coefficient_vars) if coefficient_vars else sp.QQ
+        ground = sp.QQ
+        if sparse is None:
+            # Ground algebraics are coefficients, independent of the selected
+            # parent sections. Their exact field can be extended without
+            # reconstructing any sample in the algebraic tower.
+            ground = (
+                sp.Poly(reduced_expr, *active_gens, extension=True)
+                .domain.unify(sp.Poly(defining_expr, *active_gens, extension=True).domain)
+                .get_field()
+            )
+        domain = ground.poly_ring(*coefficient_vars) if coefficient_vars else ground
         try:
             target = sp.Poly(reduced_expr, variable, domain=domain)
             defining_key = (
@@ -856,15 +886,13 @@ def _tower_sign(
     last_advanced = False
     refinement_chain = 0
     for _ in range(max_rounds + 1):
-        enclosure = _rational_polynomial_interval(expr, gens, current)
+        enclosure = _polynomial_interval(expr, gens, current)
         candidates_to_check = [enclosure]
         if enclosure is not None and enclosure[0] <= 0 <= enclosure[1]:
             if reduced_expr is None:
                 reduced_expr = _reduce_over_fiber_tower(expr, gens, samples)
             if reduced_expr != expr:
-                candidates_to_check.append(
-                    _rational_polynomial_interval(reduced_expr, gens, current)
-                )
+                candidates_to_check.append(_polynomial_interval(reduced_expr, gens, current))
         for candidate_enclosure in candidates_to_check:
             if candidate_enclosure is None:
                 continue

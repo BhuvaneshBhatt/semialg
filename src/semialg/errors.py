@@ -17,6 +17,10 @@ class ExactComputationUnavailable(SemialgStrategyFailure):
     """No implemented exact method can complete the requested computation."""
 
 
+class ProjectionNullification(ExactComputationUnavailable):
+    """A projection polynomial needs a different CAD lifting theorem."""
+
+
 class UnsupportedFragmentError(SemialgStrategyFailure, ValueError):
     """The input is valid, but outside the symbolic fragment a strategy supports."""
 
@@ -70,6 +74,7 @@ __all__ = [
     "SemialgStrategyFailure",
     "MethodNotApplicable",
     "ExactComputationUnavailable",
+    "ProjectionNullification",
     "UnsupportedFragmentError",
     "BackendFailure",
     "FormulaNormalizationError",

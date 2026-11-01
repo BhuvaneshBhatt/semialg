@@ -46,16 +46,15 @@ def _safe_affine_solution(
 
 
 def _dedupe_conjunction(expr: sp.Expr) -> sp.Expr:
+    """Remove constants and duplicates while retaining polynomial Boolean syntax."""
+    # Simplifying a disjunctive conjunct can introduce Abs or Piecewise, even
+    # when every input atom is polynomial. SymPy's Boolean constructors suffice
+    # for this cleanup, including after safe affine substitution.
     if not isinstance(expr, sp.And):
-        # Do not send arbitrary Boolean formulas through ``simplify`` here.
-        # SymPy may rewrite polynomial interval logic into non-polynomial
-        # syntax such as ``Abs(x) > 1``, which breaks the exact polynomial
-        # CAD contract. Presolve only needs conjunction cleanup here.
         return expr
     items: list[sp.Expr] = []
     seen: set[sp.Expr] = set()
     for atom in expr.args:
-        atom = sp.simplify(atom)
         if is_false_expr(atom):
             return sp.false
         if is_true_expr(atom):
@@ -230,9 +229,7 @@ def presolve_semialgebraic(
                     # Replace the defining equality by True and substitute in
                     # every other conjunct.  This is equivalence-preserving for
                     # an existentially eliminated variable.
-                    new_atoms = [
-                        sp.simplify(other.subs(var, solution)) for other in atoms if other != atom
-                    ]
+                    new_atoms = [other.subs(var, solution) for other in atoms if other != atom]
                     current = _dedupe_conjunction(sp.And(*new_atoms))
                     substitutions.append((var, sp.simplify(solution)))
                     vars_ = tuple(v for v in vars_ if v != var)

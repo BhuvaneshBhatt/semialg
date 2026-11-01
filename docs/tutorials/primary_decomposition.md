@@ -4,9 +4,7 @@ Primary decomposition writes an ideal as an intersection of primary ideals and e
 
 Consider the embedded-prime ideal
 
-\[
-I=\langle (x+y)^2,\;y(x+y)\rangle.
-\]
+\[ I=\langle (x+y)^2,\;y(x+y)\rangle. \]
 
 ```python
 import sympy as sp
@@ -30,9 +28,7 @@ assert semialg.replay_certificate(result).verified
 
 Mathematically this has the decomposition
 
-\[
-I=\langle x+y\rangle\cap\langle x^2,y\rangle,
-\]
+\[ I=\langle x+y\rangle\cap\langle x^2,y\rangle, \]
 
 so the associated primes are the minimal prime \(\langle x+y\rangle\) and the embedded maximal prime \(\langle x,y\rangle\).
 

@@ -117,7 +117,7 @@ def _block_condition(
                 first, variable, cells_by_level, side="left", base_variables=base_variables
             )
             if lower is not None:
-                pieces.append(variable > lower)
+                pieces.append(variable >= lower if closed else variable > lower)
     if right_sample is not None:
         if last.kind == "section":
             pieces.append(
@@ -128,7 +128,7 @@ def _block_condition(
                 last, variable, cells_by_level, side="right", base_variables=base_variables
             )
             if upper is not None:
-                pieces.append(variable < upper)
+                pieces.append(variable <= upper if closed else variable < upper)
     return sp.And(*pieces) if pieces else sp.true
 
 

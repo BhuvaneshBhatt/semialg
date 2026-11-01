@@ -108,7 +108,7 @@ The assumption simplifier handles `simplify_under_assumptions` with shifted and 
 
 ## Scope
 
-These simplifiers are semantic but not fully canonical. `simplify_boole` performs conservative relation canonicalization, exact univariate interval simplification, and implication-based redundancy removal, but it still does not attempt to compute a unique shortest formula for every semialgebraic set. `simplify_under_assumptions` avoids silent domain-changing rewrites unless the needed condition is already implied by the assumptions.
+These simplifiers are semantic but not fully canonical. `simplify_boole` performs sound relation canonicalization, exact univariate interval simplification, and implication-based redundancy removal, but it still does not attempt to compute a unique shortest formula for every semialgebraic set. `simplify_under_assumptions` avoids silent domain-changing rewrites unless the needed condition is already implied by the assumptions.
 
 ## Piecewise and system simplification
 
@@ -152,9 +152,7 @@ simplify_system([sp.Eq(y, x + 1), y >= 2], [x, y], eliminate_equalities=True)
 
 ## Structured sign proofs
 
-The sign-proving helpers return Boolean values by
- default while also supporting `return_result=True` for diagnostics and
- counterexamples:
+The sign-proving helpers return Boolean values by default while also supporting `return_result=True` for diagnostics and counterexamples:
 
 ```python
 result = prove_positive(x**2, [x], return_result=True)
@@ -162,9 +160,4 @@ assert not result.proven
 assert result.counterexample == {x: 0}
 ```
 
-The structured `SignProofResult` records the requested relation, normalized
-assumptions, variables, proof/refutation method, an optional certificate, and an
-optional validated counterexample. Cheap syntactic certificates are tried before
-falling back to the general implication/decision layer: constant signs, obvious
-sums of squares/even-power products, negative sums of squares, and positive
-constant-plus-squares forms.
+The structured `SignProofResult` records the requested relation, normalized assumptions, variables, proof/refutation method, an optional certificate, and an optional validated counterexample. Cheap syntactic certificates are tried before falling back to the general implication/decision layer: constant signs, obvious sums of squares/even-power products, negative sums of squares, and positive constant-plus-squares forms.

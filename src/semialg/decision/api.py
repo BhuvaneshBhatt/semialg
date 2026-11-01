@@ -313,7 +313,7 @@ def _run_auto_solve_plan(
 
     Every accepted transformation is equivalence preserving.  The planner may
     prove satisfiability without CAD only when the selected backend itself gives
-    an exact certificate (interval reduction, Fourier--Motzkin, RUR, explicit
+    an exact certificate (interval reduction, Fourier–Motzkin, RUR, explicit
     cylindrical cells, or recursively solved independent blocks).
     """
 
@@ -421,7 +421,7 @@ def _run_auto_solve_plan(
     work_profile = profile_semialgebraic_system(work_expr, work_vars)
 
     # After affine equality substitution, a linear conjunction usually consists
-    # solely of inequalities.  Fourier--Motzkin can then decide feasibility
+    # solely of inequalities.  Fourier–Motzkin can then decide feasibility
     # without constructing a CAD; the unreduced linear formula itself is an
     # exact representation of the solution set.
     if work_profile.linear and work_profile.conjunctive:

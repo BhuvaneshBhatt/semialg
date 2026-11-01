@@ -1,8 +1,8 @@
-"""Compatibility façade for finite quotient algebra now owned by algroots.
+"""Exact quotient-algebra helpers for rational univariate representations.
 
-New Semialg code should use :class:`algroots.quotient.QuotientAlgebra` directly when it
-needs equality-only quotient structure.  These private names remain temporarily
-for internal/source compatibility while carrying no independent algorithms.
+Quotient arithmetic is provided by ``algroots``. The helpers here enforce
+semialg's polynomial-input requirements and translate backend domain errors
+into errors understood by the real-algebraic solving layer.
 """
 
 from __future__ import annotations

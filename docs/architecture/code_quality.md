@@ -18,21 +18,14 @@ Reduced CAD paths use explicit side-condition reports and certification. If a re
 
 ## Performance constraints
 
-Maintainability changes should not add dispatch or allocation overhead to CAD,
-root isolation, exact sign determination, algebraic comparison, projection, or
-RUR inner loops. Prefer direct module-level helpers for repeated normalization,
-relation parsing, interval decomposition, canonical keys, and orchestration.
+Maintainability changes should not add dispatch or allocation overhead to CAD, root isolation, exact sign determination, algebraic comparison, projection, or RUR inner loops. Prefer direct module-level helpers for repeated normalization, relation parsing, interval decomposition, canonical keys, and orchestration.
 
-When a structural change affects a performance-sensitive public path, compare warmed
-before/after timings and fresh-process import/API timings where relevant. Small
-run-to-run differences in CAD-heavy tests should be treated as noise unless they
-are reproducible across repeated measurements.
+When a structural change affects a performance-sensitive public path, compare warmed before/after timings and fresh-process import/API timings where relevant. Small run-to-run differences in CAD-heavy tests should be treated as noise unless they are reproducible across repeated measurements.
 
 
 ## Focused implementation modules
 
-Large public modules should not accumulate unrelated implementation layers.
-The region modules separate exact region algebra from numerical geometry:
+Large public modules should not accumulate unrelated implementation layers. The region modules separate exact region algebra from numerical geometry:
 
 ```text
 semialg.cad_region
@@ -81,32 +74,21 @@ semialg.region_integrate
         semialg._region_integrate_parametric
 ```
 
-Public modules re-export the *same function/class objects* from focused modules,
-so triangulation, root evaluation, membership, and relation predicates do not
-acquire an extra call layer.
+Public modules re-export the *same function/class objects* from focused modules, so triangulation, root evaluation, membership, and relation predicates do not acquire an extra call layer.
 
-Likewise, the top-level package namespace is declared in
-`semialg._public_api.PUBLIC_EXPORTS`. `semialg.__all__` and lazy `__getattr__`
-are derived from that one registry so documentation and star-import surfaces do
-not maintain separate lists that can drift.
+Likewise, the top-level package namespace is declared in `semialg._public_api.PUBLIC_EXPORTS`. `semialg.__all__` and lazy `__getattr__` are derived from that one registry so documentation and star-import surfaces do not maintain separate lists that can drift.
 
 ## Exception-boundary policy
 
-Internal fallbacks catch explicit expected failure classes such as
-`EXACT_OPERATION_ERRORS`, narrower polynomial error tuples, or package-specific
-strategy failures. Production code does not catch `Exception` or
-`BaseException`: unexpected programming errors must surface instead of being
-converted into ordinary unsupported/unknown results. Optional dependencies catch
-their import errors specifically.
+Internal fallbacks catch explicit expected failure classes such as `EXACT_OPERATION_ERRORS`, narrower polynomial error tuples, or package-specific strategy failures. Production code does not catch `Exception` or `BaseException`: unexpected programming errors must surface instead of being converted into ordinary unsupported/unknown results. Optional dependencies catch their import errors specifically.
 
 The source-quality verifier and Ruff enforce this rule across the full package.
 
 ## Source hygiene
 
-`python scripts/verify_source_quality.py` checks repository rules that are not
-covered by Ruff:
+`python scripts/verify_source_quality.py` checks repository rules that are not covered by Ruff:
 
-- module/class bindings must not without reporting override earlier definitions or imports;
+- module/class bindings must not override earlier definitions or imports;
 - production code must not rewrite an object's `__module__` metadata;
 - tests must use observable state or explicit seams instead of runtime monkeypatching;
 - bound variable and parameter names are limited to 24 characters;
@@ -116,17 +98,8 @@ covered by Ruff:
 - public material does not encode development chronology or package-version prose;
 - package text does not carry references to unrelated computer-algebra products.
 
-Comments should explain invariants, mathematical assumptions, certification
-conditions, performance-sensitive choices, or non-obvious failure behavior.
-Comments that only restate the following line of code should be omitted.
-Substantial algorithms should have docstrings describing their mathematical
-contract and the conditions under which they decline to produce a result.
+Comments should explain invariants, mathematical assumptions, certification conditions, performance-sensitive choices, or non-obvious failure behavior. Comments that only restate the following line of code should be omitted. Substantial algorithms should have docstrings describing their mathematical contract and the conditions under which they decline to produce a result.
 
 ## Type annotations
 
-Annotations define stable interfaces, dataclass fields, callback contracts, and
-non-obvious container shapes. Local variables are normally left to inference
-unless an empty container or union-valued state would otherwise obscure the
-intended invariant. The codebase does not use annotations as decoration: a type
-that cannot be stated more precisely than `object` is kept broad only at public
-sympification boundaries or genuinely heterogeneous result seams.
+Annotations define stable interfaces, dataclass fields, callback contracts, and non-obvious container shapes. Local variables are normally left to inference unless an empty container or union-valued state would otherwise obscure the intended invariant. The codebase does not use annotations as decoration: a type that cannot be stated more precisely than `object` is kept broad only at public sympification boundaries or genuinely heterogeneous result seams.

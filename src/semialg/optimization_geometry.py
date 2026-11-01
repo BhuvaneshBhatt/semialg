@@ -8,7 +8,11 @@ from itertools import combinations
 import sympy as sp
 from sympy.polys.polyerrors import PolynomialError
 
-from .algebraic.groebner_utils import compute_groebner_basis
+from .algebraic.groebner_utils import (
+    algebraic_coefficient_field,
+    compute_groebner_basis,
+    polynomial_coordinates,
+)
 
 
 def polynomial_locus_dimension(
@@ -25,7 +29,9 @@ def polynomial_locus_dimension(
     if not eqs:
         return len(vars_)
     try:
-        basis = compute_groebner_basis(eqs, vars_, order="grevlex", domain=sp.QQ)
+        eqs, vars_ = polynomial_coordinates(eqs, vars_)
+        domain = algebraic_coefficient_field(eqs, vars_)
+        basis = compute_groebner_basis(eqs, vars_, order="grevlex", domain=domain)
     except (PolynomialError, ValueError, TypeError):
         return None
     if any(

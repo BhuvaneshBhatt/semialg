@@ -9,6 +9,7 @@ import sympy as sp
 from ._standard_region_geometry import (
     _affine_dimension,
     _independent_vectors,
+    _is_convex_polygon,
     _PointData,
     _provably_nonpositive,
     _provably_zero,
@@ -251,6 +252,10 @@ class Polytope(StandardRegion):
     def from_region(cls, region: StandardRegion) -> Polytope:
         """Convert a vertex-defined standard region to a canonical polytope."""
 
+        if region.conditions:
+            raise ValueError("polytope conversion requires resolved construction conditions")
+        if isinstance(region, _PolygonBase) and not _is_convex_polygon(region.vertices):
+            raise ValueError("a concave polygon cannot be converted to a convex polytope")
         if isinstance(region, (_SimplexBase, _PolygonBase)):
             return cls(region.vertices)
         if isinstance(region, _ParallelepipedBase):
@@ -270,7 +275,7 @@ class Polytope(StandardRegion):
 class Simplex(_SimplexBase):
     """Canonical simplex defined by affinely independent vertices."""
 
-    construction_conditions: tuple[sp.Expr, ...] = field(default=(), compare=False)
+    construction_conditions: tuple[sp.Expr, ...] = field(default=())
 
     def __init__(
         self,
@@ -279,6 +284,8 @@ class Simplex(_SimplexBase):
         construction_conditions: Sequence[object] = (),
     ):
         data = vertices.vertices if isinstance(vertices, _SimplexBase) else vertices
+        inherited = vertices.conditions if isinstance(vertices, _SimplexBase) else ()
+        construction_conditions = tuple(dict.fromkeys((*inherited, *construction_conditions)))
         super().__init__(data)
         conditions = tuple(
             condition
@@ -441,7 +448,7 @@ def RegularPolygon(
 class Polygon(_PolygonBase):
     """Canonical simple polygon in two-dimensional affine coordinates."""
 
-    construction_conditions: tuple[sp.Expr, ...] = field(default=(), compare=False)
+    construction_conditions: tuple[sp.Expr, ...] = field(default=())
 
     def __init__(
         self,
@@ -450,6 +457,8 @@ class Polygon(_PolygonBase):
         construction_conditions: Sequence[object] = (),
     ):
         data = vertices.vertices if isinstance(vertices, _PolygonBase) else vertices
+        inherited = vertices.conditions if isinstance(vertices, _PolygonBase) else ()
+        construction_conditions = tuple(dict.fromkeys((*inherited, *construction_conditions)))
         super().__init__(data)
         conditions = tuple(
             condition

@@ -242,7 +242,12 @@ def matrix_definiteness(
     if set(normalized_variables) & set(normalized_parameters):
         raise ValueError("variables and parameters must be disjoint")
 
-    if not normalized_variables and not normalized_parameters and not matrix_symbols:
+    if (
+        not normalized_variables
+        and not normalized_parameters
+        and not matrix_symbols
+        and normalized_domain is sp.true
+    ):
         inertia = constant_symmetric_inertia(immutable_matrix)
         outcome = None if inertia is None else _constant_outcome(inertia, requested)
         result = MatrixDefinitenessResult(

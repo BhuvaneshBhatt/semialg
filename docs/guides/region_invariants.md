@@ -37,9 +37,7 @@ Equal endpoints or zero radius may describe a degenerate region and are not the 
 
 `BooleanRegion.union`, `BooleanRegion.intersection`, and `BooleanRegion.difference` preserve set semantics. In particular,
 
-$$
-\mu(A\setminus B)=\mu(A)-\mu(A\cap B),
-$$
+$$ \mu(A\setminus B)=\mu(A)-\mu(A\cap B), $$
 
 not generally $\mu(A)-\mu(B)$.
 

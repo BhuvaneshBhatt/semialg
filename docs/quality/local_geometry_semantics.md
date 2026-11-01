@@ -1,7 +1,6 @@
 # Local geometry quality status
 
-The local-asymptotic geometry APIs use exact semialgebraic machinery for closure,
-sign, image, witness, optimization, and local-topology questions.
+The local-asymptotic geometry APIs use exact semialgebraic machinery for closure, sign, image, witness, optimization, and local-topology questions.
 
 ## Current guarantees
 
@@ -20,20 +19,10 @@ sign, image, witness, optimization, and local-topology questions.
 
 ## Validation focus
 
-Regression tests cover the universal-QE formula that exposed stale CAD sector
-sampling, sign-bearing Symbol assumptions, distant branch reconnection, unique
-and nonunique preimage fibers, sign-stratum equivalence with exhaustive small
-systems, and disjoint custom parameter strata. Slow topology contracts include
-nodes, cusps, tacnodes, translations, and other singular local models.
+Regression tests cover the universal-QE formula that exposed stale CAD sector sampling, sign-bearing Symbol assumptions, distant branch reconnection, unique and nonunique preimage fibers, sign-stratum equivalence with exhaustive small systems, and disjoint custom parameter strata. Slow topology contracts include nodes, cusps, tacnodes, translations, and other singular local models.
 
 ## Remaining limits
 
-Local connectivity can require expensive CAD and algebraic sign work on singular
-multivariate sets; these cases remain in the slow test corpus. Curve selection
-can return a theorem-backed existence certificate when a simple explicit
-polynomial witness is not found. Rational pullback operations such as
-`vanishing_order` require an explicit curve witness.
+Local connectivity can require expensive CAD and algebraic sign work on singular multivariate sets; these cases remain in the slow test corpus. Curve selection can return a theorem-backed existence certificate when a simple explicit polynomial witness is not found. Rational pullback operations such as `vanishing_order` require an explicit curve witness.
 
-`parameter_strata` makes overlapping caller cases disjoint in insertion order.
-Callers should therefore put more specific invariant cases before more general
-ones.
+`parameter_strata` makes overlapping caller cases disjoint in insertion order. Callers should therefore put more specific invariant cases before more general ones.

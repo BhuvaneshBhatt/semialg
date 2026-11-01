@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 from sympy.core.relational import Relational
-from sympy.logic.boolalg import BooleanFalse, BooleanTrue
+from sympy.logic.boolalg import BooleanFalse, BooleanTrue, to_nnf
 
 from .internal_symbols import fresh_real_dummy
 
@@ -221,13 +221,13 @@ def semialgebraic_function_graph(
         zero_graph = semialgebraic_function_graph(expr.args[1], zero_value)
         branches = sp.Or(
             sp.And(arg_value < 0, sp.Eq(target, 0)),
-            sp.And(sp.Eq(arg_value, 0), sp.Eq(target, zero_value)),
+            sp.And(sp.Eq(arg_value, 0), zero_graph.formula, sp.Eq(target, zero_value)),
             sp.And(arg_value > 0, sp.Eq(target, 1)),
         )
         return SemialgebraicFunctionGraph(
             expr,
             target,
-            sp.And(arg_graph.formula, zero_graph.formula, branches),
+            sp.And(arg_graph.formula, branches),
             tuple(
                 dict.fromkeys(
                     (
@@ -327,6 +327,24 @@ def semialgebraic_function_graph(
     return SemialgebraicFunctionGraph(expr, target, formula, tuple(dict.fromkeys(auxiliaries)))
 
 
+def _graph_boolean_nnf(formula: sp.Expr) -> sp.Expr:
+    """Push Boolean negation to atoms before introducing existential graph variables.
+
+    Relational atoms are temporarily propositional symbols because SymPy's NNF
+    converter rejects some unevaluated negations of relational expressions.
+    """
+    atoms = dict.fromkeys(
+        node for node in sp.preorder_traversal(formula) if isinstance(node, Relational)
+    )
+    replacements = {atom: sp.Dummy("semialg_boolean_atom") for atom in atoms}
+    propositional = formula.xreplace(replacements)
+    if propositional.free_symbols - set(replacements.values()):
+        raise UnsupportedFunctionGraph("Boolean graph formulas require relational atoms")
+    return to_nnf(propositional, simplify=False).xreplace(
+        {symbol: atom for atom, symbol in replacements.items()}
+    )
+
+
 def semialgebraic_formula_graph(formula: sp.Expr | bool) -> SemialgebraicFormulaGraph:
     """Algebraize supported semialgebraic function heads inside a Boolean formula.
 
@@ -353,17 +371,18 @@ def semialgebraic_formula_graph(formula: sp.Expr | bool) -> SemialgebraicFormula
             ("relational_residual_graph",),
         )
 
-    if isinstance(node, (sp.And, sp.Or, sp.Xor, sp.Equivalent, sp.Implies)):
+    if isinstance(node, (sp.Not, sp.Xor, sp.Equivalent, sp.Implies)):
+        # Existential value-defining equations must stay positive. Negating
+        # them would let an arbitrary wrong auxiliary value satisfy the formula.
+        return semialgebraic_formula_graph(_graph_boolean_nnf(node))
+
+    if isinstance(node, (sp.And, sp.Or)):
         children = [semialgebraic_formula_graph(arg) for arg in node.args]
         combined = node.func(*(child.formula for child in children))
         auxiliaries = tuple(
             dict.fromkeys(aux for child in children for aux in child.auxiliary_variables)
         )
         return SemialgebraicFormulaGraph(combined, auxiliaries)
-
-    if isinstance(node, sp.Not):
-        child = semialgebraic_formula_graph(node.args[0])
-        return SemialgebraicFormulaGraph(sp.Not(child.formula), child.auxiliary_variables)
 
     raise UnsupportedFunctionGraph(f"unsupported Boolean formula node: {node.func}")
 

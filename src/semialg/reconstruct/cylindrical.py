@@ -4,8 +4,9 @@ from collections.abc import Mapping, Sequence
 
 import sympy as sp
 
-from .._zero_testing import certified_equal
-from ..algebraic.samples import sample_to_expr
+from ..algebraic.comparison import compare_samples
+from ..algebraic.roots import isolate_real_roots
+from ..algebraic.samples import AlgebraicRoot, sample_to_expr
 from ..cad_algorithms.bounds import (
     AlgebraicRootFunction,
     CADBound,
@@ -13,6 +14,8 @@ from ..cad_algorithms.bounds import (
     as_cad_bound,
 )
 from ..cad_algorithms.lifting.stack import CADCell
+from ..cad_algorithms.polynomial_utils import exact_univariate_poly
+from ..errors import ExactEvaluationFailure
 from .radicals import fiber_root_expr
 
 
@@ -39,6 +42,40 @@ def _section_at_position(
     return None
 
 
+def _section_root_index(cell: CADCell, variable: sp.Symbol, base_variables) -> int:
+    """Identify a section among the distinct roots of its defining polynomial.
+
+    A stack can interleave roots from several polynomials. Its section position
+    is therefore not a family-local root rank. Reuse the lifting root's rank
+    when its provenance matches; otherwise isolate the specialized family and
+    identify the sample by exact comparison, including algebraic coefficients.
+    """
+    polynomial = cell.section_polynomial
+    sample = cell.sample[cell.level - 1]
+    if isinstance(sample, AlgebraicRoot):
+        defining = (
+            sample.fiber_context.polynomial
+            if sample.fiber_context is not None
+            else sample.polynomial
+        )
+        if sp.expand(polynomial - defining.as_expr()) == 0:
+            return sample.root_index
+    substitutions = {var: sample_to_expr(cell.sample[i]) for i, var in enumerate(base_variables)}
+    specialized = sp.expand(polynomial.subs(substitutions))
+    if (
+        isinstance(sample, AlgebraicRoot)
+        and sp.expand(specialized - sample.polynomial.as_expr()) == 0
+    ):
+        return sample.root_index
+    roots = isolate_real_roots(
+        exact_univariate_poly(specialized, variable, algebraic_extension=False)
+    )
+    for index, root in enumerate(roots):
+        if compare_samples(root, sample) == 0:
+            return index
+    raise ExactEvaluationFailure("could not identify the section in its defining real-root family")
+
+
 def section_value_bound(
     cell: CADCell,
     variable: sp.Symbol,
@@ -62,25 +99,10 @@ def section_value_bound(
     ):
         coefficient_symbols = sp.sympify(poly).free_symbols - {variable}
         local_root_index = int(
-            certificate.root_index if certificate is not None else cell.root_index
+            certificate.root_index
+            if certificate is not None
+            else _section_root_index(cell, variable, base_variables)
         )
-        if certificate is None:
-            try:
-                base_subs = {
-                    base_variables[i]: sample_to_expr(cell.sample[i])
-                    for i in range(min(cell.level - 1, len(base_variables)))
-                }
-                specialized = sp.expand(poly.subs(base_subs))
-                exact_poly = sp.Poly(specialized, variable, extension=True)
-                roots = tuple(root for root in exact_poly.all_roots() if root.is_real is not False)
-                sample_value = sample_to_expr(cell.sample[cell.level - 1])
-                matches = [
-                    i for i, root in enumerate(roots) if certified_equal(root, sample_value) is True
-                ]
-                if len(matches) == 1:
-                    local_root_index = matches[0]
-            except (sp.PolynomialError, ValueError, TypeError, NotImplementedError):
-                pass
         if coefficient_symbols:
             return AlgebraicRootFunction(
                 polynomial=sp.expand(poly),

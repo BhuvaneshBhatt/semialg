@@ -39,12 +39,11 @@ def test_disk_interior_of_closure_boundary_dimension():
     x, y = sp.symbols("x y", real=True)
     open_disk = x**2 + y**2 < 1
     closed_disk = x**2 + y**2 <= 1
-    closure_text = sp.sstr(region_closure(open_disk, [x, y]))
-    interior_text = sp.sstr(region_interior(closed_disk, [x, y]))
-    boundary_text = sp.sstr(region_boundary(open_disk, [x, y]))
-    assert closure_text == sp.sstr(closed_disk)
-    assert interior_text == sp.sstr(open_disk)
-    assert boundary_text == sp.sstr(sp.Eq(x**2 + y**2 - 1, 0))
+    from semialg.decision import equivalent
+
+    assert equivalent(region_closure(open_disk, (x, y)), closed_disk, (x, y))
+    assert equivalent(region_interior(closed_disk, (x, y)), open_disk, (x, y))
+    assert equivalent(region_boundary(open_disk, (x, y)), sp.Eq(x * x + y * y, 1), (x, y))
     assert region_dimension(open_disk, [x, y]) == 2
     assert region_dimension(sp.Eq(x**2 + y**2, 1), [x, y]) == 1
     assert region_dimension(sp.And(sp.Eq(x, 0), sp.Eq(y, 0)), [x, y]) == 0

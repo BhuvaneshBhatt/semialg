@@ -18,6 +18,12 @@ from .parameterization_analysis import parameterization_geometry
 
 @dataclass(frozen=True)
 class CorrelatedMapImageResult:
+    """Exact joint image formula with its source map and QE diagnostics.
+
+    The ``formula`` is a relation over ``image_variables``; it preserves
+    dependencies between coordinates that individual ranges would lose.
+    """
+
     mapping: tuple[sp.Expr, ...]
     variables: tuple[sp.Symbol, ...]
     domain: sp.Expr

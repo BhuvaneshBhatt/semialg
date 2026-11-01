@@ -1,5 +1,5 @@
 # ruff: noqa: F401
-"""Compatibility aliases for border-basis normalization helpers owned by algroots."""
+"""Normalization kernels for exact border-basis computations."""
 
 from algroots.border_basis import (
     _border_exponents,

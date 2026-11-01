@@ -46,6 +46,7 @@ def _quantifier_free(expr: sp.Basic, variable_order: Sequence[sp.Symbol]) -> sp.
     from sympy.logic.boolalg import BooleanFunction
 
     from .formula import parse_quantified_expr
+    from .presolve import presolve_semialgebraic
     from .quantifiers import Exists, ForAll
     from .solve.reduce import reduce_formula
     from .structural_keys import symbol_identity_key
@@ -58,6 +59,17 @@ def _quantifier_free(expr: sp.Basic, variable_order: Sequence[sp.Symbol]) -> sp.
                 sorted(getattr(quantified, "free_symbols", set()), key=symbol_identity_key)
             )
             order = tuple(dict.fromkeys(tuple(variable_order) + symbols + tuple(node.variables)))
+            if isinstance(node, Exists):
+                active = set(node.variables) & body.free_symbols
+                if not active:
+                    return body
+                presolved = presolve_semialgebraic(body, order, eliminate=tuple(node.variables))
+                removed = {variable for variable, _ in presolved.substitutions}
+                if active <= removed:
+                    # Barycentric and affine graph blocks often have a unique
+                    # exact solution. Avoid expanding them by full VS before
+                    # applying these globally valid existential substitutions.
+                    return normalize_formula(presolved.formula)
             parsed = parse_quantified_expr(quantified, variable_order=order)
             return normalize_formula(reduce_formula(parsed, strategy="auto"))
         if isinstance(node, BooleanFunction):

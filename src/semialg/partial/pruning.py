@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import sympy as sp
 
+from .._zero_testing import certified_pointwise_zero
 from ..exact_arithmetic import exact_sign
 from ..formula import And, Atom, BoolConst, Formula, Not, Or
 
@@ -17,10 +18,9 @@ def _formula_truth_status(formula: Formula, subs: dict[sp.Symbol, sp.Expr]):
         if value.free_symbols:
             return None
         value = sp.simplify(value)
-        if formula.op == "=":
-            return bool(value == 0)
-        if formula.op == "!=":
-            return bool(value != 0)
+        if formula.op in {"=", "!="}:
+            zero = value == 0 if value.is_Rational else certified_pointwise_zero(value)
+            return zero if zero is None or formula.op == "=" else not zero
         try:
             sign = exact_sign(value)
         except ValueError:

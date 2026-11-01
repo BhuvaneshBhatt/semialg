@@ -1,6 +1,6 @@
-"""Compatibility wrapper for exact quotient coefficient-domain validation.
+"""Validate exact coefficient domains for real rational univariate solving.
 
-The equality-only domain policy is owned by :mod:`algroots.quotient`.
+The underlying quotient-domain check is implemented by ``algroots``.
 """
 
 from algroots.errors import QuotientAlgebraError

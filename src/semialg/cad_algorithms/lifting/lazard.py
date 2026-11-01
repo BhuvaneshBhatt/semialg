@@ -9,6 +9,60 @@ from ...structural_keys import symbol_identity_key
 
 
 @dataclass(frozen=True)
+class NativeLazardEvaluation:
+    """A native Taylor residue and its lexicographically minimal valuation."""
+
+    polynomial: sp.Poly
+    variables: tuple[sp.Symbol, ...]
+    parent_samples: tuple[object, ...]
+    valuation: tuple[int, ...]
+    residue: sp.Poly
+
+
+def _nonzero_over_prefix(poly, variables, prefix):
+    from ...algebraic.signs import sign_at_sample
+
+    assigned = variables[: len(prefix)]
+    remaining = variables[len(prefix) :]
+    coefficients = sp.Poly(poly.as_expr(), *remaining).coeffs()
+    return any(
+        sign_at_sample(sp.Poly(coefficient, *assigned, domain="EX"), prefix) != 0
+        for coefficient in coefficients
+    )
+
+
+def native_lazard_evaluate(poly, variables, parent_samples):
+    """Compute Lazard valuation using Hasse derivatives over a selected tower.
+
+    The first nonzero Taylor coefficient in each assigned coordinate is found
+    by native coefficient-sign decisions. Keeping the mixed derivative as a
+    polynomial in the original variables gives a moving section selector on
+    every base cell where the valuation vector is constant. No algebraic sample
+    is substituted as a reconstructed primitive element.
+    """
+    variables = tuple(variables)
+    prefix = tuple(parent_samples)
+    if len(prefix) >= len(variables):
+        raise ValueError("Lazard lifting needs an unassigned fiber variable")
+    poly = sp.Poly(poly.as_expr() if isinstance(poly, sp.Poly) else poly, *variables)
+    if poly.is_zero:
+        raise ValueError("Lazard valuation is defined for a nonzero polynomial")
+    current = poly
+    orders = []
+    for index, variable in enumerate(variables[: len(prefix)]):
+        order = 0
+        while not _nonzero_over_prefix(current, variables, prefix[: index + 1]):
+            order += 1
+            current = sp.Poly(
+                current.diff(variable).as_expr() / order, *variables, domain=current.domain
+            )
+            if current.is_zero:
+                raise ArithmeticError("nonzero Taylor coefficient could not be established")
+        orders.append(order)
+    return NativeLazardEvaluation(poly, variables, prefix, tuple(orders), current)
+
+
+@dataclass(frozen=True)
 class LazardStep:
     variable: sp.Symbol
     sample_value: sp.Expr
@@ -101,4 +155,11 @@ def lazard_valuation(
     return lazard_evaluate(expr, assigned_vars, sample_prefix).valuation
 
 
-__all__ = ["LazardEvaluationResult", "LazardStep", "lazard_evaluate", "lazard_valuation"]
+__all__ = [
+    "LazardEvaluationResult",
+    "LazardStep",
+    "NativeLazardEvaluation",
+    "lazard_evaluate",
+    "lazard_valuation",
+    "native_lazard_evaluate",
+]

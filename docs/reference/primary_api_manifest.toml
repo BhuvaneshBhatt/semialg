@@ -334,3 +334,9 @@
 "ZariskiClosureResult" = "reference/algebraic.md#local-branch-and-reduced-variety-geometry"
 "zeng_negative_point" = "reference/root_api_usage.md#zeng_negative_point"
 "Zonotope" = "reference/regions.md#canonicalization-polygonal-paths-conversion-and-polytope-decomposition"
+
+"bounding_cover" = "optimization_geometry.md#structural-bounds-and-covers"
+"optimization_cover" = "optimization_geometry.md#structural-bounds-and-covers"
+"region_family" = "optimization_geometry.md#changing-fibers"
+"RegionFamily" = "optimization_geometry.md#changing-fibers"
+"RegionFamilyStratum" = "optimization_geometry.md#changing-fibers"

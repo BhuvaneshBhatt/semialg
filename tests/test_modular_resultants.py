@@ -1,3 +1,6 @@
+from dataclasses import replace
+
+import pytest
 import sympy as sp
 
 from semialg.algebraic import (
@@ -94,6 +97,26 @@ def test_subresultant_certificate_rejects_tampering():
         cert.modulus,
     )
     assert not verify_modular_subresultant_certificate(bad)
+
+
+@pytest.mark.parametrize("change", ["different", "swapped", "variable"])
+def test_subresultant_child_binding(change):
+    x, y = sp.symbols("x y")
+    result = modular_subresultants_qq(x**3 + 1, x + 2, x)
+    if change == "different":
+        other = modular_resultant_qq(x**3 + 1, x + 3, x).certificate
+    elif change == "swapped":
+        other = replace(
+            result.certificate.resultant_certificate,
+            first=x + 2,
+            second=x**3 + 1,
+            resultant=-result.resultant,
+        )
+    else:
+        other = modular_resultant_qq(y**3 + 1, y + 2, y).certificate
+    assert verify_modular_resultant_certificate(other)
+    candidate = replace(result.certificate, resultant_certificate=other)
+    assert not verify_modular_subresultant_certificate(candidate)
 
 
 def test_existing_subresultant_helper_uses_modular_acceleration():

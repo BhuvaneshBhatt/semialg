@@ -1,0 +1,11 @@
+# Canonical mathematical ownership; runtime dependencies follow this direction.
+[algroots]
+responsibilities = ["finite quotient arithmetic", "zero-dimensional solving", "exact coefficient fields", "reusable curve arithmetic"]
+requires = []
+[semialg]
+responsibilities = ["real loci", "inequalities", "quantifier elimination", "parameter conditions", "real graph verification"]
+requires = ["algroots"]
+[alggeom]
+responsibilities = ["coordinate rings", "schemes", "normalization", "functional decomposition"]
+requires = ["algroots"]
+optional = ["semialg"]

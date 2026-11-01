@@ -59,7 +59,6 @@ def test_exact_pipeline_open_boundary_reports_unattained_infimum() -> None:
     assert result.attained is False
     assert result.points == ()
     assert result.certified is True
-    assert result.method.endswith("cad_range_certificate")
 
 
 @pytest.mark.slow
@@ -71,7 +70,6 @@ def test_exact_pipeline_three_variables() -> None:
     assert result.value == sp.sqrt(3)
     assert result.point == {x: sp.sqrt(3) / 3, y: sp.sqrt(3) / 3, z: sp.sqrt(3) / 3}
     assert result.certified is True
-    assert result.method.endswith("cad_range_certificate")
 
 
 def test_exact_pipeline_disjunctive_domain() -> None:

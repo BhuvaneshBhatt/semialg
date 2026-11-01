@@ -8,13 +8,14 @@ semialg certificate.
 from __future__ import annotations
 
 import argparse
+import json
 import random
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import sympy as sp
@@ -144,6 +145,8 @@ def _generated_cases(count: int, seed: int):
         (((x + y) ** 2, y * (x + y)), (x, y)),
         ((x**2, x * y), (x, y)),
         ((x**2 * (x - 1) ** 3,), (x,)),
+        ((x**2 - 1, y**2), (x, y)),
+        ((x * y, y**2), (x, y)),
     ]
     while len(cases) < count:
         a = rng.choice((-3, -2, -1, 1, 2, 3))
@@ -162,12 +165,22 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--generated", type=int, default=12)
     parser.add_argument("--seed", type=int, default=1729)
+    parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
     if shutil.which("Singular") is None:
+        if args.output:
+            args.output.write_text(
+                json.dumps(
+                    {"status": "skipped", "reason": "Singular executable unavailable", "cases": []},
+                    indent=2,
+                )
+                + "\n"
+            )
         print("Singular executable not found; optional differential corpus skipped.")
         return 0
 
     cases = _generated_cases(max(3, args.generated), args.seed)
+    reports = []
     for case_index, (generators, variables) in enumerate(cases, start=1):
         result = primary_decomposition(generators, variables)
         if not result.complete or not semialg.replay_certificate(result).verified:
@@ -178,7 +191,8 @@ def main(argv: list[str] | None = None) -> int:
                 f"associated primes incomplete for case {case_index}: {generators}"
             )
         singular = _singular_compare(tuple(generators), tuple(variables), result)
-        assert singular is not None
+        if singular is None:
+            raise RuntimeError("Singular became unavailable during the corpus")
         semialg_dim = max(component.dimension for component in result.components)
         if singular.dimension != semialg_dim:
             raise AssertionError(
@@ -191,7 +205,21 @@ def main(argv: list[str] | None = None) -> int:
             )
         if not singular.agreed:
             raise AssertionError(f"primary differential mismatch for {generators}: {singular}")
+        reports.append(
+            {
+                "generators": [str(g) for g in generators],
+                "variables": [str(v) for v in variables],
+                "dimension": semialg_dim,
+                "components": len(primes.primes),
+                "agreed": singular.agreed,
+                "oracle": asdict(singular),
+            }
+        )
         print(f"ok {case_index}/{len(cases)}: {generators}")
+    if args.output:
+        args.output.write_text(
+            json.dumps({"status": "passed", "seed": args.seed, "cases": reports}, indent=2) + "\n"
+        )
     return 0
 
 

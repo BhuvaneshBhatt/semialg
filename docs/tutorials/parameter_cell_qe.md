@@ -1,0 +1,11 @@
+# Quantified parameter cells and resource limits
+
+Use quantifier elimination when a design parameter must work for every disturbance but may admit a different response to each one. The condition `forall x exists y: y**2 = x**2 + parameter` asks exactly that question. Its answer is `parameter >= 0`; swapping the quantifiers asks a different question.
+
+The [executable example](https://github.com/BhuvaneshBhatt/semialg/blob/main/examples/parameter_cell_qe.py) runs against an installed wheel. `strategy="partial"` retains every cell of parameter space and evaluates the quantified suffix lazily on each one. A negative parameter cell, the zero section, and a positive parameter cell form a complete truth table. Short-circuiting may omit quantified stacks, so the retained cells are not a complete ambient CAD and must not be passed to a full-CAD geometry consumer.
+
+`return_result=True` retains `LazyQEResult` in the dispatch result's `backend_result`. Its `truth_by_index` covers every leaf of the free-coordinate prefix; `cells_by_level` includes the visited quantified cells, and `stats` records work. `replay_certificate` reconstructs this trace, verifies a fully lifted geometric reference, and compares quantified truth. Replay can cost substantially more than construction.
+
+`max_cells` and `timeout` bound CAD work through the public `cad` and `quantifier_eliminate` interfaces. One context-local budget covers graph preprocessing, projection, lifting, failed attempts, complete-cache returns and output reconstruction. Cell counts include intermediate levels and all CAD constructions in the request. Cache returns are charged for the retained cells as well, so a warm cache cannot bypass the requested bound. Supplying a budget selects ambient budget-aware lifting instead of finite-variety lifting.
+
+`cad(..., return_result=True)` reports `status="unknown"` on resource exhaustion and retains the original statement; it cannot produce a membership function from that incomplete result. Direct mathematical outputs and strict requests raise `ResourceLimitError`. Quantifier elimination also raises that exception instead of returning an unfinished formula. Time limits are cooperative: checks between exact operations cannot interrupt a single long polynomial operation. Use process isolation when a hard deadline is required.

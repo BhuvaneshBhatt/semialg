@@ -30,4 +30,4 @@ Automatic integration reports whether numerical evaluation was requested or was 
 
 ## Resource diagnostics
 
-CAD result diagnostics report the requested strategy, effective backend, cell/projection counts, and resource-limit state. `max_cells` and wall-clock `timeout` are currently not backend-enforced; requesting them therefore produces an explicit unsupported result instead of a false guarantee.
+CAD result diagnostics report the requested strategy, effective backend, cell/projection counts, and resource-limit state. The native ambient backend enforces `max_cells` across all lifting levels, including cached decompositions. Its wall-clock `timeout` is cooperative: checks occur between exact operations and cannot interrupt a symbolic primitive already in progress. Backends without equivalent limit handling must report unsupported limits explicitly.

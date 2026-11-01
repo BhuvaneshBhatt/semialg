@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 import sympy as sp
 
 from .formula import parse_formula
-from .normalization import conjuncts
 
 
 @dataclass
@@ -108,37 +107,7 @@ class NativeRegionAnalysis:
         return self._component_formulas
 
     def bounded_certificate(self) -> bool | None:
-        """Return a cheap exact sufficient boundedness certificate.
+        """Return a structural coercivity certificate, including finite unions."""
+        from .quadratic_forms import coercively_bounded
 
-        A sublevel constraint of a coercive polynomial bounds the entire
-        conjunction.  We certify the common exact case where the leading
-        homogeneous form is a positive multiple of a power of ||x||^2.
-        """
-        norm = sp.Add(*(v**2 for v in self.variables))
-        for atom in conjuncts(self.formula):
-            if isinstance(atom, (sp.LessThan, sp.StrictLessThan)):
-                expr = sp.expand(atom.lhs - atom.rhs)
-            elif isinstance(atom, (sp.GreaterThan, sp.StrictGreaterThan)):
-                expr = sp.expand(atom.rhs - atom.lhs)
-            else:
-                continue
-            try:
-                poly = sp.Poly(expr, *self.variables)
-            except (sp.PolynomialError, TypeError, ValueError):
-                continue
-            degree = poly.total_degree()
-            if degree <= 0 or degree % 2:
-                continue
-            leading = sp.Add(
-                *(
-                    coeff
-                    * sp.prod(v**power for v, power in zip(self.variables, monom, strict=True))
-                    for monom, coeff in poly.terms()
-                    if sum(monom) == degree
-                )
-            )
-            k = degree // 2
-            ratio = sp.simplify(leading / (norm**k))
-            if not ratio.free_symbols and ratio.is_positive is True:
-                return True
-        return None
+        return coercively_bounded(self.formula, self.variables)

@@ -1,43 +1,48 @@
-"""Documentation layers have distinct roles and one canonical solver-scope statement."""
+"""Navigation and graph behavior contracts without fixed editorial phrasing."""
 
-from __future__ import annotations
-
+import re
 from pathlib import Path
 
+import sympy as sp
+
+from semialg.decision import equivalent
+from semialg.function_verification import verify_real_function
+
 ROOT = Path(__file__).resolve().parents[1]
-DOCS = ROOT / "docs"
 
 
-def test_concept_guide_reference_overviews_define_distinct_roles():
-    concepts = (DOCS / "concepts" / "index.md").read_text(encoding="utf-8")
-    guides = (DOCS / "guides" / "index.md").read_text(encoding="utf-8")
-    reference = (DOCS / "reference" / "index.md").read_text(encoding="utf-8")
-
-    assert "what a result means" in concepts
-    assert "task-oriented" in guides
-    assert "signatures" in reference and "return contracts" in reference
-
-
-def test_root_and_transcendental_scope_guides_are_navigated():
-    nav = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
+def test_navigation_targets():
     for page in (
-        "guides/certified_algebraic_roots.md",
-        "guides/transcendental_scope.md",
         "concepts/index.md",
         "guides/index.md",
         "reference/index.md",
+        "package_ownership.md",
+        "worked_applications.md",
+        "function_verification.md",
     ):
-        assert page in nav
+        assert (ROOT / "docs" / page).is_file()
+        assert page in (ROOT / "mkdocs.yml").read_text()
 
 
-def test_reference_delegates_root_workflow_explanation_to_the_guide():
-    reference = (DOCS / "reference" / "algebraic.md").read_text(encoding="utf-8")
-    assert "Certified algebraic roots" in reference
-    assert "For algorithms, endpoint" in reference
+def test_primary_workflow_links():
+    for page in ("index.md", "api_overview.md", "guides/choosing_an_api.md"):
+        path = ROOT / "docs" / page
+        links = re.findall(r"\[[^\]]+\]\(([^)]+)\)", path.read_text())
+        targets = {
+            (path.parent / target.split("#", 1)[0]).resolve()
+            for target in links
+            if "://" not in target
+        }
+        assert (ROOT / "docs" / "reference/index.md").resolve() in targets or (
+            ROOT / "docs" / "guides/choosing_an_api.md"
+        ).resolve() in targets
+        assert all(target.is_file() for target in targets)
 
 
-def test_transcendental_scope_is_canonical_and_linked_from_solver_docs():
-    solver = (DOCS / "transcendental_methods.md").read_text(encoding="utf-8")
-    exactness = (DOCS / "concepts" / "exactness_and_certification.md").read_text(encoding="utf-8")
-    assert "guides/transcendental_scope.md" in solver
-    assert "../guides/transcendental_scope.md" in exactness
+def test_graph_existence_and_uniqueness():
+    x, y = sp.symbols("x y", real=True)
+    graph = sp.And(sp.Eq(y * y, x), y >= 0)
+    result = verify_real_function(graph, input=x, output=y, domain=x >= 0)
+    assert result.total and result.single_valued
+    assert equivalent(result.totality_condition, x >= 0, (x,))
+    assert result.nonunique_condition is sp.false

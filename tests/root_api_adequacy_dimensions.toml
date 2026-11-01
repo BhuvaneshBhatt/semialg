@@ -82,8 +82,8 @@ evidence = ["tests/test_root_api_multidimensional_geometry.py::test_deduplicate_
 [apis."discretize_region_geometry"]
 owner = "geometry"
 risk = "high"
-dimensions = ["nominal", "independent-oracle", "round-trip-presentation"]
-evidence = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_discretize_region_geometry_preserves_exact_box_vertices_under_translation", "tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_region_geometry_does_not_change_discretized_semantics"]
+dimensions = ["nominal", "round-trip-presentation"]
+evidence = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_discretize_box_translation", "tests/test_root_api_multidimensional_algebraic_solving.py::test_plot_region_geometry_does_not_change_discretized_semantics"]
 
 [apis."distance_between_regions"]
 owner = "geometry"
@@ -166,8 +166,8 @@ evidence = ["tests/test_root_api_multidimensional_geometry.py::test_regularizati
 [apis."intersects"]
 owner = "geometry"
 risk = "high"
-dimensions = ["nominal", "independent-oracle"]
-evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_cover_open_closed_dense_and_full_dimensional_cases"]
+dimensions = ["nominal", "independent-semantic"]
+evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_for_region_types"]
 
 [apis."irreducible_components"]
 owner = "algebraic"
@@ -178,32 +178,32 @@ evidence = ["tests/test_root_api_multidimensional_algebraic_solving.py::test_irr
 [apis."is_closed"]
 owner = "geometry"
 risk = "high"
-dimensions = ["nominal", "independent-oracle"]
-evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_cover_open_closed_dense_and_full_dimensional_cases"]
+dimensions = ["nominal", "independent-semantic"]
+evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_for_region_types"]
 
 [apis."is_dense_in"]
 owner = "geometry"
 risk = "high"
-dimensions = ["nominal", "independent-oracle"]
-evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_cover_open_closed_dense_and_full_dimensional_cases"]
+dimensions = ["nominal", "independent-semantic"]
+evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_for_region_types"]
 
 [apis."is_full_dimensional"]
 owner = "geometry"
 risk = "high"
-dimensions = ["nominal", "independent-oracle"]
-evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_cover_open_closed_dense_and_full_dimensional_cases"]
+dimensions = ["nominal", "independent-semantic"]
+evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_for_region_types"]
 
 [apis."is_open"]
 owner = "geometry"
 risk = "high"
-dimensions = ["nominal", "independent-oracle"]
-evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_cover_open_closed_dense_and_full_dimensional_cases"]
+dimensions = ["nominal", "independent-semantic"]
+evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_for_region_types"]
 
 [apis."is_path_connected"]
 owner = "geometry"
 risk = "high"
-dimensions = ["nominal", "independent-oracle"]
-evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_cover_open_closed_dense_and_full_dimensional_cases"]
+dimensions = ["nominal", "independent-semantic"]
+evidence = ["tests/test_root_api_multidimensional_geometry.py::test_topological_predicates_for_region_types"]
 
 [apis."is_regular_closed_region"]
 owner = "geometry"
