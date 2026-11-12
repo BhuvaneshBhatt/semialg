@@ -42,6 +42,7 @@ classifiers = [
 [project.optional-dependencies]
 test = [
   "setuptools>=77",
+  "psutil>=5.9",
   "pytest>=8",
   "pytest-cov>=5",
   "hypothesis>=6",

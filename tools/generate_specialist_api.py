@@ -7,6 +7,7 @@ import importlib
 import inspect
 import pkgutil
 import tomllib
+from enum import Enum
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,12 +48,17 @@ def render():
         lines.extend([f"## `{module_name}`", "", "| Name | Signature or kind |", "| --- | --- |"])
         for name in sorted(names):
             value = getattr(module, name)
-            try:
-                signature = (
-                    str(inspect.signature(value)) if callable(value) else type(value).__name__
-                )
-            except (TypeError, ValueError):
-                signature = "type" if inspect.isclass(value) else "callable"
+            if inspect.isclass(value) and issubclass(value, Enum):
+                # Enum metaclass signatures differ between Python versions.
+                # The accepted member values describe the user-facing API.
+                signature = "enum: " + ", ".join(repr(member.value) for member in value)
+            else:
+                try:
+                    signature = (
+                        str(inspect.signature(value)) if callable(value) else type(value).__name__
+                    )
+                except (TypeError, ValueError):
+                    signature = "type" if inspect.isclass(value) else "callable"
             # Parent object representations can include process-specific addresses.
             signature = __import__("re").sub(r" at 0x[0-9A-Fa-f]+", "", signature)
             signature = signature.replace("|", "\\|").replace("\n", " ")

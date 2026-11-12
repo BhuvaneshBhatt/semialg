@@ -36,6 +36,7 @@ def test_sdist_build_inputs():
     ]
     manifest.read_template()
     required = {
+        "CHANGELOG.md",
         "examples/catalog.json",
         "tools/check_examples.py",
         "tools/generate_specialist_api.py",

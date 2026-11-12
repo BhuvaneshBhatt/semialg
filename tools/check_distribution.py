@@ -32,7 +32,7 @@ def _contract_files(root):
         root / name
         for name in (
             "README.md",
-            "RELEASE_NOTES.md",
+            "CHANGELOG.md",
             "LICENSE",
             "pyproject.toml",
             "mkdocs.yml",

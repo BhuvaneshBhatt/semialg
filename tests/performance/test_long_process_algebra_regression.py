@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import gc
-import resource
 import sys
 from time import perf_counter
 
+import psutil
 import pytest
 import sympy as sp
 
@@ -21,7 +21,12 @@ from semialg.algebraic_function_fields import (
 from semialg.cache_control import clear_caches
 
 
-def _rss_mb() -> float:
+def _peak_rss_mb() -> float:
+    """Return peak resident memory in MiB on Windows, Linux and macOS."""
+    if sys.platform == "win32":
+        return psutil.Process().memory_info().peak_wset / 1024.0**2
+    import resource
+
     # Linux reports KiB; macOS reports bytes.
     divisor = 1024.0**2 if sys.platform == "darwin" else 1024.0
     return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / divisor
@@ -50,7 +55,7 @@ def test_gtz_then_primitive_compression_has_bounded_process_degradation():
     x, y = sp.symbols("x y")
     clear_caches(include_sympy=True, collect=False)
     before_objects = len(gc.get_objects())
-    before_rss = _rss_mb()
+    before_rss = _peak_rss_mb()
 
     # Populate the same exact-algebra families implicated by the original
     # long-process reproducer without depending on test execution order.
@@ -69,7 +74,7 @@ def test_gtz_then_primitive_compression_has_bounded_process_degradation():
     _primitive_workload()
     elapsed = perf_counter() - start
     after_objects = len(gc.get_objects())
-    rss_growth = _rss_mb() - before_rss
+    rss_growth = _peak_rss_mb() - before_rss
 
     # These generous tripwires catch the known pathological long-process behavior.
     assert elapsed < 30.0
