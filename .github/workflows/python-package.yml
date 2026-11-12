@@ -35,7 +35,9 @@ jobs:
               raise RuntimeError('Publish from the tag matching project.version')
           PY
       - name: Install release and integration dependencies
-        run: python -m pip install build twine ruff '.[test,dev,docs,release]'
+        run: python -m pip install --only-binary=algroots build twine ruff '.[test,dev,docs,release]'
+      - name: Verify native algroots installation
+        run: python -c "import algroots._native_f4, algroots._native_extension, algroots._ff_sparse"
       - name: Lint and format
         run: |
           ruff check --no-cache .

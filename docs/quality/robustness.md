@@ -60,7 +60,7 @@ Expected strategy failure, unavailable exact arithmetic, and failed certificatio
 
 ## Validation
 
-The test suite includes exactness, symbol-identity, root-ordering, topology, optimization-certificate, parameter-stratification, and CAD consistency tests. All run in the default suite, including CAD cases marked `slow`; that marker supports focused profiling.
+The test suite includes exactness, symbol-identity, root-ordering, topology, optimization-certificate, parameter-stratification, and CAD consistency tests. These regression cases run in the default suite, including CAD cases marked `slow`; that marker supports focused profiling. Large `stress` workloads are selected separately.
 
 ## Region and API validation
 

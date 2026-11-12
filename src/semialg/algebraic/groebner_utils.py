@@ -156,6 +156,20 @@ def compute_groebner_basis(
                 )
                 domain = options.domain.get_field()
         from algroots import groebner_basis
+        from algroots.domains import coefficient_domain, infer_coefficient_field
+
+        if domain is not None:
+            domain = coefficient_domain(domain)
+        elif any(sp.sympify(poly).free_symbols.difference(vars_tuple) for poly in generators_tuple):
+            from algroots._validation import normalize_equation
+
+            domain = infer_coefficient_field(
+                tuple(normalize_equation(poly) for poly in generators_tuple), vars_tuple
+            )
+        if domain is not None and domain.is_FractionField and domain.domain.is_ZZ:
+            # ZZ(a) already contains the rationals. Use QQ(a) for native field
+            # arithmetic, retaining parameter order and the field's monomial order.
+            domain = sp.QQ.frac_field(*domain.symbols, order=domain.field.order)
 
         return groebner_basis(
             generators_tuple, vars_tuple, domain=domain, order=order, backend=backend, limits=limits

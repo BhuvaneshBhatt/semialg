@@ -134,3 +134,7 @@ Run `python -m pytest -m slow --durations=30` to profile the computational subse
 For a focused call profile, run `python -m cProfile -o case.prof -m pytest -q -o addopts= path/to/test.py::test_name` and inspect it with `python -m pstats case.prof`. This command includes collection and startup in the profile. A pytest call-phase profiling hook can isolate the mathematical test body when that distinction matters. Compare unprofiled timings: deterministic profiling adds substantial overhead and can trip runtime guards.
 
 Fresh subprocesses give independent cold-process measurements, including startup; running the whole suite in one process measures a different workload with shared caches. Report pytest call duration separately from subprocess elapsed time. Interpreter, plugin and test-collection startup can dominate small tests, so use focused call profiles to choose algorithmic changes and grouped suite runs to assess CI cost. A single timing comparison is diagnostic evidence; use repeated runs before treating small differences as regressions.
+
+## Large exact workloads
+
+The [stress suite](../quality/stress_workloads.md) exercises large finite quotients, primary decomposition with multiplicities, nonlinear CAD connectivity and exceptional parameter fibers. Select it with `python -m pytest -m stress tests/stress --durations=0`. These cases are excluded from the default suite.

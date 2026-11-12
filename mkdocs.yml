@@ -120,6 +120,7 @@ nav:
       - Local geometry audit: quality/local_geometry_semantics.md
       - Documentation consistency audit: quality/documentation_consistency.md
       - Reference regression suite: quality/reference_regression_suite.md
+      - Large exact workloads: quality/stress_workloads.md
       - Region testing strategy: quality/region_testing.md
       - Region capability matrix: quality/region_capability_matrix.md
       - Certificate matrix: quality/certificate_matrix.md

@@ -483,7 +483,7 @@ pytest
 mkdocs build --strict
 ```
 
-The default suite includes all test markers. Use `pytest -m slow --durations=20` or `pytest -m performance --durations=20` to inspect those subsets separately; they also run with plain `pytest`.
+The default suite includes computational and performance regression tests. Use `pytest -m slow --durations=20` or `pytest -m performance --durations=20` to inspect those subsets separately. Large [stress workloads](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/quality/stress_workloads.md) require `pytest -m stress tests/stress --durations=0`.
 
 See [architecture guide](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/architecture/design.md) for implementation structure.
 

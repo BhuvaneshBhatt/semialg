@@ -41,6 +41,7 @@ classifiers = [
 
 [project.optional-dependencies]
 test = [
+  "setuptools>=77",
   "pytest>=8",
   "pytest-cov>=5",
   "hypothesis>=6",
@@ -123,8 +124,9 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-ra"
+addopts = '-ra -m "not stress"'
 markers = [
+  "stress: large exact workloads excluded from default runs; select with -m stress",
   "contract: public API and permanent behavioral contract tests",
   "documentation: README, documentation, example, and notebook tests",
   "integration: subsystem and cross-subsystem behavioral tests",

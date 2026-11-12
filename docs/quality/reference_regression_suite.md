@@ -44,7 +44,7 @@ Public result objects are tested for stable fields, formula conversion, witness 
 
 ## Distribution checks
 
-The default suite includes every test marker and runs on supported Python versions. Publication depends on the ordinary test matrix, quality checks and optional SDP checks. The dependency matrix covers minimum and latest effective arithmetic requirements. A separate weekly run profiles the computational subset and installs Singular for the independent algebra corpus; those extra measurements do not gate ordinary publication. Reproducible randomized orders can also be selected for local runs.
+The default suite includes the computational and performance regression cases and runs on supported Python versions. Large `stress` workloads require explicit selection with `pytest -m stress tests/stress`. Publication depends on the ordinary test matrix, quality checks and optional SDP checks. The dependency matrix covers minimum and latest effective arithmetic requirements. A separate weekly run profiles the computational subset and installs Singular for the independent algebra corpus; those extra measurements do not gate ordinary publication. Reproducible randomized orders can also be selected for local runs.
 
 ## Package lifecycle and differential corpus
 

@@ -13,6 +13,37 @@ def test_explicit_backend():
     assert result == sp.groebner(system, x, y, domain=sp.QQ, order="grevlex")
 
 
+@pytest.mark.parametrize("order", ["lex", "grevlex"])
+@pytest.mark.parametrize("domain_kind", ["inferred", "integer", "string"])
+@pytest.mark.parametrize("denominators", [False, True])
+@pytest.mark.skipif(not compiled_available(), reason="native F4 extension unavailable")
+def test_parameter_domains(order, domain_kind, denominators):
+    from algroots.profiling import GroebnerProfiler
+
+    a, b, x, y = sp.symbols("a b x y")
+    parameters = (a, b) if denominators else (a,)
+    source = ((a + b) * x + y / (a - 1), x**2 - 1) if denominators else (a * x + y, x**2 - 1)
+    domain = sp.ZZ.frac_field(*parameters)
+    options = {}
+    if domain_kind != "inferred":
+        options["domain"] = str(domain) if domain_kind == "string" else domain
+    with GroebnerProfiler() as profile:
+        result = compute_groebner_basis(source, (x, y), order=order, **options)
+    assert result == sp.groebner(source, x, y, order=order, domain=sp.QQ.frac_field(*parameters))
+    assert all(result.reduce(poly)[1] == 0 for poly in source)
+    assert {row["backend"] for row in profile.records} == {"native"}
+    assert all(row["completed"] for row in profile.records)
+
+
+@pytest.mark.skipif(not compiled_available(), reason="native F4 extension unavailable")
+def test_parameter_field_order():
+    a, b, x = sp.symbols("a b x")
+    source = sp.ZZ.frac_field(b, a, order="grevlex")
+    result = compute_groebner_basis([a * x - b], (x,), domain=source)
+    assert result.domain == sp.QQ.frac_field(b, a, order="grevlex")
+    assert [poly.as_expr() for poly in result.polys] == [x - b / a]
+
+
 def test_ambiguous_options():
     x = sp.Symbol("x")
     with pytest.raises(ValueError, match="domain"):
