@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
@@ -306,10 +307,8 @@ def analyze_parametric_boundaries(
             for coeff in p.all_coeffs():
                 add(coeff, "coefficient_sign", var, (expr_poly,))
             if p.degree() >= 2:
-                try:
+                with contextlib.suppress(sp.PolynomialError, TypeError, ValueError):
                     add(sp.discriminant(p.as_expr(), var), "discriminant", var, (expr_poly,))
-                except (sp.PolynomialError, TypeError, ValueError):
-                    pass
 
     for i, left in enumerate(polys):
         for right in polys[i + 1 :]:

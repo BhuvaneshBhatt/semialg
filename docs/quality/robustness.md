@@ -60,7 +60,7 @@ Expected strategy failure, unavailable exact arithmetic, and failed certificatio
 
 ## Validation
 
-The test suite includes exactness, symbol-identity, root-ordering, topology, optimization-certificate, parameter-stratification, and CAD consistency tests. Computationally expensive CAD cases are marked `slow` so CI can run them with an appropriate time budget.
+The test suite includes exactness, symbol-identity, root-ordering, topology, optimization-certificate, parameter-stratification, and CAD consistency tests. All run in the default suite, including CAD cases marked `slow`; that marker supports focused profiling.
 
 ## Region and API validation
 
@@ -96,7 +96,7 @@ The algebraic test strategy also includes an optional Singular differential orac
 
 ## Installed-artifact testing
 
-CI builds a wheel and installs it outside the source checkout before running a public-API smoke test. The smoke also executes the core workflows used by the primary-decomposition, SOS-certification, and factorized-CAD tutorials. It asserts that `semialg.__file__` resolves to the installed artifact rather than `src/semialg`, preventing editable-tree path leakage from hiding packaging or subprocess-import defects.
+CI builds a wheel and installs it outside the source checkout before running a public-API smoke test. The smoke also executes the core workflows used by the primary-decomposition, SOS-certification, and factorized-CAD tutorials. It asserts that `semialg.__file__` resolves to the installed artifact instead of `src/semialg`, preventing editable-tree path leakage from hiding packaging or subprocess-import defects.
 
 ## Differential semantic testing
 

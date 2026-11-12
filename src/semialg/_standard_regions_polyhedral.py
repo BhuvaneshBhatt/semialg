@@ -242,11 +242,10 @@ class Polytope(StandardRegion):
             return False
         if facet_count is not None and data.facet_count != facet_count:
             return False
-        if facet_sizes is not None and sorted(len(f.vertex_indices) for f in data.facets) != sorted(
-            facet_sizes
-        ):
-            return False
-        return True
+        return not (
+            facet_sizes is not None
+            and sorted(len(f.vertex_indices) for f in data.facets) != sorted(facet_sizes)
+        )
 
     @classmethod
     def from_region(cls, region: StandardRegion) -> Polytope:

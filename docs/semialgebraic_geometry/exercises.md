@@ -46,7 +46,7 @@ These exercises accompany the mathematical overview and do not assume undocument
 - **10.** \(S^\circ=(0,1)\), \(\overline S=[0,1]\), \(\partial S=\{0,1\}\). The incorrect formula gives the empty set because it excludes boundary points not in \(S\).
 - **11.** \(\chi_c((0,1))=-1\), while \(\chi_c([0,1])=+1\). The usual homotopy Euler characteristic of each interval is \(+1\), so the open case demonstrates the distinction.
 - **12.** \(\max=\sqrt5/2\), \(\min=-\sqrt5/2\); both are attained on the boundary when the ellipsoid is closed. For the open ellipsoid, they become an unattained supremum and infimum.
-- **14.** A budget failure leaves truth unknown. Report the budget, backend, relevant proof obligation, and any validated intermediate certificates; consider specialization, variable order, or increased resources rather than reporting a mathematical counterexample.
+- **14.** A budget failure leaves truth unknown. Report the budget, backend, relevant proof obligation, and any validated intermediate certificates; consider specialization, variable order, or increased resources instead of reporting a mathematical counterexample.
 
 ## Suggested reading path
 

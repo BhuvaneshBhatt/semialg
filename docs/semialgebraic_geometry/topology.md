@@ -60,7 +60,7 @@ For a hypersurface \(f=0\), an algebraic singular point satisfies \(f=0\) and \(
 
 ## Numerical geometry versus certified topology
 
-A plotted sample of an algebraic curve can suggest connectivity, and a triangle mesh may approximate a surface well. Neither automatically proves topological equivalence. Reliable certification requires controlling roots, singularities, and incidence across cell boundaries. `semialg` deliberately distinguishes numerical geometry created from exact structure from a proof of ambient isotopy or a certified homeomorphism. See [exact versus numerical regions](../guides/exact_vs_numerical_regions.md).
+A plotted sample of an algebraic curve can suggest connectivity, and a triangle mesh may approximate a surface well. Neither automatically proves topological equivalence. Reliable certification requires controlling roots, singularities, and incidence across cell boundaries. `semialg` distinguishes numerical geometry created from exact structure from a proof of ambient isotopy or a certified homeomorphism. See [exact versus numerical regions](../guides/exact_vs_numerical_regions.md).
 
 ## A semialg example
 

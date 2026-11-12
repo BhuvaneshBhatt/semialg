@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping
 
 import sympy as sp
@@ -480,10 +481,8 @@ def _convexity_without_parameters(
             )
 
         relative_feasibility = None
-        try:
+        with contextlib.suppress(NotImplementedError):
             relative_feasibility = context.strict_feasible(relative=True, return_result=True)
-        except NotImplementedError:
-            pass
 
         reduced_expression, reduced_domain, reduced_variables, presolved = (
             _presolve_affine_equalities(expression, effective_domain, variables)

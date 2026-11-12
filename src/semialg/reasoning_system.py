@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable, Sequence
 
 import sympy as sp
@@ -196,10 +197,8 @@ def simplify_system(
     try:
         expr = simplify_boole(expr, vars_, assumptions=asm, strategy=strategy)
     except _RECOVERABLE_ERRORS:
-        try:
+        with contextlib.suppress(_RECOVERABLE_ERRORS):
             expr = simplify_boolean(expr)
-        except _RECOVERABLE_ERRORS:
-            pass
 
     atoms = _ordered_unique_exprs(conjuncts(expr))
     if not atoms:
@@ -233,10 +232,8 @@ def simplify_system(
     try:
         formula = simplify_boole(formula, vars_, assumptions=asm, strategy=strategy)
     except _RECOVERABLE_ERRORS:
-        try:
+        with contextlib.suppress(_RECOVERABLE_ERRORS):
             formula = simplify_boolean(formula)
-        except _RECOVERABLE_ERRORS:
-            pass
     cylindrical_formula_used = False
     if len(vars_) > 1:
         try:

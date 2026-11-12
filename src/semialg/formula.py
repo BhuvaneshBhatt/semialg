@@ -190,7 +190,7 @@ def _canonical_equality_residual(expr: sp.Expr) -> sp.Expr:
 
 
 def equational_constraints(formula: Formula) -> list[sp.Expr]:
-    """Return determinstic polynomial equalities required by every Boolean branch."""
+    """Return deterministic polynomial equalities required by every Boolean branch."""
 
     if isinstance(formula, Atom):
         return [_canonical_equality_residual(formula.expr)] if formula.op == "=" else []

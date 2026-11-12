@@ -1,4 +1,4 @@
-"""Exact real QE dispatch using specialist solvers and quantifier-guided CAD."""
+"""Exact real QE dispatch using specialist solvers & quantifier-guided CAD."""
 
 from __future__ import annotations
 
@@ -127,9 +127,9 @@ def _augment_with_groebner_equalities(
     """Add exact equality-ideal consequences without performing real projection.
 
     The added Groebner-basis equations generate the same equality ideal, so
-    conjoining them is equivalence-preserving over the reals.  They are used
+    conjoining them is equivalence-preserving over the reals. They are used
     only to expose safe affine substitutions and zero-dimensional structure to
-    existing certified preprocessors.  No elimination-ideal condition is ever
+    existing certified preprocessors. No elimination-ideal condition is ever
     treated as an existential projection.
     """
     if not isinstance(matrix, sp.And):
@@ -241,7 +241,7 @@ def _quantifier_eliminate(
     working_prefix = prefix
 
     # Exploit the incidence decomposition discovered by presolve instead of
-    # sending independent blocks through one larger CAD.
+    # sending independent blocks through one larger  CAD.
     factored = _conjunctive_block_factorization(
         working_matrix, presolved.variable_blocks, working_prefix
     )
@@ -373,7 +373,7 @@ def project_region(
 ) -> sp.Expr | QuantifierEliminationResult:
     """Return the exact real existential projection of ``region``.
 
-    This is the geometric façade over :func:`quantifier_eliminate`; projection
+    This is the geometric facade over :func:`quantifier_eliminate`. projection
     is existential quantification, not a separate approximate operation.
     """
     matrix = normalize_formula(region)

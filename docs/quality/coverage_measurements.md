@@ -20,4 +20,4 @@ python -m pytest --cov=semialg --cov-branch --cov-report=json:build/coverage/cov
 python scripts/check_coverage.py build/coverage/coverage.json --markdown build/coverage/summary.md
 ```
 
-Reports are uploaded even when a gate fails. Scheduled seeded oracles and profiled slow tests supplement ordinary CI; their results are reported separately from the non-slow baseline. A floor is raised after a fresh full measurement supports it.
+Reports are uploaded even when a gate fails. The default coverage run includes every test marker. Scheduled seeded oracles and focused profiling supplement ordinary CI; their reports are kept separately from the complete-suite coverage measurement. A floor is raised after a fresh full measurement supports it.

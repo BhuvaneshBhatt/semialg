@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import cached_property
 
 import sympy as sp
 
@@ -84,6 +85,17 @@ class PrimitiveElementCompression:
 @dataclass(frozen=True)
 class RationalFunctionField:
     parameters: tuple[sp.Symbol, ...]
+
+    def __post_init__(self):
+        object.__setattr__(self, "parameters", tuple(self.parameters))
+
+    def as_domain(self):
+        """Return the exact coefficient domain used by algroots and alggeom."""
+        return self._coefficient_domain
+
+    @cached_property
+    def _coefficient_domain(self):
+        return to_coefficient_domain(self)
 
     @property
     def zero(self):
@@ -161,6 +173,9 @@ class MonogenicElement:
     field: MonogenicFunctionField
     coeffs: tuple[object, ...]
 
+    def __post_init__(self):
+        object.__setattr__(self, "coeffs", tuple(self.coeffs))
+
     def __add__(self, other):
         return self.field.add(self, other)
 
@@ -199,10 +214,19 @@ class MonogenicFunctionField:
     modulus: tuple[object, ...]  # low -> high, monic
 
     def __post_init__(self):
+        object.__setattr__(self, "modulus", tuple(self.modulus))
         if len(self.modulus) < 2:
             raise ValueError("modulus must have positive degree")
         if not self.base.is_zero(self.modulus[-1] - self.base.one):
             raise ValueError("modulus must be monic")
+
+    def as_domain(self):
+        """Return a certified algroots domain with original generator embeddings."""
+        return self._coefficient_domain
+
+    @cached_property
+    def _coefficient_domain(self):
+        return to_coefficient_domain(self)
 
     @property
     def degree(self):
@@ -573,7 +597,39 @@ def tower_evaluate(expression: sp.Expr, field):
     raise FunctionFieldError(f"unsupported tower expression: {expression}")
 
 
+def to_coefficient_domain(field, *, max_degree=64, max_attempts=32):
+    """Map a rational or monogenic tower to an exact algroots coefficient field.
+
+    Each extension is checked irreducible and compressed with replayable maps.
+    The returned SymPy domain can be passed to algroots Gröbner, quotient and
+    RUR functions, including explicit native F4 selection. Original generator
+    symbols remain valid in polynomial coefficients.
+    """
+    from algroots import AlgebraicFunctionField
+
+    if isinstance(field, RationalFunctionField):
+        return sp.QQ.frac_field(*field.parameters) if field.parameters else sp.QQ
+    if not isinstance(field, MonogenicFunctionField):
+        raise TypeError("a rational function field or monogenic tower is required")
+    base = to_coefficient_domain(field.base, max_degree=max_degree, max_attempts=max_attempts)
+    if tower_degree(field) > max_degree:
+        from algroots import GroebnerLimitError
+
+        raise GroebnerLimitError("algebraic tower degree budget exceeded")
+    expression = sum(
+        field_element_to_expr(c, field.base) * field.generator**i
+        for i, c in enumerate(field.modulus)
+    )
+    polynomial = sp.Poly(expression, field.generator, domain=base)
+    return (
+        base.extend(polynomial, max_degree=max_degree, max_attempts=max_attempts)
+        if isinstance(base, AlgebraicFunctionField)
+        else AlgebraicFunctionField(polynomial)
+    )
+
+
 __all__ = [
+    "to_coefficient_domain",
     "CertifiedFactorization",
     "FunctionFieldError",
     "MonogenicElement",

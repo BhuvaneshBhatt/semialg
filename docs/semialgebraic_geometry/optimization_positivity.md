@@ -28,8 +28,7 @@ Using \(z=A^{1/2}(x-c)\), the constraint becomes \(\|z\|_2\le r\), and Cauchy–
 
 \[
 |u^\mathsf T(x-c)|
-\le r\sqrt{u^\mathsf T A^{-1}u}.
-\]
+\le r\sqrt{u^\mathsf T A^{-1}u}. \]
 
 Thus the extrema are exactly
 
@@ -88,7 +87,7 @@ The package includes **selected** SOS and Gram-certificate functionality; it doe
 | SOS / SDP certificate | Can provide concise proof identities for inequalities | May need nontrivial degree and assumption choices; numerical output needs exact replay |
 | CAD / quantifier elimination | General logical route for supported exact real polynomial formulas | Can be prohibitively expensive |
 
-A good solver uses the cheapest **certified** route and falls back conservatively when a shortcut is inapplicable. A resource-limit failure is not an inequality counterexample.
+A good solver uses the cheapest **certified** route and falls back validatedly when a shortcut is inapplicable. A resource-limit failure is not an inequality counterexample.
 
 ## Exercises
 

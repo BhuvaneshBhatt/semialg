@@ -74,7 +74,7 @@ Semialgebraic closure, interior, and boundary are semialgebraic, with the standa
 
 The closure matters. For example \(S=(0,1)\subseteq\mathbb R\) has boundary \(\{0,1\}\), neither of whose points belongs to \(S\).
 
-Every semialgebraic set admits a finite **semialgebraic triangulation** in an appropriate formulation. When the set is compact, it can be represented by the entire realization of a finite simplicial complex under a semialgebraic homeomorphism. For noncompact or nonclosed sets, one works with suitable unions of open simplices (or compatible pairs), rather than claiming a homeomorphism from an entire compact finite complex.
+Every semialgebraic set admits a finite **semialgebraic triangulation** in an appropriate formulation. When the set is compact, it can be represented by the entire realization of a finite simplicial complex under a semialgebraic homeomorphism. For noncompact or nonclosed sets, one works with suitable unions of open simplices (or compatible pairs), instead of claiming a homeomorphism from an entire compact finite complex.
 
 These results justify finite combinatorial approaches to connectivity and Euler characteristic, but they do not imply that an arbitrary triangulation is inexpensive to construct or is available through the package.
 

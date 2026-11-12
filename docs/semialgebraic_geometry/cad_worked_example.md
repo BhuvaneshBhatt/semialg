@@ -98,7 +98,7 @@ A full sign-invariant CAD may perform more work than the question requires.
 
 **Truth-table invariant CAD (TTICAD).** Instead of making all polynomial signs invariant, one may preserve the truth values of a selected family of formulas. Different formulas can have different relevant ECs.
 
-**Lazard projection and valuation-aware lifting.** Exceptional parameter fibers, including degree loss and positive-dimensional nullification, must not be ignored. The full Lazard route uses valuation information and has its own proof obligations. A complete CAD path may restart with a more conservative operator when a reduced method cannot be certified.
+**Lazard projection and valuation-aware lifting.** Exceptional parameter fibers, including degree loss and positive-dimensional nullification, must not be ignored. The full Lazard route uses valuation information and has its own proof obligations. A complete CAD path may restart with a more validated operator when a reduced method cannot be certified.
 
 These are different guarantees and strategies, not merely alternate names for the same decomposition. See [native CAD proofs](../native_cad_proofs.md), [CAD and QE](../cad_qe.md), and [algorithm selection](../concepts/algorithm_selection.md).
 
@@ -112,14 +112,13 @@ import sympy as sp
 x, y = sp.symbols("x y", real=True)
 f = y**2 - x**3 + x
 projection = sp.factor(sp.discriminant(f, y))
-assert projection == 4*x*(x - 1)*(x + 1)
-for value, expected in [(-2, 0), (-sp.Rational(1, 2), 2),
-                        (sp.Rational(1, 2), 0), (2, 2)]:
+assert projection == 4 * x * (x - 1) * (x + 1)
+for value, expected in [(-2, 0), (-sp.Rational(1, 2), 2), (sp.Rational(1, 2), 0), (2, 2)]:
     p = sp.Poly(f.subs(x, value), y)
     assert p.count_roots(-sp.oo, sp.oo) == expected
 ```
 
-For **native semialg CAD construction and independent replay**, use the tested API in [native CAD proofs](../native_cad_proofs.md). The [CAD tutorial](../tutorials/cad_factorized_partial.md) illustrates reductions and partial lifting. These references, rather than the hand calculation, define which backends and coefficient fields are supported by the package.
+For **native semialg CAD construction and independent replay**, use the tested API in [native CAD proofs](../native_cad_proofs.md). The [CAD tutorial](../tutorials/cad_factorized_partial.md) illustrates reductions and partial lifting. These references, instead of the hand calculation, define which backends and coefficient fields are supported by the package.
 
 ## Exercises
 

@@ -41,7 +41,7 @@ Specialization is safe only when the shortcut's applicability conditions are pro
 
 CAD is cylindrical **relative to a variable order**. Changing that order can change the degrees and number of projection polynomials, and thus the number of cells dramatically. The tradeoff is constrained by logical semantics: quantified variables and free variables cannot be permuted arbitrarily without preserving the intended quantifier prefix and output variables.
 
-Similarly, replacing full projection by reduced equational-constraint projection may eliminate many polynomials but introduces proof obligations about degree, delineability, and root order. Complete Lazard projection gives a more conservative certified route for some exceptional fibers. Read the [CAD proof guide](../native_cad_proofs.md) for the concrete backends supported by `semialg`.
+Similarly, replacing full projection by reduced equational-constraint projection may eliminate many polynomials but introduces proof obligations about degree, delineability, and root order. Complete Lazard projection gives a more validated certified route for some exceptional fibers. Read the [CAD proof guide](../native_cad_proofs.md) for the concrete backends supported by `semialg`.
 
 ## Roadmaps versus CAD for topology
 

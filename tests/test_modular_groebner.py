@@ -64,11 +64,12 @@ def test_shared_groebner_helper_matches_direct_exact_basis():
     assert _exprs(accelerated) == _exprs(direct)
 
 
-def test_shared_helper_falls_back_for_parameter_coefficients():
+def test_shared_helper_parameter_coefficients():
     a, x, y = sp.symbols("a x y")
     generators = (a * x + y, x**2 - 1)
     accelerated = compute_groebner_basis(generators, (x, y), order="lex")
-    direct = sp.groebner(generators, x, y, order="lex")
+    direct = sp.groebner(generators, x, y, order="lex", domain=sp.QQ.frac_field(a))
+    assert accelerated.domain == direct.domain
     assert _exprs(accelerated) == _exprs(direct)
 
 

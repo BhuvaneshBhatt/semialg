@@ -3,9 +3,51 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from contextvars import ContextVar
+from functools import wraps
 from typing import Any
 
 import sympy as sp
+
+_construction_backend = ContextVar("semialg_groebner_backend", default="native")
+_construction_limits = ContextVar("semialg_groebner_limits", default=None)
+
+
+def _backend_policy(function):
+    """Keep recursive adapter calls on the explicitly selected construction backend.
+
+    A context variable isolates concurrent requests. The wrapper supplies an
+    inherited choice only when the nested caller omits its keyword; explicit
+    selections always win. Basis caches include the resolved backend.
+    """
+
+    @wraps(function)
+    def scoped(*args, **kwargs):
+        from algroots.basis import _validate_backend
+
+        backend = kwargs.setdefault("groebner_backend", _construction_backend.get())
+        inherited_limits = (
+            _construction_limits.get() if backend == _construction_backend.get() else None
+        )
+        limits = kwargs.setdefault("groebner_limits", inherited_limits)
+        _validate_backend(backend, limits)
+        token = _construction_backend.set(backend)
+        limits_token = _construction_limits.set(limits)
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _construction_limits.reset(limits_token)
+            _construction_backend.reset(token)
+
+    return scoped
+
+
+def _selected_backend(backend):
+    return _construction_backend.get() if backend is None else backend
+
+
+def _selected_limits(limits):
+    return _construction_limits.get() if limits is None else limits
 
 
 def polynomial_coordinates(generators, variables):
@@ -82,19 +124,42 @@ def compute_groebner_basis(
     extension: bool | None = None,
     modulus: int | None = None,
     modular: bool | None = None,
+    backend=None,
+    limits=None,
 ) -> sp.polys.polytools.GroebnerBasis:
     """Construct a Groebner basis with one consistent zero-variable guard.
 
-    The helper does not hide SymPy failures or change coefficient
-    semantics.  It centralizes option assembly so exact callers do not each
-    reinvent domain/extension handling and accidentally request an invalid
-    generator-free polynomial ring.
+    An omitted backend inherits the enclosing adapter's choice, defaulting to
+    native F4. ``backend="sympy"`` selects portable construction;
+    ``modular`` controls only its legacy modular proposals. Domain, extension
+    and modulus options retain their coefficient-field meanings on both paths.
     """
 
+    backend = _selected_backend(backend)
+    if backend == _construction_backend.get():
+        limits = _selected_limits(limits)
     vars_tuple = tuple(variables)
     if not vars_tuple:
         raise sp.PolynomialError("Groebner basis construction requires variables")
     generators_tuple = tuple(generators)
+    if backend != "sympy" or limits is not None:
+        if modulus is not None:
+            if domain is not None or extension is not None:
+                raise ValueError("modulus cannot be combined with domain or extension")
+            domain = sp.GF(modulus)
+        elif extension is not None:
+            if domain is not None:
+                raise ValueError("extension cannot be combined with domain")
+            if extension is not True:
+                _, options = sp.parallel_poly_from_expr(
+                    generators_tuple, *vars_tuple, extension=extension
+                )
+                domain = options.domain.get_field()
+        from algroots import groebner_basis
+
+        return groebner_basis(
+            generators_tuple, vars_tuple, domain=domain, order=order, backend=backend, limits=limits
+        )
 
     if modular is not False and modulus is None and extension is None:
         qq_eligible = domain is None or domain == sp.QQ

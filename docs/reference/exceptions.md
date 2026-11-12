@@ -86,4 +86,4 @@ except ResourceLimitError:
     ...
 ```
 
-For the distinction between unsupported input, strategy failure, and conservative exact failure, see [Errors and failure modes](../guides/errors_and_failure_modes.md).
+For the distinction between unsupported input, strategy failure, and validated exact failure, see [Errors and failure modes](../guides/errors_and_failure_modes.md).

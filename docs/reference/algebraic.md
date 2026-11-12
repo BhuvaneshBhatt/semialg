@@ -5,11 +5,9 @@
 
 **Exactness and certification.** Root identity/order and algebraic signs use exact arithmetic, isolating information, or number-field/RUR machinery instead of fixed-precision comparison.
 
-**Algorithm.** Facilities include root isolation/classification, rational univariate representation, subresultant and border-basis machinery, and cached exact algebraic comparisons. The equality-only finite quotient/RUR/border-basis kernel is supplied by `algroots>=0.3.0`; Semialg owns the semialgebraic filtering, sign, witness, and decision layers built on top of it.
+**Algorithm.** Facilities include root isolation/classification, rational univariate representation, subresultant and border-basis machinery, and cached exact algebraic comparisons. The equality-only finite quotient/RUR/border-basis kernel is supplied by `algroots>=0.4.1`; `semialg` owns the semialgebraic filtering, sign, witness, and decision layers built on top of it.
 
 **Complexity and limitations.** Degree growth and coefficient growth can dominate. Positive-dimensional algebraic sets generally require region/CAD or algebraic-geometry APIs instead of finite RUR solving.
-
-
 
 
 ## Primary API overview
@@ -116,23 +114,22 @@ The decomposition engine combines several exact reductions according to the stru
 - monomial Groebner bases are reduced to minimal coordinate primes using minimal
   vertex covers of the monomial supports;
 - factorizable Groebner generators are represented by a factor-support
-  hypergraph whose inclusion-minimal hitting sets give an exact reduced-set
-  cover;
+  hypergraph whose inclusion-minimal hitting sets give an exact reduced-set cover;
 - lexicographic triangular slices are refined through exact initial and separant
   saturations; terminal branches can then be certified by a squarefree regular
-  chain.  The chain certificate requires distinct leaders, regular initials and
+  chain. The chain certificate requires distinct leaders, regular initials and
   separants under exact saturation, and exact equality between the saturated
   chain ideal and the branch ideal.  In characteristic zero this proves the
   saturated ideal radical and unmixed, hence equidimensional;
 - Rabinowitsch saturation may split an ideal through
   `V(I) = V(I + <h>) union V(I : h^infinity)` when radical-containment checks
-  prove that both branches are strict reduced subloci;
+  prove that both branches are strict reduced sub-loci;
 - definite sums of even monomials and positive-semidefinite quadratic
   polynomials with exact minimum zero admit certified real-radical reductions.
 
 These reductions cooperate instead of define separate public modes. For example, `(f*x, f*z)` is represented as `V(f) union V(x, z)`, while `(f**2, f*z)` reduces to `V(f)` after contained branches are removed. Over the reals, `x**2 + y**2 = 0` in three variables is represented by the line `V(x, y)`, and `x**2*y**2 + z**2 = 0` is represented by `V(x, z) union V(y, z)`. A definite equation such as `x**2 + y**2 + 1 = 0` is certified empty. When real reduction lowers dimension, `algebraic_dimension` preserves the Krull dimension of the pre-reduction branch so the distinction is explicit.
 
-The regular-chain layer also supplies certified recursive minimal-prime refinement.  Primality is tested in the successive quotient/fraction fields of the triangular prefix instead of by factoring each polynomial in the ambient ring.  Reducible leader polynomials produce exact child branches, which are re-normalized and recursively analyzed before the final radical-intersection reconstruction check.  The exact coefficient layer supports recursive monogenic extensions over rational-function fields.  Factorization descends by norms/resultants and recovers factors by gcd in the extension; quotient-ring/saturation splitting is retained as a conservative fallback when the norm route cannot decide.
+The regular-chain layer also supplies certified recursive minimal-prime refinement.  Primality is tested in the successive quotient/fraction fields of the triangular prefix instead of by factoring each polynomial in the ambient ring.  Reducible leader polynomials produce exact child branches, which are re-normalized and recursively analyzed before the final radical-intersection reconstruction check.  The exact coefficient layer supports recursive monogenic extensions over rational-function fields.  Factorization descends by norms/resultants and recovers factors by gcd in the extension; quotient-ring/saturation splitting is retained as a validated fallback when the norm route cannot decide.
 
 The regular-chain layer substantially broadens general equidimensional certification beyond hypersurfaces and generator-count complete intersections; for example, the monomial curve `<x**2-y, x*y-z>` is certified through the squarefree chain `(y-x**2, z-x**3)` even though its reduced Groebner basis has three generators at codimension two.  The implementation now also provides a certified primary-decomposition layer. Prime, principal, monomial, and zero-dimensional regimes use specialized fast paths; arbitrary positive-dimensional nonmonomial ideals fall through to the recursive GTZ localization/contraction engine.  A general real-Nullstellensatz algorithm remains outside this layer.  A positive-dimensional terminal ideal that cannot be proved equidimensional remains represented exactly with `equidimensional=False`, and the enclosing decomposition has `complete=False`. No unsupported case is promoted to a componentwise geometric conclusion.
 
@@ -164,7 +161,7 @@ For arbitrary positive-dimensional nonmonomial ideals, the recursive GTZ driver 
 
 Contraction back to `QQ[U,X]` uses the existing monic-local-basis denominator certificate.  To recover the residual branch, GTZ computes for each contracted hull generator `g` a nonzero parameter annihilator in `(I:g) intersect QQ[U]`; their product `h` is then certified by exact colon stabilization.  Replay checks `I:h^infinity` equals the localized hull and verifies `I = (I:h^infinity) intersect (I + <h^m>)`.  The residual branch is required to make strict ideal progress and never increase dimension; it need not lower dimension at every step, which is essential for examples such as `<x*y>`.
 
-`verify_gtz_primary_decomposition_certificate` replays the recorded tree rather than repeating search.  It rechecks every localization certificate, trace-form Artinian split, primary/radical contraction, saturation exponent, recursive companion branch, final same-prime merges, irredundancy, dimensions/degrees, and exact intersection reconstruction.
+`verify_gtz_primary_decomposition_certificate` replays the recorded tree instead of repeating search.  It rechecks every localization certificate, trace-form Artinian split, primary/radical contraction, saturation exponent, recursive companion branch, final same-prime merges, irredundancy, dimensions/degrees, and exact intersection reconstruction.
 
 ## Recursive regular chains and Hilbert invariants
 
@@ -191,12 +188,10 @@ For localized GTZ arithmetic the same idea now extends to rational-function coef
 
 The finite-field result is never a proof.  A reconstructed candidate is accepted only after all of the following exact checks over `QQ` succeed:
 
-1. recomputing the Groebner basis of the candidate leaves the candidate
-   unchanged (Buchberger/reduced-basis verification);
+1. recomputing the Groebner basis of the candidate leaves the candidate unchanged (Buchberger/reduced-basis verification);
 2. every original generator reduces to zero by the candidate, proving
    `I <= <G>`; and
-3. exact Macaulay linear algebra finds polynomial multipliers expressing every
-   element of `G` in the original generators, proving `<G> <= I`.
+3. exact Macaulay linear algebra finds polynomial multipliers expressing every element of `G` in the original generators, proving `<G> <= I`.
 
 The resulting `ModularGroebnerCertificate` stores those exact membership representations and can be replayed with `verify_modular_groebner_certificate`.  If rational reconstruction, support stabilization, or exact membership certification is inconclusive, the shared Groebner helper transparently uses the ordinary exact path instead.  Modular computation therefore changes performance only, never the mathematical contract.
 
@@ -205,7 +200,7 @@ The resulting `ModularGroebnerCertificate` stores those exact membership represe
 
 The same proposal/reconstruction/proof boundary is used for elimination polynomials.  `modular_resultant_qq(f, g, x)` supports coefficients in `QQ[parameters]`: finite-field images are computed over `GF(p)[parameters][x]`, images whose eliminated-variable degrees or polynomial supports change are treated as unlucky, and matching coefficients are merged by CRT before rational reconstruction.
 
-A reconstructed resultant is *not* verified by simply recomputing the symbolic resultant.  If `m = deg_x(f)` and `n = deg_x(g)`, each parameter `a` has the conservative exact degree bound
+A reconstructed resultant is *not* verified by simply recomputing the symbolic resultant.  If `m = deg_x(f)` and `n = deg_x(g)`, each parameter `a` has the validated exact degree bound
 
 ```text
 deg_a Res_x(f,g) <= n*deg_a(f) + m*deg_a(g).
@@ -260,3 +255,47 @@ The result of `implicitize_polynomial_map(..., return_result=True)` can be passe
 `ReducedAlgebraicVariety`, `IrreducibleAlgebraicComponent`, and `ReducedComponentSingularLocus` make the reduced algebraic variety explicit before singularity analysis. `PolynomialMapImplicitizationResult` and `ZariskiClosureResult` record exact elimination results without identifying a Zariski closure with a real semialgebraic image.
 
 `LocalBranchGeometry`, `BranchTangentGeometry`, and `ComponentIntersectionGeometry` separate intrinsic branch singularities from intersections of distinct minimal-prime components. `local_branch_geometry()` computes tangent-cone and tangent-space data, tangent-dimension excess, local multiplicity/degree information, and certified transversality information at the supplied exact point.
+
+## Explicit Gröbner kernels
+
+The shared construction helper `semialg.algebraic.groebner_utils.compute_groebner_basis` accepts `backend` and `limits`. Explicit requests use `algroots.groebner_basis` and return the same SymPy basis type after exact verification. Supply `domain` for the coefficient field; do not combine explicit backend selection with `extension`, `modulus`, or the helper's modular proposal policy. Existing real and parameter-field algorithms retain their own coefficient semantics. Native prime-field calculations are algebraic tools and cannot replace ordered real arithmetic in inequality solving.
+
+## Native coefficient-field pipelines
+
+`semialg.algebraic.rational_univariate.compute_rur(..., domain=field, groebner_backend="native", groebner_limits=limits)` constructs an exact RUR over QQ, a constant algebraic number field, or a rational function field over either. Algebraic native images require the FLINT-enabled algroots extension. Domain, backend, and limits are part of the cache key. Parameter-field RURs describe generic algebraic points; specialize original constraints before root enumeration or real-fiber conclusions.
+
+`semialg.algebraic.gtz_primary.gtz_primary_decomposition(..., groebner_backend="native", groebner_limits=limits)` selects verified native source and localized fraction-field bases throughout the recursive GTZ driver over QQ. Cache entries separate those choices. Contraction, exact certificate replay, and structural operations retain their existing exact algorithms. A native resource or verification failure propagates; it cannot become a cached incomplete result. The native budgets cover selected Gröbner calculations, not the full decomposition, its exact replay, or complete CAD.
+
+For example, `gtz_primary_decomposition(((x+y)**2, y*(x+y)), (x,y), groebner_backend="native")` returns the dimension-one component with equations `x+y=0` and an embedded zero-dimensional component. `verify_gtz_primary_decomposition_certificate(result.certificate)` independently replays the localization, residual branch, and intersection identities. This global ideal decomposition preserves the original affine ideal; a generic localized factor by itself is insufficient.
+
+Use `algroots.profiling.GroebnerProfiler` around an explicit backend call to inspect verified basis stages and native reconstruction details. Caches can suppress calls; clear them when benchmarking construction. `scripts/benchmark_field_pipeline.py` compares complete RUR, repeated-root, localized, and embedded-component workloads, including coordinate identities and certificate replay. Its raw output distinguishes complete wall time, public-basis candidate/reference costs, interpolation, rational reconstruction, compiled-call timings, and recorded F4 stages. Unprofiled remainder includes direct SymPy operations, finite-algebra linear algebra, factorization, contraction, and certificate work; it is not a single arithmetic stage.
+
+### Algebraic coefficient towers
+
+`semialg.algebraic_function_fields.to_coefficient_domain(field)` converts rational-function and monogenic towers to a certified algroots coefficient domain. Each extension is checked irreducible, with verified primitive-element maps. Pass the result as `domain` to algroots Gröbner, quotient and RUR functions; native F4 selection is explicit. Root choices at a parameter point use `domain.specialize(values, roots=...)`. Generic field computations do not choose a real branch or remove exceptional fibers. See the [algroots field guide](https://github.com/BhuvaneshBhatt/algroots/blob/main/docs/algebraic-function-fields.md) and [certificate guide](https://github.com/BhuvaneshBhatt/algroots/blob/main/docs/sparse-quotients-and-certificates.md).
+
+### Compute directly over a coefficient tower
+
+`compute_rur(..., domain=field)` accepts semialg's rational and monogenic fields directly through `as_domain()`. `primary_decomposition(equations, variables, coefficient_field=field, groebner_backend="native")` computes a finite primary decomposition in that coefficient field, including parameter-dependent towers. The zero-dimensional GTZ entry point routes parameter fields and explicit backend selections through the same implementation. The source basis follows the selected backend, and exact component construction and certificate replay retain the declared field. Positive-dimensional general primary decomposition over arbitrary coefficient towers is outside this finite-algebra entry point; the existing QQ driver keeps its own broader contract.
+
+The returned primary result uses the ordinary `PrimaryDecompositionResult` interface. Its coefficient-field certificate checks the source ideal and every primary factor, degree and associated prime. `verify_primary_decomposition_certificate` dispatches to that exact verifier. Field objects cache their coefficient-domain presentation so repeated calls preserve the same original generator embedding.
+
+```python
+import sympy as sp
+from semialg.algebraic_function_fields import RationalFunctionField, MonogenicFunctionField
+from semialg.algebraic_decomposition import (
+    primary_decomposition,
+    verify_primary_decomposition_certificate,
+)
+
+x, y, t, a = sp.symbols("x y t a")
+base = RationalFunctionField((t,))
+field = MonogenicFunctionField(base, a, (-t, 0, 1))
+result = primary_decomposition(
+    [(x - a) ** 2 * (x + a) ** 3, y**2],
+    (x, y),
+    coefficient_field=field,
+)
+assert sorted(component.degree for component in result.components) == [4, 6]
+assert verify_primary_decomposition_certificate(result.certificate)
+```

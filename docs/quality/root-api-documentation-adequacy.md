@@ -4,7 +4,7 @@ This audit checks documentation *quality dimensions* for every root-level functi
 
 The rubric deliberately distinguishes reference coverage from adequacy. Medium-risk functions require a clear purpose, inspectable signature, return semantics, and family-level exactness/limitations. High-risk functions additionally require parameter semantics and an executable-style documentation example. Critical functions additionally require algorithm/backend documentation.
 
-**Current result:** 224/241 functions satisfy their risk-adjusted adequacy requirements; 17 need documentation deepening.
+**Current result:** 223/241 functions satisfy their risk-adjusted adequacy requirements; 18 need documentation deepening.
 
 ## Gap summary
 
@@ -12,20 +12,20 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 |---|---:|
 | `purpose` | 0 |
 | `signature` | 0 |
-| `parameters` | 11 |
+| `parameters` | 12 |
 | `return_semantics` | 1 |
-| `exactness` | 3 |
+| `exactness` | 0 |
 | `algorithm` | 0 |
-| `limitations` | 3 |
+| `limitations` | 0 |
 | `example` | 13 |
 
 ## Function-by-function audit
 
 | Function | Owner | Risk | Status | Missing dimensions | Reference |
 |---|---|---|---|---|---|
-| `bounding_cover` | geometry | high | needs deepening | `exactness`, `limitations`, `parameters` | [optimization_geometry.md](../optimization_geometry.md#structural-bounds-and-covers) |
-| `optimization_cover` | geometry | high | needs deepening | `exactness`, `limitations`, `parameters` | [optimization_geometry.md](../optimization_geometry.md#structural-bounds-and-covers) |
-| `region_family` | geometry | high | needs deepening | `exactness`, `limitations`, `parameters` | [optimization_geometry.md](../optimization_geometry.md#changing-fibers) |
+| `bounding_cover` | geometry | high | needs deepening | `parameters` | [reference/regions.md](../reference/regions.md#optimization-geometry-and-families) |
+| `optimization_cover` | geometry | high | needs deepening | `parameters` | [reference/regions.md](../reference/regions.md#optimization-geometry-and-families) |
+| `region_family` | geometry | high | needs deepening | `parameters` | [reference/regions.md](../reference/regions.md#optimization-geometry-and-families) |
 | `blowup_charts` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#local-maps-and-path-independence) |
 | `contact_order` | geometry | high | needs deepening | `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#curve-selection-and-relative-rates) |
 | `curve_selection` | geometry | high | needs deepening | `parameters`, `example` | [guides/approach_and_local_geometry.md](../guides/approach_and_local_geometry.md#curve-selection-and-relative-rates) |
@@ -180,7 +180,7 @@ The rubric deliberately distinguishes reference coverage from adequacy. Medium-r
 | `connected_component_samples` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#connected_component_samples) |
 | `topology_summary` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#topology_summary) |
 | `betti_number` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#betti_number) |
-| `solvability_conditions` | decision | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#solvability_conditions) |
+| `solvability_conditions` | decision | critical | needs deepening | `parameters` | [reference/root_api_usage.md](../reference/root_api_usage.md#solvability_conditions) |
 | `clip_affine_subspace_to_box` | geometry | high | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#clip_affine_subspace_to_box) |
 | `apply_quantifiers` | geometry | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#apply_quantifiers) |
 | `prove_negative` | decision | critical | adequate | — | [reference/root_api_usage.md](../reference/root_api_usage.md#prove_negative) |

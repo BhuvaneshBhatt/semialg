@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
@@ -412,16 +413,10 @@ def delin_repair_polys(
         for coeff in as_univar.all_coeffs():
             coeff = sp.expand(coeff)
             if coeff != 0 and lower_gens:
-                try:
-                    repair.append(sp.Poly(coeff, *lower_gens))
-                except (
-                    sp.PolynomialError,
-                    TypeError,
-                    ValueError,
-                    NotImplementedError,
-                    ArithmeticError,
+                with contextlib.suppress(
+                    sp.PolynomialError, TypeError, ValueError, NotImplementedError, ArithmeticError
                 ):
-                    pass
+                    repair.append(sp.Poly(coeff, *lower_gens))
         if as_univar.degree() > 1 and lower_gens:
             from .polynomial_utils import derivative_resultant_expression
 
@@ -431,16 +426,14 @@ def delin_repair_polys(
             ):
                 candidate = sp.expand(candidate)
                 if candidate != 0:
-                    try:
-                        repair.append(sp.Poly(candidate, *lower_gens))
-                    except (
+                    with contextlib.suppress(
                         sp.PolynomialError,
                         TypeError,
                         ValueError,
                         NotImplementedError,
                         ArithmeticError,
                     ):
-                        pass
+                        repair.append(sp.Poly(candidate, *lower_gens))
     except (sp.PolynomialError, TypeError, ValueError, NotImplementedError, ArithmeticError):
         pass
     return _dedupe_polys(repair)

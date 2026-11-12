@@ -1,4 +1,4 @@
-"""FindInstance-style examples across supported domains."""
+"""Exact witness examples across supported domains."""
 
 import sympy as sp
 

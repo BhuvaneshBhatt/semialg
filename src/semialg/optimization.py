@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import Literal
@@ -128,29 +129,21 @@ def _limits_for_interval(
 ) -> tuple[_Candidate, ...]:
     out: list[_Candidate] = []
     if lo != -sp.oo:
-        try:
+        with contextlib.suppress(_EXPECTED_ERRORS):
             out.append(
                 _Candidate(sp.simplify(sp.limit(objective, variable, lo, dir="+")), None, False)
             )
-        except _EXPECTED_ERRORS:
-            pass
     else:
-        try:
+        with contextlib.suppress(_EXPECTED_ERRORS):
             out.append(_Candidate(sp.simplify(sp.limit(objective, variable, -sp.oo)), None, False))
-        except _EXPECTED_ERRORS:
-            pass
     if hi != sp.oo:
-        try:
+        with contextlib.suppress(_EXPECTED_ERRORS):
             out.append(
                 _Candidate(sp.simplify(sp.limit(objective, variable, hi, dir="-")), None, False)
             )
-        except _EXPECTED_ERRORS:
-            pass
     else:
-        try:
+        with contextlib.suppress(_EXPECTED_ERRORS):
             out.append(_Candidate(sp.simplify(sp.limit(objective, variable, sp.oo)), None, False))
-        except _EXPECTED_ERRORS:
-            pass
     return tuple(out)
 
 

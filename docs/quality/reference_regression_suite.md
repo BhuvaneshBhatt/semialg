@@ -36,7 +36,7 @@ Exact conclusions must be independent of whether caches are cold, warm, polluted
 
 Where possible, performance regressions are tested structurally instead of with fragile wall-clock thresholds. Examples include requiring cache-key construction to remain structural, reusing retained CAD connectivity instead of launching pairwise decision solves, and using inverse substitution for nonsingular affine images.
 
-A smaller number of generous wall-clock tests remain marked `slow` for catastrophic regressions.
+A smaller number of generous wall-clock tests check for catastrophic regressions. They run in the default suite; the `slow` and `performance` markers allow focused profiling.
 
 ## Public API contracts
 
@@ -44,7 +44,7 @@ Public result objects are tested for stable fields, formula conversion, witness 
 
 ## Distribution checks
 
-The default suite runs on supported Python versions. Publication depends on the ordinary test matrix, quality checks and optional SDP checks. The dependency matrix covers minimum and latest effective arithmetic requirements. A separate weekly run exercises the bounded slow suite and installs Singular for the independent algebra corpus; it does not gate ordinary publication. Reproducible randomized orders can also be selected for local runs.
+The default suite includes every test marker and runs on supported Python versions. Publication depends on the ordinary test matrix, quality checks and optional SDP checks. The dependency matrix covers minimum and latest effective arithmetic requirements. A separate weekly run profiles the computational subset and installs Singular for the independent algebra corpus; those extra measurements do not gate ordinary publication. Reproducible randomized orders can also be selected for local runs.
 
 ## Package lifecycle and differential corpus
 

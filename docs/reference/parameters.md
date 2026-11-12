@@ -51,3 +51,11 @@ See [Parameter stratification](../parameter_stratification.md) for detailed exam
 `integrate_over_region` and `semialgebraic_measure` also accept `parameters=[...]` with `return_stratified=True` for parameter-dependent formula regions. Empty fibers are represented by an exact zero-valued branch, and feasible strata carry the symbolic integral/measure expression.
 
 For parametric optimization and function ranges, `eliminate_quantifiers=True` explicitly requests the additional complete-CAD QE pass; quantified exact relations remain the default.
+
+## Verified Gröbner preprocessing
+
+`solvability_conditions(..., groebner_backend="native", groebner_limits=limits)` selects algroots' verified native candidate backend for conjunctive polynomial equalities. The default is `"native"`. Use `groebner_backend="sympy"` for the portable solver route. Supply `algroots.NativeF4Limits` to bound native images; these budgets do not bound the later complete CAD computation.
+
+Native preprocessing supports QQ, algebraic number constants, and rational parameter fields over either. Algebraic constants require the FLINT-enabled native extension. Real elimination requires a real embedding of the constant field. The generic field basis is accompanied by exact membership and S-pair identities. Their coefficient denominators define an open guard; outside it the original equations and inequalities remain in the formula sent to complete CAD. A generic basis alone cannot describe exceptional fibers.
+
+For example, `solvability_conditions([Eq(t*x, 0), Eq(x, 1)], (x,), (t,), groebner_backend="native")` returns `Eq(t, 0)`: the generic unit ideal excludes solutions for nonzero `t`, while the original equations have a solution at zero. With `return_result=True`, diagnostics include `groebner_guard`, `groebner_input_guard`, `generic_basis`, and `exceptional_branch_preserved`. Visible denominator poles in original equalities are retained as domain constraints. General disjunctions without common outer equalities use the complete real-elimination path directly.

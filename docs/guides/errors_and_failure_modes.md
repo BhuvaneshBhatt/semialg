@@ -54,7 +54,7 @@ Optimization may find exact KKT/active-set candidates before proving global opti
 
 ## Symbolic comparison undecidable by the current method
 
-Exact root and bound logic can encounter expressions whose order cannot be established by the available exact comparator. The correct behavior is conservative failure or fallback to another exact representation—not a fixed-precision guess.
+Exact root and bound logic can encounter expressions whose order cannot be established by the available exact comparator. The correct behavior is validated failure or fallback to another exact representation—not a fixed-precision guess.
 
 ## Numerical mode
 

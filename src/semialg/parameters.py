@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import sympy as sp
 from sympy.logic.boolalg import Boolean
 
+from .algebraic.groebner_utils import _backend_policy
 from .conditional import ConditionalBranch, ParameterStratifiedResult, conditional_result
 from .formula import parse_formula
 from .formulas.boolean import is_false_expr, is_true_expr
@@ -274,6 +275,7 @@ def _single_relational_existential_condition(
     return None
 
 
+@_backend_policy
 def solvability_conditions(
     constraints: FormulaLike | Iterable[FormulaLike],
     variables: Sequence[sp.Symbol | str],
@@ -282,12 +284,28 @@ def solvability_conditions(
     domain: str = "reals",
     return_result: bool = False,
     return_stratified: bool = False,
+    groebner_backend="native",
+    groebner_limits=None,
 ) -> sp.Expr | SolvabilityConditionsResult | ParameterStratifiedResult:
-    """Return parameter conditions for real solvability of a constraint system."""
+    """Return parameter conditions for real solvability of a constraint system.
+
+    An explicit Gröbner backend preprocesses outer conjunctive equalities with
+    exact specialization guards. Complete real elimination retains original
+    constraints on exceptional fibers. Backend limits cover that preprocessing,
+    not the subsequent CAD calculation.
+    """
+
+    from algroots.basis import _validate_backend
+
+    _validate_backend(groebner_backend, groebner_limits)
+    preprocess = groebner_backend != "sympy" or groebner_limits is not None
 
     if domain.lower() not in {"real", "reals", "r", "rr"}:
         raise NotImplementedError("solvability_conditions supports only the real domain")
     expr = normalize_formula(constraints)
+    from .algebraic.parameter_groebner import equality_domain, equality_numerators
+
+    predicate_domain = equality_domain(expr)
     vars_ = _normalize_symbols(variables, expr=expr)
     params = _ordered_free_parameters(expr, vars_, parameters)
 
@@ -304,8 +322,14 @@ def solvability_conditions(
             return result.as_stratified_result()
         return result if return_result else condition
 
-    fast_condition = _single_relational_existential_condition(expr, vars_, params)
-    if fast_condition is not None:
+    fast_condition = (
+        _single_relational_existential_condition(expr, vars_, params)
+        if predicate_domain == sp.true
+        else None
+    )
+    if fast_condition is not None and not (
+        preprocess and any(isinstance(atom, sp.Equality) for atom in sp.And.make_args(expr))
+    ):
         result = SolvabilityConditionsResult(
             fast_condition, expr, vars_, params, "univariate_polynomial_atom", {"fast_path": True}
         )
@@ -321,8 +345,18 @@ def solvability_conditions(
             + tuple(sorted(expr.free_symbols - set(params) - set(vars_), key=symbol_identity_key))
         )
     )
+    matrix_expr = (
+        sp.And(equality_numerators(expr), predicate_domain) if predicate_domain != sp.true else expr
+    )
+    preprocessing = {}
+    if preprocess:
+        from .algebraic.parameter_groebner import guarded_equality_preprocessing
+
+        matrix_expr, preprocessing = guarded_equality_preprocessing(
+            expr, vars_, params, backend=groebner_backend, limits=groebner_limits
+        )
     qe_result = qe_by_complete_cad(
-        all_vars, quantifiers, parse_formula(expr), free_variables=params, return_result=True
+        all_vars, quantifiers, parse_formula(matrix_expr), free_variables=params, return_result=True
     )
     condition = _simplify_condition(qe_result.formula)
     result = SolvabilityConditionsResult(
@@ -335,6 +369,7 @@ def solvability_conditions(
             "quantified_variables": tuple(sp.sstr(v) for v in vars_),
             "free_parameters": tuple(sp.sstr(p) for p in params),
             "is_sentence": bool(getattr(qe_result, "is_sentence", False)),
+            **preprocessing,
         },
     )
     if return_stratified:

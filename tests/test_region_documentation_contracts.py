@@ -33,7 +33,7 @@ def test_exact_numerical_guide_states_the_important_nonclaims():
     text = (DOCS / "guides/exact_vs_numerical_regions.md").read_text(encoding="utf-8")
     assert "does not prove ambient isotopy" in text
     assert "algebraic-boundary singularity" in text
-    assert "does not silently replace" in text
+    assert "does not replace" in text
 
 
 def test_representation_guide_explains_all_public_region_layers():

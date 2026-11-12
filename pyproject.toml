@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semialg"
-version = "1.4.0"
+version = "1.5.0"
 description = "Exact real algebraic and semialgebraic geometry in Python: CAD, quantifier elimination, semialgebraic solving, decomposition, integration, and measure."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["sympy>=1.14,<2", "python-flint>=0.9,<1", "exprtest>=0.1.0", "algroots>=0.3.0"]
+dependencies = ["sympy>=1.14,<2", "python-flint>=0.9,<1", "exprtest>=0.1.0", "algroots>=0.4.1"]
 authors = [{name = "Bhuvanesh Bhatt", email = "bhuvaneshbhatt@gmail.com"}]
 license = "GPL-3.0-only"
 license-files = ["LICENSE"]
@@ -92,6 +92,7 @@ where = ["src"]
 include = ["semialg*"]
 
 [tool.ruff]
+extend-exclude = ["*.md", "*.ipynb"]
 target-version = "py311"
 line-length = 100
 exclude = [
@@ -100,6 +101,7 @@ exclude = [
     ".venv",
     "build",
     "dist",
+    ".ci-backends",
 ]
 
 [tool.ruff.lint]
@@ -121,15 +123,15 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = '-ra -m "not slow"'
+addopts = "-ra"
 markers = [
   "contract: public API and permanent behavioral contract tests",
   "documentation: README, documentation, example, and notebook tests",
   "integration: subsystem and cross-subsystem behavioral tests",
   "downstream: optional compatibility contracts against downstream packages",
   "property: generated and meteamorphic mathematical property tests",
-  "slow: computationally expensive tests excluded from the default suite",
-  "performance: opt-in wall-clock regression tests (also marked slow)",
+  "slow: computational tests grouped for profiling; included in the default suite",
+  "performance: wall-clock regression tests included in the default suite",
   "wheel: contracts that exercise a built or installed distribution",
   "installed_wheel: release contracts executed against an installed wheel",
 ]

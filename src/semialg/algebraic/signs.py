@@ -846,7 +846,9 @@ def _reduce_over_fiber_tower(
             if defining is None:
                 defining = sp.Poly(defining_expr, variable, domain=domain)
                 CACHE.compiled_polys.put(defining_key, defining)
-            candidate = target.rem(defining).as_expr()
+            # A coefficient denominator may be hidden inside an Add. Reject
+            # nonconstant denominators before the next polynomial-only level.
+            candidate = sp.cancel(target.rem(defining).as_expr())
             _numerator, denominator = sp.fraction(candidate)
             if denominator.free_symbols:
                 continue

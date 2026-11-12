@@ -31,7 +31,7 @@ class CADCellIntegral:
 
 @dataclass(frozen=True)
 class IntrinsicCellStratum:
-    """Regular/singular classification of one cylindrical solution cell."""
+    """Regular/singular classifcation of one cylindrical solution cell."""
 
     cell: object
     cell_index: tuple[int, ...]
@@ -158,8 +158,8 @@ def stratify_intrinsic_solution(
 ) -> IntrinsicStratification:
     """Classify CAD cells into certified regular and singular strata.
 
-    Singular lower-dimensional cells are retained explicitly rather than being
-    silently discarded.  ``dimension`` restricts the returned strata when a
+    Singular lower-dimensional cells are retained explicitly.
+    ``dimension`` restricts the returned strata when a
     particular Hausdorff dimension is being integrated.
     """
 
@@ -246,7 +246,7 @@ def intrinsic_cell_integral(
     evaluate: bool = False,
     require_verified: bool = True,
 ) -> CADCellIntegral:
-    """Integrate with intrinsic Hausdorff measure on a cylindrical CAD cell.
+    """Integrate with intrinsic Hausdorf measure on a cylindrical CAD cell.
 
     Sections are treated as triangular graph coordinates over the sector
     coordinates.  The induced metric factor is ``sqrt(det(J.T*J))``.

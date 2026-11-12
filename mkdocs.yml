@@ -111,7 +111,6 @@ nav:
   - Known issues: known_issues.md
   - Lower-priority findings: minor_issues.md
   - Capability priorities: capability_priorities.md
-  - Changelog: changelog.md
   - References: references.md
   - Quality:
       - Testing philosophy: quality/testing_philosophy.md

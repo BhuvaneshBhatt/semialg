@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 
@@ -149,10 +150,8 @@ class ConditionalBranch:
         substitutions = _resolve_assignment_keys(assignments, symbols)
         value = self.value
         if hasattr(value, "subs"):
-            try:
+            with contextlib.suppress(TypeError, ValueError, NotImplementedError, AttributeError):
                 value = value.subs(substitutions)
-            except (TypeError, ValueError, NotImplementedError, AttributeError):
-                pass
         return ConditionalBranch(
             _normalize_condition(self.condition.subs(substitutions)),
             value,

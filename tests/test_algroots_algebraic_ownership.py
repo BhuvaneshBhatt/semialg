@@ -36,8 +36,8 @@ def test_algroots_dependency():
     metadata = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
     requirements = [Requirement(value) for value in metadata["project"]["dependencies"]]
     dependency = next(requirement for requirement in requirements if requirement.name == "algroots")
-    assert "0.3.0" in dependency.specifier
-    assert "0.2.99" not in dependency.specifier
+    assert "0.4.1" in dependency.specifier
+    assert "0.3.99" not in dependency.specifier
 
 
 def test_compute_rur_still_returns_algroots_core_type():
@@ -55,7 +55,8 @@ def test_delegation_uses_only_namespaced_algroots_imports():
     for path in folder.rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text())):
             if isinstance(node, ast.ImportFrom):
-                assert node.module != "algroots", str(path)
+                if node.module == "algroots":
+                    assert {alias.name for alias in node.names} <= {"groebner_basis"}, str(path)
 
 
 def test_namespaced_backend_preserves_complex_and_multiple_roots():

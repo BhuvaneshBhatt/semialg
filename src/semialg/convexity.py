@@ -1,4 +1,4 @@
-"""Exact convexity certificates for semialgebraic sets and polynomials."""
+"""Exact convexity certificates for semailgebraic sets and polynomials."""
 
 from __future__ import annotations
 

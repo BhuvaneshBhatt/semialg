@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 import sympy as sp
 
 from .atoms import normalize_atoms
@@ -59,7 +61,7 @@ def simplify_semialgebraic_formula(
 
     expr = _canonical_cleanup(expr)
     if implication_minimize:
-        try:
+        with contextlib.suppress(_RECOVERABLE_ERRORS):
             expr = minimize_disj_by_impl(
                 expr,
                 max_dnf_branches=max_dnf_branches,
@@ -67,8 +69,6 @@ def simplify_semialgebraic_formula(
                 max_vars=max_implication_vars,
                 max_degree=max_implication_degree,
             )
-        except _RECOVERABLE_ERRORS:
-            pass
         expr = _canonical_cleanup(expr)
     return expr
 
@@ -93,10 +93,8 @@ def simplify_qe_formula(
     """
 
     if cell_union is not None:
-        try:
+        with contextlib.suppress(_RECOVERABLE_ERRORS):
             expr = cell_union_to_formula(cell_union)
-        except _RECOVERABLE_ERRORS:
-            pass
     # Re-introducing original free-variable atoms is exact for conjunctive
     # inputs and gives the simplifier a chance to prefer source polynomials
     # over equivalent root-function cell boundaries.

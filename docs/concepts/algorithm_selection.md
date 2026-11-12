@@ -22,7 +22,7 @@ input
   -> exact normalization / structural analysis
   -> specialized exact backend if certified applicable
   -> exact reconstruction and verification
-  -> conservative broader backend when the specialized method declines
+  -> validated broader backend when the specialized method declines
   -> explicit unsupported/unknown when no certified route applies
 ```
 

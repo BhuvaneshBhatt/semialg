@@ -1,3 +1,5 @@
+import contextlib
+
 import sympy as sp
 
 from semialg.parametric_geometry import intrinsic_parametric_cover
@@ -62,7 +64,5 @@ def test_semialgebraic_region_exposes_intrinsic_chart_convenience_api():
 def test_intrinsic_cover_does_not_drop_singular_target_strata():
     x, y = sp.symbols("x y", real=True)
     cusp = sp.Eq(y**2, x**3)
-    try:
+    with contextlib.suppress(ValueError, NotImplementedError):
         intrinsic_parametric_cover(cusp, (x, y), dimension=1)
-    except (ValueError, NotImplementedError):
-        pass

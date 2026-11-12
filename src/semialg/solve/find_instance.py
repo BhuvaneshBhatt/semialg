@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from itertools import product
@@ -331,10 +332,8 @@ def _quadratic_vs_instance(
                 if isinstance(atom, sp.Equality):
                     expr = sp.expand(atom.lhs - atom.rhs)
                     if variable in expr.free_symbols and not (expr.free_symbols - {variable}):
-                        try:
+                        with contextlib.suppress(ValueError, TypeError, sp.SympifyError):
                             values.extend(sp.solve(sp.Eq(expr, 0), variable))
-                        except (ValueError, TypeError, sp.SympifyError):
-                            pass
             deduped: list[sp.Expr] = []
             seen: set[sp.Expr] = set()
             for value in values:
@@ -347,10 +346,8 @@ def _quadratic_vs_instance(
         for values in product(*candidate_lists):
             candidate = dict(zip(reduced_variables, values, strict=True))
             evaluated = reduced_formula.subs(candidate)
-            try:
+            with contextlib.suppress(ValueError, TypeError, sp.SympifyError):
                 evaluated = sp.simplify(evaluated)
-            except (ValueError, TypeError, sp.SympifyError):
-                pass
             if evaluated == sp.true or evaluated is sp.true:
                 return candidate
 

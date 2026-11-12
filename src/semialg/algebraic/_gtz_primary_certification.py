@@ -297,11 +297,9 @@ def verify_gtz_primary_decomposition_certificate(
         if irredundant != certificate.irredundant:
             return False
         # Exact ideal redundancy check as a final independent cleanup proof.
-        if tuple(_remove_redundant(certificate.final_components, vars_)) != tuple(
+        return tuple(_remove_redundant(certificate.final_components, vars_)) == tuple(
             certificate.final_components
-        ):
-            return False
-        return True
+        )
     except (
         ArithmeticError,
         ValueError,

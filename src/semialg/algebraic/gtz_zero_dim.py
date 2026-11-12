@@ -28,6 +28,7 @@ from ..algebraic_function_fields import (
     tower_evaluate,
 )
 from .equality_ideal import EqualityIdealContext
+from .groebner_utils import _backend_policy
 from .gtz import (
     SaturationStabilizationCertificate,
     saturation_stabilization,
@@ -173,13 +174,28 @@ class ZeroDimensionalPrimaryResult:
     certificate: ZeroDimensionalPrimaryCertificate | None = None
 
 
+@_backend_policy
 def zero_dimensional_primary_decomposition(
     generators: Sequence[sp.Expr],
     variables: Sequence[sp.Symbol],
     *,
     coefficient_field: object | None = None,
+    groebner_backend="native",
+    groebner_limits=None,
 ) -> ZeroDimensionalPrimaryResult:
     """Compute primary components for a zero-dimensional ideal in ``K[X]``."""
+    from .coefficient_primary import coefficient_primary_decomposition
+
+    field = coefficient_field or RationalFunctionField(())
+    base = field
+    while isinstance(base, MonogenicFunctionField):
+        base = base.base
+    if (isinstance(base, RationalFunctionField) and base.parameters) or isinstance(
+        field, sp.polys.domains.Domain
+    ):
+        return coefficient_primary_decomposition(
+            generators, variables, field, backend=groebner_backend, limits=groebner_limits
+        )
     from ..algebraic_decomposition import certified_minimal_primes
 
     vars_ = tuple(variables)
@@ -291,6 +307,13 @@ def verify_zero_dim_primary_certificate(
     certificate: ZeroDimensionalPrimaryCertificate,
 ) -> bool:
     """Replay field validity, maximal-prime separation, saturation, and transport."""
+    from .coefficient_primary import (
+        CoefficientPrimaryCertificate,
+        verify_coefficient_primary_certificate,
+    )
+
+    if isinstance(certificate, CoefficientPrimaryCertificate):
+        return verify_coefficient_primary_certificate(certificate)
     from ..algebraic_decomposition import verify_minimal_prime_decomposition_certificate
 
     try:

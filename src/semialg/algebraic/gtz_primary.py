@@ -19,7 +19,9 @@ from collections.abc import Sequence
 from functools import lru_cache
 
 import sympy as sp
+from algroots.basis import _validate_backend
 from algroots.finite_decomposition import nilradical_basis
+from algroots.groebner_errors import GroebnerVerificationError
 from algroots.quotient import QuotientAlgebra
 
 from ._gtz_primary_types import (  # noqa: E402, F401
@@ -33,7 +35,12 @@ from ._gtz_primary_types import (  # noqa: E402, F401
     LocalPrimaryFactor,
 )
 from .equality_ideal import EqualityIdealContext
-from .groebner_utils import compute_groebner_basis
+from .groebner_utils import (
+    _backend_policy,
+    _selected_backend,
+    _selected_limits,
+    compute_groebner_basis,
+)
 from .gtz import (
     _colon_once,
     certified_independent_localization,
@@ -61,8 +68,16 @@ def _prefer_modular_qq(generators: Sequence[sp.Expr], variables: Sequence[sp.Sym
 
 @lru_cache(maxsize=512)
 def _canonical_qq_basis_cached(
-    generators: tuple[sp.Expr, ...], variables: tuple[sp.Symbol, ...]
+    generators: tuple[sp.Expr, ...],
+    variables: tuple[sp.Symbol, ...],
+    backend="native",
+    limits=None,
 ) -> tuple[sp.Expr, ...]:
+    if backend != "sympy" or limits is not None:
+        basis = compute_groebner_basis(
+            generators, variables, domain=sp.QQ, backend=backend, limits=limits
+        )
+        return tuple(p.as_expr() for p in basis.polys)
     use_modular = _prefer_modular_qq(generators, variables)
     return canonical_qq_basis_uncached(
         generators, variables, modular=None if use_modular else False
@@ -70,8 +85,14 @@ def _canonical_qq_basis_cached(
 
 
 def _canonical_qq_basis(
-    generators: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
+    generators: Sequence[sp.Expr],
+    variables: Sequence[sp.Symbol],
+    *,
+    backend=None,
+    limits=None,
 ) -> tuple[sp.Expr, ...]:
+    backend = _selected_backend(backend)
+    limits = _selected_limits(limits)
     vars_ = tuple(variables)
     expressions = []
     for generator in generators:
@@ -79,7 +100,7 @@ def _canonical_qq_basis(
         if expanded != 0:
             expressions.append(expanded)
     expressions = tuple(expressions)
-    return _canonical_qq_basis_cached(expressions, vars_)
+    return _canonical_qq_basis_cached(expressions, vars_, backend, limits)
 
 
 def _qq_ideal_equal(
@@ -110,17 +131,34 @@ def _canonical_ff_basis_cached(
     generators: tuple[sp.Expr, ...],
     variables: tuple[sp.Symbol, ...],
     parameters: tuple[sp.Symbol, ...],
+    backend="native",
+    limits=None,
 ) -> tuple[sp.Expr, ...]:
     if not generators:
         return tuple()
     domain = _ff_domain(parameters)
-    gb = compute_groebner_basis(generators, variables, order="grevlex", domain=domain, modular=None)
+    gb = compute_groebner_basis(
+        generators,
+        variables,
+        order="grevlex",
+        domain=domain,
+        modular=None,
+        backend=backend,
+        limits=limits,
+    )
     return tuple(sp.cancel(p.as_expr()) for p in gb.polys)
 
 
 def _canonical_ff_basis(
-    generators: Sequence[sp.Expr], variables: Sequence[sp.Symbol], parameters: Sequence[sp.Symbol]
+    generators: Sequence[sp.Expr],
+    variables: Sequence[sp.Symbol],
+    parameters: Sequence[sp.Symbol],
+    *,
+    backend=None,
+    limits=None,
 ) -> tuple[sp.Expr, ...]:
+    backend = _selected_backend(backend)
+    limits = _selected_limits(limits)
     vars_ = tuple(variables)
     params = tuple(parameters)
     expressions = []
@@ -129,7 +167,7 @@ def _canonical_ff_basis(
         if reduced != 0:
             expressions.append(reduced)
     expressions = tuple(expressions)
-    return _canonical_ff_basis_cached(expressions, vars_, params)
+    return _canonical_ff_basis_cached(expressions, vars_, params, backend, limits)
 
 
 def _ff_ideal_equal(
@@ -148,22 +186,26 @@ def _ff_saturate(
     splitter: sp.Expr,
     variables: Sequence[sp.Symbol],
     parameters: Sequence[sp.Symbol],
+    *,
+    backend="native",
+    limits=None,
 ) -> tuple[sp.Expr, ...]:
     vars_ = tuple(variables)
     domain = _ff_domain(parameters)
     u = sp.Dummy("gtz45_sat")
     equations = tuple(sp.cancel(g) for g in generators) + (1 - u * sp.cancel(splitter),)
-    gb = sp.groebner(
+    gb = compute_groebner_basis(
         equations,
-        u,
-        *vars_,
+        (u, *vars_),
         order="lex",
         domain=domain,
+        backend=backend,
+        limits=limits,
     )
     eliminated = tuple(
         sp.cancel(p.as_expr()) for p in gb.polys if u not in p.as_expr().free_symbols
     )
-    return _canonical_ff_basis(eliminated, vars_, parameters)
+    return _canonical_ff_basis(eliminated, vars_, parameters, backend=backend, limits=limits)
 
 
 def _primitive_coefficients(count: int):
@@ -179,16 +221,31 @@ def _primitive_coefficients(count: int):
         c += 1
 
 
+@_backend_policy
 def _compute_fraction_field_zero_dimensional(
     generators: Sequence[sp.Expr],
     variables: Sequence[sp.Symbol],
     parameters: Sequence[sp.Symbol],
+    *,
+    groebner_backend="native",
+    groebner_limits=None,
 ) -> FractionFieldZeroDimensionalResult:
+    _validate_backend(groebner_backend, groebner_limits)
     vars_ = tuple(variables)
     params = tuple(parameters)
     domain = _ff_domain(params)
-    source = _canonical_ff_basis(generators, vars_, params)
-    gb = compute_groebner_basis(source, vars_, order="grevlex", domain=domain, modular=None)
+    source = _canonical_ff_basis(
+        generators, vars_, params, backend=groebner_backend, limits=groebner_limits
+    )
+    gb = compute_groebner_basis(
+        source,
+        vars_,
+        order="grevlex",
+        domain=domain,
+        modular=None,
+        backend=groebner_backend,
+        limits=groebner_limits,
+    )
     if len(gb.polys) == 1 and gb.polys[0].is_one:
         standard: tuple[tuple[int, ...], ...] = tuple()
         certificate = FractionFieldZeroDimensionalCertificate(
@@ -232,14 +289,28 @@ def _compute_fraction_field_zero_dimensional(
     if primitive_coeffs is None or primitive is None or factored is None:
         raise ArithmeticError("failed to find a primitive element for the reduced quotient")
 
-    radical_source = _canonical_ff_basis((*source, *nilradical), vars_, params)
+    radical_source = _canonical_ff_basis(
+        (*source, *nilradical), vars_, params, backend=groebner_backend, limits=groebner_limits
+    )
     components: list[LocalPrimaryFactor] = []
     for index, (factor, multiplicity) in enumerate(factored):
         p_of_t = sp.cancel(factor.subs(z, primitive))
         others = [f.subs(z, primitive) for j, (f, _m) in enumerate(factored) if j != index]
         separator = sp.cancel(sp.prod(others)) if others else sp.Integer(1)
-        component = source if separator == 1 else _ff_saturate(source, separator, vars_, params)
-        radical = _canonical_ff_basis((*radical_source, p_of_t), vars_, params)
+        component = (
+            source
+            if separator == 1
+            else _ff_saturate(
+                source, separator, vars_, params, backend=groebner_backend, limits=groebner_limits
+            )
+        )
+        radical = _canonical_ff_basis(
+            (*radical_source, p_of_t),
+            vars_,
+            params,
+            backend=groebner_backend,
+            limits=groebner_limits,
+        )
         components.append(LocalPrimaryFactor(component, radical, factor, multiplicity, separator))
 
     certificate = FractionFieldZeroDimensionalCertificate(
@@ -486,15 +557,21 @@ def _component_from_zero_dim(component, variables):
     )
 
 
+@_backend_policy
 def _recursive_gtz(
     source_generators: Sequence[sp.Expr],
     variables: Sequence[sp.Symbol],
     memo: dict[tuple[sp.Expr, ...], tuple[tuple[object, ...], GTZNodeCertificate]] | None = None,
+    *,
+    groebner_backend="native",
+    groebner_limits=None,
 ) -> tuple[tuple[object, ...], GTZNodeCertificate]:
     from ..algebraic_decomposition import PrimaryComponent
 
     vars_ = tuple(variables)
-    source = _canonical_qq_basis(source_generators, vars_)
+    source = _canonical_qq_basis(
+        source_generators, vars_, backend=groebner_backend, limits=groebner_limits
+    )
     if memo is not None and source in memo:
         return memo[source]
     context = EqualityIdealContext.build(source, vars_)
@@ -530,6 +607,8 @@ def _recursive_gtz(
         localization.localized_basis,
         localization.dependent_variables,
         localization.independent_variables,
+        groebner_backend=groebner_backend,
+        groebner_limits=groebner_limits,
     )
     contracted: list[GTZContractedComponentCertificate] = []
     top_components: list[PrimaryComponent] = []
@@ -605,7 +684,13 @@ def _recursive_gtz(
         raise ArithmeticError("GTZ residual branch increased dimension")
     if _qq_ideal_equal(split.companion_generators, source, vars_):
         raise ArithmeticError("GTZ residual branch made no ideal progress")
-    residual_components, residual_node = _recursive_gtz(split.companion_generators, vars_, memo)
+    residual_components, residual_node = _recursive_gtz(
+        split.companion_generators,
+        vars_,
+        memo,
+        groebner_backend=groebner_backend,
+        groebner_limits=groebner_limits,
+    )
     node = GTZNodeCertificate(
         vars_,
         source,
@@ -673,14 +758,31 @@ def _cleanup_components(components: Sequence[object], variables: Sequence[sp.Sym
     return _remove_redundant(_merge_same_radical(components, variables), variables)
 
 
+@_backend_policy
 def gtz_primary_decomposition(
-    generators: Sequence[sp.Expr], variables: Sequence[sp.Symbol]
+    generators: Sequence[sp.Expr],
+    variables: Sequence[sp.Symbol],
+    *,
+    groebner_backend="native",
+    groebner_limits=None,
 ) -> GTZPrimaryDecompositionResult:
-    """Compute a full recursive GTZ primary decomposition over ``QQ``."""
+    """Compute a certified recursive GTZ primary decomposition over QQ.
+
+    Explicit backend options select source and localized fraction-field basis
+    construction, including recursive residual branches. Cache keys include the
+    policy and limits. Certificate replay and contraction retain exact arithmetic;
+    native budgets do not bound the complete decomposition. Explicit backend
+    failures propagate instead of becoming an incomplete decomposition result.
+    """
+    _validate_backend(groebner_backend, groebner_limits)
     vars_ = tuple(variables)
-    source = _canonical_qq_basis(generators, vars_)
+    source = _canonical_qq_basis(
+        generators, vars_, backend=groebner_backend, limits=groebner_limits
+    )
     try:
-        raw_components, root = _recursive_gtz(source, vars_, {})
+        raw_components, root = _recursive_gtz(
+            source, vars_, {}, groebner_backend=groebner_backend, groebner_limits=groebner_limits
+        )
         components = _cleanup_components(raw_components, vars_)
         reconstructed = _intersection_all([c.equations for c in components], vars_)
         if not _qq_ideal_equal(reconstructed, source, vars_):
@@ -697,6 +799,8 @@ def gtz_primary_decomposition(
         if not verify_gtz_primary_decomposition_certificate(certificate):
             raise ArithmeticError("internal recursive GTZ certificate verification failed")
         return result
+    except GroebnerVerificationError:
+        raise
     except (
         ArithmeticError,
         ValueError,
@@ -705,6 +809,8 @@ def gtz_primary_decomposition(
         sp.PolynomialError,
         sp.polys.polyerrors.CoercionFailed,
     ):
+        if groebner_backend != "sympy" or groebner_limits is not None:
+            raise
         return GTZPrimaryDecompositionResult(
             vars_,
             tuple(),

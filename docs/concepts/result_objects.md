@@ -72,7 +72,7 @@ Use `.as_piecewise()` only when the result type supports it and a plain symbolic
 
 ## Metadata is certified when present
 
-Cheap metadata fields are conservative. In particular, a numeric `dimension` value means that the dimension has been established exactly by the metadata path (for example by affine rank or a certified cylindrical decomposition). `dimension=None` means that this inexpensive layer did not certify a single global dimension; it does **not** mean that the set lacks a dimension.
+Cheap metadata fields are validated. In particular, a numeric `dimension` value means that the dimension has been established exactly by the metadata path (for example by affine rank or a certified cylindrical decomposition). `dimension=None` means that this inexpensive layer did not certify a single global dimension; it does **not** mean that the set lacks a dimension.
 
 Parameter-dependent affine systems illustrate why this matters. For `a*x = 0` the fiber in `x` has dimension 0 when `a != 0` and dimension 1 when `a = 0`. Without first stratifying parameter space, reporting either integer globally would be wrong, so cheap metadata correctly leaves the field unknown.
 

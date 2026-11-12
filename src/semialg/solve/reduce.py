@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Sequence
 
 import sympy as sp
@@ -107,10 +108,8 @@ def _try_rational_univariate_reduction(parsed: ParsedPrenexFormula):
         return None
     free_variables = tuple(sym for sym in all_symbols if sym not in quantified)
     formula = _finite_assignments_to_formula(rur.assignments, free_variables)
-    try:
+    with contextlib.suppress(TypeError, ValueError, sp.SympifyError):
         formula = simplify_boolean(formula)
-    except (TypeError, ValueError, sp.SympifyError):
-        pass
     return formula, rur
 
 

@@ -28,4 +28,4 @@ covariance_matrix(sp.And(x >= 0, x <= 1, y >= 0, y <= 1), [x, y])
 
 ## Notes
 
-Centroid and covariance require finite positive measure in the selected measure dimension. Unsupported or infinite-measure cases should fail conservatively.
+Centroid and covariance require finite positive measure in the selected measure dimension. Unsupported or infinite-measure cases should fail validatedly.

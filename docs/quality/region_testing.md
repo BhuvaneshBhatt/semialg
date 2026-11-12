@@ -11,7 +11,7 @@ Region tests are organized by mathematical contract under `tests/regions/` inste
 - `test_meshing.py`: simplex validity, shared vertices, and sampled conformity.
 - `test_measure.py`: integral/measure identities and reuse.
 - `test_api_interoperability.py`: raw/standard/symbolic/CAD entry-point interoperability.
-- `test_failure_modes.py`: conservative rejection of unsupported or unresolved input.
+- `test_failure_modes.py`: validated rejection of unsupported or unresolved input.
 
 Metamorphic/Hypothesis tests live in `tests/properties/test_region_metamorphic.py`. Reuse contracts live with the performance tests because they protect algorithm selection and prevent accidental decomposition rebuilding without relying on fragile wall-clock thresholds.
 

@@ -84,22 +84,6 @@ Internal fallbacks catch explicit expected failure classes such as `EXACT_OPERAT
 
 The source-quality verifier and Ruff enforce this rule across the full package.
 
-## Source hygiene
-
-`python scripts/verify_source_quality.py` checks repository rules that are not covered by Ruff:
-
-- module/class bindings must not override earlier definitions or imports;
-- production code must not rewrite an object's `__module__` metadata;
-- tests must use observable state or explicit seams instead of runtime monkeypatching;
-- bound variable and parameter names are limited to 24 characters;
-- source identifiers and filenames describe mathematical purpose instead of development history;
-- Python, Markdown, YAML, TOML, and documentation sources contain no trailing whitespace;
-- README Markdown links are absolute URLs when they point outside the README, so the PyPI rendering remains valid;
-- public material does not encode development chronology or package-version prose;
-- package text does not carry references to unrelated computer-algebra products.
-
-Comments should explain invariants, mathematical assumptions, certification conditions, performance-sensitive choices, or non-obvious failure behavior. Comments that only restate the following line of code should be omitted. Substantial algorithms should have docstrings describing their mathematical contract and the conditions under which they decline to produce a result.
-
 ## Type annotations
 
 Annotations define stable interfaces, dataclass fields, callback contracts, and non-obvious container shapes. Local variables are normally left to inference unless an empty container or union-valued state would otherwise obscure the intended invariant. The codebase does not use annotations as decoration: a type that cannot be stated more precisely than `object` is kept broad only at public sympification boundaries or genuinely heterogeneous result seams.

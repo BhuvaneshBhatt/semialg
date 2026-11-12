@@ -1,7 +1,7 @@
 """Optional exact-algebra differential corpus against Singular ``primdecGTZ``.
 
-Singular is an independent oracle for development only.  Every semialg result
-must first pass its own exact replay; oracle agreement never substitutes for a
+Singular is an independent oracle just for development. Every semialg result
+must first pass its own exact replay, oracle agreement never substitutes for a
 semialg certificate.
 """
 

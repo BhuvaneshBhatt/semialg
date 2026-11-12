@@ -80,7 +80,7 @@ The following computation uses SymPy alone; it illustrates the mathematics witho
 import sympy as sp
 
 x, y = sp.symbols("x y", real=True)
-gb = sp.groebner([x*y - 1, x - y], x, y, order="lex")
+gb = sp.groebner([x * y - 1, x - y], x, y, order="lex")
 assert set(gb.polys) == {sp.Poly(x - y, x, y), sp.Poly(y**2 - 1, x, y)}
 ```
 

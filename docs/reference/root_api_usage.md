@@ -1122,7 +1122,7 @@ Simplify a semialgebraic Boolean formula over the real numbers.
 - `semantic` — Whether simplification should use semantic equivalence instead of syntax alone.
 - `return_result` — When true, return the structured result/certificate/diagnostic object instead of only the convenience value.
 
-**Result semantics.** This is a conservative public simplifier. It first performs ordinary SymPy Boolean simplification, then uses the CAD/QE-backed decision wrappers to
+**Result semantics.** This is a validated public simplifier. It first performs ordinary SymPy Boolean simplification, then uses the CAD/QE-backed decision wrappers to
 
 **Representative regression-backed call.**
 

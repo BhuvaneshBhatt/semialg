@@ -35,7 +35,7 @@ For formula inputs, projection and image are genuine existential QE operations. 
 
 ## Convexity and topology
 
-`is_convex` first recognizes affine/polyhedral intersections and basic polynomial intersections whose sublevel/superlevel Hessians are globally PSD/NSD. Polynomial-matrix semidefiniteness is certified by all principal minors, with complete CAD used only for unresolved minor signs in the original ambient variables. If this proof does not apply, `is_convex` decides the full quantified segment definition of convexity. `is_path_connected` uses the semantic CAD adjacency graph. `path_between` distinguishes explicit 1-D paths from higher-dimensional CAD cell/connector chains.
+`is_convex` first recognizes affine/polyhedral intersections and basic polynomial intersections whose sublevel/superlevel Hessians are globally PSD/NSD. Polynomial-matrix semidefinite-ness is certified by all principal minors, with complete CAD used only for unresolved minor signs in the original ambient variables. If this proof does not apply, `is_convex` decides the full quantified segment definition of convexity. `is_path_connected` uses the semantic CAD adjacency graph. `path_between` distinguishes explicit 1-D paths from higher-dimensional CAD cell/connector chains.
 
 `euler_characteristic(..., compact_support=True)` uses the selected CAD cells and the additive cell formula. This is the compactly-supported semialgebraic Euler characteristic; it equals ordinary Euler characteristic on compact sets.
 
@@ -95,4 +95,4 @@ from semialg import (
 
 ### Irreducible equations and real connectivity
 
-Polynomial irreducibility is an algebraic property and does not imply that the real zero set is connected. For example, the irreducible hyperbola `x*y - 1 = 0` has two real connected components, and singular irreducible curves can contain isolated real components. Connectivity decisions therefore remain CAD/topology questions even when a defining polynomial has only one algebraic factor.
+Polynomial irreducability is an algebraic property and does not imply that the real zero set is connected. For example, the irreducible hyperbola `x*y - 1 = 0` has two real connected components, and singular irreducible curves can contain isolated real components. Connectivity decisions therefore remain CAD/topology questions even when a defining polynomial has only one algebraic factor.

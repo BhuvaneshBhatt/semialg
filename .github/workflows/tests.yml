@@ -1,0 +1,217 @@
+name: Checks and distributions
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+permissions:
+  contents: read
+jobs:
+  test:
+    if: github.event_name != 'schedule'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ['3.11', '3.12', '3.13', '3.14']
+        dependencies: [latest]
+        ground: [flint]
+        include:
+          - {os: macos-latest, python: '3.14', dependencies: latest, ground: flint}
+          - {os: windows-latest, python: '3.14', dependencies: latest, ground: flint}
+          - {os: ubuntu-latest, python: '3.11', dependencies: minimum, ground: flint}
+          - {os: ubuntu-latest, python: '3.11', dependencies: minimum, ground: python}
+          - {os: ubuntu-latest, python: '3.14', dependencies: latest, ground: python}
+    env:
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: '1'
+      SYMPY_GROUND_TYPES: ${{ matrix.ground }}
+      CERTIFICATE_AUDIT_REPORT: certificate-audit.jsonl
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: BhuvaneshBhatt/algroots
+          ref: fdbd7715e2b5f3a9edea589aee6347d0e039070d
+          path: .ci-backends/algroots
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select arithmetic floor
+        if: matrix.dependencies == 'minimum'
+        shell: bash
+        run: echo "PIP_CONSTRAINT=$GITHUB_WORKSPACE/ci/minimum.txt" >> "$GITHUB_ENV"
+      - run: python tools/install_backend.py --source-root .ci-backends
+      - run: python -m pip install '.[test]'
+      - name: Test installed package
+        run: python -m pytest -o pythonpath= -p no:cacheprovider --junitxml=results.xml
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: tests-${{ matrix.os }}-${{ matrix.python }}-${{ matrix.dependencies }}-${{ matrix.ground }}
+          path: |
+            results.xml
+            certificate-audit.jsonl
+  quality:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: BhuvaneshBhatt/algroots
+          ref: fdbd7715e2b5f3a9edea589aee6347d0e039070d
+          path: .ci-backends/algroots
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python tools/install_backend.py --source-root .ci-backends
+      - run: python -m pip install '.[test,dev,release,docs]' 'setuptools>=77' wheel
+      - run: ruff check --no-cache .
+      - run: ruff format --no-cache --check .
+      - run: python tools/generate_specialist_api.py --check
+      - run: python -m mkdocs build --strict
+      - run: python -m build
+      - run: python -m pip install --force-reinstall --no-deps --no-index --find-links dist semialg
+      - run: python tools/check_examples.py --profile real
+      - name: Dedicated source-free wheel contract
+        shell: bash
+        run: python scripts/run_installed_wheel_contract.py dist/*.whl
+      - name: Rebuild and compare the sdist
+        shell: bash
+        run: python tools/check_distribution.py dist/*.whl dist/*.tar.gz
+      - uses: actions/upload-artifact@v6
+        with:
+          name: distribution-audit
+          path: distribution-check.json
+      - uses: actions/upload-artifact@v6
+        with:
+          name: distributions
+          path: dist/*
+  coverage:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MPLBACKEND: Agg
+      PYTHONDONTWRITEBYTECODE: '1'
+      CERTIFICATE_AUDIT_REPORT: build/coverage/certificate-audit.jsonl
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: BhuvaneshBhatt/algroots
+          ref: fdbd7715e2b5f3a9edea589aee6347d0e039070d
+          path: .ci-backends/algroots
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python tools/install_backend.py --source-root .ci-backends
+      - run: python -m pip install '.[test]'
+      - run: mkdir -p build/coverage
+      - name: Measure the complete suite
+        run: python -m pytest -o pythonpath= -p no:cacheprovider --hypothesis-seed=28419 --cov=semialg --cov-branch --cov-report=json:build/coverage/coverage.json --cov-report=xml:build/coverage/coverage.xml --cov-report=html:build/coverage/html
+      - name: Enforce subsystem coverage
+        if: always()
+        run: python scripts/check_coverage.py build/coverage/coverage.json --markdown build/coverage/summary.md
+      - name: Aggregate active proof branches
+        if: always()
+        run: python tools/check_certificate_audit.py build/coverage/certificate-audit.jsonl --output build/coverage/certificate-summary.json
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: coverage-and-proof-audit
+          path: build/coverage
+  optional-sdp:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: BhuvaneshBhatt/algroots
+          ref: fdbd7715e2b5f3a9edea589aee6347d0e039070d
+          path: .ci-backends/algroots
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python tools/install_backend.py --source-root .ci-backends
+      - run: python -m pip install '.[test]' cvxpy clarabel
+      - run: python -m pytest -o pythonpath= tests/test_optional_sdp.py tests/test_sos_cad_scalability.py -p no:cacheprovider
+  slow:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: BhuvaneshBhatt/algroots
+          ref: fdbd7715e2b5f3a9edea589aee6347d0e039070d
+          path: .ci-backends/algroots
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python tools/install_backend.py --source-root .ci-backends
+      - run: python -m pip install '.[test]'
+      - run: python tools/profile_tests.py --output build/slow-profile --timeout 1200 -- -m slow tests --junitxml=slow-results.xml -p no:cacheprovider
+      - run: python tools/benchmark_certification.py --output certification-benchmarks.json
+      - name: Install independent algebra oracle
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y singular
+      - run: python scripts/differential_singular.py --generated 8 --seed 1729 --output oracle-results.json
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: slow-results
+          path: |
+            slow-results.xml
+            oracle-results.json
+            build/slow-profile
+            certification-benchmarks.json
+  seeded-oracles:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {python: '3.11', dependencies: minimum, ground: flint}
+          - {python: '3.14', dependencies: latest, ground: flint}
+          - {python: '3.14', dependencies: latest, ground: python}
+    env:
+      SYMPY_GROUND_TYPES: ${{ matrix.ground }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: BhuvaneshBhatt/algroots
+          ref: fdbd7715e2b5f3a9edea589aee6347d0e039070d
+          path: .ci-backends/algroots
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select arithmetic floor
+        if: matrix.dependencies == 'minimum'
+        run: echo "PIP_CONSTRAINT=$GITHUB_WORKSPACE/ci/minimum.txt" >> "$GITHUB_ENV"
+      - run: python tools/install_backend.py --source-root .ci-backends
+      - run: python -m pip install '.[test]'
+      - run: python tools/qe_oracles.py --generated 112 --seed 1729 --output qe-oracle-results.json
+      - run: python -m pytest -o pythonpath= tests/test_qe_finite_prefixes.py tests/test_cad_coefficient_fields.py tests/test_native_multiplicity.py tests/test_branch_correspondence.py tests/test_cad_geometric_replay.py tests/test_cad_budget_restarts.py tests/test_free_partial_qe.py tests/test_statement_replay.py tests/test_remaining_capabilities.py -p no:cacheprovider
+      - run: python tools/benchmark_certification.py --output certification-benchmarks.json
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: seeded-${{ matrix.python }}-${{ matrix.dependencies }}-${{ matrix.ground }}
+          path: |
+            qe-oracle-results.json
+            certification-benchmarks.json

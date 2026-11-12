@@ -352,7 +352,7 @@ These are compositions of the certified lower-level algorithms. Direct substitut
 
 ## Symbolic geometry validity and assumptions
 
-Canonical geometry keeps undecidable constructor requirements explicit instead of silently assuming them. Every `Geometry` exposes `conditions`, and `is_valid(assumptions=...)` returns `True`, `False`, or `None` according to whether those requirements are proved, disproved, or remain undecidable. Existing constructor provenance such as simplex triangle inequalities, ellipsoid positive-definiteness, cylinder/cone nondegeneracy, and torus radius restrictions feeds the same protocol; radial regions additionally expose their nonnegative-radius requirements.
+Canonical geometry keeps undecidable constructor requirements explicit instead of assuming them. Every `Geometry` exposes `conditions`, and `is_valid(assumptions=...)` returns `True`, `False`, or `None` according to whether those requirements are proved, disproved, or remain undecidable. Existing constructor provenance such as simplex triangle inequalities, ellipsoid positive-definiteness, cylinder/cone nondegeneracy, and torus radius restrictions feeds the same protocol; radial regions additionally expose their nonnegative-radius requirements.
 
 `Ball`, `Sphere`, `Ellipsoid`, and `EllipsoidBoundary` accept an optional `assumptions=` argument for assumption-sensitive construction. Common SymPy sign predicates such as `Q.positive(r)` are normalized to the same real relational assumptions used by semialg's reasoning layer. Constructors reject only a provable contradiction; an undecidable symbolic requirement remains in `conditions`.
 
@@ -387,7 +387,7 @@ The current generality is narrower than the existence theorems. Higher-dimension
 
 For three-dimensional boundary representations, `PolyhedralShell` stores one connected, closed, consistently oriented polygonal 2-manifold.  Construction validates face indices, exact vertex deduplication, planar faces, two-face edge incidence, orientation across shared edges, and face connectivity. `PolyhedralComponent` associates an outer shell with explicitly classified cavity shells, while `Polyhedron` may contain several disconnected solid components.  `outer_polyhedra()`, `inner_polyhedra()`, `polyhedron_vertices()`, and `polyhedron_face_indices()` expose this structure. `deduplicate_indexed_vertices()` provides the shared exact coordinate-deduplication and cell-reindexing primitive.
 
-Boundary objects record already-classified outer/inner topology rather than inferring geometric nesting.  Automatic shell/ring nesting and canonical classification belong to the canonicalization layer.
+Boundary objects record already-classified outer/inner topology instead of inferring geometric nesting.  Automatic shell/ring nesting and canonical classification belong to the canonicalization layer.
 
 
 ## Reduced algebraic variety semantics
@@ -438,7 +438,7 @@ Canonical region types include `FinitePointSet`, `Interval`, `Box`, `Parallelogr
 
 ## Semialgebraic statistical model geometry and constraint certificates
 
-`polynomial_constraints()` returns a Boolean-preserving `PolynomialConstraintSystem` whose `PolynomialConstraintClause` objects contain normalized `PolynomialConstraint` relations. `active_constraints()` returns an `ActiveConstraintResult` at an exact feasible point. `relative_interior()`, `relative_boundary()`, and `semialgebraic_tangent_cone()` retain the real inequality geometry rather than replacing a model by its Zariski closure.
+`polynomial_constraints()` returns a Boolean-preserving `PolynomialConstraintSystem` whose `PolynomialConstraintClause` objects contain normalized `PolynomialConstraint` relations. `active_constraints()` returns an `ActiveConstraintResult` at an exact feasible point. `relative_interior()`, `relative_boundary()`, and `semialgebraic_tangent_cone()` retain the real inequality geometry instead of replacing a model by its Zariski closure.
 
 `parameterization_geometry()` returns `ParameterizationGeometry`, while `parameterization_critical_locus()` and `parameterization_critical_values()` expose rank-drop and critical-value geometry for polynomial/rational parameterizations.
 

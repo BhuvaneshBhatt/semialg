@@ -4,28 +4,28 @@ schema_version = 1
 [functions."bounding_cover"]
 owner = "geometry"
 risk = "high"
-reference = "optimization_geometry.md#structural-bounds-and-covers"
+reference = "reference/regions.md#optimization-geometry-and-families"
 required = ["purpose", "signature", "return_semantics", "exactness", "limitations", "parameters", "example"]
-satisfied = ["purpose", "signature", "return_semantics", "example"]
-missing = ["exactness", "limitations", "parameters"]
+satisfied = ["purpose", "signature", "return_semantics", "exactness", "algorithm", "limitations", "example"]
+missing = ["parameters"]
 status = "needs-deepening"
 
 [functions."optimization_cover"]
 owner = "geometry"
 risk = "high"
-reference = "optimization_geometry.md#structural-bounds-and-covers"
+reference = "reference/regions.md#optimization-geometry-and-families"
 required = ["purpose", "signature", "return_semantics", "exactness", "limitations", "parameters", "example"]
-satisfied = ["purpose", "signature", "return_semantics", "example"]
-missing = ["exactness", "limitations", "parameters"]
+satisfied = ["purpose", "signature", "return_semantics", "exactness", "algorithm", "limitations", "example"]
+missing = ["parameters"]
 status = "needs-deepening"
 
 [functions."region_family"]
 owner = "geometry"
 risk = "high"
-reference = "optimization_geometry.md#changing-fibers"
+reference = "reference/regions.md#optimization-geometry-and-families"
 required = ["purpose", "signature", "return_semantics", "exactness", "limitations", "parameters", "example"]
-satisfied = ["purpose", "signature", "return_semantics", "example"]
-missing = ["exactness", "limitations", "parameters"]
+satisfied = ["purpose", "signature", "return_semantics", "exactness", "algorithm", "limitations", "example"]
+missing = ["parameters"]
 status = "needs-deepening"
 
 [functions."blowup_charts"]
@@ -1419,9 +1419,9 @@ owner = "decision"
 risk = "critical"
 reference = "reference/root_api_usage.md#solvability_conditions"
 required = ["purpose", "signature", "return_semantics", "exactness", "limitations", "parameters", "example", "algorithm"]
-satisfied = ["purpose", "signature", "parameters", "return_semantics", "exactness", "algorithm", "limitations", "example"]
-missing = []
-status = "adequate"
+satisfied = ["purpose", "signature", "return_semantics", "exactness", "algorithm", "limitations", "example"]
+missing = ["parameters"]
+status = "needs-deepening"
 
 [functions."clip_affine_subspace_to_box"]
 owner = "geometry"

@@ -16,6 +16,8 @@ If you primarily need floating-point nonlinear optimization, general numerical t
 python -m pip install semialg
 ```
 
+Python 3.11+ is required. Dependencies include SymPy `>=1.14,<2`, python-flint `>=0.9,<1`, algroots `>=0.4.1`, and exprtest `>=0.1.0`; `pip` installs these automatically.
+
 For development:
 
 ```bash
@@ -106,7 +108,7 @@ For correlated directional images, closure semantics, local germs, parameter str
 
 For certified approach geometry used in asymptotic analysis, including germs, bounds, and weighted charts, see [Local geometry for asymptotic analysis](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/guides/local-asymptotic-geometry.md).
 
-Reusable [chart geometry certificates](docs/chart_certificates.md) check scalar/vector level maps, inverses, Gram rank, coverage, overlap and null sets, and identify bounded parameter-event candidates. Integration callers are responsibile for convergence and exceptional-fiber evaluation.
+Reusable [chart geometry certificates](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/chart_certificates.md) check scalar/vector level maps, inverses, Gram rank, coverage, overlap and null sets, and identify bounded parameter-event candidates. Integration callers are responsibile for convergence and exceptional-fiber evaluation.
 
 ## Core workflows
 
@@ -145,6 +147,19 @@ projected = quantifier_eliminate(
 cad(projected, (x,))
 # (x > -1) & (x < sqrt(2)/2)
 ```
+
+Full Lazard projection and valuation-aware lifting handle degree drops and supported nullification cases. Native CAD proof replay checks the projection and lifting geometry independently of stored completion flags (for supported certificate formats). The expert interfaces are in `semialg.cad_algorithms`:
+
+```python
+from semialg.cad_algorithms import decomp_lazard_complete, verify_cad
+
+polynomial = y**2 - x
+native = decomp_lazard_complete((polynomial,), (x, y))
+proof = verify_cad(native, polynomials=(polynomial,), return_result=True)
+assert proof.valid
+```
+
+For recursive equational-constraint projection and the limits of certificate replay, see [Native CAD proofs](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/native_cad_proofs.md).
 
 ### Regions and reusable CAD decompositions
 
@@ -212,7 +227,9 @@ See [Optimization geometry and parameter families](https://github.com/BhuvaneshB
 
 ### Quantifier elimination and CAD planning
 
-`quantifier_eliminate(...)` is the public analogue of a real `Resolve` operation: quantified variables are eliminated while free parameters are preserved.
+`quantifier_eliminate(...)` is the operation for eliminating quantified real variables while preserving free parameters.
+
+Automatic quantifier elimination can use quantifier-guided partial CAD, pruning existential branches after success and universal branches after failure. Reduced CAD exploits recursively justified equational constraints where its projection hypotheses can be certified, with safe fallback otherwise. `cad(...)` and `quantifier_eliminate(...)` accept `max_cells` and cooperative `timeout` limits; resource exhaustion never certifies a partial result as complete. See [CAD and QE](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/cad_qe.md) and [Parameter-cell QE and budgets](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/tutorials/parameter_cell_qe.md).
 
 ```python
 from semialg import Exists, ForAll, quantifier_eliminate
@@ -262,8 +279,6 @@ set(score.order)
 ```
 
 Univariate parameter-dependent integrals can use algebraic CAD root functions as moving endpoints. For example, the measure of `x**2 <= a` is stratfied exactly as zero for `a <= 0` and the distance between the two ordered roots for `a > 0`; specialization gives `4` at `a=4` and `6` at `a=9`.
-
-For supported quadratic inequalities and Cartesian-product regions, structural topology rules can determine closures, interiors, boundaries, and some connectivity properties before general CAD. See [Exact rules before CAD](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/structural_rules.md).
 
 ### Geometric queries
 
@@ -332,6 +347,8 @@ Region topology uses CAD semantics even for atomic polynomial inequalities; comp
 
 `is_path_connected` is an exact decision through CAD connectivity. `path_between` returns an explicit piecewise-linear path in the certified 1-D case and a certified CAD cell/connector chain in higher dimensions; full Canny/Basu-Pollack-Roy roadmap parametrization is not implemented yet.
 
+For supported quadratic inequalities and Cartesian-product regions, structural topology rules can determine closures, interiors, boundaries, and some connectivity properties before general CAD. See [Exact rules before CAD](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/structural_rules.md).
+
 ### Exact optimization specializations
 
 Affine objectives on supported ellipsoids and univariate polynomial objectives can use exact structural methods before general CAD. Optimization results preserve whether an infimum or supremum is actually attained:
@@ -346,7 +363,7 @@ punctured = semialgebraic_minimize(x**2, sp.Ne(x, 0), (x,), return_result=True)
 assert punctured.value == 0 and not punctured.attained
 ```
 
-These shortcuts require supported exact polynomial inputs; otherwise the ordinary exact optimization backends apply. See [Structural rules](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/structural_rules.md).
+These shortcuts require supported exact polynomial inputs, otherwise the ordinary exact optimization backends apply. See [Structural rules](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/structural_rules.md).
 
 ## Primary and specialized APIs
 
@@ -396,12 +413,11 @@ Canonical geometry objects expose `sample_point()` / `sample_points()` for certi
 
 ### Canonical boundary topology
 
-The explicit-geometry layer includes `PolygonalSet` for disconnected polygonal sets with holes and `Polyhedron` for general 3-D boundary topology with outer and cavity shells. `PolyhedralShell` validates closed oriented manifold incidence, while `deduplicate_indexed_vertices()` provides exact coordinate
-normalization.
+The explicit-geometry layer includes `PolygonalSet` for disconnected polygonal sets with holes and `Polyhedron` for general 3-D boundary topology with outer and cavity shells. `PolyhedralShell` validates closed oriented manifold incidence, while `deduplicate_indexed_vertices()` provides exact coordinate normalization.
 
 ### Reduced algebraic varieties
 
-Algebraic geometry operations use certified reduced ideals as their semantic boundary. `certified_radicalization()` reconstructs and verifies `sqrt(I)`, `irreducible_components()` returns components only after a complete certified minimal-prime decomposition, and `reduced_component_singular_loci()` applies the Jacobian criterion separately to those reduced components. `singular_locus()` now radicalizes by default, so a presentation such as `x**2 = 0` has the same smooth
+Algebraic geometry operations use certified reduced ideals as their semantic boundary. `certified_radicalization()` reconstructs and verifies `sqrt(I)`, `irreducible_components()` returns components only after a complete certified minimal-prime decomposition, and `reduced_component_singular_loci()` applies the Jacobian criterion separately to those reduced components. `singular_locus()` radicalizes by default, so a presentation such as `x**2 = 0` has the same smooth
 line geometry as `x = 0`.
 
 ### Stratified singular geometry
@@ -423,14 +439,15 @@ Polyhedral geometry also includes canonical polygon/polyhedron normalization, de
 The polyhedral stack includes canonicalization, winding-rule polygonal path filling, explicit region conversion, pulling/placing/barycentric polytope decomposition, shell-based nonconvex polyhedron semantics, and conforming global-ID tetrahedralization of mixed convex 3-cells.
 
 ### Generation, refinement, and convex hulls
-`convex_hull` constructs exact finite-point hulls (including embedded lower-dimensional hulls); `random_polygon` and `random_polytope` provide seeded exact lattice examples; and `subdivide_triangular_faces` / `geodesic_refinement` refine triangular polyhedral shells without floating-point geometric decisions. Convex-polytope intersections use the structural Boolean fast path when applicable.
+`convex_hull` constructs exact finite-point hulls (including embedded lower-dimensional hulls), `random_polygon` and `random_polytope` provide seeded exact lattice examples, and `subdivide_triangular_faces` / `geodesic_refinement` refine triangular polyhedral shells without floating-point geometric decisions. Convex-polytope intersections use the structural Boolean fast path when applicable.
 
 ### Certified real quantifier elimination
 
-`quantifier_eliminate(...)` is the primary real-QE interface.  It uses specialized methods first and falls back to certified CAD; `project_region(...)` is the corresponding existential projection operation. Use
-`return_result=True` to retain method and backend provenance.
+`quantifier_eliminate(...)` is the primary real-QE interface.  It uses specialized methods first and falls back to certified CAD; `project_region(...)` is the corresponding existential projection operation. Use `return_result=True` to retain method and backend provenance.
 
 The certified QE dispatcher exploits independent variable-incidence blocks, equality-ideal preprocessing, RUR/virtual substitution, and CAD. Reusable parametrized CAD objects support specialization without rebuilding the decomposition.
+
+`solvability_conditions(..., groebner_backend="native", groebner_limits=NativeF4Limits(...))` can preprocess outer conjunctive equalities using `algroots`'s verified number/parameter-field backends. Generic bases carry exact specialization guards, while original equalities and inequalities remain on exceptional fibers and the full formula goes through complete real elimination. Native limits cover equality preprocessing, not the subsequent CAD calculation. This option does not change the default dispatch or replace real arithmetic with a prime-field answer. See [algroots coefficient fields and specialization](https://github.com/BhuvaneshBhatt/algroots/blob/main/docs/coefficient-fields.md).
 
 ## Worked examples
 
@@ -438,7 +455,7 @@ The documentation includes a [worked example gallery](https://github.com/Bhuvane
 
 ## Documentation
 
-New users should start with **[Getting started](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/getting_started.md)** and then follow the task-oriented links in the **[documentation index](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/index.md)**.
+New users should start with [Getting started](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/getting_started.md) and then follow the task-oriented links in the [documentation index](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/index.md).
 
 Here is some conceptual material:
 
@@ -462,12 +479,11 @@ Contributions – whether they are bug reports, suggestions, or code – are wel
 ```bash
 ruff format .
 ruff check .
-pytest -m "not slow"
-pytest -m slow --durations=20
-pytest -m performance --durations=20
+pytest
 mkdocs build --strict
-pytest -q -m slow tests/test_documentation_example_gallery.py
 ```
+
+The default suite includes all test markers. Use `pytest -m slow --durations=20` or `pytest -m performance --durations=20` to inspect those subsets separately; they also run with plain `pytest`.
 
 See [architecture guide](https://github.com/BhuvaneshBhatt/semialg/blob/main/docs/architecture/design.md) for implementation structure.
 

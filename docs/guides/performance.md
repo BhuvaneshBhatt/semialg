@@ -42,7 +42,7 @@ A formula containing an equation such as `f == 0` can often be decomposed more c
 
 Existential satisfiability uses exhaustive lazy CAD before materializing a full cell decomposition. It stops immediately on a certified true branch, while UNSAT is returned only after all relevant branches have been exhausted. Inside a single quantifier block the lazy driver may reorder variables with the measured CAD order planner because such reordering preserves semantics.
 
-Collins projection also works with exact squarefree factors instead of projecting a reducible product and all of its factors simultaneously. Factor signs plus pairwise resultants retain the required sign/root events and reduce redundant coefficients and discriminants. Reduced McCallum/Lazard paths retain their conservative certification and Collins fallback contract.
+Collins projection also works with exact squarefree factors instead of projecting a reducible product and all of its factors simultaneously. Factor signs plus pairwise resultants retain the required sign/root events and reduce redundant coefficients and discriminants. Reduced McCallum/Lazard paths retain their validated certification and Collins fallback contract.
 
 Write logical structure explicitly instead of hiding useful equalities inside opaque transformations.
 
@@ -129,7 +129,7 @@ If an accelerated backend bypasses a fallback cache, test the accelerated backen
 
 ## Profiling the slow suite
 
-Run `python -m pytest -o addopts= -m slow --durations=30` to include the slow marker even when the project defaults exclude it. Use a fixed `--hypothesis-seed` for before/after comparisons and retain the same generated-example counts, dependency set and runtime budgets. Record failures separately; a test that stops early with an error is not a speedup.
+Run `python -m pytest -m slow --durations=30` to profile the computational subset. These tests also run in the default suite. Use a fixed `--hypothesis-seed` for before/after comparisons and retain the same generated-example counts, dependency set and runtime budgets. Record failures separately; a test that stops early with an error is not a speedup.
 
 For a focused call profile, run `python -m cProfile -o case.prof -m pytest -q -o addopts= path/to/test.py::test_name` and inspect it with `python -m pstats case.prof`. This command includes collection and startup in the profile. A pytest call-phase profiling hook can isolate the mathematical test body when that distinction matters. Compare unprofiled timings: deterministic profiling adds substantial overhead and can trip runtime guards.
 

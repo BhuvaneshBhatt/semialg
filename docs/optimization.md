@@ -52,14 +52,14 @@ For multivariate polynomial problems, the exact pipeline combines:
 5. active-boundary intersections and vertices;
 6. explicit Groebner/leading-ideal dimension detection for KKT and singular loci;
 7. exact zero-dimensional solving, including the RUR backend where applicable;
-8. recursive optimization over positive-dimensional projected KKT and singular active-boundary loci when equality reduction makes progress, with exact `function_range`/image-CAD certification as the conservative terminal step when the objective is not reduced to a finite candidate set; attained range endpoints are followed by exact witness recovery on the value locus;
+8. recursive optimization over positive-dimensional projected KKT and singular active-boundary loci when equality reduction makes progress, with exact `function_range`/image-CAD certification as the validated terminal step when the objective is not reduced to a finite candidate set; attained range endpoints are followed by exact witness recovery on the value locus;
 9. rank-deficient/singular active loci;
 10. exact feasibility filtering against the original strict and non-strict constraints;
 11. exact comparison of algebraic objective values;
 12. complete-CAD certification that no strictly better feasible point exists;
 13. cost-controlled CAD function-range certification when the optimum is finite but not attained or finite candidate generation is insufficient.
 
-The singular-locus step is important because ordinary KKT equations can miss extrema when active-constraint gradients lose rank. Fixed-precision numerical comparison is never used to certify which exact algebraic candidate is better; candidate ordering is exact or the path declines conservatively.
+The singular-locus step is important because ordinary KKT equations can miss extrema when active-constraint gradients lose rank. Fixed-precision numerical comparison is never used to certify which exact algebraic candidate is better; candidate ordering is exact or the path declines validatedly.
 
 ## Certification policy
 
@@ -83,7 +83,7 @@ semialgebraic_minimize(
 # -1
 ```
 
-`polynomial_locus_dimension(equations, variables)` exposes the exact affine-dimension detector used by the optimizer. It returns `-1` for the empty algebraic locus, `0` for a finite/zero-dimensional locus, a positive integer for positive-dimensional loci, or `None` if the rational Groebner computation cannot be performed conservatively.
+`polynomial_locus_dimension(equations, variables)` exposes the exact affine-dimension detector used by the optimizer. It returns `-1` for the empty algebraic locus, `0` for a finite/zero-dimensional locus, a positive integer for positive-dimensional loci, or `None` if the rational Groebner computation cannot be performed validatedly.
 
 ## Result semantics
 
@@ -129,4 +129,4 @@ When `return_stratified=True, eliminate_quantifiers=True` is requested, semialg 
 
 ### Exact polynomial nonnegativity backend
 
-Optimization clients can call `polynomial_nonnegative`, `find_negative_point`, or `zeng_negative_point` directly. `polynomial_nonnegative` is the single public global-nonnegativity dispatcher: it returns a Boolean by default and a `CertifiedDecisionResult` with `return_result=True`. This is a semialg public API rather than an optimization-package-specific hook, so downstream packages such as symbolic optimization layers can reuse the same exact certificates and witnesses. The result object distinguishes a certified negative point, certified global nonnegativity, and an unsupported/incomplete case. The current fast coercivity certificate accepts only positive even-monomial leading forms; a leading form containing mixed odd exponents falls back to an incomplete result unless another exact strategy supplies a negative witness.
+Optimization clients can call `polynomial_nonnegative`, `find_negative_point`, or `zeng_negative_point` directly. `polynomial_nonnegative` is the single public global-nonnegativity dispatcher: it returns a Boolean by default and a `CertifiedDecisionResult` with `return_result=True`. This is a semialg public API instead of an optimization-package-specific hook, so downstream packages such as symbolic optimization layers can reuse the same exact certificates and witnesses. The result object distinguishes a certified negative point, certified global nonnegativity, and an unsupported/incomplete case. The current fast coercivity certificate accepts only positive even-monomial leading forms; a leading form containing mixed odd exponents falls back to an incomplete result unless another exact strategy supplies a negative witness.

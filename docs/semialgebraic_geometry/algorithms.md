@@ -128,7 +128,7 @@ This separation matters: a conforming sampled mesh is useful for visualization a
 
 ## Complexity
 
-General quantifier elimination over real closed fields is expensive, and CAD has doubly exponential worst-case behavior in the number of variables. This is why variable order, decomposition, equational constraints, specialized solvers, caching, and conservative early exits matter so much in practice.
+General quantifier elimination over real closed fields is expensive, and CAD has doubly exponential worst-case behavior in the number of variables. This is why variable order, decomposition, equational constraints, specialized solvers, caching, and validated early exits matter so much in practice.
 
 The package's strategy is therefore **exact-first, structure-aware, and fallback-driven**, not “always build a full CAD.”
 

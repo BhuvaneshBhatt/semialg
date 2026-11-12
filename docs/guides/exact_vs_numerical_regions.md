@@ -60,4 +60,4 @@ Region integration has three useful states:
 2. an exact unevaluated iterated integral over certified CAD bounds;
 3. an explicitly numerical approximation requested by the caller.
 
-The API does not silently replace an exact request with an unlabelled floating-point estimate.
+The API does not replace an exact request with an unlabelled floating-point estimate.

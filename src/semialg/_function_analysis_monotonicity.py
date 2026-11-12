@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping
 
 import sympy as sp
@@ -408,10 +409,8 @@ def _monotonicity_without_parameters(
     # Exact sample pairs are certificates of failure; only a surviving candidate
     # direction is sent to the quantified fallback.
     partition = None
-    try:
+    with contextlib.suppress(TypeError, ValueError, NotImplementedError, sp.PolynomialError):
         partition = analysis.monotonic_partition(variable)
-    except (TypeError, ValueError, NotImplementedError, sp.PolynomialError):
-        pass
     if partition is not None and partition.pieces:
         classes = [classification for classification, _ in partition.pieces]
         local_inc = all(c in {"constant", "increasing", "strictly_increasing"} for c in classes)

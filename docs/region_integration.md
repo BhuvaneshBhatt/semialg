@@ -63,7 +63,7 @@ semialgebraic_measure(x**2 + y**2 <= 1, [x, y])
 
 ### Bound validation
 
-`bounds=` is validated centrally. Every bound key must resolve to one of the declared integration variables; duplicate variables, malformed pairs, and exactly reversed endpoints raise `ValueError`. This prevents misspelled bounds from being silently ignored and prevents reversed intervals from producing signed/negative measures.
+`bounds=` is validated centrally. Every bound key must resolve to one of the declared integration variables; duplicate variables, malformed pairs, and exactly reversed endpoints raise `ValueError`. This prevents misspelled bounds from being ignored and prevents reversed intervals from producing signed/negative measures.
 
 `integrate_over_standard_region` follows the same symbol-identity rule as formula-based integration: a string variable name is resolved against the actual SymPy symbol in the integrand before a new real symbol is created. Boolean intersections of explicit intervals and boxes compare exact algebraic endpoints without floating-point ordering.
 
@@ -141,7 +141,7 @@ Public region APIs accept either SymPy symbols or string variable names. A strin
 
 ## Limitations
 
-Arbitrary-dimensional CAD cells can be converted to typed nested cylindrical bounds. Variable-dependent algebraic sections are represented by certified `AlgebraicRootFunction` objects, and full-dimensional cells have direct iterated-integral adapters. Ambient integration performs a bounded variable-order search instead of assuming the caller's coordinate order: inexpensive explicit cylindrical permutations are considered first, followed by a small CAD-order set including the original order and Brown-style suggestions. Candidate decompositions are ranked by cell count and symbolic boundary complexity. Lower-dimensional cells use a separate intrinsic adapter based on the induced metric of verified triangular graph cells; singular or non-graph strata that cannot be certified still fail conservatively.
+Arbitrary-dimensional CAD cells can be converted to typed nested cylindrical bounds. Variable-dependent algebraic sections are represented by certified `AlgebraicRootFunction` objects, and full-dimensional cells have direct iterated-integral adapters. Ambient integration performs a bounded variable-order search instead of assuming the caller's coordinate order: inexpensive explicit cylindrical permutations are considered first, followed by a small CAD-order set including the original order and Brown-style suggestions. Candidate decompositions are ranked by cell count and symbolic boundary complexity. Lower-dimensional cells use a separate intrinsic adapter based on the induced metric of verified triangular graph cells; singular or non-graph strata that cannot be certified still fail validatedly.
 
 ## Typed CAD bounds
 

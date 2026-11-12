@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping, Sequence
 from typing import Literal
 
@@ -362,7 +363,7 @@ def _stratified_optimization(
         specialized_constraints = sp.simplify(constraints.subs(sample))
         specialized_objective = sp.simplify(objective.subs(sample))
         sample_result = None
-        try:
+        with contextlib.suppress(_EXPECTED_ERRORS):
             sample_result = _optimize(
                 specialized_objective,
                 specialized_constraints,
@@ -375,8 +376,6 @@ def _stratified_optimization(
                 recursion_limit=recursion_limit,
                 max_boolean_branches=max_boolean_branches,
             )
-        except _EXPECTED_ERRORS:
-            pass
         guarded_relation = sp.And(guard, optimum_relation, evaluate=False)
         branch_quantifiers = optimum_quantifiers
         quantifier_free = False

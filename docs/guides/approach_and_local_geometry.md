@@ -88,7 +88,7 @@ assert len(strata.branch_geometry.branches) == 2
 
 ## structured_proof_diagnostics
 
-`structured_proof_diagnostics(result)` **Return**s a `ProofDiagnostics` value that normalizes heterogeneous result metadata into one proof trace. It prefers an object's explicit `proof_trace`; otherwise it derives conservative steps from method/diagnostic metadata. It is diagnostic evidence, not an independent certificate verifier.
+`structured_proof_diagnostics(result)` **Return**s a `ProofDiagnostics` value that normalizes heterogeneous result metadata into one proof trace. It prefers an object's explicit `proof_trace`; otherwise it derives validated steps from method/diagnostic metadata. It is diagnostic evidence, not an independent certificate verifier.
 
 ```python
 from semialg import structured_proof_diagnostics

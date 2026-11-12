@@ -715,3 +715,22 @@ def test_cached_sector_sample_remains_strictly_between_refined_bounds():
     # The cache may reuse the old sample only when it still satisfies the
     # refined certificate; correctness does not depend on cache identity.
     assert compare_samples(refined_left, first) < 0 or second != first
+
+
+def test_nonmonic_fiber_denominator():
+    from semialg.algebraic.samples import FiberRootContext
+    from semialg.algebraic.signs import _reduce_over_fiber_tower, sign_at_sample
+
+    x, y = sp.symbols("x y", real=True)
+    parent = AlgebraicRoot(sp.Poly(x * x - 2, x), RationalInterval(1, 2), 1)
+    context = FiberRootContext(sp.Poly((x + 1) * y * y - 1, x, y), (x, y), (parent,), y)
+    child = AlgebraicRoot(
+        sp.Poly(y * y + 1 - sp.sqrt(2), y, extension=True),
+        RationalInterval(0, 1),
+        1,
+        fiber_context=context,
+    )
+    reduced = _reduce_over_fiber_tower(y * y + 1, (x, y), (parent, child))
+    assert sp.Poly(reduced, x, y, domain=sp.QQ).domain == sp.QQ
+    assert sp.simplify(reduced.subs({x: sp.sqrt(2), y: sp.sqrt(sp.sqrt(2) - 1)}) - sp.sqrt(2)) == 0
+    assert sign_at_sample(sp.Poly((x + 1) * y * y, x, y), (parent, child)) == 1

@@ -52,9 +52,7 @@ def _point_in_interval(point: sp.Expr, region: Interval) -> bool | None:
         return False
     if lo == 0 and not region.lower_closed:
         return False
-    if hi == 0 and not region.upper_closed:
-        return False
-    return True
+    return not (hi == 0 and not region.upper_closed)
 
 
 def _interval_subset(left: Interval, right: Interval) -> bool | None:
@@ -70,9 +68,7 @@ def _interval_subset(left: Interval, right: Interval) -> bool | None:
         return False
     if lo == 0 and left.lower_closed and not right.lower_closed:
         return False
-    if hi == 0 and left.upper_closed and not right.upper_closed:
-        return False
-    return True
+    return not (hi == 0 and left.upper_closed and not right.upper_closed)
 
 
 def _interval_disjoint(left: Interval, right: Interval) -> bool | None:

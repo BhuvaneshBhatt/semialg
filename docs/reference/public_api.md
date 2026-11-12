@@ -50,7 +50,7 @@ Primary reference: [Solving and sampling](solving_and_sampling.md)
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
 | `discretize_region_geometry` | `semialg.solution_geometry` | function | Return lightweight geometry for explicit standard-region objects. |
-| `discretize_solution` | `semialg.solution_geometry` | function | Return a small plotting/discretization representation for a solution. |
+| `discretize_solution` | `semialg.solution_geometry` | function | Return a small plotting/discretisation representation for a solution. |
 | `find_instance` | `semialg.solve.find_instance` | function | Find satisfying assignments for a formula. |
 | `real_algebraic_feasibility` | `semialg.real_algebraic` | function | Decide real feasibility of rational polynomial equations by certified ARS reduction. |
 | `solve_real_algebraic_set` | `semialg.real_algebraic` | function | Return one exact real point or certified emptiness. |
@@ -72,7 +72,7 @@ Primary reference: [Optimization and ranges](optimization_and_range.md)
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
 | `function_range` | `semialg.optimization` | function | Return a quantifier-free formula describing a real function range. |
-| `find_negative_point` | `semialg.polynomial_positivity` | function | Return a certified negative point or certified nonnegativity. |
+| `find_negative_point` | `semialg.polynomial_positivity` | function | Return a certified negative point or certified nonnegatvity. |
 | `polynomial_nonnegative` | `semialg.polynomial_positivity` | function | Decide certified global nonnegativity; use `return_result=True` for the SOS/Zeng/ARS/CAD portfolio trace. |
 | `zariski_closure` | `semialg.algebraic_geometry` | function | Return the Zariski closure of a polynomial-map image. |
 | `zeng_negative_point` | `semialg.polynomial_positivity` | function | Specialized exact critical-value polynomial negativity backend. |
@@ -193,7 +193,7 @@ Primary reference: [Regions and geometry](regions.md)
 | `level_set` | `semialg.derived_geometry` | function | Return ``region ∩ {expression = value}``. |
 | `linear_image` | `semialg.derived_geometry` | function | Return the exact linear image ``A*x`` in the original coordinates. |
 | `minkowski_sum` | `semialg.derived_geometry` | function | Return the exact Minkowski sum of two semialgebraic regions. |
-| `moment_matrix` | `semialg.derived_geometry` | function | Return the normalized raw second-moment matrix ``E[x x.T]``. |
+| `moment_matrix` | `semialg.derived_geometry` | function | Return the normalised raw second-moment matrix ``E[x x.T]``. |
 | `nearest_point` | `semialg.derived_geometry` | function | Return all exact nearest points when the distance is attained. |
 | `Parallelogram` | `semialg.standard_regions` | class | Parallelogram(origin: 'Sequence[object]', vectors: 'Sequence[Sequence[object]]') |
 | `ParametricRegion` | `semialg.standard_regions` | class | ParametricRegion(parameters: 'Sequence[sp.Symbol \| str]', limits: 'Sequence[tuple[sp.Symbol \| str, object, object]]', mapping: 'Sequence[object]', *, multiplicity: 'object' = 1, assumptions: 'object' = True) |
@@ -230,7 +230,7 @@ Primary reference: [Regions and geometry](regions.md)
 | `tangent_cone` | `semialg.algebraic_geometry` | function | Return the exact ideal-theoretic Zariski tangent cone at ``point``. |
 | `tangent_dimension` | `semialg.algebraic_geometry` | function | Return the exact Zariski tangent-space dimension at ``point``. |
 | `tangent_space` | `semialg.algebraic_geometry` | function | Return the Zariski tangent space at a point as the Jacobian nullspace. |
-| `TransformedRegion` | `semialg.standard_regions` | class | TransformedRegion(base: 'StandardRegion', mapping: 'Sequence[object]', base_variables: 'Sequence[sp.Symbol \| str]') |
+| `TransformedRegion` | `semialg.standard_regions` | class | TransformedRegion(base: 'StandardRegion', mapping: 'Sequence[object]', base_variables: 'Sequence[sp.Symbol[str]]') |
 | `translate` | `semialg.derived_geometry` | function | Translate a region by ``vector`` while preserving coordinate symbols. |
 | `width` | `semialg.derived_geometry` | function | Return exact directional width ``max u·x - min u·x``. |
 
@@ -292,7 +292,7 @@ Primary references: [Regions](regions.md), [CAD](cad.md), and [Exactness and cer
 | `as_semialgebraic_region` | `semialg.symbolic_regions` | function | Coerce a formula or explicit ````StandardRegion```` to ````SemialgebraicRegion````. |
 | `local_dimension` | `semialg.region_analysis` | function | Exact local semialgebraic dimension at a point. |
 | `region_active_boundary_strata` | `semialg.region_analysis` | function | Return exact pairwise-disjoint active-inequality boundary strata. |
-| `region_nonsmooth_locus` | `semialg.region_analysis` | function | Return a conservative exact nonsmooth/corner locus of a region boundary. |
+| `region_nonsmooth_locus` | `semialg.region_analysis` | function | Return a validated exact nonsmooth/corner locus of a region boundary. |
 | `region_regular_locus` | `semialg.region_analysis` | function | Return the part of ````region```` outside its algebraic boundary singular locus. |
 | `region_singular_locus` | `semialg.region_analysis` | function | Return an exact singular-locus formula or raise when certification is incomplete. |
 | `region_singular_locus_result` | `semialg.region_analysis` | function | Return singular-locus geometry with completeness and diagnostic metadata. |
@@ -371,7 +371,6 @@ Primary reference: [Semialgebraic topology and families](regions.md#semialgebrai
 
 | Public name | Implementation module | Kind | Summary |
 |---|---|---|---|
-
 | `minimal_prime_intersections` | `semialg.algebraic_geometry` | function | Return exact intersections of certified minimal-prime components. |
 | `local_dimension_strata` | `semialg.algebraic_geometry` | function | Partition a reduced variety into constructible constant-local-dimension loci. |
 | `stratified_singular_geometry` | `semialg.algebraic_geometry` | function | Separate component intersections, intrinsic singularities, and local-dimension strata. |

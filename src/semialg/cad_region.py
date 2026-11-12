@@ -15,7 +15,7 @@ from .symbolic_regions import SemialgebraicRegion, as_semialgebraic_region
 
 @dataclass(frozen=True)
 class CADSignature:
-    """Structural summary of a CAD-defined region."""
+    """Stable structural summary of a CAD-defined region."""
 
     ambient_dimension: int
     region_dimension: int
@@ -86,7 +86,7 @@ class CADRegion:
         return sp.Add(*values) if evaluate else pieces
 
     def measure(self, *, evaluate: bool = True):
-        """Ambient measure from the already-built CAD, without rebuilding the region."""
+        """Ambient measure from the already-built CAD, without rebuilding region."""
         pieces = self.integrate(sp.Integer(1), evaluate=False)
         total = sp.Add(*(piece.integral for piece in pieces))
         return sp.simplify(total.doit()) if evaluate else total
@@ -289,7 +289,7 @@ def cad_extend(region: object, condition: object, *, strategy: str = "auto") -> 
     """Refine a CAD region by an additional condition.
 
     If the condition is already truth-invariant on all existing full-dimensional
-    leafs, the existing CAD is reused. Otherwise one common refinement is built.
+    leaves, the existing CAD is reused, otherwise one common refinement is built.
     """
     reg = as_cad_region(region, strategy=strategy)
     cond = normalize_formula(condition)

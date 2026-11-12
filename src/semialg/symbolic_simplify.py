@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 
@@ -395,15 +396,11 @@ def simplify_boole(
             )
 
     if form == "cnf":
-        try:
+        with contextlib.suppress(_RECOVERABLE_ERRORS):
             simplified = simplify_boolean_form(simplified, form="cnf")
-        except _RECOVERABLE_ERRORS:
-            pass
     elif form == "dnf":
-        try:
+        with contextlib.suppress(_RECOVERABLE_ERRORS):
             simplified = simplify_boolean_form(simplified, form="dnf")
-        except _RECOVERABLE_ERRORS:
-            pass
 
     return finish(simplified)
 

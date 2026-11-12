@@ -26,7 +26,7 @@ Local-projection CAD and cylindrical algebraic coverings remain research candida
 
 Fresh-process measurements on the reference environment show that columnwise RUR construction reduces the `grid_3x3` median from 0.3090 s to 0.1706 s and peak Python allocation from 1,042,293 to 669,957 bytes. The coupled three-variable case moves from 0.07315 s to 0.06592 s and from 414,587 to 338,137 bytes. Raw samples are stored in `docs/benchmark-results/rur-columnwise.json`.
 
-The straightforward SymPy Krylov prototype is retained as a measured kernel, not selected by the RUR constructor. It was slower and more allocation-heavy than `Matrix.charpoly` on every current corpus case; raw results are in `docs/benchmark-results/rur-minimal-polynomial.json`.
+The straightforward SymPy Krylov kernel is retained as a measured kernel, not selected by the RUR constructor. It was slower and more allocation-heavy than `Matrix.charpoly` on every current corpus case; raw results are in `docs/benchmark-results/rur-minimal-polynomial.json`.
 
 
 ## EC/TTICAD and ordering follow-up
@@ -38,7 +38,7 @@ Automatic Brown-versus-chordal ordering uses graph fill first and an abstract mu
 
 ## Packed RUR elimination experiment
 
-`packed_krylov_minimal_polynomial` maintains normalized pivot rows and the matching Krylov-combination rows incrementally. Each new Krylov vector is reduced once, so the loop contains no repeated rank computation or generic linear solve. It is substantially faster and smaller than the earlier high-level Krylov prototype, but the current SymPy `charpoly` implementation remains faster on the cyclic companion benchmark. Production RUR construction therefore continues to use `charpoly`; the packed kernel remains an experimental exact kernel. See `benchmark-results/packed-rur-kernel.json`.
+`packed_krylov_minimal_polynomial` maintains normalized pivot rows and the matching Krylov-combination rows incrementally. Each new Krylov vector is reduced once, so the loop contains no repeated rank computation or generic linear solve. It is substantially faster and smaller than the earlier high-level Krylov kernel, but the current SymPy `charpoly` implementation remains faster on the cyclic companion benchmark. Production RUR construction therefore continues to use `charpoly`; the packed kernel remains an experimental exact kernel. See `benchmark-results/packed-rur-kernel.json`.
 
 Local-projection CAD and cylindrical algebraic coverings are not part of this work.
 

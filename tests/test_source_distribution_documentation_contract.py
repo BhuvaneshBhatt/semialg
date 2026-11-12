@@ -42,8 +42,6 @@ def test_sdist_build_inputs():
         "tools/install_backend.py",
         "ci/minimum.txt",
         "ci/backends.toml",
-        "ci/sources/algroots.tar.gz",
-        "ci/patches/algroots.patch",
         "docs/assets/linkage-workspace.svg",
         "tests/certificate_fields.json",
     }

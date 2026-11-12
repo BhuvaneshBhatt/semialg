@@ -1,3 +1,39 @@
+## Version 1.5
+
+Focused on `algroots` integration: native Gröbner defaults, coefficient-field towers, guarded parameter preprocessing, and backend-aware RUR and primary decomposition.
+
+### Native Gröbner integration
+
+- Use `algroots`’s verified native Gröbner backend by default for Gröbner-backed algebraic operations, including RUR construction, primary decomposition and parameter equality preprocessing.
+- Add `groebner_backend` and `groebner_limits` options to the relevant entry points, preserving the selected policy through recursive calculations.
+- Retain explicit SymPy construction through `groebner_backend="sympy"`. Native requests report unavailable kernels, exhausted budgets and verification failures without automatically switching backends.
+
+### Coefficient fields and algebraic towers
+
+- Add `as_domain()` and `to_coefficient_domain()` bridges from `semialg`’s rational-function fields and monogenic towers to `algroots`’s exact coefficient domains.
+- Support finite primary decomposition over declared number fields, rational parameter fields and parameter-dependent algebraic towers. Returned certificates verify the source ideal, primary components, associated primes and component degrees.
+- Extend RUR construction with an explicit `domain` argument, including supported parameter and tower fields. Generic RURs describe the declared coefficient field, while real-root extraction requires suitable specialization and real embeddings.
+- Cache converted coefficient domains and detach mutable constructor sequences so later input changes cannot invalidate cached field representations.
+
+### Parameter-dependent solvability
+
+- Add verified Gröbner preprocessing of outer conjunctive equalities in `solvability_conditions`, including algebraic coefficients and parameter-dependent systems.
+- Use specialization guards to distinguish generic calculations from exceptional parameter fibers. Retain the original equations and inequalities on exceptional fibers before complete real elimination.
+- Preserve visible denominator restrictions when clearing rational equalities, preventing cancelation from introducing solutions at excluded poles.
+- Keep Gröbner preprocessing budgets separate from subsequent CAD work. Algebraic elimination does not replace real quantifier elimination.
+
+### Correctness and robustness
+
+- Fix algebraic fiber-tower reduction when coefficient denominators are hidden inside expanded sums. Normalize rational remainders before passing them to polynomial-only reduction stages.
+- Fix collisions between bound symbols inside algebraic-root representations against polynomial coordinates, preserving the selected coefficient embedding.
+- Include coefficient domains, backend selections and operation limits in RUR and GTZ cache keys.
+
+### Documentation, testing and packaging
+
+- Update documentation and examples for backend selection, coefficient-field towers, exceptional fibers, certificate verification and mathematical limitations
+- Expand regression tests for native/SymPy agreement, repeated roots, parameter poles, field embeddings, cache separation, budget failures and corrupted certificates.
+- Add broader CI and distribution checks.
+
 ## Version 1.4
 
 ### CAD, quantifier elimination, and certification

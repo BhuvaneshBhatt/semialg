@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Iterable, Mapping, Sequence
 from itertools import product
 
@@ -348,10 +349,8 @@ def solve_univar_witness(
             try:
                 for component in sp.decompose(delta, var):
                     if component != delta:
-                        try:
+                        with contextlib.suppress(_RECOVERABLE_ERRORS):
                             candidates.extend(sp.solve(sp.Eq(component, 0), var))
-                        except _RECOVERABLE_ERRORS:
-                            pass
             except _RECOVERABLE_ERRORS:
                 pass
     for value in candidates:

@@ -2584,7 +2584,7 @@ owner = "decision"
 risk = "critical"
 contracts = ["public-surface", "behavioral-call"]
 tests = ["tests/test_conditional_parameter_results.py", "tests/test_factory_result_contracts.py"]
-evidence_file_count = 6
+evidence_file_count = 7
 coverage_status = "expanded"
 
 [apis."solve_real_algebraic_set"]

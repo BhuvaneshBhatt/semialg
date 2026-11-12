@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
@@ -297,10 +298,8 @@ def _apply_equalities_to_later_atoms(args: Sequence[sp.Expr]) -> tuple[sp.Expr, 
             try:
                 current = current.xreplace(repl)
             except _RECOVERABLE_ERRORS:
-                try:
+                with contextlib.suppress(_RECOVERABLE_ERRORS):
                     current = current.subs(repl)
-                except _RECOVERABLE_ERRORS:
-                    pass
         out.append(current)
     return tuple(out)
 

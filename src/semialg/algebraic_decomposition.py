@@ -31,7 +31,7 @@ from ._algebraic_decomposition_types import (
     _TriangularPrimalityAnalysis,
 )
 from .algebraic.equality_ideal import EqualityIdealContext
-from .algebraic.groebner_utils import lex_basis_generators
+from .algebraic.groebner_utils import _backend_policy, lex_basis_generators
 from .algebraic.hilbert import ideal_degree
 from .algebraic.ideal_ops import principal_ideal_intersection
 from .algebraic.rational_univariate.representation import RationalUnivariateError
@@ -936,9 +936,7 @@ def _squarefree_regular_chain_certified(context: EqualityIdealContext) -> bool:
     saturated_chain = saturated_prefix
     if saturated_chain is None:
         return False
-    if not _ideal_generators_equal(saturated_chain, context.generators, context.variables):
-        return False
-    return True
+    return _ideal_generators_equal(saturated_chain, context.generators, context.variables)
 
 
 def _equidimensionality_certified(context: EqualityIdealContext) -> bool:
@@ -977,9 +975,7 @@ def _equidimensionality_certified(context: EqualityIdealContext) -> bool:
     # Any exactly certified prime ideal is equidimensional. This hook lets the
     # minimal-prime layer strengthen downstream ARS eligibility without making
     # primality a prerequisite for ordinary decomposition.
-    if _prime_certificate_method(context) is not None:
-        return True
-    return False
+    return _prime_certificate_method(context) is not None
 
 
 def _piece_formula(context: EqualityIdealContext) -> sp.Expr:
@@ -2479,6 +2475,13 @@ def verify_primary_decomposition_certificate(
     certificate: PrimaryDecompositionCertificate,
 ) -> bool:
     """Replay a primary decomposition using exact ideal arithmetic only."""
+    from .algebraic.coefficient_primary import (
+        CoefficientPrimaryCertificate,
+        verify_coefficient_primary_certificate,
+    )
+
+    if isinstance(certificate, CoefficientPrimaryCertificate):
+        return verify_coefficient_primary_certificate(certificate)
     try:
         from .algebraic.gtz_primary import (
             GTZPrimaryDecompositionCertificate,
@@ -2517,9 +2520,14 @@ def verify_primary_decomposition_certificate(
 _PRIMARY_DECOMPOSITIONS = BoundedLRU.heavyweight(32, "algebraic.primary-decompositions")
 
 
+@_backend_policy
 def primary_decomposition(
     equations: Iterable[sp.Expr | sp.Equality],
     variables: Sequence[sp.Symbol],
+    *,
+    coefficient_field=None,
+    groebner_backend="native",
+    groebner_limits=None,
 ) -> PrimaryDecompositionResult:
     """Compute a certified primary decomposition when the proof is supported.
 
@@ -2530,6 +2538,20 @@ def primary_decomposition(
     nonmonomial positive-dimensional cases fall through to the full certified
     recursive GTZ localization/contraction driver.
     """
+    if coefficient_field is not None:
+        from .algebraic.coefficient_primary import coefficient_primary_decomposition
+
+        return coefficient_primary_decomposition(
+            equations,
+            variables,
+            coefficient_field,
+            backend=groebner_backend,
+            limits=groebner_limits,
+        )
+    if groebner_limits is not None:
+        raise ValueError(
+            "primary backend limits require coefficient_field (use QQ for rational coefficients)"
+        )
     vars_ = tuple(variables)
     source = EqualityIdealContext.build(_normalize_equations(equations, vars_), vars_)
     key = (vars_, source.generators)

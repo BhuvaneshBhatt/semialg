@@ -42,7 +42,7 @@ The converted CAD examples cite D. Wilson, *Real Geometry and Connectedness via 
 
 `cad_cases()` contains all 68 entries of David Wilson's CAD Example Bank v4. Each record preserves the source procedure/index identifier and the variable order in the bank. The bank does not itself attach a canonical cell count to every entry, so a missing reference count is not represented as zero or inferred from another implementation.
 
-`tticad_cases()` contains all 29 examples from the published Section 8.2 TTICAD dataset (DOI 10.15125/BATH-00076). Formula grouping and equational constraints are retained in `expected["formulae"]`, in addition to the flattened polynomial list used by generic CAD runners. Reference cell counts belong to a particular algorithm/configuration and should be stored with that algorithm label rather than treated as an intrinsic property of the mathematical problem.
+`tticad_cases()` contains all 29 examples from the published Section 8.2 TTICAD dataset (DOI 10.15125/BATH-00076). Formula grouping and equational constraints are retained in `expected["formulae"]`, in addition to the flattened polynomial list used by generic CAD runners. Reference cell counts belong to a particular algorithm/configuration and should be stored with that algorithm label instead of treated as an intrinsic property of the mathematical problem.
 
 ## Running the benchmarks
 
@@ -67,6 +67,33 @@ python -m semialg.benchmarks tticad
 `run_tticad()` is separate. It preserves the published formula-family and equational-constraint structure and runs semialg's certified family-aware TTICAD path. Its metrics report the effective backend and whether certification required a Collins fallback. The `published_tticad` reference count is the TTICAD column of Table 2 in Bradford et al.; it is a published reference measurement, not an expected equality for semialg's independently implemented algorithm.
 
 The Gröbner runner accepts parameterized `cyclic`, `katsura`, `eco`, and `noon` families. For example, `groebner cyclic 7` constructs the size-7 family at run time instead of requiring a separate checked-in case for every size. Gröbner correctness is checked by reducing every input generator with the computed basis.
+
+## Compare complete computations across Gröbner engines
+
+[`scripts/benchmark_field_pipeline.py`](https://github.com/BhuvaneshBhatt/semialg/blob/main/scripts/benchmark_field_pipeline.py) measures six RUR problems, four primary-decomposition problems, and seven real-solvability problems in two comparison modes. The algebraic cases cover rational, number, parameter and mixed fields, repeated roots, embedded components and localized decomposition. The real cases include inequalities, strict endpoints, exceptional fibers at zero and one, an excluded coefficient pole, and a coupled two-variable system with strict bounds.
+
+Select the SymPy method explicitly and write each configuration to its own JSON file:
+
+```bash
+PYTHONHASHSEED=0 python scripts/benchmark_field_pipeline.py --backends sympy --sympy-method buchberger --repetitions 3 --output buchberger.json
+PYTHONHASHSEED=0 python scripts/benchmark_field_pipeline.py --backends sympy --sympy-method f5b --repetitions 3 --output f5b.json
+PYTHONHASHSEED=0 python scripts/benchmark_field_pipeline.py --backends native --repetitions 3 --output native.json
+```
+
+`--sympy-method` defaults to `buchberger`. It controls SymPy calls during the SymPy configuration, including supporting calculations; native runs keep SymPy supporting and reference-verification calls on Buchberger. The script restores the previous SymPy setting after each case. Run configurations serially in fresh processes, then repeat in reverse order to assess order effects. `--seed` defaults to 1729. Use `--cases` followed by exact workload names for a focused run, for example `--cases rur_rational solvability_matched_exceptional_quadratic`.
+
+The real-decision variants answer different performance questions:
+
+| Prefix | Calculation | Interpretation |
+| --- | --- | --- |
+| `solvability_api_` | Call `solvability_conditions` directly with the selected backend | Compare the current public workflows; native enables optional equality preprocessing while SymPy skips it |
+| `solvability_matched_` | Preprocess equalities with the selected engine, then call `solvability_conditions` with its additional preprocessing disabled | Compare the same preprocessing policy followed by complete real elimination; both retain exceptional branches and inequalities |
+
+Every timed operation includes its algorithm-internal verification. All registered semialg caches are cleared before each sample, outside its timer; SymPy expression caches remain warm. RUR coordinate identities and prescribed algebra lengths/point counts, primary-decomposition certificate replay, and exact real-parameter condition checks run outside those operation timers. For the real cases, the checker proves that every disjunct of the symmetric difference with the expected condition is empty using exact univariate inequality reduction. It does not rely on sampled parameter values.
+
+Reports retain every wall/CPU sample, matched preprocessing/elimination stage times, every sample's public algroots Gröbner profile, exact inputs, answers, backend/method settings, dependency versions, seeds and driver hash. A separate untimed run counts actual Buchberger/F5B algorithm entries and verifies its answer. This audit also sees direct SymPy calls that are absent from the public algroots profiler. Nested profiling timers must not be added as disjoint costs. Unavailable native capabilities are recorded separately; a failed correctness check stops the run.
+
+These workloads measure complete algebraic and real-decision pipelines. They are small and do not establish the relative performance of the engines on large Gröbner systems or a general CAD speedup.
 
 ## Reproduce certification profiles
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
@@ -74,10 +75,8 @@ def _piecewise_breakpoints(expr: sp.Expr, variable: sp.Symbol) -> tuple[sp.Expr,
                     continue
                 if polynomial.degree() <= 0:
                     continue
-                try:
+                with contextlib.suppress(NotImplementedError, sp.PolynomialError):
                     points.update(sp.real_roots(polynomial.as_expr()))
-                except (NotImplementedError, sp.PolynomialError):
-                    pass
     return tuple(sorted(points, key=sp.default_sort_key))
 
 
@@ -129,10 +128,8 @@ def _univariate_break_candidates(expression: sp.Expr, variable: sp.Symbol) -> tu
         pass
     for atom in expression.atoms(sp.Abs, sp.sign):
         arg = atom.args[0]
-        try:
+        with contextlib.suppress(sp.PolynomialError, NotImplementedError, TypeError, ValueError):
             candidates.update(sp.real_roots(sp.Poly(arg, variable).as_expr()))
-        except (sp.PolynomialError, NotImplementedError, TypeError, ValueError):
-            pass
     return tuple(sorted(candidates, key=sp.default_sort_key))
 
 

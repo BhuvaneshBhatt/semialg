@@ -26,7 +26,7 @@ The exact projection operator and lifting strategy can vary with the problem, so
 
 ![Optimization and integration flow](../assets/analysis-flow.svg)
 
-Optimization and integration share the same design principle. Recognized one-dimensional, affine, polyhedral, radial, or other structured cases can use specialized exact formulas. A specialization is used only when its required signs, domains, and structural hypotheses are established. Otherwise the operation falls back to general semialgebraic machinery or returns a conservative unsupported/undecided result instead of treating an unproved condition as true.
+Optimization and integration share the same design principle. Recognized one-dimensional, affine, polyhedral, radial, or other structured cases can use specialized exact formulas. A specialization is used only when its required signs, domains, and structural hypotheses are established. Otherwise the operation falls back to general semialgebraic machinery or returns a validated unsupported/undecided result instead of treating an unproved condition as true.
 
 For parameterized problems, a result may instead be stratified into guarded parameter regimes. See [Parameterized computation](../guides/parameterized_computation.md) and [Assumptions and uncertainty](assumptions_and_uncertainty.md).
 

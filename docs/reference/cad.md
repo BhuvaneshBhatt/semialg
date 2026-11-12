@@ -3,7 +3,7 @@
 
 **Mathematical return.** CAD APIs return cylindrical cells/decompositions, exact cell bounds and samples, or structured connectivity/integration data derived from them.
 
-**Exactness and certification.** Root order, sign/truth invariance, and cell reconstruction are exact on certified paths. Reduced projection is used only when its side conditions are established; otherwise the implementation falls back conservatively.
+**Exactness and certification.** Root order, sign/truth invariance, and cell reconstruction are exact on certified paths. Reduced projection is used only when its side conditions are established; otherwise the implementation falls back validatedly.
 
 **Algorithm.** Projection constructs lower-dimensional control polynomials; lifting decomposes fibers into sections and sectors. Variable ordering can materially change cost.
 
@@ -82,7 +82,7 @@ A `CADResult` has the following principal fields and views:
 - `result.diagnostics` records strategy, preprocessing, resource-limit, and related
   metadata when available.
 
-The central CAD invariant is **truth invariance**: after projection and lifting, the input formula has a constant truth value on each final cell. Consequently, for a complete result, `cell_set` is exactly the union of final cells on which the input formula (or requested operation) is true. Cell indices encode the cylindrical path through successive lifting levels; they are decomposition identifiers rather than Cartesian coordinates.
+The central CAD invariant is **truth invariance**: after projection and lifting, the input formula has a constant truth value on each final cell. Consequently, for a complete result, `cell_set` is exactly the union of final cells on which the input formula (or requested operation) is true. Cell indices encode the cylindrical path through successive lifting levels; they are decomposition identifiers instead of Cartesian coordinates.
 
 ### Variable ordering is a first-class performance decision
 
@@ -104,7 +104,7 @@ For example, the region
 
 \[ 0\le y\le1,\qquad y^2\le x\le y \]
 
-has especially simple cylindrical bounds in the order `(y, x)`: first `0 <= y <= 1`, then `y**2 <= x <= y`. Using `(x, y)` can instead force a description involving `sqrt(x)`. The CAD-driven region-integration planner therefore searches alternative legal orders and scores the resulting certified cells/bounds rather than always inheriting the caller's coordinate order.
+has especially simple cylindrical bounds in the order `(y, x)`: first `0 <= y <= 1`, then `y**2 <= x <= y`. Using `(x, y)` can instead force a description involving `sqrt(x)`. The CAD-driven region-integration planner therefore searches alternative legal orders and scores the resulting certified cells/bounds instead of always inheriting the caller's coordinate order.
 
 Quantifiers restrict what may be reordered. Variables inside the same quantifier block can often be permuted without changing meaning, but moving variables across alternating `Exists`/`ForAll` blocks changes the logical formula and is not a legal performance optimization. Likewise, free-variable order can affect the desired shape of reconstructed output. Automatic planning must preserve those semantic constraints.
 

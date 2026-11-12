@@ -1,48 +1,87 @@
-name: Publish SemiAlg to PyPI
-
+name: Publish release
 on:
-  push:
-    tags:
-      - "v*"
-
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Upload the validated artifacts to PyPI
+        type: boolean
+        default: false
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 120
+    env:
+      MPLBACKEND: Agg
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
-
-      - name: Install build tools
-        run: python -m pip install build
-
-      - name: Build distributions
+          python-version: '3.12'
+      - name: Require the tag matching package metadata for publication
+        env:
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          python - <<'PY'
+          import os, tomllib
+          from pathlib import Path
+          metadata = tomllib.loads(Path('pyproject.toml').read_text())['project']
+          version = metadata.get('version', '1.5.0')
+          publishing = os.environ['GITHUB_EVENT_NAME'] == 'release' or os.environ['PUBLISH'] == 'true'
+          if publishing and os.environ['GITHUB_REF'] != 'refs/tags/v' + version:
+              raise RuntimeError('Publish from the tag matching project.version')
+          PY
+      - name: Install release and integration dependencies
+        run: python -m pip install build twine ruff '.[test,dev,docs,release]'
+      - name: Lint and format
+        run: |
+          ruff check --no-cache .
+          ruff format --check --no-cache .
+      - name: Build release artifacts
         run: python -m build
-
-      - uses: actions/upload-artifact@v4
+      - name: Check metadata and install the candidate wheel
+        run: |
+          python -m twine check --strict dist/*
+          python -m pip install --force-reinstall --no-deps dist/*.whl
+          python -m pip check
+      - name: Verify the candidate and integrations
+        run: |
+          python -m pytest -q -o pythonpath=
+          python scripts/run_installed_wheel_contract.py dist/*.whl
+          python tools/check_distribution.py dist/*.whl dist/*.tar.gz
+      - uses: actions/upload-artifact@v6
         with:
-          name: distributions
-          path: dist/
-
+          name: release-distributions
+          path: dist/*
+          if-no-files-found: error
   publish:
+    if: github.event_name == 'release' || inputs.publish
     needs: build
     runs-on: ubuntu-latest
-
-    environment:
-      name: pypi
-      url: https://pypi.org/p/semialg
-
+    environment: pypi
     permissions:
       id-token: write
-
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
-          name: distributions
-          path: dist/
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+          name: release-distributions
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Verify the indexed version
+        run: |
+          python -m venv verify-index
+          verify-index/bin/python -m pip install semialg==1.5.0
+          verify-index/bin/python -m pip check
+          verify-index/bin/python -c "import importlib.metadata as m; assert m.version('semialg') == '1.5.0'"
+          verify-index/bin/python - <<'PY'
+          import sympy as sp
+          from semialg import function_domain
+          x = sp.Symbol('x', real=True)
+          assert sp.simplify_logic(sp.Xor(function_domain(sp.sqrt(x-1), [x]), x>=1)) is sp.false
+          PY
