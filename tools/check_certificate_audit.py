@@ -81,10 +81,10 @@ def main():
     )
     args = parser.parse_args()
     result = summarize(
-        (json.loads(line) for line in args.report.read_text().splitlines() if line),
-        json.loads(args.inventory.read_text()),
+        (json.loads(line) for line in args.report.read_text(encoding="utf-8").splitlines() if line),
+        json.loads(args.inventory.read_text(encoding="utf-8")),
     )
-    args.output.write_text(json.dumps(result, indent=2) + "\n")
+    args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     for omission in result["omissions"]:
         print(omission)
     print(f"{len(result['families'])} families, {len(result['fields'])} proof fields")

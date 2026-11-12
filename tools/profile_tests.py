@@ -73,7 +73,7 @@ def main():
         "SEMIALG_PROFILE_OUTPUT": str(args.output.resolve()),
         "PYTHONPATH": os.pathsep.join([str(root / "tools"), *sys.path]),
     }
-    (args.output / "phases.jsonl").write_text("")
+    (args.output / "phases.jsonl").write_text("", encoding="utf-8")
     started = time.perf_counter()
     timed_out = False
     with (args.output / "pytest.log").open("w") as stream:
@@ -98,7 +98,7 @@ def main():
         "returncode": code,
         "timed_out": timed_out,
     }
-    (args.output / "run.json").write_text(json.dumps(metadata, indent=2) + "\n")
+    (args.output / "run.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return code
 
 

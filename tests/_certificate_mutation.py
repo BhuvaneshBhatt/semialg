@@ -15,7 +15,9 @@ from pathlib import Path
 
 import sympy as sp
 
-POLICIES = json.loads((Path(__file__).with_name("certificate_fields.json")).read_text())
+POLICIES = json.loads(
+    (Path(__file__).with_name("certificate_fields.json")).read_text(encoding="utf-8")
+)
 AUDIT = []
 
 

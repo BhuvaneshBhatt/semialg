@@ -60,7 +60,7 @@ def render_manifest() -> str:
                 if root_usage
                 else 4
             )
-            candidates.append((priority, len(section), str(path.relative_to(DOCS)), anchor))
+            candidates.append((priority, len(section), path.relative_to(DOCS).as_posix(), anchor))
         if not candidates:
             raise ValueError(f"no substantive documentation section for public export {name!r}")
         _, _, relative, anchor = min(candidates)

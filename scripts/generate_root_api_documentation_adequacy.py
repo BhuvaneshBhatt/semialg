@@ -17,8 +17,12 @@ sys.path.insert(0, str(ROOT / "src"))
 import semialg  # noqa: E402
 
 DOCS = ROOT / "docs"
-MANIFEST = tomllib.loads((DOCS / "reference" / "primary_api_manifest.toml").read_text())["apis"]
-COVERAGE = tomllib.loads((ROOT / "tests" / "public_api_coverage.toml").read_text())["apis"]
+MANIFEST = tomllib.loads(
+    (DOCS / "reference" / "primary_api_manifest.toml").read_text(encoding="utf-8")
+)["apis"]
+COVERAGE = tomllib.loads((ROOT / "tests" / "public_api_coverage.toml").read_text(encoding="utf-8"))[
+    "apis"
+]
 
 VERBS = re.compile(
     r"\b(return|compute|decide|construct|build|find|determine|integrate|solve|resolve|simplify|generate|convert|analyze|classify|prove|check|create|evaluate|apply|wrap|translate|scale|sample|plot|discretize|triangulate|implicitize|regularize|canonicalize|refine|subdivide|clip|count|partition|verify|test|project|decompose|replay)\b",

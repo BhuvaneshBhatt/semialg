@@ -15,7 +15,7 @@ def main():
     parser.add_argument("--profile", choices=("core", "real"), default="real")
     parser.add_argument("--source-root", type=Path, default=ROOT.parent)
     args = parser.parse_args()
-    specifications = tomllib.loads((ROOT / "ci/backends.toml").read_text())
+    specifications = tomllib.loads((ROOT / "ci/backends.toml").read_text(encoding="utf-8"))
     names = [name for name in specifications if name != "semialg" or args.profile == "real"]
     targets = []
     for name in names:

@@ -21,7 +21,7 @@ def test_all_topic_and_reference_pages_are_in_mkdocs_navigation() -> None:
 
     nav_refs = nav_paths(config["nav"])
     pages = {
-        str(path.relative_to(ROOT / "docs"))
+        path.relative_to(ROOT / "docs").as_posix()
         for path in (ROOT / "docs").rglob("*.md")
         if "examples" not in path.parts
     }

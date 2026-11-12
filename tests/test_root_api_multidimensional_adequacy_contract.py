@@ -19,12 +19,12 @@ ALLOWED = {
 
 
 def _registry():
-    return tomllib.loads(REGISTRY.read_text())["apis"]
+    return tomllib.loads(REGISTRY.read_text(encoding="utf-8"))["apis"]
 
 
 def _test_directly_calls(ref: str, api: str) -> bool:
     file_name, test_name = ref.split("::", 1)
-    tree = ast.parse((ROOT / file_name).read_text(), filename=file_name)
+    tree = ast.parse((ROOT / file_name).read_text(encoding="utf-8"), filename=file_name)
     fn = next(
         n
         for n in tree.body
@@ -61,10 +61,10 @@ def test_multidimensional_registry_is_reproducible():
     import subprocess
     import sys
 
-    before = REGISTRY.read_text()
+    before = REGISTRY.read_text(encoding="utf-8")
     subprocess.run(
         [sys.executable, str(ROOT / "scripts/generate_root_api_adequacy_dimensions.py")],
         check=True,
         cwd=ROOT,
     )
-    assert REGISTRY.read_text() == before
+    assert REGISTRY.read_text(encoding="utf-8") == before

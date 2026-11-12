@@ -16,7 +16,7 @@ _spec.loader.exec_module(_benchmark)
 
 @pytest.mark.parametrize(
     "case",
-    json.loads((ROOT / "tests/data/performance_cases.json").read_text()),
+    json.loads((ROOT / "tests/data/performance_cases.json").read_text(encoding="utf-8")),
     ids=lambda case: case["id"],
 )
 def test_benchmark_inputs(case):

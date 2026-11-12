@@ -96,7 +96,9 @@ TARGETS = (
 
 
 def minimum_rows():
-    coverage = tomllib.loads((ROOT / "tests/public_api_coverage.toml").read_text())["apis"]
+    coverage = tomllib.loads((ROOT / "tests/public_api_coverage.toml").read_text(encoding="utf-8"))[
+        "apis"
+    ]
     return {
         name: {"owner": coverage[name]["owner"], "risk": coverage[name]["risk"]} for name in TARGETS
     }
@@ -154,7 +156,7 @@ def evidence():
     targets = set(minimum_rows())
     out = {n: [] for n in targets}
     for path in DEEP_FILES:
-        tree = ast.parse(path.read_text())
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for fn in [
             n
             for n in tree.body
@@ -201,7 +203,7 @@ def main():
             "",
         ]
     (ROOT / "tests/root_api_adequacy_dimensions.toml").write_text(
-        "\n".join(lines).replace("'", '"') + "\n"
+        "\n".join(lines).replace("'", '"') + "\n", encoding="utf-8"
     )
 
 

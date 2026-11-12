@@ -15,12 +15,12 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["name"]
+PACKAGE = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["name"]
 
 
 def catalog():
     """Validate that the catalog accounts for every standalone application script."""
-    entries = json.loads((ROOT / "examples/catalog.json").read_text())
+    entries = json.loads((ROOT / "examples/catalog.json").read_text(encoding="utf-8"))
     paths = [row["file"] for row in entries]
     actual = {
         p.relative_to(ROOT / "examples").as_posix()
@@ -38,7 +38,7 @@ def catalog():
 
 def snippets(path):
     """Select executable Python fences while leaving displayed signatures as text."""
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     all_blocks = PACKAGE == "alggeom" or "<!-- examples: executable -->" in text
     pattern = r"(?P<marker><!--\s*(?:algroots: execute|semialg-exec|example: executable)\s*-->\s*)?^```python[^\S\n]*\n(?P<code>.*?)^```[^\S\n]*$"
     for match in re.finditer(pattern, text, re.M | re.S):
@@ -115,7 +115,7 @@ def main():
         print("Example:", row["file"], flush=True)
     blocks = 0
     for path in (ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))):
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         if args.profile == "core" and (
             ("<!-- examples: real -->" in text)
             or (

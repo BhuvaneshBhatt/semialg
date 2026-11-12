@@ -149,13 +149,13 @@ def main():
     if args.repeats < 1:
         parser.error("--repeats must be positive")
     root = Path(__file__).resolve().parents[1]
-    manifest = json.loads((root / "tests/data/performance_cases.json").read_text())
+    manifest = json.loads((root / "tests/data/performance_cases.json").read_text(encoding="utf-8"))
     result = {
         "environment": measurement_identity(),
         "inputs": manifest,
         "results": [measure(case["id"], args.repeats) for case in manifest],
     }
-    args.output.write_text(json.dumps(result, indent=2) + "\n")
+    args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

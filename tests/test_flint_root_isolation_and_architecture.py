@@ -31,7 +31,7 @@ def test_flint_is_internal_to_high_level_algebra_semantics():
         root / "algebraic" / "gtz_zero_dim.py",
     )
     for path in high_level:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         assert "import flint" not in text
         assert "from flint" not in text
         assert "_flint_arithmetic" not in text

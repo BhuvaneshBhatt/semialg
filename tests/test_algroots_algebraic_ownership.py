@@ -33,7 +33,9 @@ def test_quotient_parent():
 
 
 def test_algroots_dependency():
-    metadata = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    metadata = tomllib.loads(
+        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )
     requirements = [Requirement(value) for value in metadata["project"]["dependencies"]]
     dependency = next(requirement for requirement in requirements if requirement.name == "algroots")
     assert "0.4.1" in dependency.specifier
@@ -53,7 +55,7 @@ def test_delegation_uses_only_namespaced_algroots_imports():
 
     folder = Path(__file__).parents[1] / "src/semialg/algebraic"
     for path in folder.rglob("*.py"):
-        for node in ast.walk(ast.parse(path.read_text())):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.ImportFrom):
                 if node.module == "algroots":
                     assert {alias.name for alias in node.names} <= {"groebner_basis"}, str(path)

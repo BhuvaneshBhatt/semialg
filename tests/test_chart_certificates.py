@@ -122,7 +122,7 @@ def test_geometry_guide_examples_execute():
     from pathlib import Path
 
     namespace = {}
-    guide = (Path(__file__).parents[1] / "docs/chart_certificates.md").read_text()
+    guide = (Path(__file__).parents[1] / "docs/chart_certificates.md").read_text(encoding="utf-8")
     for code in re.findall(r"```python\n(.*?)```", guide, re.S):
         exec(compile(code, "chart_certificates.md", "exec"), namespace)
 

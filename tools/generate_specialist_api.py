@@ -11,7 +11,7 @@ from enum import Enum
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["name"]
+PACKAGE = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["name"]
 DESTINATION = ROOT / (
     "docs/reference/expert_api.md" if PACKAGE == "semialg" else "docs/specialist-api.md"
 )
@@ -74,10 +74,10 @@ def main():
     args = parser.parse_args()
     content = render()
     if args.check:
-        if not DESTINATION.is_file() or DESTINATION.read_text() != content:
+        if not DESTINATION.is_file() or DESTINATION.read_text(encoding="utf-8") != content:
             parser.exit(1, "Specialist API index is stale\n")
     else:
-        DESTINATION.write_text(content)
+        DESTINATION.write_text(content, encoding="utf-8")
     print("Specialist API index is current")
 
 

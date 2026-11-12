@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_catalog_scripts():
-    entries = json.loads((ROOT / "examples/catalog.json").read_text())
+    entries = json.loads((ROOT / "examples/catalog.json").read_text(encoding="utf-8"))
     names = [entry["file"] for entry in entries]
     actual = {
         p.relative_to(ROOT / "examples").as_posix()
@@ -18,14 +18,14 @@ def test_catalog_scripts():
     assert len(names) == len(set(names))
     assert set(names) == actual
     for row in entries:
-        tree = ast.parse((ROOT / "examples" / row["file"]).read_text())
+        tree = ast.parse((ROOT / "examples" / row["file"]).read_text(encoding="utf-8"))
         assert any(isinstance(node, ast.Assert) for node in ast.walk(tree)), row["file"]
 
 
 def test_ownership_manifest():
     import tomllib
 
-    owners = tomllib.loads((ROOT / "docs/ownership.toml").read_text())
+    owners = tomllib.loads((ROOT / "docs/ownership.toml").read_text(encoding="utf-8"))
     assert owners["algroots"]["requires"] == []
     assert owners["semialg"]["requires"] == ["algroots"]
     assert owners["alggeom"]["requires"] == ["algroots"]
@@ -38,14 +38,14 @@ def test_backend_boundaries():
 
     from packaging.requirements import Requirement
 
-    package = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    package = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     name = package["name"]
     dependencies = {Requirement(value).name for value in package.get("dependencies", [])}
     forbidden = {"algroots": {"alggeom", "semialg"}, "semialg": {"alggeom"}, "alggeom": set()}[name]
     assert dependencies.isdisjoint(forbidden)
     for path in (ROOT / "src" / name).rglob("*.py"):
         imports = set()
-        for node in ast.walk(ast.parse(path.read_text())):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Import):
                 imports.update(alias.name.split(".")[0] for alias in node.names)
             elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
@@ -62,5 +62,5 @@ def test_tutorial_markers(tmp_path):
     checker = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(checker)
     path = tmp_path / "tutorial.md"
-    path.write_text("<!-- semialg-exec -->\n```python\nassert 2 + 2 == 4\n```\n")
+    path.write_text("<!-- semialg-exec -->\n```python\nassert 2 + 2 == 4\n```\n", encoding="utf-8")
     assert [code.strip() for code in checker.snippets(path)] == ["assert 2 + 2 == 4"]

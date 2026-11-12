@@ -98,7 +98,7 @@ def test_documentation_session():
 
     page = Path(__file__).resolve().parents[1] / "docs/optimization_geometry.md"
     namespace = {"__name__": "__geometry_documentation__"}
-    for block in re.findall(r"```python\n(.*?)\n```", page.read_text(), re.DOTALL):
+    for block in re.findall(r"```python\n(.*?)\n```", page.read_text(encoding="utf-8"), re.DOTALL):
         exec(compile(block, str(page), "exec"), namespace)
 
 

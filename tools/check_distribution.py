@@ -123,7 +123,8 @@ def main():
             },
             indent=2,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     print(
         f"{len(expected)} package modules match in all five forms; {len(contracts)} sdist contract files match"

@@ -46,4 +46,4 @@ def test_sdist_build_inputs():
         "docs/assets/linkage-workspace.svg",
         "tests/certificate_fields.json",
     }
-    assert required <= set(manifest.filelist.files)
+    assert required <= {Path(name).as_posix() for name in manifest.filelist.files}

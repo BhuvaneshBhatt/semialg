@@ -21,13 +21,13 @@ def test_navigation_targets():
         "function_verification.md",
     ):
         assert (ROOT / "docs" / page).is_file()
-        assert page in (ROOT / "mkdocs.yml").read_text()
+        assert page in (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
 
 
 def test_primary_workflow_links():
     for page in ("index.md", "api_overview.md", "guides/choosing_an_api.md"):
         path = ROOT / "docs" / page
-        links = re.findall(r"\[[^\]]+\]\(([^)]+)\)", path.read_text())
+        links = re.findall(r"\[[^\]]+\]\(([^)]+)\)", path.read_text(encoding="utf-8"))
         targets = {
             (path.parent / target.split("#", 1)[0]).resolve()
             for target in links

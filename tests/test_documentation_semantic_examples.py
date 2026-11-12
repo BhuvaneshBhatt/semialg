@@ -40,6 +40,6 @@ def test_readme_projection_answer():
     from semialg.decision import equivalent
 
     namespace = {}
-    for block in PYTHON_BLOCK.findall((ROOT / "README.md").read_text()):
+    for block in PYTHON_BLOCK.findall((ROOT / "README.md").read_text(encoding="utf-8")):
         exec(compile(block, "README.md", "exec"), namespace)
     assert equivalent(namespace["condition"], namespace["a"] >= 0, (namespace["a"],))

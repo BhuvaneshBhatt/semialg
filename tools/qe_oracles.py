@@ -113,7 +113,9 @@ def main():
     if args.generated < 1:
         parser.error("--generated must be positive")
     records = [row for case in make_cases(args.generated, args.seed) for row in check_case(case)]
-    args.output.write_text(json.dumps({"seed": args.seed, "cases": records}, indent=2) + "\n")
+    args.output.write_text(
+        json.dumps({"seed": args.seed, "cases": records}, indent=2) + "\n", encoding="utf-8"
+    )
     print(f"{len(records)} oracle decisions; {4 * len(records)} backend comparisons passed")
 
 

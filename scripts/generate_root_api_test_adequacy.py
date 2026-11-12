@@ -114,8 +114,12 @@ ADVERSE = {
 
 
 def collect():
-    meta = tomllib.loads((ROOT / "tests/public_api_coverage.toml").read_text())["apis"]
-    prior = tomllib.loads((ROOT / "tests/root_api_adequacy_dimensions.toml").read_text())["apis"]
+    meta = tomllib.loads((ROOT / "tests/public_api_coverage.toml").read_text(encoding="utf-8"))[
+        "apis"
+    ]
+    prior = tomllib.loads(
+        (ROOT / "tests/root_api_adequacy_dimensions.toml").read_text(encoding="utf-8")
+    )["apis"]
     public = {n for n in semialg.__all__ if inspect.isfunction(getattr(semialg, n))}
     ev = defaultdict(lambda: defaultdict(set))
     for path in (ROOT / "tests").rglob("test_*.py"):
@@ -256,5 +260,5 @@ def render():
 
 if __name__ == "__main__":
     t, m = render()
-    (ROOT / "tests/root_api_test_adequacy.toml").write_text(t)
-    (ROOT / "docs/quality/root-api-test-adequacy.md").write_text(m)
+    (ROOT / "tests/root_api_test_adequacy.toml").write_text(t, encoding="utf-8")
+    (ROOT / "docs/quality/root-api-test-adequacy.md").write_text(m, encoding="utf-8")

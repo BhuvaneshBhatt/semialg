@@ -174,7 +174,8 @@ def main(argv: list[str] | None = None) -> int:
                     {"status": "skipped", "reason": "Singular executable unavailable", "cases": []},
                     indent=2,
                 )
-                + "\n"
+                + "\n",
+                encoding="utf-8",
             )
         print("Singular executable not found; optional differential corpus skipped.")
         return 0
@@ -218,7 +219,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ok {case_index}/{len(cases)}: {generators}")
     if args.output:
         args.output.write_text(
-            json.dumps({"status": "passed", "seed": args.seed, "cases": reports}, indent=2) + "\n"
+            json.dumps({"status": "passed", "seed": args.seed, "cases": reports}, indent=2) + "\n",
+            encoding="utf-8",
         )
     return 0
 
